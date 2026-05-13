@@ -1,0 +1,5 @@
+{
+  "env": {
+    "CLAUDE_LOG_LEVEL": "debug"
+  }
+}

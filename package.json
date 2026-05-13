@@ -1,0 +1,51 @@
+{
+  "name": "typescript-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "keywords": [],
+  "license": "Apache-2.0",
+  "author": "",
+  "scripts": {
+    "build": "pnpm --recursive build",
+    "trunk": "trunk",
+    "format": "pnpm format:trunk",
+    "format:all": "pnpm format:trunk-all",
+    "format:eslint": "eslint . --fix",
+    "format:prettier": "prettier --write .",
+    "format:trunk": "trunk fmt",
+    "format:trunk-all": "trunk fmt --all",
+    "lint": "pnpm lint:trunk",
+    "lint:all": "pnpm lint:trunk-all && pnpm security:grype",
+    "lint:eslint": "eslint .",
+    "lint:security": "trunk check --all --scope security",
+    "lint:trunk": "trunk check -y",
+    "lint:trunk-all": "trunk check --all -y",
+    "security:grype": "grype .",
+    "knip": "knip",
+    "codeql:local": "bash dev/codeql.sh",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@trunkio/launcher": "^1.3.4",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "@vitest/eslint-plugin": "^1.6.16",
+    "eslint": "^10.2.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import-x": "^4.16.2",
+    "eslint-plugin-security": "^4.0.0",
+    "eslint-plugin-sonarjs": "^4.0.3",
+    "eslint-plugin-unicorn": "^64.0.0",
+    "knip": "^6.3.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.7",
+    "vitest": "^4.1.3"
+  },
+  "packageManager": "pnpm@11.0.0",
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=11.0.0"
+  }
+}

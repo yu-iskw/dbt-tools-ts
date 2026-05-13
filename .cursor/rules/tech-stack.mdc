@@ -1,0 +1,10 @@
+---
+description: "Pointer to AGENTS.md for pnpm workspace, Node version, and monorepo commands (avoid duplicating the canonical file)."
+alwaysApply: false
+---
+
+# Tech stack
+
+**Canonical instructions** (stack, `pnpm` commands, workspace protocol, strictness) live in the repository root **`AGENTS.md`**.
+
+Use `@AGENTS.md` or open that file when you need workspace details. Cursor also loads root `AGENTS.md` automatically for Agent ([docs](https://cursor.com/docs/rules)).

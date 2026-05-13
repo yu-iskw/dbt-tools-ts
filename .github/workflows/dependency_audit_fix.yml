@@ -1,0 +1,89 @@
+# Copyright 2026 yu-iskw
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Monthly remediation for npm advisory database findings via pnpm.
+#
+# Optional repository secret DEPENDENCY_AUTOMATION_PAT: classic or fine-grained
+# PAT with contents and pull-requests scope. When unset, the default
+# GITHUB_TOKEN is used; per GitHub, workflows triggered by that token may not
+# re-run other workflows on the opened PR—set the PAT if PR checks do not start.
+#
+# npm audit and Trunk security (pnpm lint:security) use different signals; merge
+# only after CI is green.
+
+name: Dependency audit fix
+
+on:
+  schedule:
+    # First day of each month, 09:00 UTC
+    - cron: 0 9 1 * *
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  audit-fix:
+    name: pnpm audit --fix and open PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies (not frozen; allows lockfile updates from audit --fix)
+        run: pnpm install
+
+      - name: Apply audit fixes
+        continue-on-error: true
+        run: pnpm audit --fix
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: '${{ secrets.GITHUB_TOKEN }}'
+          commit-message: 'chore(deps): apply pnpm audit --fix'
+          title: 'chore(deps): apply pnpm audit --fix'
+          signoff: true
+          branch: 'chore/pnpm-audit-fix-${{ github.run_id }}'
+          delete-branch: true
+          add-paths: |
+            pnpm-lock.yaml
+            package.json
+          body: |
+            Automated lockfile / manifest updates from `pnpm audit --fix` (npm advisory data).
+
+            **Before merging**
+            - Wait for all checks to pass (`pnpm test`, `pnpm lint`, and `pnpm lint:security`).
+            - `pnpm audit` and Trunk/OSV-scoped security are not identical; review any security findings.
+
+            If checks did not run on this PR, configure optional repository secret `DEPENDENCY_AUTOMATION_PAT` (see workflow file header in `.github/workflows/dependency_audit_fix.yml`).

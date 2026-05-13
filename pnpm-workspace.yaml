@@ -1,0 +1,17 @@
+packages:
+  - packages/*
+
+# Supply-chain protection (pnpm 11 defaults, with 7-day quarantine)
+# https://pnpm.io/blog/releases/11.0
+minimumReleaseAge: 10080 # 7 days * 1440 min; override of v11 default of 1440 (1 day)
+blockExoticSubdeps: true # explicit; matches v11 default
+
+# Build scripts: pnpm 11 requires explicit approval for dependencies that run install scripts.
+# Approved for Vite/Vitest toolchain (esbuild native binary, unrs-resolver postinstall).
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+
+# Migrated from package.json#pnpm (pnpm 11 no longer reads that field)
+overrides:
+  tar: 7.5.11
