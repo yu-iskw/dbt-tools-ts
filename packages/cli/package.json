@@ -1,6 +1,6 @@
 {
   "name": "@dbt-tools/cli",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Structured CLI for dbt artifact analysis — JSON, schema introspection, field filtering; for operators, CI, and agents",
   "keywords": [
     "dbt",
