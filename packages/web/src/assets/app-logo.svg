@@ -1,0 +1,30 @@
+<svg
+  width="640"
+  height="540"
+  viewBox="0 0 640 540"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <linearGradient id="app-logo-gradient" x1="24" y1="270" x2="594" y2="270" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5C49F5" />
+      <stop offset="1" stop-color="#5B58FF" />
+    </linearGradient>
+    <filter id="app-logo-shadow" x="0" y="16" width="618" height="508" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix" />
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+      <feOffset dy="6" />
+      <feGaussianBlur stdDeviation="8" />
+      <feColorMatrix type="matrix" values="0 0 0 0 0.176471 0 0 0 0 0.168627 0 0 0 0 0.560784 0 0 0 0.14 0" />
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1" />
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape" />
+    </filter>
+  </defs>
+  <g filter="url(#app-logo-shadow)">
+    <rect x="108" y="34" width="270" height="68" rx="34" fill="url(#app-logo-gradient)" />
+    <rect x="276" y="142" width="318" height="68" rx="34" fill="url(#app-logo-gradient)" />
+    <rect x="24" y="246" width="430" height="72" rx="36" fill="url(#app-logo-gradient)" />
+    <rect x="220" y="352" width="292" height="68" rx="34" fill="url(#app-logo-gradient)" />
+    <rect x="108" y="458" width="236" height="68" rx="34" fill="url(#app-logo-gradient)" />
+  </g>
+</svg>

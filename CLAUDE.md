@@ -1,49 +1,42 @@
-# Claude Code
+# Claude Code — project context
 
-@AGENTS.md
+## Canonical instructions
 
-Repo-wide instructions load via **`@AGENTS.md`** above; on first use in a clone, approve **external file includes** if prompted, or check **`/memory`** and [Anthropic: importing memory files](https://docs.anthropic.com/en/docs/claude-code/claude-md#import-additional-files). Directory layout for **`.claude/`**: [`.claude/README.md`](.claude/README.md).
+[`AGENTS.md`](AGENTS.md) is canonical for repository layout, package boundaries, quality gates, commands, and cross-tool notes. If this file and `AGENTS.md` disagree, `AGENTS.md` wins.
 
-## Parallel task execution
+## Environment
 
-For large tasks that benefit from concurrent work:
+- Package manager: `pnpm` workspace.
+- Node.js: version in [`.node-version`](.node-version).
+- Packages: `@dbt-tools/core` in [`packages/core`](packages/core), `@dbt-tools/cli` in [`packages/cli`](packages/cli), and `@dbt-tools/web` in [`packages/web`](packages/web).
+- Parser boundary: `dbt-artifacts-parser` is an external npm dependency, not a workspace package in this repository.
+
+## Quality gates
+
+Use `AGENTS.md` for the full ordered gate policy. High-signal commands are:
 
 ```bash
-/parallel-executor Add comprehensive logging to all modules
+pnpm test
+pnpm lint:report
+pnpm knip
+pnpm coverage:report
+pnpm build
+pnpm test:e2e
 ```
 
-This pattern expects matching agent definitions under `.claude/agents/` (for example `parallel-executor`, `task-worker`); add those files to enable it.
+Documentation-only and agent-resource edits normally still require `lint:report`, `knip`, and `coverage:report` unless the user explicitly narrows verification. Cursor mirror: [`.cursor/rules/coverage-and-lint-reports.mdc`](.cursor/rules/coverage-and-lint-reports.mdc).
 
-## Available agents
+## Claude Code resources
 
-Invoked via the Task tool (markdown definitions in `.claude/agents/`). Checked in: **`verifier`**.
+| Item                                                                                                           | Purpose                                                                      |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [`.claude/skills/dbt-tools-web-e2e/SKILL.md`](.claude/skills/dbt-tools-web-e2e/SKILL.md)                       | Author deterministic Playwright E2E specs for `@dbt-tools/web`.              |
+| [`.claude/skills/dbt-tools-web-e2e-fix/SKILL.md`](.claude/skills/dbt-tools-web-e2e-fix/SKILL.md)               | Run and fix Playwright E2E failures.                                         |
+| [`.claude/skills/dbt-tools-web-pack-npx-smoke/SKILL.md`](.claude/skills/dbt-tools-web-pack-npx-smoke/SKILL.md) | Pack `@dbt-tools/web` and smoke the published-shaped `dbt-tools-web` binary. |
+| [`.claude/skills/dbt-tools-cli-plugin-skill/SKILL.md`](.claude/skills/dbt-tools-cli-plugin-skill/SKILL.md)     | Author and verify first-party `dbt-tools-cli` agent plugin skills.           |
+| [`.claude/skills/ui-feature-verify/SKILL.md`](.claude/skills/ui-feature-verify/SKILL.md)                       | Lightweight verification path for UI-only web changes.                       |
+| [`.claude/agents/verifier.md`](.claude/agents/verifier.md)                                                     | Full verification orchestration prompt.                                      |
 
-| Agent      | Purpose                       |
-| ---------- | ----------------------------- |
-| `verifier` | Run build → lint → test cycle |
+## Coordination
 
-Add more agents as `.claude/agents/<name>.md` (see [`.claude/README.md`](.claude/README.md)).
-
-## Available skills
-
-Invoke with `/skill-name` when the skill is installed in this project:
-
-| Skill                          | Purpose                                                                     |
-| ------------------------------ | --------------------------------------------------------------------------- |
-| `build-and-fix`                | Fix build errors, type errors, compilation failures                         |
-| `check-directory-structure`    | After bulk edits; audit layout; fix flat or misplaced files                 |
-| `codeql-fix`                   | CodeQL database create/analyze and SARIF-driven fixes when CodeQL is set up |
-| `improve-claude-config`        | Evolve `.claude/` configuration                                             |
-| `initialize-project`           | Bootstrap a new repo from this template                                     |
-| `lint-and-fix`                 | Fix lint/format issues via Trunk                                            |
-| `manage-adr`                   | ADRs in `docs/adr`                                                          |
-| `node-upgrade`                 | Upgrade Node dependencies in pnpm workspaces                                |
-| `postmortem`                   | End-of-session capture to improve rules, hooks, skills (see `AGENTS.md`)    |
-| `security-scan`                | `pnpm lint:security` and `pnpm security:grype`                              |
-| `security-vulnerability-audit` | Structured Trunk security audit (Trivy, OSV-scanner) and reporting          |
-| `setup-dev-env`                | Node, pnpm, Trunk setup                                                     |
-| `test-and-fix`                 | Fix failing tests                                                           |
-
-## Instruction maintenance
-
-For **when** to capture learnings, **how** to classify improvements, and **where** to edit shared vs Claude-only files, see **`AGENTS.md`** (**Session closure and postmortems**, **Improving agent behavior**). To change **`.claude/`** from Claude Code, use **`/improve-claude-config`**.
+When multiple agents run concurrently, avoid overlapping writes. Do not invoke the verifier while another worker has uncommitted edits on files it may normalize or format. Do not edit GitHub workflow files unless the current task explicitly owns CI.

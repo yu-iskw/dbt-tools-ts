@@ -5,6 +5,7 @@ packages:
 # https://pnpm.io/blog/releases/11.0
 minimumReleaseAge: 10080 # 7 days * 1440 min; override of v11 default of 1440 (1 day)
 blockExoticSubdeps: true # explicit; matches v11 default
+resolution-mode: highest # tolerate registry metadata missing "time" for transitive deps
 
 # Build scripts: pnpm 11 requires explicit approval for dependencies that run install scripts.
 # Approved for Vite/Vitest toolchain (esbuild native binary, unrs-resolver postinstall).
@@ -12,6 +13,31 @@ allowBuilds:
   esbuild: true
   unrs-resolver: true
 
-# Migrated from package.json#pnpm (pnpm 11 no longer reads that field)
 overrides:
-  tar: 7.5.11
+  '@tootallnate/once@<3.0.1': ^3.0.1
+  fast-xml-parser@<5.7.0: ^5.7.0
+  postcss@<8.5.10: ^8.5.10
+  tar@<7.5.7: ^7.5.7
+  tar@<7.5.8: ^7.5.8
+  tar@<=7.5.10: ^7.5.11
+  tar@<=7.5.2: ^7.5.3
+  tar@<=7.5.3: ^7.5.4
+  tar@<=7.5.9: ^7.5.10
+  uuid@<14.0.0: ^14.0.0
+
+minimumReleaseAgeExclude:
+  - '@tootallnate/once@3.0.1'
+  - dbt-artifacts-parser@0.5.5
+  - eslint-plugin-react-hooks
+  - eslint-plugin-react-hooks@7.0.1
+  - fast-xml-parser@5.7.0
+  - postcss@8.5.10
+  - semver@7.7.4
+  - tar@7.5.3
+  - tar@7.5.4
+  - tar@7.5.7
+  - tar@7.5.8
+  - tar@7.5.10
+  - tar@7.5.11
+  - uuid@14.0.0
+  - yaml@2.8.3

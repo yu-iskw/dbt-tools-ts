@@ -19,16 +19,16 @@ Ground work in the **actual** on-disk layout and catch **flat or misplaced** out
 
 ## How to run
 
-Read **Architecture** and testing layout in [`AGENTS.md`](../../../AGENTS.md). Resolve workspace packages from [`pnpm-workspace.yaml`](../../../pnpm-workspace.yaml) and `packages/*/package.json` on disk (package names stay template placeholders until [`initialize-project`](../initialize-project/SKILL.md) runs).
+Read **Architecture** and testing layout in [`AGENTS.md`](../../../AGENTS.md). Resolve workspace packages from [`pnpm-workspace.yaml`](../../../pnpm-workspace.yaml) and `packages/*/package.json` on disk.
 
-**Target directory:** By default, inspect the **current directory** (after `cd` to the repository root, that is the whole repo). To inspect only a subtree—for example a single package—set `TARGET` to that path (repo-relative or absolute). Examples: `TARGET=.` (same as root after `cd` to repo root), `TARGET=packages/common`, `TARGET=packages/common/src`. Use the same `TARGET` in every command below.
+**Target directory:** By default, inspect the **current directory** (after `cd` to the repository root, that is the whole repo). To inspect only a subtree—for example a single package—set `TARGET` to that path (repo-relative or absolute). Examples: `TARGET=.` (same as root after `cd` to repo root), `TARGET=packages/core`, `TARGET=packages/web/src`. Use the same `TARGET` in every command below.
 
 ```bash
 # From repository root; inspect whole repo
 TARGET=.
 
 # Or inspect only a subtree (repo-relative or absolute path)
-TARGET=packages/common
+TARGET=packages/core
 ```
 
 ### 1. Snapshot layout

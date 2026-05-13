@@ -1,0 +1,20 @@
+{
+  "name": "dbt-tools-ts",
+  "interface": {
+    "displayName": "dbt-tools-ts (local)"
+  },
+  "plugins": [
+    {
+      "name": "dbt-tools-cli",
+      "source": {
+        "source": "local",
+        "path": "./plugins/dbt-tools-cli"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

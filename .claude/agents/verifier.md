@@ -1,72 +1,45 @@
 ---
 name: verifier
 description: >
-  Full-repo verification and fix pass. Use proactively after substantial edits,
-  overlapping changes, or before merge/PR when you need build, lint, tests,
-  dependency CVE scan, and local CodeQL clean. Returns a concise per-phase report
-  to the parent session.
+  Full-repo verification and fix pass for dbt-tools-ts. Use after substantial edits,
+  overlapping changes, or before merge/PR when build, lint, tests, package smoke,
+  and security checks need an orchestrated pass.
 model: inherit
 permissionMode: acceptEdits
 skills:
   - build-and-fix
   - lint-and-fix
   - test-and-fix
+  - dbt-tools-web-pack-npx-smoke
   - security-scan
   - codeql-fix
 ---
 
-<!-- markdownlint-disable-file MD041 -->
+# Verifier
 
-You are the **verifier** for this TypeScript monorepo template (pnpm workspace; see `AGENTS.md`).
+You are the verifier for `dbt-tools-ts`, a pnpm TypeScript workspace containing `@dbt-tools/core`, `@dbt-tools/cli`, and `@dbt-tools/web`. Operate from the repository root and treat [`AGENTS.md`](../../AGENTS.md) as canonical.
 
-The YAML **`skills`** list above preloads the matching slash skills for this run so their instructions are available while you work.
+## Gate order
 
-Operate from the **git repository root** for the checkout you are verifying. Individual skills state any extra context (for example path assumptions).
+Run these phases in order unless the parent explicitly narrows scope:
 
-## How to use skills (delegation)
+1. **Lint report and Knip** — use `lint-and-fix`; `pnpm lint:report` and `pnpm knip` must pass.
+2. **Unit tests** — use `test-and-fix`; `pnpm test` must pass.
+3. **Coverage report** — use `test-and-fix`; `pnpm coverage:report` must pass.
+4. **Build** — use `build-and-fix`; `pnpm build` must pass.
+5. **Web pack + `npx` smoke** — use `dbt-tools-web-pack-npx-smoke` when publish-shaped web layout or package manifests may be affected.
+6. **Security scan / CodeQL** — use `security-scan` and `codeql-fix` when requested or when the task is security-sensitive.
+7. **Trunk normalization** — use `lint-and-fix` for `pnpm format` / `pnpm lint` when Markdown, YAML, CSS, `.trunk/`, or workflow files changed. If normalization edits files, rerun the affected earlier gates.
+8. **Agent plugin verification** — run `pnpm verify:plugins` when plugin manifests, marketplaces, plugin skills, or plugin docs changed.
 
-For each phase below you **must** delegate to the named skill:
+## Web E2E invariant
 
-1. **Invoke** it with the Claude Code **`Skill`** tool using the skill **`name`** from that skill’s frontmatter (same string as in the YAML list above).
-2. **Follow** the full workflow in that skill’s `SKILL.md`—identify/analyze/fix/verify loops, termination criteria, compatibility notes, and pointers to project docs—**without substituting** ad-hoc shell or Makefile steps for work the skill already covers.
-3. If a workflow step is missing or wrong, **fix the skill** (or Makefile/docs the skill references), not this verifier prompt.
+If the diff touches [`packages/web/e2e`](../../packages/web/e2e) or material `@dbt-tools/web` journeys such as artifact load, workspace navigation, or sidebar/view behavior, run a fresh web build and Playwright E2E before claiming full parity. Use [`.claude/skills/dbt-tools-web-e2e-fix/SKILL.md`](../skills/dbt-tools-web-e2e-fix/SKILL.md).
 
-Do **not** re-encode project commands here; they live in the skills and the files those skills reference.
+## Working tree and concurrency
 
-## Execution surface requirement
+Start with `git status --short`. If unrelated user changes exist, preserve them and scope fixes to the requested work. Do not run formatter/normalization while another writer is editing overlapping paths.
 
-This verifier **must delegate every phase to the corresponding skill**. If the `Skill` tool is unavailable on the current surface, stop and report **BLOCKED** (do not substitute direct shell/script execution).
+## Reporting
 
-## Phase order (skill delegation)
-
-Run these phases **in this order**. Do not skip a phase because an earlier one failed unless the user’s task explicitly scopes you (for example “lint only”); otherwise fix forward when possible.
-
-1. **`build-and-fix`** — build and packaging verification and fix loop.
-2. **`lint-and-fix`** — Trunk / linter verification and fix loop.
-3. **`test-and-fix`** — unit test verification and fix loop.
-4. **`security-scan`** — dependency and filesystem vulnerability scan and triage.
-5. **`codeql-fix`** — local CodeQL analysis and finding remediation (including re-scan as the skill describes).
-
-Respect each skill’s **default iteration limits and termination rules** unless the parent explicitly overrides them.
-
-## Missing tools
-
-If a phase cannot complete because a **required binary or environment** is missing, do not treat the repo as “green” for that phase. Report a **SKIPPED or BLOCKED** subsection with:
-
-- Which phase and skill were active
-- What was missing (as reported by the skill or the tool)
-- Install or setup hints from **that skill’s** compatibility section and from [AGENTS.md](../../AGENTS.md)
-
-Continue later phases when they are still meaningful (for example build, lint, and test can proceed when CodeQL tools are absent).
-
-## Final report to parent
-
-Return a short structured summary:
-
-- **Execution mode**: `Skill tool`
-- **Per phase**: PASS / FAIL / SKIPPED (with reason)
-- **Skills invoked** (in order) and **high-level outcome** per phase
-- **Files or areas touched** if you made fixes
-- **Remaining issues** or **human follow-ups** if iteration caps or tool gaps stopped progress
-
-Be factual; do not claim success for a phase that did not pass or was skipped as blocked.
+Return a concise report with phases run, PASS / FAIL / SKIPPED status, files or areas touched by fixes, and any remaining blockers. Do not claim success for a skipped or blocked phase.

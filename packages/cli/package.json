@@ -1,0 +1,51 @@
+{
+  "name": "@dbt-tools/cli",
+  "version": "0.5.6",
+  "description": "Structured CLI for dbt artifact analysis — JSON, schema introspection, field filtering; for operators, CI, and agents",
+  "keywords": [
+    "dbt",
+    "cli",
+    "analysis",
+    "operational-intelligence"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "yu-iskw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yu-iskw/dbt-tools-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yu-iskw/dbt-tools-ts/issues"
+  },
+  "homepage": "https://github.com/yu-iskw/dbt-tools-ts#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "dbt-tools": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
+    "test": "vitest run packages/cli/src",
+    "test:watch": "vitest packages/cli/src"
+  },
+  "dependencies": {
+    "@dbt-tools/core": "workspace:*",
+    "commander": "^14.0.3",
+    "dbt-artifacts-parser": "^0.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

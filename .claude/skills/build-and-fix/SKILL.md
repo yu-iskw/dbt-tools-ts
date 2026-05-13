@@ -30,7 +30,7 @@ An autonomous loop for the agent to identify, analyze, and fix build errors usin
 
 ### Scenario: Fixing a TypeScript compilation error
 
-1. `pnpm build` fails because of a type mismatch in `packages/common/src/index.ts`.
+1. `pnpm build` fails because of a type mismatch in `packages/core/src/index.ts`.
 2. Agent analyzes the error and finds an incorrect interface implementation.
 
 ## Resources

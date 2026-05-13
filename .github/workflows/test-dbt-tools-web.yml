@@ -1,0 +1,115 @@
+# Copyright 2026 yu-iskw
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Test @dbt-tools/web
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/test-dbt-tools-web.yml
+      - packages/web/**
+      - packages/core/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - scripts/smoke-npx-with-verdaccio.sh
+      - scripts/verdaccio-smoke.yaml
+  push:
+    branches: [main]
+
+concurrency:
+  group: test-dbt-tools-web-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  web-pack-npx-smoke:
+    name: Web pack + npx smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Harden Runner
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verdaccio publish @dbt-tools peers + pack + npx smoke
+        env:
+          REPO_ROOT: ${{ github.workspace }}
+        run: bash scripts/smoke-npx-with-verdaccio.sh
+
+  e2e:
+    name: E2E ${{ matrix.shard }}/2
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Harden Runner
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @dbt-tools/web exec playwright install chromium --with-deps
+
+      - name: Build (vite preview needs dist)
+        run: pnpm build
+
+      - name: Run Playwright (shard)
+        run: pnpm --filter @dbt-tools/web exec playwright test --shard=${{ matrix.shard }}/2

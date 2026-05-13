@@ -1,0 +1,67 @@
+{
+  "name": "@dbt-tools/core",
+  "version": "0.5.6",
+  "description": "Composable analysis engine for dbt artifacts (graphs, execution analysis) — substrate for @dbt-tools/cli and @dbt-tools/web",
+  "keywords": [
+    "dbt",
+    "graph",
+    "analysis",
+    "operational-intelligence"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "yu-iskw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yu-iskw/dbt-tools-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yu-iskw/dbt-tools-ts/issues"
+  },
+  "homepage": "https://github.com/yu-iskw/dbt-tools-ts#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./artifact-io": {
+      "types": "./dist/artifact-io.d.ts",
+      "default": "./dist/artifact-io.js"
+    }
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
+    "test": "vitest run packages/core/src",
+    "test:watch": "vitest packages/core/src"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1025.0",
+    "@google-cloud/storage": "^7.19.0",
+    "dbt-artifacts-parser": "^0.5.5",
+    "graphology": "^0.26.0",
+    "graphology-dag": "^0.4.1",
+    "node-sql-parser": "^5.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

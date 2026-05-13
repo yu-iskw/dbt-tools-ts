@@ -1,0 +1,70 @@
+{
+  "name": "@dbt-tools/web",
+  "version": "0.5.6",
+  "description": "Browser UI for deterministic dbt artifact investigation — dependencies, execution timelines, inventory (no LLM required)",
+  "keywords": [
+    "dbt",
+    "web",
+    "visualization",
+    "operational-intelligence"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "yu-iskw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yu-iskw/dbt-tools-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yu-iskw/dbt-tools-ts/issues"
+  },
+  "homepage": "https://github.com/yu-iskw/dbt-tools-ts#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "bin": {
+    "dbt-tools-web": "./dist-serve/server/cli.js"
+  },
+  "files": [
+    "dist",
+    "dist-serve",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
+    "build": "pnpm --filter @dbt-tools/core build && tsc && vite build && pnpm run build:serve",
+    "build:serve": "vite build --config vite.server.config.ts",
+    "dev": "vite",
+    "dev:debug": "DBT_TOOLS_DEBUG=1 vite",
+    "dev:target": "DBT_TOOLS_TARGET_DIR=./target vite",
+    "preview": "vite preview",
+    "test:e2e": "pnpm build && playwright test",
+    "lint": "pnpm lint:eslint && pnpm lint:stylelint",
+    "lint:eslint": "eslint ../../eslint.config.mjs",
+    "lint:stylelint": "stylelint -c ../../stylelint.config.mjs **/*.css",
+    "format:stylelint": "stylelint -c ../../stylelint.config.mjs **/*.css --fix",
+    "smoke:npx-tgz": "bash scripts/smoke-npx-packed-tarball.sh"
+  },
+  "dependencies": {
+    "@dbt-tools/core": "workspace:*",
+    "@tanstack/react-virtual": "^3.13.23",
+    "dbt-artifacts-parser": "^0.5.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.5.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

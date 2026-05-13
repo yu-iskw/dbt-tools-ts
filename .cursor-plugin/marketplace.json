@@ -1,0 +1,13 @@
+{
+  "name": "dbt-tools-ts",
+  "metadata": {
+    "description": "Local Cursor plugins for this repository (keep in sync with .agents/plugins/marketplace.json)"
+  },
+  "plugins": [
+    {
+      "name": "dbt-tools-cli",
+      "source": "./plugins/dbt-tools-cli",
+      "description": "Minimal shared plugin for @dbt-tools/cli workflows"
+    }
+  ]
+}

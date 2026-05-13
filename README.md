@@ -1,58 +1,58 @@
-# {PROJECT_NAME}
+# dbt-tools-ts
 
-{PROJECT_DESCRIPTION}
+TypeScript packages that turn `manifest.json`, `run_results.json`, and related dbt artifacts into **structured, deterministic operational intelligence** for operators and automation. The repository publishes `@dbt-tools/core`, `@dbt-tools/cli`, and `@dbt-tools/web`; parsing and artifact type definitions come from the external `dbt-artifacts-parser` npm package.
 
-## Getting Started
+## Packages
 
-### Prerequisites
+| Package                                      | Path            | Description                                                                                                                    |
+| -------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| [`@dbt-tools/core`](packages/core/README.md) | `packages/core` | Analysis engine: graphs, execution analysis, snapshots, exports, and shared discovery logic.                                   |
+| [`@dbt-tools/cli`](packages/cli/README.md)   | `packages/cli`  | CLI (`dbt-tools`) for machine-readable artifact analysis, schema introspection, field filtering, and agent-friendly workflows. |
+| [`@dbt-tools/web`](packages/web/README.md)   | `packages/web`  | Browser UI and local static server (`dbt-tools-web`) for dependency, execution, inventory, and health investigation.           |
 
-- [pnpm](https://pnpm.io/)
-- Node.js (see `.node-version`)
+## Architecture
 
-Linting and formatting use [Trunk](https://trunk.io/) (ESLint, Prettier, and more). The Trunk **launcher** is installed with project dependencies—you do not need a separate Trunk install for the default workflow.
+```mermaid
+graph LR
+  dbt["dbt run\ngenerates artifacts"] --> artifacts["target/\nmanifest.json\nrun_results.json"]
+  artifacts --> parser["dbt-artifacts-parser\nexternal npm dependency"]
+  parser --> core["@dbt-tools/core"]
+  core --> cli["@dbt-tools/cli\ndbt-tools"]
+  core --> web["@dbt-tools/web\ndbt-tools-web"]
+```
 
-### Installation
+Product positioning and package boundaries are recorded in [ADR-0008](docs/adr/0008-dbt-tools-operational-intelligence-and-positioning-boundaries.md). Remote artifact loading semantics are recorded in [ADR-0004](docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
+
+## Quick Start
+
+Install Node.js from [`.node-version`](.node-version), then install workspace dependencies:
 
 ```bash
 pnpm install
 ```
 
-Optional: prefetch Trunk’s hermetic tools (helpful for offline work or CI images):
-
-```bash
-pnpm exec trunk install
-```
-
-If you prefer a global `trunk` on your PATH, see the [Trunk installation guide](https://docs.trunk.io/references/cli/getting-started/install) (e.g. `brew install trunk-io` on macOS).
-
-### Supply-chain protections
-
-The template uses **pnpm 11** with settings in [`pnpm-workspace.yaml`](pnpm-workspace.yaml): a **7-day** [`minimumReleaseAge`](https://pnpm.io/settings#minimumreleaseage) (10080 minutes, stricter than pnpm’s default 1 day), [`blockExoticSubdeps`](https://pnpm.io/settings#blockexoticsubdeps) enabled, and an [`allowBuilds`](https://pnpm.io/settings#allowbuilds) map for dependencies that must run install scripts (pnpm 11 requires this for native toolchain packages such as esbuild). See the [pnpm 11 release notes](https://pnpm.io/blog/releases/11.0).
-
-### Development
-
-```bash
-pnpm dev
-```
-
-### Build
+Useful development commands:
 
 ```bash
 pnpm build
+pnpm test
+pnpm dev:web
+pnpm lint:report
+pnpm coverage:report
+pnpm knip
 ```
 
-### Linting & Formatting
+Run published-shaped tools after installation from npm:
 
 ```bash
-pnpm lint
-pnpm format
+npx @dbt-tools/cli status --dbt-target ./target
+npx @dbt-tools/web --target ./target
 ```
 
-## Project Structure
+## Relationship to dbt-artifacts-parser
 
-- `packages/`: Monorepo packages
-  - `common/`: Shared utilities and types
+`@dbt-tools/*` packages depend on `dbt-artifacts-parser` for all artifact parsing and type definitions. This repository owns the analysis, CLI, and web layers; it does not generate or publish parser schemas. Parser repository references should remain only when they explicitly describe that external package.
 
 ## License
 
-{LICENSE}
+The `@dbt-tools/*` packages use a custom source-available license; they are not OSI open source. See [`LICENSES/README.md`](LICENSES/README.md) for the repository license map and [`packages/LICENSE`](packages/LICENSE) for the binding package terms. Dependencies such as `dbt-artifacts-parser` remain under their own licenses.
