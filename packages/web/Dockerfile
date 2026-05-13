@@ -11,6 +11,7 @@ FROM node:24-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 WORKDIR /app
+RUN chown node:node /app
 
 COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --chown=node:node packages/cli/package.json ./packages/cli/
