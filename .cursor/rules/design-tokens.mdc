@@ -1,0 +1,39 @@
+---
+description: Design token conventions for @dbt-tools/web CSS and TS.
+alwaysApply: true
+---
+
+# Design Tokens
+
+All visual properties in `packages/web/` must use design tokens from [`tokens.css`](mdc:packages/web/src/styles/tokens.css).
+
+## Quick reference
+
+| Category    | Token pattern                                                      | Example                                                       |
+| ----------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Background  | `--bg-*`                                                           | `var(--bg-canvas)`, `var(--bg-surface)`, `var(--bg-elevated)` |
+| Text        | `--text-primary`, `--text-secondary`, `--text-tertiary`            | `var(--text-primary)`                                         |
+| Border      | `--border-*`                                                       | `var(--border-subtle)`, `var(--border-default)`               |
+| Icon        | `--icon-*`                                                         | `var(--icon-primary)`, `var(--icon-accent)`                   |
+| Accent      | `--accent-*`                                                       | `var(--accent-primary)`, `var(--accent-hover)`                |
+| Status      | `--text-success`, `--text-danger`, `--text-warning`, `--text-info` |                                                               |
+| Chart       | `--chart-1` through `--chart-8`                                    |                                                               |
+| dbt type    | `--dbt-type-{model,source,test,...}` and `--dbt-type-*-soft`       |                                                               |
+| Graph       | `--graph-*`                                                        | `var(--graph-panel)`, `var(--graph-text)`                     |
+| Spacing     | `--space-{0,0.5,1,1.5,2,...,16}`                                   | `var(--space-3)` = 0.75rem                                    |
+| Font size   | `--text-{2xs,xs,sm,md,base,lg,xl,2xl}`                             | `var(--text-sm)` = 0.8125rem                                  |
+| Display     | `--text-display-{sm,md,lg}`                                        | Fluid `clamp()` for hero text                                 |
+| Line height | `--leading-{none,tight,snug,normal,relaxed,loose}`                 |                                                               |
+| Font family | `--font-sans`, `--font-display`, `--font-mono`                     |                                                               |
+| Radius      | `--radius-{sm,md,lg}`                                              |                                                               |
+
+## Rules
+
+- **CSS**: Always use `var(--token)` for colors, spacing, typography, and radii. Never hardcode hex, rgb, rem, or px for these properties. Stylelint (`declaration-strict-value`) enforces this for colors and radii.
+- **TypeScript** (canvas/SVG): Import from `constants/themeColors.generated.ts`. Never edit that file manually — run `pnpm tokens:sync`.
+- **New tokens**: Add to both `:root` and `[data-theme="dark"]` in [`tokens.css`](mdc:packages/web/src/styles/tokens.css), then run `pnpm tokens:sync`.
+- **Legacy aliases** (`--text`, `--bg`, `--panel`, `--mint`, `--rose`, `--amber`): Do **not** use in new code. Use the semantic name from the table above.
+- **Class names**: BEM kebab-case (`block__element--modifier`).
+- **Verify CSS changes**: Run `pnpm lint:stylelint` (not covered by `lint:report`).
+
+Full detail: [AGENTS.md](mdc:AGENTS.md), [`styles/README.md`](mdc:packages/web/src/styles/README.md).

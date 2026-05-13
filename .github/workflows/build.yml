@@ -40,16 +40,28 @@ jobs:
           egress-policy: audit
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6.0.5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v6.1.0
         with:
           node-version-file: .node-version
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build @dbt-tools/core for ESLint
+        run: pnpm --filter @dbt-tools/core build
+
+      - name: Lint (ESLint report)
+        run: pnpm lint:report
+
+      - name: Upload lint report
+        uses: actions/upload-artifact@v7
+        with:
+          name: lint-report
+          path: lint-report.json
 
       - name: Find unused code (Knip)
         run: pnpm knip

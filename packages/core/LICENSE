@@ -1,0 +1,108 @@
+DBT Tools — Source Available License
+
+Copyright (c) 2025 yu-iskw and contributors to the dbt-tools packages
+(@dbt-tools/core, @dbt-tools/cli, @dbt-tools/web). All rights reserved.
+
+This license applies only to the dbt-tools packages in this repository
+(under packages/{core,cli,web}/). It does not apply to dbt-artifacts-parser,
+which is licensed separately under the Apache License, Version 2.0.
+
+When this software is obtained as part of the upstream Git repository,
+see LICENSES/README.md at the repository root for a path-level license map
+(that file is not shipped inside @dbt-tools/* npm packages).
+
+TERMS AND CONDITIONS
+
+1. Definitions
+
+   "Software" means the dbt-tools packages and their source and object forms,
+   including any modifications you make.
+
+   "You" means the individual or legal entity exercising permissions under
+   this license.
+
+   "Personal Use" means use, study, and modification by a natural person
+   primarily for learning, hobby, or non-commercial personal projects, not
+   on behalf of a Legal Entity in the course of business.
+
+   "Internal Use" means use and modification solely within Your organization
+   (including employees and contractors acting on Your behalf) for Your own
+   internal business purposes, without offering the Software or a
+   substantially similar service to third parties for a fee or other
+   commercial consideration.
+
+   "Commercial Service" means any paid or for-fee product or service offered
+   to third parties where the Software (or a derivative work intended to
+   substitute for it) is a material part of the value delivered — including
+   without limitation: hosting or operating the Software as a service for
+   clients; selling access to the Software; bundling the Software in a
+   commercial product for third parties; or consulting engagements whose
+   primary deliverable is operating, maintaining, or extending the Software
+   in production for a client. Training, general advisory, or unrelated
+   services that do not involve operating the Software for a client are
+   outside this definition unless they are a sham for a Commercial Service.
+
+   "Package Registry" means any public or private registry or repository
+   whose primary purpose is distribution of software packages for automated
+   installation — including without limitation: the npm registry,
+   GitHub Packages, GitLab Package Registry, PyPI, RubyGems, Docker Hub,
+   and similar services. This does not include hosting source code on GitHub
+   (or similar) solely as a Personal Use fork as described in section 2.
+
+2. Grants
+
+   Subject to the restrictions in section 3, the copyright holder grants You:
+
+   (a) To use and modify the Software for Personal Use, including keeping a
+       fork of the source on GitHub or similar forges for non-registry
+       distribution, provided You retain this license and copyright notices.
+
+   (b) To use and modify the Software for Internal Use at a for-profit or
+       other Legal Entity, without offering a Commercial Service based on
+       the Software.
+
+3. Restrictions
+
+   You may not:
+
+   (a) Offer a Commercial Service based on the Software without prior
+       written permission from the copyright holder.
+
+   (b) Publish the Software, or a derivative work intended to replace or
+       substantially replicate the published @dbt-tools packages for third-
+       party consumption, to a Package Registry, without prior written
+       permission from the copyright holder.
+
+   (c) Remove or alter this license or required copyright and attribution
+       notices in copies of the Software You distribute (to the extent
+       distribution is permitted).
+
+4. Written permission
+
+   Broader rights — including Commercial Service, registry publication,
+   redistribution beyond the grants above, or uses by organizations outside
+   Internal Use as defined here — require prior written permission from the
+   copyright holder. Contact the maintainer through the project repository
+   for licensing inquiries.
+
+5. Third-party components
+
+   The Software may depend on or bundle separately licensed materials (for
+   example, dbt-artifacts-parser under Apache-2.0). Those components remain
+   under their respective licenses; this license does not override them.
+
+6. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+   OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+7. Termination
+
+   If You violate this license, Your rights under sections 2–3 terminate
+   automatically. Provisions that by their nature should survive will
+   survive termination.

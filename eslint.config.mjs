@@ -1,54 +1,36 @@
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
-import { flatConfigs as importXFlatConfigs } from 'eslint-plugin-import-x';
 import sonarjs from 'eslint-plugin-sonarjs';
-import security from 'eslint-plugin-security';
-import unicorn from 'eslint-plugin-unicorn';
+import importPlugin from 'eslint-plugin-import';
+import playwrightPlugin from 'eslint-plugin-playwright';
+import eslintCommentsPlugin from '@eslint-community/eslint-plugin-eslint-comments';
 import vitestPlugin from '@vitest/eslint-plugin';
+import reactPlugin from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 /** @type {import("@typescript-eslint/parser").ParserOptions} */
-const tsParserOptions = {
+const tsProjectOptions = {
   ecmaVersion: 2022,
   sourceType: 'module',
-  projectService: true,
-  tsconfigRootDir: import.meta.dirname,
+  project: [
+    './packages/core/tsconfig.eslint.json',
+    './packages/cli/tsconfig.eslint.json',
+    './packages/web/tsconfig.eslint.json',
+    './packages/web/tsconfig.node.json',
+    './packages/web/tsconfig.e2e.json',
+    './packages/test-fixtures/tsconfig.eslint.json',
+  ],
 };
 
-/** Flat-config fragment from eslint-plugin-security (code-level patterns; complements Trivy/OSV). */
-const securityRecommended = security.configs.recommended;
-
-/**
- * import-x recommended + typescript resolver (uses `projectService` from parser; eslint-import-resolver-typescript installed for resolution).
- * Prettier stays canonical via Trunk — no @stylistic rules here.
- */
-const importXPlugins = {
-  ...importXFlatConfigs.recommended.plugins,
-  ...importXFlatConfigs.typescript.plugins,
-};
-
-const importXSettings = {
-  ...importXFlatConfigs.typescript.settings,
-  'import-x/resolver': {
+const importResolverSettings = {
+  'import/resolver': {
     typescript: {
+      project: tsProjectOptions.project,
       alwaysTryTypes: true,
-      project: ['packages/*/tsconfig.json'],
     },
     node: true,
   },
-};
-
-const importXRules = {
-  ...importXFlatConfigs.recommended.rules,
-  ...importXFlatConfigs.typescript.rules,
-  'import-x/order': [
-    'error',
-    {
-      groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'type'],
-      'newlines-between': 'always',
-      alphabetize: { order: 'asc', caseInsensitive: true },
-    },
-  ],
-  'import-x/no-cycle': ['error', { maxDepth: 3 }],
 };
 
 /**
@@ -66,7 +48,7 @@ const sharedTsRules = Object.assign({}, tseslint.configs.recommended.rules, {
     'error',
     { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
   ],
-  // Security (core + plugin; Trunk still runs Trivy/OSV)
+  // Security
   'no-eval': 'error',
   'no-implied-eval': 'error',
   'no-new-func': 'error',
@@ -76,20 +58,18 @@ const sharedTsRules = Object.assign({}, tseslint.configs.recommended.rules, {
   'max-params': ['error', { max: 8 }],
   'max-nested-callbacks': ['error', { max: 4 }],
   // SonarJS
-  'sonarjs/cyclomatic-complexity': ['error', { threshold: 20 }],
-  'sonarjs/cognitive-complexity': ['error', 20],
+  'sonarjs/cyclomatic-complexity': ['error', { threshold: 15 }],
+  'sonarjs/cognitive-complexity': ['error', 15],
   'sonarjs/no-duplicate-string': 'error',
   'sonarjs/prefer-immediate-return': 'error',
   'no-unreachable': 'error',
 });
 
-const unicornFilenameCase = [
-  'error',
-  {
-    cases: { kebabCase: true, pascalCase: true },
-    ignore: [/^[\w-]+\.test\.ts$/],
-  },
-];
+const sharedImportRules = {
+  'import/no-cycle': 'error',
+  'import/no-unresolved': 'error',
+  'import/no-useless-path-segments': 'error',
+};
 
 export default [
   {
@@ -97,12 +77,23 @@ export default [
       '**/node_modules/**',
       '**/dist/**',
       '**/dist-serve/**',
+      '**/codeql-db/**',
+      '**/resources/**',
       '.claude/**',
       '.cursor/**',
       '.serena/**',
       '.trunk/**',
       '**/*.generated.ts',
+      '**/playwright-report/**',
+      '**/test-results/**',
     ],
+    plugins: {
+      'eslint-comments': eslintCommentsPlugin,
+    },
+    rules: {
+      'eslint-comments/no-unused-disable': 'error',
+      'eslint-comments/disable-enable-pair': 'error',
+    },
   },
   {
     files: ['packages/**/*.ts', 'packages/**/*.tsx'],
@@ -110,24 +101,20 @@ export default [
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        ...tsParserOptions,
+        ...tsProjectOptions,
         ecmaFeatures: { jsx: true },
       },
     },
     plugins: {
-      ...importXPlugins,
-      ...securityRecommended.plugins,
       '@typescript-eslint': tseslint,
       sonarjs,
-      unicorn,
+      import: importPlugin,
     },
-    settings: importXSettings,
+    settings: importResolverSettings,
     rules: {
-      ...importXRules,
-      ...securityRecommended.rules,
       ...sharedTsRules,
+      ...sharedImportRules,
       '@typescript-eslint/no-unused-private-class-members': 'error',
-      'unicorn/filename-case': unicornFilenameCase,
     },
   },
   {
@@ -136,35 +123,193 @@ export default [
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        ...tsParserOptions,
+        ...tsProjectOptions,
         ecmaFeatures: { jsx: true },
       },
       globals: vitestPlugin.environments.env.globals,
     },
     plugins: {
-      ...importXPlugins,
-      ...securityRecommended.plugins,
       '@typescript-eslint': tseslint,
       sonarjs,
-      unicorn,
+      import: importPlugin,
       ...vitestPlugin.configs.recommended.plugins,
     },
-    settings: importXSettings,
+    settings: importResolverSettings,
     rules: {
-      ...importXRules,
-      ...securityRecommended.rules,
       ...sharedTsRules,
+      ...sharedImportRules,
       ...vitestPlugin.configs.recommended.rules,
       // Tests often repeat string literals and use conditional expects; keep signal without noise.
       'vitest/no-conditional-expect': 'off',
       'sonarjs/no-duplicate-string': 'off',
       'max-lines-per-function': ['error', { max: 700 }],
-      'unicorn/filename-case': unicornFilenameCase,
+    },
+  },
+  {
+    files: ['packages/web/e2e/**/*.spec.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ...tsProjectOptions,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+      sonarjs,
+      ...playwrightPlugin.configs['flat/recommended'].plugins,
+      import: importPlugin,
+    },
+    settings: importResolverSettings,
+    rules: {
+      ...sharedTsRules,
+      ...sharedImportRules,
+      ...playwrightPlugin.configs['flat/recommended'].rules,
+      // Long Playwright flows: relax structural limits without silencing security/type rules
+      'playwright/prefer-web-first-assertions': 'off',
+      'max-lines-per-function': ['error', { max: 400 }],
+      'max-depth': ['error', { max: 10 }],
+      'sonarjs/cognitive-complexity': ['error', 35],
+      'sonarjs/cyclomatic-complexity': ['error', { threshold: 30 }],
+      'max-nested-callbacks': ['error', { max: 8 }],
+    },
+  },
+  {
+    files: ['packages/web/**/*.tsx'],
+    ignores: ['**/dist/**', '**/*.test.tsx'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ...tsProjectOptions,
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    plugins: {
+      react: reactPlugin,
+      'react-hooks': reactHooks,
+      'jsx-a11y': jsxA11y,
+    },
+    settings: {
+      react: { version: '18.3' },
+    },
+    rules: {
+      ...reactPlugin.configs.flat.recommended.rules,
+      ...reactPlugin.configs.flat['jsx-runtime'].rules,
+      ...reactHooks.configs.flat.recommended.rules,
+      ...jsxA11y.flatConfigs.recommended.rules,
+      'react/prop-types': 'off',
+      'react-hooks/exhaustive-deps': 'error',
+      // Keep the migrated source baseline stable when newer react-hooks releases
+      // add React Compiler rules beyond the source repository's lint contract.
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'max-lines': ['error', { max: 1200, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  /** @dbt-tools/web: cap non-test .ts modules (services, lib, workers, etc.) */
+  {
+    files: ['packages/web/src/**/*.ts'],
+    ignores: ['**/dist/**', '**/*.test.ts'],
+    rules: {
+      'max-lines': ['error', { max: 1200, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  /** Stricter than web TSX default — agent churn hotspots (must follow looser blocks above) */
+  {
+    files: ['packages/web/src/components/**/*.{ts,tsx}', 'packages/web/src/hooks/**/*.{ts,tsx}'],
+    rules: {
+      'max-lines': ['error', { max: 900, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    files: [
+      'packages/web/src/components/**/*.ts',
+      'packages/web/src/components/**/*.tsx',
+      'packages/web/src/hooks/**/*.ts',
+      'packages/web/src/hooks/**/*.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@dbt-tools/core',
+              message:
+                'React hooks/components must stay on the web facade side of the boundary. Use web services or @dbt-tools/core/browser only in non-React layers.',
+            },
+            {
+              name: '@dbt-tools/core/browser',
+              importNames: [
+                'ManifestGraph',
+                'ExecutionAnalyzer',
+                'detectBottlenecks',
+                'buildAnalysisSnapshotFromArtifacts',
+                'buildAnalysisSnapshotFromParsedArtifacts',
+              ],
+              message:
+                'React hooks/components must not import graph/engine primitives directly. Go through the worker-backed analysis service.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  /** @dbt-tools/web: keep analysis-workspace lib free of UI and worker graphs */
+  {
+    files: ['packages/web/src/lib/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@web/components/*', '@web/components/**/*'],
+              message:
+                'lib/analysis-workspace must not import UI components; keep domain logic UI-agnostic.',
+            },
+            {
+              group: ['@web/workers/*', '@web/workers/**/*'],
+              message: 'lib must not import Vite worker entrypoints.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/web/src/workers/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react',
+              message: 'Workers must not import React.',
+            },
+            {
+              name: 'react-dom',
+              message: 'Workers must not import react-dom.',
+            },
+            {
+              name: 'react/jsx-runtime',
+              message: 'Workers must not import the JSX runtime.',
+            },
+            {
+              name: '@dbt-tools/core',
+              message:
+                'Workers must import @dbt-tools/core/browser only (Node/fs APIs must not enter the worker bundle).',
+            },
+          ],
+        },
+      ],
     },
   },
   {
     files: ['**/*.js'],
-    ignores: ['**/dist/**', '**/node_modules/**'],
+    ignores: ['**/dist/**', '**/dist-serve/**', '**/node_modules/**'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
@@ -179,11 +324,7 @@ export default [
         exports: 'readonly',
       },
     },
-    plugins: {
-      ...securityRecommended.plugins,
-    },
     rules: {
-      ...securityRecommended.rules,
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },

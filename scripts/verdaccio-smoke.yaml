@@ -1,0 +1,22 @@
+# Ephemeral Verdaccio for CI/local pack+npx smoke only (see scripts/smoke-npx-with-verdaccio.sh).
+storage: /tmp/verdaccio-smoke-storage
+
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+
+packages:
+  '@dbt-tools/*':
+    access: $all
+    publish: $all
+    proxy: npmjs
+  'dbt-artifacts-parser':
+    access: $all
+    publish: $all
+    proxy: npmjs
+  '**':
+    access: $all
+    publish: $all
+    proxy: npmjs
+
+log: { type: stdout, format: pretty, level: warn }

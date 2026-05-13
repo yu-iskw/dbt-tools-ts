@@ -1,0 +1,56 @@
+# Agent plugin verification image: bash, jq, Claude Code, Codex, and Cursor Agent CLIs.
+# Run via `make -C plugins test-*` (see plugins/CONTRIBUTING.md); no docker-compose file.
+# Build from repository root:
+#   docker build -f plugins/tests/Dockerfile.agent-plugins -t dbt-tools-ts:agent-plugins .
+#
+# Base aligns with .node-version (Node 24). Debian slim (glibc) is required for the Cursor Agent Linux package.
+
+FROM node:24-bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends bash jq curl ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
+
+# Bump versions deliberately when upgrading tooling.
+ARG CLAUDE_CODE_VERSION=2.1.98
+ARG CODEX_VERSION=0.118.0
+RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
+	&& npm install -g "@openai/codex@${CODEX_VERSION}"
+
+# Cursor Agent CLI (lab build). Pin CURSOR_AGENT_VERSION; map Docker TARGETARCH to Cursor arch (x64 | arm64).
+ARG CURSOR_AGENT_VERSION=2026.04.08-a41fba1
+ARG TARGETARCH
+RUN set -eux; \
+	carch="${TARGETARCH:-amd64}"; \
+	case "$carch" in \
+	amd64) cursor_arch=x64 ;; \
+	arm64) cursor_arch=arm64 ;; \
+	*) echo "unsupported TARGETARCH=$carch (expected amd64 or arm64)" >&2; exit 1 ;; \
+	esac; \
+	mkdir -p /opt/cursor-agent; \
+	curl -fSL "https://downloads.cursor.com/lab/${CURSOR_AGENT_VERSION}/linux/${cursor_arch}/agent-cli-package.tar.gz" \
+		| tar -xzf - -C /opt/cursor-agent; \
+	ln -sf /opt/cursor-agent/dist-package/cursor-agent /usr/local/bin/cursor-agent; \
+	chmod -R a+rX /opt/cursor-agent/dist-package
+
+RUN groupadd --system --gid 65532 nonroot \
+	&& useradd --system --uid 65532 --gid nonroot --no-create-home --shell /usr/sbin/nologin nonroot
+
+WORKDIR /work
+
+ENV HOME=/tmp/agent-plugins-home
+ENV VERIFY_TARGET=all
+
+RUN mkdir -p /tmp/agent-plugins-home && chown 65532:65532 /tmp/agent-plugins-home
+
+USER nonroot
+
+# Override node image ENTRYPOINT; verify script is bind-mounted at /work at run time (mode: argv or VERIFY_TARGET).
+ENTRYPOINT ["/bin/bash", "/work/plugins/tests/verify-agent-plugins.sh"]
+CMD []
+
+# Batch verify runs are one-shot; healthcheck proves all CLIs resolve (policy scanners / image sanity).
+HEALTHCHECK --interval=30s --timeout=15s --start-period=10s --retries=3 \
+	CMD ["sh", "-c", "claude --version && codex --version && cursor-agent --version"]

@@ -64,7 +64,7 @@ Use the renderer when you want `paths-ignore` for large or generated trees, hand
 
 ```bash
 REPO="$(git rev-parse --show-toplevel)"
-"$REPO/.agents/skills/codeql-fix/scripts/render-code-scanning-config.sh" "$REPO" /tmp/codeql-config.yml
+"$REPO/.claude/skills/codeql-fix/scripts/render-code-scanning-config.sh" "$REPO" /tmp/codeql-config.yml
 codeql database create .codeql_db --language=javascript-typescript --source-root . --codescanning-config=/tmp/codeql-config.yml --overwrite
 ```
 

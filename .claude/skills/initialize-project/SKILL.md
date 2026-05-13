@@ -18,7 +18,7 @@ This skill automates the initial setup of a new project derived from this templa
    - (Optional) GitHub repository URL
 2. **Update Project Metadata**: Directly update the following files using the `Write` or `StrReplace` tools:
    - `package.json`: Update `name`, `description`, and `author`.
-   - `packages/common/package.json`: Update the package name to match the new scope (e.g., `@new-name/common`).
+   - Package manifests under `packages/*/package.json`: Update package names only when bootstrapping from this template into a different project.
    - `.trunk/trunk.yaml`: If there are template-specific references, update them.
 3. **Update README Placeholders**: Use the `StrReplace` tool to replace the placeholders in `README.md` with the gathered information:
    - `{PROJECT_NAME}` -> New project name

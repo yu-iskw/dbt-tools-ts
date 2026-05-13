@@ -1,0 +1,10 @@
+{
+  "name": "dbt-tools-cli",
+  "displayName": "dbt-tools CLI",
+  "version": "0.1.0",
+  "description": "Minimal plugin for @dbt-tools/cli workflows (Cursor).",
+  "author": {
+    "name": "dbt-tools-ts"
+  },
+  "skills": "./skills/"
+}

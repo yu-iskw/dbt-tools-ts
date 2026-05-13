@@ -1,0 +1,8 @@
+{
+  "name": "dbt-tools-cli",
+  "version": "0.1.0",
+  "description": "Minimal verification plugin for @dbt-tools/cli (shared with Codex).",
+  "author": {
+    "name": "dbt-tools-ts"
+  }
+}

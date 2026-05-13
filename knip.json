@@ -1,13 +1,34 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreBinaries": ["grype"],
+  "ignoreBinaries": ["codeql", "grype", "make", "prettier", "trunk", "semgrep"],
+  "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {
-      "entry": ["stylelint.config.mjs"],
-      "project": ["**/*.{js,cjs,mjs,ts,cts,mts}", "!packages/**", "!.trunk/**", "!node_modules/**"]
+      "entry": ["scripts/**/*.mjs", "stylelint.config.mjs"],
+      "project": ["scripts/**/*.mjs"],
+      "vitest": {
+        "config": ["vitest.config.mjs", "vitest.coverage.mjs"],
+        "entry": ["packages/**/*.test.ts", "packages/**/*.test.tsx"]
+      }
     },
-    "packages/*": {
+    "packages/core": {
+      "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.ts"]
+    },
+    "packages/cli": {
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/web": {
+      "entry": ["e2e/**/*.ts", "src/**/*.test.ts", "src/**/*.test.tsx", "src/server/cli.ts"],
+      "project": ["src/**/*.ts", "src/**/*.tsx"],
+      "ignoreFiles": ["src/constants/themeColors.generated.ts"],
+      "vite": true,
+      "playwright": true
+    },
+    "packages/test-fixtures": {
+      "entry": ["dbt-artifacts-parser/test-utils.ts"],
+      "project": ["dbt-artifacts-parser/**/*.ts"]
     }
   }
 }

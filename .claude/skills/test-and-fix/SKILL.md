@@ -30,9 +30,9 @@ An autonomous loop for the agent to identify, analyze, and fix failing unit test
 
 ### Scenario: Fixing a logic error
 
-1. `pnpm test` fails in `packages/common/src/math.test.ts` because `add(2, 2)` returned `5`.
-2. Agent analyzes `packages/common/src/math.ts` and finds a typo `a + b + 1`.
-3. Agent fixes the typo to `a + b`.
+1. `pnpm test` fails in `packages/core/src/version.test.ts` because the package version does not match `package.json`.
+2. Agent analyzes `packages/core/src/version.ts` and finds a stale exported version string.
+3. Agent updates the version constant to match the package manifest.
 4. `pnpm test` passes.
 
 ### Scenario: Updating a test after a deliberate change

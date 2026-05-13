@@ -21,6 +21,8 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 *.lcov
+coverage-report.json
+lint-report.json
 
 # nyc test coverage
 .nyc_output
@@ -137,6 +139,12 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# dbt-tools web generated verification artifacts
+packages/web/dist/
+packages/web/dist-serve/
+packages/web/test-results/
+packages/web/playwright-report/
 
 TODO.md
 .todo_list/

@@ -1,0 +1,30 @@
+---
+description: Coverage and lint report requirements for AI agent feedback
+alwaysApply: true
+---
+
+# Coverage and Lint Reports (AI Agent Feedback)
+
+Before considering a task complete, run both report scripts from the repository root:
+
+- **Lint report:** `pnpm lint:report` — produces `lint-report.json`; must exit 0
+- **Coverage report:** `pnpm coverage:report` — produces `coverage-report.json`; must exit 0
+- **Knip:** `pnpm knip` — unused exports, files, and dependencies; must exit 0 (see [`knip.json`](mdc:knip.json))
+
+**`pnpm coverage:report` is not browser E2E:** it runs Vitest with coverage only. For Playwright journeys under `packages/web/e2e/` or material web UI flows, follow [AGENTS.md](mdc:AGENTS.md) **Quality gates** and run **`pnpm test:e2e`** from the repo root when applicable.
+
+**Documentation-only edits** (markdown, `.claude/`, `.cursor/rules/`, `docs/`, etc., when nothing executable changes) **do not** waive **`pnpm lint:report`**, **`pnpm knip`**, or **`pnpm coverage:report`** for **agent completion**—run all three from the repo root unless the **user** explicitly relaxes scope (non-default for agents). **`pnpm coverage:report`** remains repo-wide and slower than **`pnpm test`** alone. Canonical wording: [AGENTS.md](mdc:AGENTS.md) **Quality gates** — **Documentation-only and agent-skills edits**.
+
+**Full `pnpm lint` / `pnpm format`** (including verifier normalization) run **Trunk first** via `@trunkio/launcher`, then ESLint, Prettier, Stylelint, and Knip as wired in the root [`package.json`](mdc:package.json). See [AGENTS.md](mdc:AGENTS.md) **Commands** (Trunk).
+
+The **verifier** subagent ([`.claude/agents/verifier.md`](mdc:.claude/agents/verifier.md)) finishes with `pnpm format` and `pnpm lint` (`pnpm verify:normalize`) and may re-run `lint:report`, tests, and `coverage:report` when normalization dirties the tree.
+
+If `coverage-report.json` shows `belowThreshold: true`, add or improve unit tests until coverage meets thresholds (lines 60%, branches 50%, functions 60%, statements 60%).
+
+Both scripts exit with code 1 on failure; the agent must fix violations before proceeding.
+
+## Fix violations; avoid inline ignores
+
+- **Default:** Address the root cause of linter and static-analysis findings (refactor, types, tests, safer patterns). Do not add `eslint-disable`, `nosemgrep`, blanket `@ts-ignore`, or similar line-level suppressions just to pass checks.
+- **Last resort only:** Use the narrowest inline or config-level suppression when a violation is **effectively unavoidable** (tool limitation, third-party code, documented false positive). Include a brief justification and what would remove the suppression.
+- **Prefer targeted config** over many scattered inline disables when a rule is systematically wrong for a bounded area; document why. Full policy: [AGENTS.md](mdc:AGENTS.md) (section **Linter and static-analysis violations (agent default)** under Quality gates).

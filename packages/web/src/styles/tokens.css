@@ -1,0 +1,327 @@
+:root {
+  color-scheme: light;
+
+  /* Background roles */
+  --bg-canvas: #f6f7fb;
+  --bg-sidebar: #f3f5fa;
+  --bg-surface: #fff;
+  --bg-surface-muted: #f1f3f8;
+  --bg-elevated: #fff;
+  --bg-overlay: rgb(17 24 39 / 40%);
+  --bg-code: #f8f9fc;
+  --bg-selection-soft: #eef0ff;
+  --bg-accent-soft: #eef0ff;
+  --bg-success-soft: #eaf8f0;
+  --bg-warning-soft: #fff5e8;
+  --bg-danger-soft: #fdedec;
+  --bg-info-soft: #eaf2ff;
+
+  /* Border roles */
+  --border-subtle: #e6e9f0;
+  --border-default: #d7dce7;
+  --border-strong: #b8c0d4;
+  --border-focus: #6d5ef7;
+  --border-accent: #6d5ef7;
+  --border-success: #0f8a4b;
+  --border-warning: #a56315;
+  --border-danger: #c0352b;
+  --border-info: #1769e0;
+
+  /* Text roles */
+  --text-primary: #171c28;
+  --text-secondary: #475067;
+  --text-tertiary: #6b7385;
+  --text-inverse: #f8fafc;
+  --text-accent: #554ceb;
+  --text-success: #0f8a4b;
+  --text-warning: #a56315;
+  --text-danger: #c0352b;
+  --text-info: #1769e0;
+  --text-disabled: #98a1b3;
+
+  /* Icon roles */
+  --icon-primary: #2a3142;
+  --icon-secondary: #5a6478;
+  --icon-tertiary: #8a93a5;
+  --icon-accent: #635bff;
+  --icon-success: #0f8a4b;
+  --icon-warning: #a56315;
+  --icon-danger: #c0352b;
+  --icon-info: #1769e0;
+
+  /* Action roles */
+  --accent-primary: #635bff;
+  --accent-hover: #554ceb;
+  --accent-active: #473ed0;
+  --accent-soft: #eef0ff;
+  --accent-focus-ring: #6d5ef7;
+
+  /* Status roles (legacy/convenience aliases) */
+  --success-fg: #0f8a4b;
+  --success-soft: #eaf8f0;
+  --warning-fg: #a56315;
+  --warning-soft: #fff5e8;
+  --danger-fg: #c0352b;
+  --danger-soft: #fdedec;
+  --info-fg: #1769e0;
+  --info-soft: #eaf2ff;
+
+  /* Data visualization roles */
+  --chart-1: #635bff; /* violet / indigo */
+  --chart-2: #1d4ed8; /* blue */
+  --chart-3: #0891b2; /* cyan / teal */
+  --chart-4: #059669; /* green */
+  --chart-5: #d97706; /* amber */
+  --chart-6: #ea580c; /* orange */
+  --chart-7: #db2777; /* pink / magenta */
+  --chart-8: #64748b; /* slate-neutral */
+
+  /* Radius and shadows */
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --panel-shadow: 0 1px 3px rgb(15 15 35 / 6%), 0 4px 12px rgb(15 15 35 / 4%);
+  --shadow-color: rgb(15 23 42 / 8%);
+
+  /* Spacing scale (4px grid at 16px root) — theme-invariant */
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Typography — font families */
+  --font-sans: 'IBM Plex Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', 'Consolas', monospace;
+
+  /* Typography — font sizes (major-second scale, rounded to px grid) */
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+
+  /* Typography — fluid display sizes for hero / marketing text */
+  --text-display-sm: clamp(1.15rem, 1.8vw, 1.45rem);
+  --text-display-md: clamp(1.35rem, 2vw, 1.85rem);
+  --text-display-lg: clamp(1.8rem, 3vw, 2.6rem);
+
+  /* Typography — line heights */
+  --leading-none: 1;
+  --leading-tight: 1.15;
+  --leading-snug: 1.25;
+  --leading-normal: 1.35;
+  --leading-relaxed: 1.45;
+  --leading-loose: 1.6;
+
+  /* Previously undefined variables — aliases for backward compatibility */
+  --danger: var(--danger-fg);
+  --surface-raised: var(--bg-elevated);
+  --bg-input: var(--bg-surface);
+  --bg-muted: var(--bg-surface-muted);
+  --status-danger: var(--danger-fg);
+  --status-warning: var(--warning-fg);
+  --status-positive: var(--success-fg);
+
+  /* ⚠️ LEGACY — do not use in new code. Use semantic names instead.
+     Kept for backward compatibility during migration.
+     --bg         → use --bg-canvas
+     --bg-soft    → use --bg-surface-muted
+     --panel      → use --bg-surface
+     --panel-strong → use --bg-surface-muted
+     --panel-border → use --border-default
+     --text       → use --text-primary
+     --text-muted → use --text-secondary
+     --text-soft  → use --text-tertiary
+     --accent     → use --accent-primary
+     --mint       → use --text-success
+     --rose       → use --text-danger
+     --amber      → use --text-warning
+     --mint-soft  → use --bg-success-soft
+     --rose-soft  → use --bg-danger-soft */
+  --bg: var(--bg-canvas);
+  --bg-soft: var(--bg-surface-muted);
+  --panel: var(--bg-surface);
+  --panel-strong: var(--bg-surface-muted);
+  --panel-border: var(--border-default);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --text-soft: var(--text-tertiary);
+  --accent: var(--accent-primary);
+
+  /* Legacy metric / tone aliases (map to semantic status tokens) */
+  --mint: var(--text-success);
+  --rose: var(--text-danger);
+  --amber: var(--text-warning);
+  --mint-soft: var(--bg-success-soft);
+  --rose-soft: var(--bg-danger-soft);
+
+  /* dbt resource types (mapped to semantic status/accent where possible, or kept for uniqueness) */
+  --dbt-type-source: var(--chart-4);
+  --dbt-type-source-soft: rgb(5 150 105 / 14%);
+  --dbt-type-seed: var(--chart-1);
+  --dbt-type-seed-soft: rgb(99 91 255 / 14%);
+  --dbt-type-snapshot: var(--chart-5);
+  --dbt-type-snapshot-soft: rgb(217 119 6 / 14%);
+  --dbt-type-model: var(--chart-2);
+  --dbt-type-model-soft: rgb(29 78 216 / 14%);
+  --dbt-type-semantic-model: var(--chart-3);
+  --dbt-type-semantic-model-soft: rgb(8 145 178 / 14%);
+  --dbt-type-metric: var(--chart-7);
+  --dbt-type-metric-soft: rgb(219 39 119 / 14%);
+  --dbt-type-exposure: var(--chart-6);
+  --dbt-type-exposure-soft: rgb(234 88 12 / 14%);
+  --dbt-type-test: var(--chart-8);
+  --dbt-type-test-soft: rgb(100 116 139 / 14%);
+
+  /* Fallbacks for lineage type lens (unknown types, macro, operation) — must exist or SVG fill can fall back to black */
+  --dbt-type-generic: var(--chart-8);
+  --dbt-type-generic-soft: rgb(100 116 139 / 14%);
+  --dbt-type-macro: var(--chart-8);
+  --dbt-type-macro-soft: rgb(100 116 139 / 16%);
+  --dbt-type-operation: var(--chart-3);
+  --dbt-type-operation-soft: rgb(8 145 178 / 14%);
+
+  /* Graph surface aliases */
+  --graph-bg-top: var(--bg-canvas);
+  --graph-bg-bottom: var(--bg-surface-muted);
+  --graph-bg-accent: var(--bg-accent-soft);
+  --graph-panel: var(--bg-surface);
+  --graph-panel-hover: var(--bg-surface-muted);
+  --graph-panel-active: var(--bg-selection-soft);
+  --graph-border: var(--border-subtle);
+  --graph-border-strong: var(--border-strong);
+  --graph-text: var(--text-primary);
+  --graph-text-muted: var(--text-secondary);
+  --graph-text-soft: var(--text-tertiary);
+  --graph-edge: var(--border-default);
+  --graph-hotspot: var(--bg-accent-soft);
+  --graph-node-stroke: var(--border-subtle);
+  --graph-node-selected-stroke: var(--accent-primary);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Background roles */
+  --bg-canvas: #0d1120;
+  --bg-sidebar: #101527;
+  --bg-surface: #151a2e;
+  --bg-surface-muted: #101527;
+  --bg-elevated: #1b223a;
+  --bg-overlay: rgb(2 6 23 / 60%);
+  --bg-code: #11182b;
+  --bg-selection-soft: #232845;
+  --bg-accent-soft: #232845;
+  --bg-success-soft: #113222;
+  --bg-warning-soft: #3a2a12;
+  --bg-danger-soft: #3d1919;
+  --bg-info-soft: #16263f;
+
+  /* Border roles */
+  --border-subtle: #262e47;
+  --border-default: #313a58;
+  --border-strong: #465172;
+  --border-focus: #8a7cff;
+  --border-accent: #8a7cff;
+  --border-success: #59d38c;
+  --border-warning: #f5b95c;
+  --border-danger: #ff8d86;
+  --border-info: #79b7ff;
+
+  /* Text roles */
+  --text-primary: #f3f6fc;
+  --text-secondary: #c6cee0;
+  --text-tertiary: #98a3bc;
+  --text-inverse: #121622;
+  --text-accent: #a89fff;
+  --text-success: #59d38c;
+  --text-warning: #f5b95c;
+  --text-danger: #ff8d86;
+  --text-info: #79b7ff;
+  --text-disabled: #6e7893;
+
+  /* Icon roles */
+  --icon-primary: #e5eaf6;
+  --icon-secondary: #bac4d8;
+  --icon-tertiary: #8e9ab4;
+  --icon-accent: #8a7cff;
+  --icon-success: #59d38c;
+  --icon-warning: #f5b95c;
+  --icon-danger: #ff8d86;
+  --icon-info: #79b7ff;
+
+  /* Action roles */
+  --accent-primary: #8a7cff;
+  --accent-hover: #9b90ff;
+  --accent-active: #7363f5;
+  --accent-soft: #232845;
+  --accent-focus-ring: #8a7cff;
+
+  /* Status roles (legacy/convenience aliases) */
+  --success-fg: #59d38c;
+  --success-soft: #113222;
+  --warning-fg: #f5b95c;
+  --warning-soft: #3a2a12;
+  --danger-fg: #ff8d86;
+  --danger-soft: #3d1919;
+  --info-fg: #79b7ff;
+  --info-soft: #16263f;
+
+  /* Chart palette (theme-tuned for dark bg — muted, legible on #0D1120–#151A2E) */
+  --chart-1: #9588e8;
+  --chart-2: #5c8deb;
+  --chart-3: #3eb0c8;
+  --chart-4: #45c49a;
+  --chart-5: #d4a24a;
+  --chart-6: #d9845c;
+  --chart-7: #d172ae;
+  --chart-8: #8690aa;
+  --panel-shadow: 0 4px 24px rgb(0 0 0 / 50%);
+  --shadow-color: rgb(0 0 0 / 25%);
+
+  /* dbt resource type soft fills — rgba matches dark chart hues */
+  --dbt-type-source-soft: rgb(69 196 154 / 20%);
+  --dbt-type-seed-soft: rgb(149 136 232 / 22%);
+  --dbt-type-snapshot-soft: rgb(212 162 74 / 22%);
+  --dbt-type-model-soft: rgb(92 141 235 / 22%);
+  --dbt-type-semantic-model-soft: rgb(62 176 200 / 22%);
+  --dbt-type-metric-soft: rgb(209 114 174 / 22%);
+  --dbt-type-exposure-soft: rgb(217 132 92 / 22%);
+  --dbt-type-test-soft: rgb(134 144 170 / 20%);
+  --dbt-type-generic-soft: rgb(134 144 170 / 18%);
+  --dbt-type-macro-soft: rgb(134 144 170 / 20%);
+  --dbt-type-operation-soft: rgb(62 176 200 / 18%);
+
+  /* Graph surface aliases (Dark) */
+  --graph-bg-top: #dde2ea;
+  --graph-bg-bottom: #cfd6e1;
+  --graph-bg-accent: rgb(175 184 205 / 22%);
+  --graph-panel: #e7ebf3;
+  --graph-panel-hover: #dfe5ef;
+  --graph-panel-active: #d6deec;
+  --graph-border: #aab4c6;
+  --graph-border-strong: #8896af;
+  --graph-text: #171c28;
+  --graph-text-muted: #465066;
+  --graph-text-soft: #647087;
+  --graph-edge: #8794aa;
+  --graph-hotspot: rgb(99 91 255 / 18%);
+  --graph-node-stroke: #aab4c6;
+  --graph-node-selected-stroke: var(--accent-primary);
+}
