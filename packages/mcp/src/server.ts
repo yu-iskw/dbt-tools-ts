@@ -3,6 +3,7 @@ import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artif
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { McpHelpRequested, helpText, parseMcpServerOptions } from './options.js';
+import { readMcpPackageVersion } from './package-version.js';
 import { createDbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
 import { registerDbtToolsTools } from './tools/registerTools.js';
 
@@ -39,7 +40,7 @@ export async function createDbtToolsMcpServer(argv: string[] = process.argv.slic
   const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);
   const server = new McpServer({
     name: 'dbt-tools',
-    version: '0.5.7',
+    version: readMcpPackageVersion(),
   });
   registerDbtToolsTools(server, handlers);
   return server;
