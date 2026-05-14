@@ -28,12 +28,11 @@ permissions:
   id-token: write
 
 jobs:
-  publish:
-    name: Publish @dbt-tools to npm
+  validate:
+    name: Validate @dbt-tools packages
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     environment:
       name: release
       deployment: true
@@ -82,8 +81,111 @@ jobs:
             echo "::error::npm must be >= 11.5.1 for trusted publishing (https://docs.npmjs.com/trusted-publishers)"
             exit 1
           fi
+
+  publish-core:
+    name: Publish @dbt-tools/core to npm
+    runs-on: ubuntu-latest
+    needs: validate
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: release
+      deployment: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.5
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+          scope: '@dbt-tools'
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
       - name: Publish to npm
         run: |
           pnpm publish --filter @dbt-tools/core --no-git-checks --access public
+
+  publish-cli:
+    name: Publish @dbt-tools/cli to npm
+    runs-on: ubuntu-latest
+    needs: publish-core
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: release
+      deployment: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.5
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+          scope: '@dbt-tools'
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+      - name: Build @dbt-tools/core
+        run: |
+          pnpm --filter @dbt-tools/core build
+      - name: Publish to npm
+        run: |
           pnpm publish --filter @dbt-tools/cli --no-git-checks --access public
+
+  publish-web:
+    name: Publish @dbt-tools/web to npm
+    runs-on: ubuntu-latest
+    needs: publish-core
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: release
+      deployment: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.5
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+          scope: '@dbt-tools'
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+      - name: Publish to npm
+        run: |
           pnpm publish --filter @dbt-tools/web --no-git-checks --access public
