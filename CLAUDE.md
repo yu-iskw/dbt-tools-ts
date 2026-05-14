@@ -8,7 +8,7 @@
 
 - Package manager: `pnpm` workspace.
 - Node.js: version in [`.node-version`](.node-version).
-- Packages: `@dbt-tools/core` in [`packages/core`](packages/core), `@dbt-tools/cli` in [`packages/cli`](packages/cli), and `@dbt-tools/web` in [`packages/web`](packages/web).
+- Packages: `@dbt-tools/core` in [`packages/core`](packages/core), `@dbt-tools/cli` in [`packages/cli`](packages/cli), `@dbt-tools/mcp` in [`packages/mcp`](packages/mcp), and `@dbt-tools/web` in [`packages/web`](packages/web).
 - Parser boundary: `dbt-artifacts-parser` is an external npm dependency, not a workspace package in this repository.
 
 ## Quality gates

@@ -221,7 +221,7 @@ describe('searchAction', () => {
   it('rejects --offset without --limit', async () => {
     await expect(
       searchAction('orders', { dbtTarget: dbtTargetDir, json: true, offset: 1 }, handleError),
-    ).rejects.toThrow(/offset requires --limit/i);
+    ).rejects.toThrow(/offset requires limit/i);
   });
 
   it('throws for control characters in query', async () => {

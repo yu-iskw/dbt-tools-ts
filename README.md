@@ -1,6 +1,6 @@
 # dbt-tools-ts
 
-TypeScript packages that turn `manifest.json`, `run_results.json`, and related dbt artifacts into **structured, deterministic operational intelligence** for operators and automation. The repository publishes `@dbt-tools/core`, `@dbt-tools/cli`, and `@dbt-tools/web`; parsing and artifact type definitions come from the external `dbt-artifacts-parser` npm package.
+TypeScript packages that turn `manifest.json`, `run_results.json`, and related dbt artifacts into **structured, deterministic operational intelligence** for operators and automation. The repository publishes `@dbt-tools/core`, `@dbt-tools/cli`, `@dbt-tools/mcp`, and `@dbt-tools/web`; parsing and artifact type definitions come from the external `dbt-artifacts-parser` npm package.
 
 ## Packages
 
@@ -8,6 +8,7 @@ TypeScript packages that turn `manifest.json`, `run_results.json`, and related d
 | -------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | [`@dbt-tools/core`](packages/core/README.md) | `packages/core` | Analysis engine: graphs, execution analysis, snapshots, exports, and shared discovery logic.                                   |
 | [`@dbt-tools/cli`](packages/cli/README.md)   | `packages/cli`  | CLI (`dbt-tools`) for machine-readable artifact analysis, schema introspection, field filtering, and agent-friendly workflows. |
+| [`@dbt-tools/mcp`](packages/mcp/README.md)   | `packages/mcp`  | Long-lived MCP server (`dbt-tools-mcp`) with resident parsed artifact cache for interactive agent workflows.                   |
 | [`@dbt-tools/web`](packages/web/README.md)   | `packages/web`  | Browser UI and local static server (`dbt-tools-web`) for dependency, execution, inventory, and health investigation.           |
 
 ## Architecture
@@ -18,6 +19,7 @@ graph LR
   artifacts --> parser["dbt-artifacts-parser\nexternal npm dependency"]
   parser --> core["@dbt-tools/core"]
   core --> cli["@dbt-tools/cli\ndbt-tools"]
+  core --> mcp["@dbt-tools/mcp\ndbt-tools-mcp"]
   core --> web["@dbt-tools/web\ndbt-tools-web"]
 ```
 
@@ -46,6 +48,7 @@ Run published-shaped tools after installation from npm:
 
 ```bash
 npx @dbt-tools/cli status --dbt-target ./target
+npx @dbt-tools/mcp --dbt-target ./target
 npx @dbt-tools/web --target ./target
 ```
 

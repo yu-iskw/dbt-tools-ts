@@ -6,6 +6,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+# pnpm
+.pnpm-store/
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -150,6 +153,7 @@ TODO.md
 .todo_list/
 
 # Claude Code
+.claude/worktrees/
 .claude/settings.local.json
 .claude/logs/
 .claude/sessions/

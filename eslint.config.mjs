@@ -16,6 +16,7 @@ const tsProjectOptions = {
   project: [
     './packages/core/tsconfig.eslint.json',
     './packages/cli/tsconfig.eslint.json',
+    './packages/mcp/tsconfig.eslint.json',
     './packages/web/tsconfig.eslint.json',
     './packages/web/tsconfig.node.json',
     './packages/web/tsconfig.e2e.json',
@@ -67,7 +68,8 @@ const sharedTsRules = Object.assign({}, tseslint.configs.recommended.rules, {
 
 const sharedImportRules = {
   'import/no-cycle': 'error',
-  'import/no-unresolved': 'error',
+  // eslint-plugin-import does not understand the MCP SDK wildcard ESM exports with .js subpaths.
+  'import/no-unresolved': ['error', { ignore: ['^@modelcontextprotocol/sdk/'] }],
   'import/no-useless-path-segments': 'error',
 };
 
@@ -87,6 +89,8 @@ export default [
       '**/playwright-report/**',
       '**/test-results/**',
     ],
+  },
+  {
     plugins: {
       'eslint-comments': eslintCommentsPlugin,
     },

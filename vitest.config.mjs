@@ -9,6 +9,13 @@ export default defineConfig({
   resolve: {
     alias: {
       '@web': path.resolve(__dirname, 'packages/web/src'),
+      '@dbt-tools/core/artifact-io': path.resolve(__dirname, 'packages/core/src/artifact-io.ts'),
+      '@dbt-tools/core/artifact-workspace': path.resolve(
+        __dirname,
+        'packages/core/src/artifact-workspace.ts',
+      ),
+      '@dbt-tools/core/browser': path.resolve(__dirname, 'packages/core/src/browser.ts'),
+      '@dbt-tools/core': path.resolve(__dirname, 'packages/core/src/index.ts'),
       'dbt-artifacts-parser/test-utils': path.resolve(
         __dirname,
         'packages/test-fixtures/dbt-artifacts-parser/test-utils.ts',
@@ -17,7 +24,7 @@ export default defineConfig({
   },
   test: {
     include: ['packages/**/*.test.ts', 'packages/**/*.test.tsx'],
-    exclude: ['.trunk/**', 'node_modules/**'],
+    exclude: ['.trunk/**', '**/node_modules/**'],
     pool: 'threads',
     coverage: {
       provider: 'v8',

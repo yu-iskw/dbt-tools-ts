@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@dbt-tools/core": ["../core/src/index.ts"],
+      "@dbt-tools/core/artifact-io": ["../core/src/artifact-io.ts"],
+      "@dbt-tools/core/artifact-workspace": ["../core/src/artifact-workspace.ts"],
+      "@dbt-tools/core/browser": ["../core/src/browser.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": []
+}
