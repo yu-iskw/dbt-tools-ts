@@ -1,6 +1,6 @@
 {
   "name": "@dbt-tools/web",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "Browser UI for deterministic dbt artifact investigation — dependencies, execution timelines, inventory (no LLM required)",
   "keywords": [
     "dbt",
