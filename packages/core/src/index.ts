@@ -31,6 +31,9 @@ export * from './io/artifact-discovery';
 export * from './io/artifact-location';
 export * from './io/dbt-artifact-bundle';
 
+// Long-lived artifact workspace (Node-safe)
+export * from './artifact-workspace/index';
+
 // Validation exports
 export * from './validation/input-validator';
 

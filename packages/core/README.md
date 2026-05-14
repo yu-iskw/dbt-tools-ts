@@ -1,6 +1,6 @@
 # @dbt-tools/core
 
-**Composable analysis substrate** for dbt artifacts: the reusable **analysis engine** behind [`@dbt-tools/cli`](../cli/README.md) and [`@dbt-tools/web`](../web/README.md). Use it directly when you need programmatic dependency graphs, execution analysis (critical path, timelines, bottlenecks), graph exports, readiness-oriented snapshots, or building custom workflows on top of the same logic as the shipped tools. Product positioning: [ADR-0008](../../docs/adr/0008-dbt-tools-operational-intelligence-and-positioning-boundaries.md).
+**Composable analysis substrate** for dbt artifacts: the reusable **analysis engine** behind [`@dbt-tools/cli`](../cli/README.md), [`@dbt-tools/mcp`](../mcp/README.md), and [`@dbt-tools/web`](../web/README.md). Use it directly when you need programmatic dependency graphs, execution analysis (critical path, timelines, bottlenecks), graph exports, readiness-oriented snapshots, resident artifact workspaces, or building custom workflows on top of the same logic as the shipped tools. Product positioning: [ADR-0008](../../docs/adr/0008-dbt-tools-operational-intelligence-and-positioning-boundaries.md).
 
 ---
 
@@ -10,8 +10,11 @@
 graph TD
   AF["dbt-artifacts-parser\nparseManifest · parseRunResults"]
   AF --> AL["ArtifactLoader"]
+  AL --> AW["ArtifactWorkspace\nresident cache"]
   AL --> MG["ManifestGraph\ngraphology DAG"]
   AL --> EA["ExecutionAnalyzer\ncritical path · Gantt"]
+  AW --> MG
+  AW --> EA
   MG --> DS["DependencyService\nupstream · downstream · build order"]
   MG --> GE["GraphExport\nJSON · DOT · GEXF"]
   EA --> OF["OutputFormatter\nfield filtering · JSON/text"]
@@ -22,7 +25,7 @@ graph TD
 
 ## Installation
 
-This package is a **TypeScript library** — there is no CLI binary. For the command line use [`@dbt-tools/cli`](../cli/README.md) (`dbt-tools`); for the browser UI use [`@dbt-tools/web`](../web/README.md) (`dbt-tools-web`).
+This package is a **TypeScript library** — there is no CLI binary. For the command line use [`@dbt-tools/cli`](../cli/README.md) (`dbt-tools`); for MCP clients use [`@dbt-tools/mcp`](../mcp/README.md) (`dbt-tools-mcp`); for the browser UI use [`@dbt-tools/web`](../web/README.md) (`dbt-tools-web`).
 
 ```bash
 pnpm add @dbt-tools/core

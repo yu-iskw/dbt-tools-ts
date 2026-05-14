@@ -9,15 +9,12 @@ import {
   FieldFilter,
   formatOutput,
   shouldOutputJSON,
-  legacySearchScore,
-  parseDiscoveryQueryTokens,
-  applyDiscoveryNodeFilters,
+  searchResourcesInGraph,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
-import { applyListPaging } from '../../internal/cli-pagination';
 
 export type SearchOptions = {
   type?: string;
@@ -104,66 +101,15 @@ export async function searchAction(
 
     const manifest = loadManifest(paths.manifest);
     const graph = new ManifestGraph(manifest);
-    const g = graph.getGraph();
-
-    const parsed = query ? parseDiscoveryQueryTokens(query) : { terms: [] };
-
-    const effectiveType = options.type ?? parsed.type;
-    const effectivePackage = options.package ?? parsed.package;
-    const effectiveTag = options.tag ?? parsed.tag;
-    const effectivePath = options.path ?? parsed.path;
-
-    type ScoredResult = { score: number; result: SearchResult };
-    const scored: ScoredResult[] = [];
-
-    g.forEachNode((_id, attrs) => {
-      if (
-        !applyDiscoveryNodeFilters(
-          attrs,
-          effectiveType,
-          effectivePackage,
-          effectiveTag,
-          effectivePath,
-        )
-      ) {
-        return;
-      }
-
-      const score = legacySearchScore(attrs, parsed.terms);
-      if (score === 0) return;
-
-      scored.push({
-        score,
-        result: {
-          unique_id: attrs.unique_id,
-          resource_type: attrs.resource_type,
-          name: attrs.name,
-          package_name: attrs.package_name,
-          path: attrs.path as string | undefined,
-          tags: attrs.tags as string[] | undefined,
-          description: attrs.description as string | undefined,
-        },
-      });
+    const output = searchResourcesInGraph(graph, {
+      query,
+      type: options.type,
+      package: options.package,
+      tag: options.tag,
+      path: options.path,
+      limit: options.limit,
+      offset: options.offset,
     });
-
-    scored.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return a.result.unique_id.localeCompare(b.result.unique_id);
-    });
-
-    const results = scored.map((s) => s.result);
-    const { page, matchedTotal, offset, limit, hasMore } = applyListPaging(
-      results,
-      options.limit,
-      options.offset,
-    );
-
-    const output: SearchOutput = {
-      query: query || undefined,
-      total: matchedTotal,
-      results: page,
-      ...(limit !== undefined ? { limit, offset, has_more: hasMore } : {}),
-    };
 
     const useJson = shouldOutputJSON(options.json, options.noJson);
 

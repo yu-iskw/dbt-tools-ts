@@ -8,7 +8,7 @@
 
 - Package manager: `pnpm` workspace.
 - Node.js: version in [`.node-version`](.node-version).
-- Packages: `@dbt-tools/core` in [`packages/core`](packages/core), `@dbt-tools/cli` in [`packages/cli`](packages/cli), and `@dbt-tools/web` in [`packages/web`](packages/web).
+- Packages: `@dbt-tools/core` in [`packages/core`](packages/core), `@dbt-tools/cli` in [`packages/cli`](packages/cli), `@dbt-tools/mcp` in [`packages/mcp`](packages/mcp), and `@dbt-tools/web` in [`packages/web`](packages/web).
 - Parser boundary: `dbt-artifacts-parser` is an external npm dependency, not a workspace package in this repository.
 
 ## Quality gates
@@ -28,14 +28,15 @@ Documentation-only and agent-resource edits normally still require `lint:report`
 
 ## Claude Code resources
 
-| Item                                                                                                           | Purpose                                                                      |
-| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [`.claude/skills/dbt-tools-web-e2e/SKILL.md`](.claude/skills/dbt-tools-web-e2e/SKILL.md)                       | Author deterministic Playwright E2E specs for `@dbt-tools/web`.              |
-| [`.claude/skills/dbt-tools-web-e2e-fix/SKILL.md`](.claude/skills/dbt-tools-web-e2e-fix/SKILL.md)               | Run and fix Playwright E2E failures.                                         |
-| [`.claude/skills/dbt-tools-web-pack-npx-smoke/SKILL.md`](.claude/skills/dbt-tools-web-pack-npx-smoke/SKILL.md) | Pack `@dbt-tools/web` and smoke the published-shaped `dbt-tools-web` binary. |
-| [`.claude/skills/dbt-tools-cli-plugin-skill/SKILL.md`](.claude/skills/dbt-tools-cli-plugin-skill/SKILL.md)     | Author and verify first-party `dbt-tools-cli` agent plugin skills.           |
-| [`.claude/skills/ui-feature-verify/SKILL.md`](.claude/skills/ui-feature-verify/SKILL.md)                       | Lightweight verification path for UI-only web changes.                       |
-| [`.claude/agents/verifier.md`](.claude/agents/verifier.md)                                                     | Full verification orchestration prompt.                                      |
+| Item                                                                                                           | Purpose                                                                                |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [`.claude/skills/bump-workspace-versions/SKILL.md`](.claude/skills/bump-workspace-versions/SKILL.md)           | Bump synchronized `version` fields across workspace `package.json` files for releases. |
+| [`.claude/skills/dbt-tools-web-e2e/SKILL.md`](.claude/skills/dbt-tools-web-e2e/SKILL.md)                       | Author deterministic Playwright E2E specs for `@dbt-tools/web`.                        |
+| [`.claude/skills/dbt-tools-web-e2e-fix/SKILL.md`](.claude/skills/dbt-tools-web-e2e-fix/SKILL.md)               | Run and fix Playwright E2E failures.                                                   |
+| [`.claude/skills/dbt-tools-web-pack-npx-smoke/SKILL.md`](.claude/skills/dbt-tools-web-pack-npx-smoke/SKILL.md) | Pack `@dbt-tools/web` and smoke the published-shaped `dbt-tools-web` binary.           |
+| [`.claude/skills/dbt-tools-cli-plugin-skill/SKILL.md`](.claude/skills/dbt-tools-cli-plugin-skill/SKILL.md)     | Author and verify first-party `dbt-tools-cli` agent plugin skills.                     |
+| [`.claude/skills/ui-feature-verify/SKILL.md`](.claude/skills/ui-feature-verify/SKILL.md)                       | Lightweight verification path for UI-only web changes.                                 |
+| [`.claude/agents/verifier.md`](.claude/agents/verifier.md)                                                     | Full verification orchestration prompt.                                                |
 
 ## Coordination
 

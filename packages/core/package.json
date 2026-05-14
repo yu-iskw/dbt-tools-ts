@@ -1,6 +1,6 @@
 {
   "name": "@dbt-tools/core",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "Composable analysis engine for dbt artifacts (graphs, execution analysis) — substrate for @dbt-tools/cli and @dbt-tools/web",
   "keywords": [
     "dbt",
@@ -33,6 +33,10 @@
     "./artifact-io": {
       "types": "./dist/artifact-io.d.ts",
       "default": "./dist/artifact-io.js"
+    },
+    "./artifact-workspace": {
+      "types": "./dist/artifact-workspace.d.ts",
+      "default": "./dist/artifact-workspace.js"
     }
   },
   "main": "dist/index.js",

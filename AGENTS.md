@@ -11,7 +11,7 @@
 - **Package manager:** pnpm workspace.
 - **Node.js:** use [`.node-version`](.node-version) for local development and CI. Published packages require Node.js 20+.
 - **Language:** TypeScript. Unit tests use Vitest from the repository root.
-- **Repository boundary:** this repo owns `@dbt-tools/core`, `@dbt-tools/cli`, and `@dbt-tools/web`. `dbt-artifacts-parser` is an external npm dependency and upstream parser package, not a workspace package here.
+- **Repository boundary:** this repo owns `@dbt-tools/core`, `@dbt-tools/cli`, `@dbt-tools/mcp`, and `@dbt-tools/web`. `dbt-artifacts-parser` is an external npm dependency and upstream parser package, not a workspace package here.
 
 ## Packages
 
@@ -19,6 +19,7 @@
 | ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `@dbt-tools/core` | [`packages/core`](packages/core) | Artifact analysis substrate: manifest graph, execution analysis, snapshots, discovery, exports, and browser-safe facade. |
 | `@dbt-tools/cli`  | [`packages/cli`](packages/cli)   | Structured CLI for operators, CI, scripts, and coding agents (`dbt-tools`).                                              |
+| `@dbt-tools/mcp`  | [`packages/mcp`](packages/mcp)   | Long-lived MCP server for interactive agent workflows over resident parsed artifacts (`dbt-tools-mcp`).                  |
 | `@dbt-tools/web`  | [`packages/web`](packages/web)   | Deterministic investigation UI and local static server (`dbt-tools-web`).                                                |
 
 Product positioning is [ADR-0008](docs/adr/0008-dbt-tools-operational-intelligence-and-positioning-boundaries.md). Core/web/CLI scalability boundaries are [ADR-0003](docs/adr/0003-large-manifest-web-performance-dependency-index-and-lazy-sql.md), [ADR-0004](docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md), [ADR-0006](docs/adr/0006-timeline-includes-dbt-sources-via-snapshot-synthesis.md), and [ADR-0010](docs/adr/0010-shared-discovery-ranker-intent-commands-and-cli-web-deep-links.md).
@@ -74,6 +75,7 @@ Pack and `npx` smoke for the web package is documented in [`.claude/skills/dbt-t
 - E2E authoring: [`.claude/skills/dbt-tools-web-e2e/SKILL.md`](.claude/skills/dbt-tools-web-e2e/SKILL.md).
 - E2E fix loop: [`.claude/skills/dbt-tools-web-e2e-fix/SKILL.md`](.claude/skills/dbt-tools-web-e2e-fix/SKILL.md).
 - UI-scope verification: [`.claude/skills/ui-feature-verify/SKILL.md`](.claude/skills/ui-feature-verify/SKILL.md).
+- Workspace package version bump (release semver sync): [`.claude/skills/bump-workspace-versions/SKILL.md`](.claude/skills/bump-workspace-versions/SKILL.md).
 - Full verification prompt: [`.claude/agents/verifier.md`](.claude/agents/verifier.md).
 
 ## Documentation boundaries

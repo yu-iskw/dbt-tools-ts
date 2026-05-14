@@ -19,6 +19,10 @@
       "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.ts"]
     },
+    "packages/mcp": {
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
+    },
     "packages/web": {
       "entry": ["e2e/**/*.ts", "src/**/*.test.ts", "src/**/*.test.tsx", "src/server/cli.ts"],
       "project": ["src/**/*.ts", "src/**/*.tsx"],
