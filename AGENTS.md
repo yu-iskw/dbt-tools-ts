@@ -75,6 +75,7 @@ Pack and `npx` smoke for the web package is documented in [`.claude/skills/dbt-t
 - E2E authoring: [`.claude/skills/dbt-tools-web-e2e/SKILL.md`](.claude/skills/dbt-tools-web-e2e/SKILL.md).
 - E2E fix loop: [`.claude/skills/dbt-tools-web-e2e-fix/SKILL.md`](.claude/skills/dbt-tools-web-e2e-fix/SKILL.md).
 - UI-scope verification: [`.claude/skills/ui-feature-verify/SKILL.md`](.claude/skills/ui-feature-verify/SKILL.md).
+- Workspace package version bump (release semver sync): [`.claude/skills/bump-workspace-versions/SKILL.md`](.claude/skills/bump-workspace-versions/SKILL.md).
 - Full verification prompt: [`.claude/agents/verifier.md`](.claude/agents/verifier.md).
 
 ## Documentation boundaries
