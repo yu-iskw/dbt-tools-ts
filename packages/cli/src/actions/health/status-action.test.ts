@@ -106,6 +106,19 @@ describe('statusAction', () => {
     await expect(statusAction({ dbtTarget: '../../etc' }, handleError)).rejects.toThrow();
   });
 
+  it('calls handleError with structured flag when format is invalid', async () => {
+    const handleErrorSpy = vi.fn((error: unknown) => {
+      throw error;
+    });
+
+    await expect(
+      statusAction({ dbtTarget: '../../etc', format: 'bogus' }, handleErrorSpy),
+    ).rejects.toThrow();
+
+    expect(handleErrorSpy).toHaveBeenCalledTimes(1);
+    expect(handleErrorSpy).toHaveBeenCalledWith(expect.anything(), true);
+  });
+
   it('includes modification time when artifact exists', async () => {
     fs.writeFileSync(path.join(tmpDir, 'manifest.json'), '{}');
 

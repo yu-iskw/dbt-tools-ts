@@ -35,6 +35,8 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p /tmp/verdaccio-smoke-storage
+# Fresh registry each run so republish is not skipped when the version already exists locally.
+find /tmp/verdaccio-smoke-storage -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
 
 # Do not set NPM_CONFIG_USERCONFIG before npx fetches Verdaccio (registry would point at localhost).
 npx --yes "verdaccio@${VERDACCIO_VERSION}" \
@@ -58,18 +60,40 @@ done
 npmrc_smoke="$(mktemp)"
 {
 	printf 'registry=%s/\n' "${REGISTRY_URL}"
+	printf '@dbt-tools:registry=%s/\n' "${REGISTRY_URL}"
 	printf '//127.0.0.1:4873/:_authToken=smoke-ci-placeholder\n'
 } >"${npmrc_smoke}"
 export NPM_CONFIG_USERCONFIG="${npmrc_smoke}"
+export NPM_CONFIG_REGISTRY="${REGISTRY_URL}"
 
 pnpm --filter @dbt-tools/core run build
 
-pnpm publish --filter @dbt-tools/core --registry "${REGISTRY_URL}" --no-git-checks
-pnpm publish --filter @dbt-tools/web --registry "${REGISTRY_URL}" --no-git-checks
+grep -q 'readStreamWithByteCap' "${REPO_ROOT}/packages/core/dist/io/read-bytes-capped.js" ||
+	{
+		echo "smoke: workspace @dbt-tools/core build missing readStreamWithByteCap" >&2
+		exit 1
+	}
+
+(
+	cd packages/core
+	npm publish --registry "${REGISTRY_URL}" --access public
+)
+core_ver="$(node -p "require('./packages/core/package.json').version")"
+core_tgz="$(npm pack "@dbt-tools/core@${core_ver}" \
+	--registry "${REGISTRY_URL}" --pack-destination /tmp 2>/dev/null | tail -1)"
+tar -xOf "/tmp/${core_tgz}" package/dist/io/read-bytes-capped.js | grep -q 'readStreamWithByteCap' ||
+	{
+		echo "smoke: published @dbt-tools/core missing readStreamWithByteCap in dist/io/read-bytes-capped.js" >&2
+		exit 1
+	}
+rm -f "/tmp/${core_tgz}"
+(
+	cd packages/web
+	npm publish --registry "${REGISTRY_URL}" --access public
+)
 
 rm -f "${REPO_ROOT}"/dbt-tools-web-*.tgz
 pnpm --filter @dbt-tools/web pack
 
-export NPM_CONFIG_REGISTRY="${REGISTRY_URL}"
 export REPO_ROOT
 pnpm --filter @dbt-tools/web run smoke:npx-tgz

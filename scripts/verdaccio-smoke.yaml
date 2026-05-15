@@ -9,7 +9,7 @@ packages:
   '@dbt-tools/*':
     access: $all
     publish: $all
-    proxy: npmjs
+    # No proxy: smoke must use workspace publishes, not npmjs copies of the same version.
   'dbt-artifacts-parser':
     access: $all
     publish: $all

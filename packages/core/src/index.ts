@@ -36,7 +36,7 @@ export * from './io/artifact-loader';
 export * from './io/artifact-discovery';
 export * from './io/artifact-location';
 export * from './io/dbt-artifact-bundle';
-export { readStreamWithByteCap, readFileWithByteCap } from './io/read-bytes-capped';
+export * from './io/read-bytes-capped';
 
 // Long-lived artifact workspace (Node-safe)
 export * from './artifact-workspace/index';

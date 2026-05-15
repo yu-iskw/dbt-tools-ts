@@ -73,6 +73,12 @@ describe('OutputFormatter', () => {
       expect(preferStructuredErrors()).toBe(true);
       expect(preferStructuredErrors('json')).toBe(true);
       expect(preferStructuredErrors('text')).toBe(false);
+      expect(preferStructuredErrors(' TEXT ')).toBe(false);
+    });
+
+    it('does not throw on unknown formats and defaults to structured errors', () => {
+      expect(() => preferStructuredErrors('table')).not.toThrow();
+      expect(preferStructuredErrors('table')).toBe(true);
     });
   });
 

@@ -69,9 +69,14 @@ export function resolveStdoutFormat(format?: string): StdoutFormat {
 
 /**
  * Whether stderr should use structured JSON errors for this stdout format.
+ * Error-path only: must not throw; unknown formats are treated like json.
  */
 export function preferStructuredErrors(format?: string): boolean {
-  return resolveStdoutFormat(format) === 'json';
+  try {
+    return resolveStdoutFormat(format) === 'json';
+  } catch {
+    return true;
+  }
 }
 
 /**

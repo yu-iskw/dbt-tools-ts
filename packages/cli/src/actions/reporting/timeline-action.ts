@@ -43,6 +43,15 @@ function resolveTimelineFormat(format?: string): TimelineStdoutFormat {
   throw new Error(`Invalid --format "${format}". Expected: json, table, csv.`);
 }
 
+/** Error-path only: must not throw; unknown formats are treated like json. */
+function preferTimelineStructuredErrors(format?: string): boolean {
+  try {
+    return resolveTimelineFormat(format) === 'json';
+  } catch {
+    return true;
+  }
+}
+
 export type TimelineEntry = {
   unique_id: string;
   name?: string;
@@ -348,6 +357,6 @@ export async function timelineAction(
     const format = resolveTimelineFormat(options.format);
     console.log(formatTimelineOutput(result, format));
   } catch (error) {
-    handleError(error, resolveTimelineFormat(options.format) === 'json');
+    handleError(error, preferTimelineStructuredErrors(options.format));
   }
 }

@@ -135,6 +135,19 @@ describe('timelineAction', () => {
     expect(parsed.entries.some((entry) => entry.adapter_metrics?.rawKeys != null)).toBe(true);
   });
 
+  it('calls handleError with structured flag when format is invalid', async () => {
+    const handleErrorSpy = vi.fn((error: unknown) => {
+      throw error;
+    });
+
+    await expect(
+      timelineAction({ dbtTarget: dbtTargetDir, format: 'bogus' }, handleErrorSpy),
+    ).rejects.toThrow(/Invalid --format/);
+
+    expect(handleErrorSpy).toHaveBeenCalledTimes(1);
+    expect(handleErrorSpy).toHaveBeenCalledWith(expect.anything(), true);
+  });
+
   it('throws for invalid sort option', async () => {
     await expect(
       timelineAction({ dbtTarget: dbtTargetDir, sort: 'invalid_sort' }, handleError),
