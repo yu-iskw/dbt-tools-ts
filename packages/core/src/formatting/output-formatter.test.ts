@@ -3,6 +3,7 @@ import {
   isTTY,
   resolveStdoutFormat,
   preferStructuredErrors,
+  preferStructuredErrorsWhen,
   formatOutput,
   formatSummary,
   formatDeps,
@@ -79,6 +80,19 @@ describe('OutputFormatter', () => {
     it('does not throw on unknown formats and defaults to structured errors', () => {
       expect(() => preferStructuredErrors('table')).not.toThrow();
       expect(preferStructuredErrors('table')).toBe(true);
+    });
+
+    it('preferStructuredErrorsWhen respects a custom resolver', () => {
+      const resolveTimeline = (format?: string) => {
+        const normalized = (format ?? 'json').trim().toLowerCase();
+        if (normalized === 'json' || normalized === 'table' || normalized === 'csv') {
+          return normalized;
+        }
+        throw new Error(`Invalid --format "${format}".`);
+      };
+      expect(preferStructuredErrorsWhen('json', resolveTimeline)).toBe(true);
+      expect(preferStructuredErrorsWhen('table', resolveTimeline)).toBe(false);
+      expect(preferStructuredErrorsWhen('bogus', resolveTimeline)).toBe(true);
     });
   });
 

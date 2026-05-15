@@ -22,6 +22,15 @@ REGISTRY_URL=${REGISTRY_URL:-http://127.0.0.1:4873}
 verdaccio_pid=""
 npmrc_smoke=""
 
+assert_core_byte_cap_export() {
+	local label=$1
+	local file=$2
+	if ! grep -q 'readStreamWithByteCap' "${file}"; then
+		echo "smoke: ${label} missing readStreamWithByteCap" >&2
+		exit 1
+	fi
+}
+
 cleanup() {
 	if [[ -n ${npmrc_smoke} ]]; then
 		rm -f "${npmrc_smoke}"
@@ -35,8 +44,7 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p /tmp/verdaccio-smoke-storage
-# Fresh registry each run so republish is not skipped when the version already exists locally.
-find /tmp/verdaccio-smoke-storage -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+rm -rf /tmp/verdaccio-smoke-storage/*
 
 # Do not set NPM_CONFIG_USERCONFIG before npx fetches Verdaccio (registry would point at localhost).
 npx --yes "verdaccio@${VERDACCIO_VERSION}" \
@@ -68,11 +76,9 @@ export NPM_CONFIG_REGISTRY="${REGISTRY_URL}"
 
 pnpm --filter @dbt-tools/core run build
 
-grep -q 'readStreamWithByteCap' "${REPO_ROOT}/packages/core/dist/io/read-bytes-capped.js" ||
-	{
-		echo "smoke: workspace @dbt-tools/core build missing readStreamWithByteCap" >&2
-		exit 1
-	}
+assert_core_byte_cap_export \
+	"workspace @dbt-tools/core build" \
+	"${REPO_ROOT}/packages/core/dist/io/read-bytes-capped.js"
 
 (
 	cd packages/core
@@ -80,12 +86,10 @@ grep -q 'readStreamWithByteCap' "${REPO_ROOT}/packages/core/dist/io/read-bytes-c
 )
 core_ver="$(node -p "require('./packages/core/package.json').version")"
 core_tgz="$(npm pack "@dbt-tools/core@${core_ver}" \
-	--registry "${REGISTRY_URL}" --pack-destination /tmp 2>/dev/null | tail -1)"
-tar -xOf "/tmp/${core_tgz}" package/dist/io/read-bytes-capped.js | grep -q 'readStreamWithByteCap' ||
-	{
-		echo "smoke: published @dbt-tools/core missing readStreamWithByteCap in dist/io/read-bytes-capped.js" >&2
-		exit 1
-	}
+	--registry "${REGISTRY_URL}" --pack-destination /tmp | tail -1)"
+assert_core_byte_cap_export \
+	"published @dbt-tools/core" \
+	<(tar -xOf "/tmp/${core_tgz}" package/dist/io/read-bytes-capped.js)
 rm -f "/tmp/${core_tgz}"
 (
 	cd packages/web

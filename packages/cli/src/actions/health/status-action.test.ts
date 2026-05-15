@@ -112,8 +112,8 @@ describe('statusAction', () => {
     });
 
     await expect(
-      statusAction({ dbtTarget: '../../etc', format: 'bogus' }, handleErrorSpy),
-    ).rejects.toThrow();
+      statusAction({ dbtTarget: tmpDir, format: 'bogus' }, handleErrorSpy),
+    ).rejects.toThrow(/Invalid --format/);
 
     expect(handleErrorSpy).toHaveBeenCalledTimes(1);
     expect(handleErrorSpy).toHaveBeenCalledWith(expect.anything(), true);

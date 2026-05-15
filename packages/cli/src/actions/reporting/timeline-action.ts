@@ -14,6 +14,7 @@ import {
   getPresentAdapterMetricDescriptors,
   searchRunResults,
   formatOutput,
+  preferStructuredErrorsWhen,
   type NodeExecution,
   type AdapterResponseMetrics,
   type ArtifactPaths,
@@ -41,15 +42,6 @@ function resolveTimelineFormat(format?: string): TimelineStdoutFormat {
     return normalized;
   }
   throw new Error(`Invalid --format "${format}". Expected: json, table, csv.`);
-}
-
-/** Error-path only: must not throw; unknown formats are treated like json. */
-function preferTimelineStructuredErrors(format?: string): boolean {
-  try {
-    return resolveTimelineFormat(format) === 'json';
-  } catch {
-    return true;
-  }
 }
 
 export type TimelineEntry = {
@@ -357,6 +349,6 @@ export async function timelineAction(
     const format = resolveTimelineFormat(options.format);
     console.log(formatTimelineOutput(result, format));
   } catch (error) {
-    handleError(error, preferTimelineStructuredErrors(options.format));
+    handleError(error, preferStructuredErrorsWhen(options.format, resolveTimelineFormat));
   }
 }

@@ -68,15 +68,24 @@ export function resolveStdoutFormat(format?: string): StdoutFormat {
 }
 
 /**
- * Whether stderr should use structured JSON errors for this stdout format.
- * Error-path only: must not throw; unknown formats are treated like json.
+ * Whether stderr should use structured JSON errors for a resolved stdout format.
+ * Error-path only: must not throw; invalid formats are treated like json.
  */
-export function preferStructuredErrors(format?: string): boolean {
+export function preferStructuredErrorsWhen(
+  format: string | undefined,
+  resolve: (format?: string) => string,
+  isStructured: (resolved: string) => boolean = (resolved) => resolved === 'json',
+): boolean {
   try {
-    return resolveStdoutFormat(format) === 'json';
+    return isStructured(resolve(format));
   } catch {
     return true;
   }
+}
+
+/** Whether stderr should use structured JSON errors for global CLI `--format` (json | text). */
+export function preferStructuredErrors(format?: string): boolean {
+  return preferStructuredErrorsWhen(format, resolveStdoutFormat);
 }
 
 /**
