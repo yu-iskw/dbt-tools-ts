@@ -11,9 +11,7 @@ import {
   DependencyService,
   SQLAnalyzer,
   sqlDialectFromDbtAdapterType,
-  formatOutput,
   formatDeps,
-  resolveStdoutFormat,
   preferStructuredErrors,
 } from '@dbt-tools/core';
 import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
@@ -22,6 +20,7 @@ import {
   extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
+import { emitActionOutput } from '../../internal/cli-output';
 
 type DepsOptions = {
   direction?: string;
@@ -131,12 +130,7 @@ export async function depsAction(
       options.buildOrder,
     );
 
-    const stdoutFormat = resolveStdoutFormat(options.format);
-    if (stdoutFormat === 'json') {
-      console.log(formatOutput(result, options.format));
-    } else {
-      console.log(formatDeps(result, layout as 'flat' | 'tree'));
-    }
+    emitActionOutput(result, options, (r) => formatDeps(r, layout as 'flat' | 'tree'));
   } catch (error) {
     handleError(error, preferStructuredErrors(options.format));
   }

@@ -6,9 +6,6 @@ import {
   loadManifest,
   validateSafePath,
   validateNoControlChars,
-  FieldFilter,
-  formatOutput,
-  resolveStdoutFormat,
   preferStructuredErrors,
   DependencyService,
   resolveIntentTarget,
@@ -22,6 +19,7 @@ import {
   extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
+import { emitActionOutput } from '../../internal/cli-output';
 
 export type ImpactCliOptions = {
   fields?: string;
@@ -164,30 +162,18 @@ export async function impactAction(
       };
     }
 
-    const stdoutFormat = resolveStdoutFormat(options.format);
-    if (stdoutFormat === 'json') {
-      let out: unknown = output;
-      if (options.fields) {
-        out = FieldFilter.filterFields(
-          output as unknown as Record<string, unknown>,
-          options.fields,
-        );
-      }
-      console.log(formatOutput(out, options.format));
-    } else {
-      console.log(
-        [
-          `Resource: ${output.target.resolved_unique_id}`,
-          `Upstream: ${output.impact.upstream_count}  Downstream: ${output.impact.downstream_count}`,
-          `Critical dependents (models by fanout): ${output.impact.critical_dependents.join(', ') || '(none)'}`,
-          `Why it matters: ${output.why_it_matters.join('; ')}`,
-          `Next: ${output.next_actions.join(', ')}`,
-          output.web_url ? `Open in web: ${output.web_url}` : null,
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      );
-    }
+    emitActionOutput(output, options, (o) =>
+      [
+        `Resource: ${o.target.resolved_unique_id}`,
+        `Upstream: ${o.impact.upstream_count}  Downstream: ${o.impact.downstream_count}`,
+        `Critical dependents (models by fanout): ${o.impact.critical_dependents.join(', ') || '(none)'}`,
+        `Why it matters: ${o.why_it_matters.join('; ')}`,
+        `Next: ${o.next_actions.join(', ')}`,
+        o.web_url ? `Open in web: ${o.web_url}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
   } catch (error) {
     handleError(error, preferStructuredErrors(options.format));
   }

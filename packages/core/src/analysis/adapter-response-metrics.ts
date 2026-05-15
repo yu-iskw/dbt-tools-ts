@@ -172,25 +172,27 @@ function flattenTopLevelEntry(key: string, value: unknown): AdapterResponseField
   return nestedKeys.map((nestedKey) => buildField(`${key}.${nestedKey}`, value[nestedKey]));
 }
 
+const ADAPTER_METRIC_KEYS = [
+  'bytesProcessed',
+  'bytesBilled',
+  'slotMs',
+  'rowsAffected',
+  'adapterCode',
+  'adapterMessage',
+  'queryId',
+  'projectId',
+  'location',
+  'rowsInserted',
+  'rowsDeleted',
+  'rowsUpdated',
+  'rowsDuplicated',
+] as const satisfies readonly (keyof AdapterResponseMetrics)[];
+
 /**
  * Returns true when any normalized field beyond rawKeys is present.
  */
 export function adapterMetricsHasData(metrics: AdapterResponseMetrics): boolean {
-  return (
-    metrics.bytesProcessed !== undefined ||
-    metrics.bytesBilled !== undefined ||
-    metrics.slotMs !== undefined ||
-    metrics.rowsAffected !== undefined ||
-    metrics.adapterCode !== undefined ||
-    metrics.adapterMessage !== undefined ||
-    metrics.queryId !== undefined ||
-    metrics.projectId !== undefined ||
-    metrics.location !== undefined ||
-    metrics.rowsInserted !== undefined ||
-    metrics.rowsDeleted !== undefined ||
-    metrics.rowsUpdated !== undefined ||
-    metrics.rowsDuplicated !== undefined
-  );
+  return ADAPTER_METRIC_KEYS.some((k) => metrics[k] !== undefined);
 }
 
 export function isAdapterResponseObject(
@@ -223,28 +225,23 @@ export function coerceAdapterResponseInput(raw: unknown): unknown {
 }
 
 /**
- * Normalize adapter_response from a single run_results result row.
+ * Extracts generic/base fields from adapter response input.
+ * These fields are common across adapters.
  */
-export function normalizeAdapterResponse(adapterResponse: unknown): AdapterResponseMetrics {
-  if (!isPlainObject(adapterResponse)) {
-    return { rawKeys: [] };
+export function extractBaseFields(input: unknown): Partial<AdapterResponseMetrics> {
+  if (!isPlainObject(input)) {
+    return {};
   }
 
-  const rawKeys = Object.keys(adapterResponse).filter((k) => typeof k === 'string');
-
-  const bytesProcessed = readFiniteNumber(adapterResponse, 'bytes_processed');
-  const bytesBilled = readFiniteNumber(adapterResponse, 'bytes_billed');
-  const slotMs = readFiniteNumber(adapterResponse, 'slot_ms');
-  const rowsAffected = readFiniteNumber(adapterResponse, 'rows_affected');
-
-  const adapterCode = readNonEmptyString(adapterResponse, 'code');
-  const adapterMessage = readNonEmptyString(adapterResponse, '_message');
-
-  const queryId =
-    readNonEmptyString(adapterResponse, 'query_id') ??
-    readNonEmptyString(adapterResponse, 'job_id');
-  const projectId = readNonEmptyString(adapterResponse, 'project_id');
-  const location = readNonEmptyString(adapterResponse, 'location');
+  const bytesProcessed = readFiniteNumber(input, 'bytes_processed');
+  const bytesBilled = readFiniteNumber(input, 'bytes_billed');
+  const slotMs = readFiniteNumber(input, 'slot_ms');
+  const rowsAffected = readFiniteNumber(input, 'rows_affected');
+  const adapterCode = readNonEmptyString(input, 'code');
+  const adapterMessage = readNonEmptyString(input, '_message');
+  const queryId = readNonEmptyString(input, 'query_id') ?? readNonEmptyString(input, 'job_id');
+  const projectId = readNonEmptyString(input, 'project_id');
+  const location = readNonEmptyString(input, 'location');
 
   return {
     ...(bytesProcessed !== undefined ? { bytesProcessed } : {}),
@@ -256,8 +253,18 @@ export function normalizeAdapterResponse(adapterResponse: unknown): AdapterRespo
     ...(queryId !== undefined ? { queryId } : {}),
     ...(projectId !== undefined ? { projectId } : {}),
     ...(location !== undefined ? { location } : {}),
-    rawKeys,
   };
+}
+
+/**
+ * Normalize adapter_response from a single run_results result row.
+ */
+export function normalizeAdapterResponse(adapterResponse: unknown): AdapterResponseMetrics {
+  if (!isPlainObject(adapterResponse)) {
+    return { rawKeys: [] };
+  }
+  const rawKeys = Object.keys(adapterResponse).filter((k) => typeof k === 'string');
+  return { ...extractBaseFields(adapterResponse), rawKeys };
 }
 
 /**

@@ -98,7 +98,7 @@ export class FieldFilter {
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
-      if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
+      if (this.isUnsafeKey(part)) {
         return;
       }
       if (
@@ -113,7 +113,7 @@ export class FieldFilter {
     }
 
     const lastPart = parts[parts.length - 1];
-    if (lastPart === '__proto__' || lastPart === 'constructor' || lastPart === 'prototype') {
+    if (this.isUnsafeKey(lastPart)) {
       return;
     }
     current[lastPart] = value;

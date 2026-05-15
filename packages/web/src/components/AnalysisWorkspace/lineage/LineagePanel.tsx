@@ -13,6 +13,8 @@ import { DepthStepper, SharedDepthSelector } from './LineageDepthControls';
 import { LensSelector } from './LensSelector';
 import { LineageGraphSurface } from './LineageGraphSurface';
 
+const ALL_DEPS_DEPTH = 20;
+
 export function LineagePanel({
   resource,
   dependencySummary,
@@ -55,7 +57,6 @@ export function LineagePanel({
   fullscreenScope?: 'viewport' | 'container';
 }) {
   const [isFullscreenOpen, setFullscreenOpen] = useState(false);
-  const ALL_DEPS_DEPTH = 20;
 
   useEffect(() => {
     setFullscreenOpen(openFullscreen);

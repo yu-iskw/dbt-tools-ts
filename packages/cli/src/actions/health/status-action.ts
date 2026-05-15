@@ -9,9 +9,7 @@ import {
   DBT_MANIFEST_JSON,
   DBT_RUN_RESULTS_JSON,
   DBT_SOURCES_JSON,
-  formatOutput,
   parseDbtToolsArtifactTarget,
-  resolveStdoutFormat,
   preferStructuredErrors,
   validateSafePath,
 } from '@dbt-tools/core';
@@ -21,6 +19,7 @@ import {
   extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
+import { emitActionOutput } from '../../internal/cli-output';
 
 export type StatusOptions = {
   format?: string;
@@ -205,12 +204,7 @@ export async function statusAction(
       summary: summaryMap[readiness],
     };
 
-    const format = resolveStdoutFormat(options.format);
-    if (format === 'json') {
-      console.log(formatOutput(result, options.format));
-    } else {
-      console.log(formatStatus(result));
-    }
+    emitActionOutput(result, options, formatStatus);
   } catch (error) {
     handleError(error, preferStructuredErrors(options.format));
   }

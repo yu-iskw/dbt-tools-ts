@@ -6,9 +6,6 @@ import {
   loadManifest,
   validateSafePath,
   validateNoControlChars,
-  FieldFilter,
-  formatOutput,
-  resolveStdoutFormat,
   preferStructuredErrors,
   resolveIntentTarget,
   buildExplainWebUrl,
@@ -21,6 +18,7 @@ import {
   extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
+import { emitActionOutput } from '../../internal/cli-output';
 
 export type ExplainCliOptions = {
   fields?: string;
@@ -170,19 +168,7 @@ export async function explainAction(
 
     attachExplainWebAndTrace(output, resolved.unique_id, resourceInput, steps, options.trace);
 
-    const stdoutFormat = resolveStdoutFormat(options.format);
-    if (stdoutFormat === 'json') {
-      let out: unknown = output;
-      if (options.fields) {
-        out = FieldFilter.filterFields(
-          output as unknown as Record<string, unknown>,
-          options.fields,
-        );
-      }
-      console.log(formatOutput(out, options.format));
-    } else {
-      console.log(formatExplainHumanText(output));
-    }
+    emitActionOutput(output, options, formatExplainHumanText);
   } catch (error) {
     handleError(error, preferStructuredErrors(options.format));
   }

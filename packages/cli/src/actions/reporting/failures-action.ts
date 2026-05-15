@@ -9,9 +9,6 @@ import {
   loadRunResults,
   buildNodeExecutionsFromRunResults,
   validateSafePath,
-  FieldFilter,
-  formatOutput,
-  resolveStdoutFormat,
   preferStructuredErrors,
   searchRunResults,
   type NodeExecution,
@@ -23,6 +20,7 @@ import {
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 import { parseListOffset, resolveFailuresLimit } from '../../internal/cli-pagination';
+import { emitActionOutput } from '../../internal/cli-output';
 
 export type FailuresOptions = {
   fields?: string;
@@ -353,16 +351,7 @@ export async function failuresAction(
       primitive_commands: buildPrimitiveCommands(options.dbtTarget, failures[0]?.unique_id),
     };
 
-    const stdoutFormat = resolveStdoutFormat(options.format);
-    if (stdoutFormat === 'json') {
-      let out: unknown = output;
-      if (options.fields) {
-        out = FieldFilter.filterFields(output, options.fields);
-      }
-      console.log(formatOutput(out, options.format));
-    } else {
-      console.log(formatFailuresHuman(output));
-    }
+    emitActionOutput(output, options, formatFailuresHuman);
   } catch (error) {
     handleError(error, preferStructuredErrors(options.format));
   }

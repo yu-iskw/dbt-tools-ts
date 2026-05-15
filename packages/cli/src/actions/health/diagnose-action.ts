@@ -6,9 +6,6 @@ import {
   loadManifest,
   validateSafePath,
   validateNoControlChars,
-  FieldFilter,
-  formatOutput,
-  resolveStdoutFormat,
   preferStructuredErrors,
   resolveIntentTarget,
 } from '@dbt-tools/core';
@@ -17,6 +14,7 @@ import {
   extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
+import { emitActionOutput } from '../../internal/cli-output';
 
 export type DiagnoseCliOptions = {
   fields?: string;
@@ -68,25 +66,13 @@ export async function diagnoseRunAction(
       primitive_commands,
     };
 
-    const stdoutFormat = resolveStdoutFormat(options.format);
-    if (stdoutFormat === 'json') {
-      let out: unknown = output;
-      if (options.fields) {
-        out = FieldFilter.filterFields(
-          output as unknown as Record<string, unknown>,
-          options.fields,
-        );
-      }
-      console.log(formatOutput(out, options.format));
-    } else {
-      console.log(
-        [
-          'Diagnose (run): use execution primitives for failures and timing.',
-          'Suggested commands:',
-          ...primitive_commands.map((c) => `  ${c}`),
-        ].join('\n'),
-      );
-    }
+    emitActionOutput(output, options, () =>
+      [
+        'Diagnose (run): use execution primitives for failures and timing.',
+        'Suggested commands:',
+        ...primitive_commands.map((c) => `  ${c}`),
+      ].join('\n'),
+    );
   } catch (error) {
     handleError(error, preferStructuredErrors(options.format));
   }
@@ -139,25 +125,13 @@ export async function diagnoseNodeAction(
       primitive_commands,
     };
 
-    const stdoutFormat = resolveStdoutFormat(options.format);
-    if (stdoutFormat === 'json') {
-      let out: unknown = output;
-      if (options.fields) {
-        out = FieldFilter.filterFields(
-          output as unknown as Record<string, unknown>,
-          options.fields,
-        );
-      }
-      console.log(formatOutput(out, options.format));
-    } else {
-      console.log(
-        [
-          `Diagnose (node): ${output.target?.resolved_unique_id}`,
-          'Suggested commands:',
-          ...primitive_commands.map((c) => `  ${c}`),
-        ].join('\n'),
-      );
-    }
+    emitActionOutput(output, options, (o) =>
+      [
+        `Diagnose (node): ${o.target?.resolved_unique_id}`,
+        'Suggested commands:',
+        ...primitive_commands.map((c) => `  ${c}`),
+      ].join('\n'),
+    );
   } catch (error) {
     handleError(error, preferStructuredErrors(options.format));
   }

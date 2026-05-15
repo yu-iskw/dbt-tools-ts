@@ -63,6 +63,12 @@ function boundedLimit(
   return Math.min(Math.max(1, Math.floor(raw)), maxLimit);
 }
 
+function requireUniqueId(input: ToolInput): string {
+  const uniqueId = optionalString(input, 'uniqueId');
+  if (uniqueId == null) throw new Error(MSG_UNIQUE_ID_REQUIRED);
+  return uniqueId;
+}
+
 function offset(input: ToolInput): number {
   const raw = optionalNumber(input, 'offset');
   if (raw == null) return 0;
@@ -82,36 +88,24 @@ function searchInput(input: ToolInput): SearchResourcesInput {
 }
 
 function getResourceInput(input: ToolInput): GetResourceInput {
-  const uniqueId = optionalString(input, 'uniqueId');
-  if (uniqueId == null) {
-    throw new Error(MSG_UNIQUE_ID_REQUIRED);
-  }
   return {
-    uniqueId,
+    uniqueId: requireUniqueId(input),
     includeCode: input.includeCode === true,
   };
 }
 
 function lineageInput(input: ToolInput): LineageInput {
-  const uniqueId = optionalString(input, 'uniqueId');
-  if (uniqueId == null) {
-    throw new Error(MSG_UNIQUE_ID_REQUIRED);
-  }
   const direction = input.direction === 'downstream' ? 'downstream' : 'upstream';
   return {
-    uniqueId,
+    uniqueId: requireUniqueId(input),
     direction,
     depth: optionalNumber(input, 'depth'),
   };
 }
 
 function impactInput(input: ToolInput): ImpactInput {
-  const uniqueId = optionalString(input, 'uniqueId');
-  if (uniqueId == null) {
-    throw new Error(MSG_UNIQUE_ID_REQUIRED);
-  }
   return {
-    uniqueId,
+    uniqueId: requireUniqueId(input),
     depth: optionalNumber(input, 'depth'),
   };
 }
