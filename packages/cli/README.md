@@ -1,6 +1,6 @@
 # @dbt-tools/cli
 
-**Structured interface** for dbt artifact analysis: machine-readable JSON by default in non-interactive environments, runtime **`schema`** introspection, **`--fields`** to shrink payloads, and validated inputs with stable error codes—suited to **operators**, **CI**, **scripts**, and **coding agents** (skills, multi-step automation) without treating AI as the only consumer.
+**Structured interface** for dbt artifact analysis: machine-readable JSON by default (`--format json`), runtime **`schema`** introspection, **`--fields`** to shrink payloads, and validated inputs with stable error codes—suited to **operators**, **CI**, **scripts**, and **coding agents** (skills, multi-step automation) without treating AI as the only consumer.
 
 For interactive agent sessions over large artifacts, prefer [`@dbt-tools/mcp`](../mcp/README.md). The MCP server keeps parsed artifacts resident in memory; the CLI remains optimized for one-shot shell and CI commands.
 
@@ -47,7 +47,7 @@ pnpm add -g @dbt-tools/cli
 ## Features
 
 - **Single artifact root (`--dbt-target`)**: Every artifact command reads **`manifest.json`** and **`run_results.json`** from one directory or object prefix; **`catalog.json`** and **`sources.json`** are optional enrichments when present
-- **JSON stdout / structured errors**: With **`--json`**, stdout is JSON and stderr errors are structured JSON; without **`--json`**, errors are human-readable text
+- **JSON stdout / structured errors**: Commands default to **`--format json`** (JSON stdout and structured JSON errors on stderr); use **`--format text`** for human-readable output
 - **Input validation**: Hardened against common mistakes (path traversals, control chars, ambiguous resource IDs)
 - **Field filtering**: Bound output size with `--fields` (also useful when piping into LLM context)
 - **Schema introspection**: Runtime command and option discovery via `schema` command
@@ -56,7 +56,7 @@ pnpm add -g @dbt-tools/cli
 - **Timeline**: Inspect per-node execution timing (row-level, unlike `run-report`)
 - **`failures`**: Bounded JSON bundle of non-success `run_results` rows with optional manifest paths/SQL snippets and suggested `dbt`/CLI follow-ups
 - **Search**: Discover resources by name, tag, type, or free-text query
-- **Paging**: `inventory` and `search` support `--limit` / `--offset` (max 200); `run-report --json` supports `--node-executions-limit` / `--node-executions-offset` to cap the `node_executions` array while keeping summary metrics on the full run
+- **Paging**: `inventory` and `search` support `--limit` / `--offset` (max 200); `run-report` supports `--node-executions-limit` / `--node-executions-offset` to cap the `node_executions` array while keeping summary metrics on the full run
 - **Status / Freshness**: Check if artifacts are present and how recent they are
 - **Subgraph focus**: Export a focused subgraph for any node via `graph --focus`
 - **Remote prefixes**: Use **`s3://bucket/prefix`** or **`gs://bucket/prefix`** (scheme required). Objects are downloaded to a temp directory for the duration of the command. **Credentials** use the normal AWS / GCP client chains; optional JSON in **`DBT_TOOLS_REMOTE_SOURCE`** supplies region, endpoint, GCS project id, etc. (see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
@@ -69,6 +69,8 @@ Pass **`--dbt-target`** on every artifact command, or set **`DBT_TOOLS_DBT_TARGE
 
 - **Local**: absolute or cwd-relative directory containing **`manifest.json`** and **`run_results.json`** at the directory root. Optional **`catalog.json`** / **`sources.json`** are picked up when present.
 - **S3 / GCS**: **`s3://bucket/prefix`** or **`gs://bucket/prefix`** only (unschemed `bucket/prefix` is treated as a **local** path). Required object keys are **`manifest.json`** and **`run_results.json`** under the normalized prefix.
+- **GCS auth flags** (artifact commands): **`--gcs-project-id`** and **`--gcs-impersonate-service-account <email>`** apply only to **`gs://`** roots; they override GCS **`projectId`** / service account impersonation from **`DBT_TOOLS_REMOTE_SOURCE`** when set. Local and S3 targets ignore these flags.
+- **ADC vs `gcloud`:** The CLI uses **Application Default Credentials** (not necessarily the same identity as `gcloud storage ls`). Use **`gcloud auth application-default login`** or **`GOOGLE_APPLICATION_CREDENTIALS`** so Node can read the bucket. If objects exist but you see **`Failed to read gs://…`** (or **`Failed to read s3://…`**), fix IAM or credentials; true missing keys still produce the structured **`ARTIFACT_BUNDLE_INCOMPLETE`** message.
 
 ```bash
 export DBT_TOOLS_DBT_TARGET=./target
@@ -80,7 +82,7 @@ dbt-tools summary --dbt-target ./target
 
 dbt-tools status --dbt-target s3://my-bucket/dbt/artifacts/prod
 
-dbt-tools run-report --dbt-target gs://my-bucket/runs/prod --json
+dbt-tools run-report --dbt-target gs://my-bucket/runs/prod
 ```
 
 ---
@@ -97,16 +99,15 @@ dbt-tools summary --dbt-target ./target
 # Field filtering to reduce context window usage
 dbt-tools summary --dbt-target ./target --fields "total_nodes,total_edges"
 
-# JSON output (structured errors on stderr when this flag is set)
-dbt-tools summary --dbt-target ./target --json
+# Default JSON stdout (omit --format); human tables with --format text
+dbt-tools summary --dbt-target ./target --format text
 ```
 
 **Options:**
 
 - `--dbt-target <path|s3://…|gs://…>` - Artifact root (default: `DBT_TOOLS_DBT_TARGET` when set)
 - `--fields <fields>` - Comma-separated list of fields to include
-- `--json` - Force JSON stdout and structured JSON errors on stderr
-- `--no-json` - Force human-readable output
+- `--format <format>` - Output format: `json` (default) or `text`. JSON uses structured errors on stderr.
 
 ---
 
@@ -174,10 +175,10 @@ dbt-tools run-report --dbt-target ./target --bottlenecks --bottlenecks-threshold
 dbt-tools run-report --dbt-target ./target --fields "total_execution_time,critical_path"
 
 # JSON output
-dbt-tools run-report --dbt-target ./target --json
+dbt-tools run-report --dbt-target ./target
 
 # Cap node_executions in JSON (stable sort by started_at, then unique_id)
-dbt-tools run-report --dbt-target ./target --json --node-executions-limit 50
+dbt-tools run-report --dbt-target ./target --node-executions-limit 50
 ```
 
 **Options:**
@@ -187,10 +188,9 @@ dbt-tools run-report --dbt-target ./target --json --node-executions-limit 50
 - `--bottlenecks` - Include bottleneck section in report
 - `--bottlenecks-top <n>` - Top N slowest nodes (default: 10 when `--bottlenecks`)
 - `--bottlenecks-threshold <s>` - Nodes exceeding s seconds (cannot combine with `--bottlenecks-top`)
-- `--node-executions-limit <n>` - When set with `--json`, return at most N rows from `node_executions` (totals, critical path, and bottlenecks still reflect the full run)
+- `--node-executions-limit <n>` - When set, return at most N rows from `node_executions` in JSON output (totals, critical path, and bottlenecks still reflect the full run)
 - `--node-executions-offset <n>` - Skip N rows before applying `--node-executions-limit` (requires `--node-executions-limit`)
-- `--json` - Force JSON stdout and structured JSON errors on stderr
-- `--no-json` - Force human-readable output
+- `--format <format>` - Output format: `json` (default) or `text`. JSON uses structured errors on stderr.
 
 ---
 
@@ -199,9 +199,9 @@ dbt-tools run-report --dbt-target ./target --json --node-executions-limit 50
 Summarize **non-success** rows from `run_results.json` in one bounded JSON payload (default **50** rows, max **200**). Default filter matches **`timeline --failed-only`**: excludes `success` and `pass`; override with **`--status`**. Optional manifest enrichment adds paths or capped SQL snippets. **`next_commands`** lists heuristic `dbt` selectors (verify in your project before running); **`primitive_commands`** points back to `timeline`, `run-report`, `explain`, and `deps`.
 
 ```bash
-dbt-tools failures --dbt-target ./target --json
-dbt-tools failures --dbt-target ./target --json --limit 20 --offset 0
-dbt-tools failures --dbt-target ./target --json --status error,warn --include-path
+dbt-tools failures --dbt-target ./target
+dbt-tools failures --dbt-target ./target --limit 20 --offset 0
+dbt-tools failures --dbt-target ./target --status error,warn --include-path
 ```
 
 **Options:**
@@ -214,7 +214,7 @@ dbt-tools failures --dbt-target ./target --json --status error,warn --include-pa
 - `--include-path` - Add `path`, `original_file_path`, `resource_type` from manifest when the node exists in the graph
 - `--include-compiled` - Include `compiled_code` / `raw_code` snippets (capped)
 - `--compiled-max-chars <n>` - Per-field cap when `--include-compiled` is set
-- `--fields`, `--json`, `--no-json` - Same semantics as other commands
+- `--fields`, `--format` - Same semantics as other commands
 
 ---
 
@@ -233,7 +233,7 @@ dbt-tools deps model.my_project.customers --dbt-target ./target --direction upst
 dbt-tools deps model.my_project.customers --dbt-target ./target --depth 1
 
 # Output as a flat list
-dbt-tools deps model.my_project.customers --dbt-target ./target --format flat
+dbt-tools deps model.my_project.customers --dbt-target ./target --layout flat
 
 # Get upstream dependencies in build order
 dbt-tools deps model.my_project.customers --dbt-target ./target --direction upstream --build-order
@@ -249,10 +249,9 @@ dbt-tools deps model.my_project.customers --dbt-target ./target --fields "unique
 - `--direction <direction>` - `upstream` or `downstream` (default: `downstream`)
 - `--fields <fields>` - Comma-separated list of fields to include (e.g., `unique_id,name`)
 - `--depth <number>` - Max traversal depth; 1 = immediate neighbors, omit for all levels
-- `--format <format>` - Output structure: `flat` or `tree` (default: `tree`)
+- `--layout <layout>` - Dependency listing: `flat` or `tree` (default: `tree`)
+- `--format <format>` - Output format: `json` (default) or `text`. JSON uses structured errors on stderr.
 - `--build-order` - Output upstream dependencies in topological build order
-- `--json` - Force JSON stdout and structured JSON errors on stderr
-- `--no-json` - Force human-readable output
 
 ---
 
@@ -287,11 +286,11 @@ dbt-tools inventory --dbt-target ./target --type model --tag finance --package m
 # Only return specific fields
 dbt-tools inventory --dbt-target ./target --type model --fields "entries"
 
-# Force JSON (default in non-TTY)
-dbt-tools inventory --dbt-target ./target --json
+# JSON is default; use --format text for human-readable listing
+dbt-tools inventory --dbt-target ./target
 
 # Page through models (stable sort: resource_type, then name)
-dbt-tools inventory --dbt-target ./target --type model --limit 30 --offset 0 --json
+dbt-tools inventory --dbt-target ./target --type model --limit 30 --offset 0
 ```
 
 **Options:**
@@ -304,8 +303,7 @@ dbt-tools inventory --dbt-target ./target --type model --limit 30 --offset 0 --j
 - `--limit <n>` - Return at most N entries after filters (max 200; omit for full list)
 - `--offset <n>` - Skip N entries after sort (**requires `--limit`**)
 - `--fields <fields>` - Comma-separated fields to include
-- `--json` - Force JSON stdout and structured JSON errors on stderr
-- `--no-json` - Force human-readable output
+- `--format <format>` - Output format: `json` (default) or `text`. JSON uses structured errors on stderr.
 
 **Example JSON output:**
 
@@ -362,8 +360,11 @@ dbt-tools timeline --dbt-target ./target --sort start
 # CSV output
 dbt-tools timeline --dbt-target ./target --format csv > timeline.csv
 
-# JSON output
-dbt-tools timeline --dbt-target ./target --json
+# Human-readable table
+dbt-tools timeline --dbt-target ./target --format table
+
+# JSON output (default)
+dbt-tools timeline --dbt-target ./target
 ```
 
 **Options:**
@@ -373,9 +374,7 @@ dbt-tools timeline --dbt-target ./target --json
 - `--top <n>` - Show top N entries only
 - `--failed-only` - Show only non-successful entries (excludes `success` and `pass`)
 - `--status <status>` - Filter by status, comma-separated (e.g. `error,warn`)
-- `--format <format>` - Output format: `json`, `table`, or `csv` (default: `json` non-TTY, `table` TTY)
-- `--json` - Force JSON stdout and structured JSON errors on stderr
-- `--no-json` - Force human-readable output
+- `--format <format>` - Output format: `json` (default), `table`, or `csv`
 
 **Example JSON output:**
 
@@ -421,14 +420,14 @@ dbt-tools search --dbt-target ./target --package my_project
 # Combine query with flags (flags take precedence over inline tokens)
 dbt-tools search --dbt-target ./target orders --type model
 
-# Human-readable output (TTY default)
-dbt-tools search --dbt-target ./target orders --no-json
+# Human-readable output
+dbt-tools search --dbt-target ./target orders --format text
 
-# Force JSON
-dbt-tools search --dbt-target ./target orders --json
+# JSON output (default)
+dbt-tools search --dbt-target ./target orders
 
 # Page results (stable sort: score desc, then unique_id)
-dbt-tools search --dbt-target ./target orders --limit 10 --offset 0 --json
+dbt-tools search --dbt-target ./target orders --limit 10 --offset 0
 ```
 
 **Supported inline tokens in query:**
@@ -449,8 +448,7 @@ dbt-tools search --dbt-target ./target orders --limit 10 --offset 0 --json
 - `--limit <n>` - Return at most N matches after scoring (max 200; omit for full list)
 - `--offset <n>` - Skip N matches after sort (**requires `--limit`**)
 - `--fields <fields>` - Comma-separated fields to include
-- `--json` - Force JSON stdout and structured JSON errors on stderr
-- `--no-json` - Force human-readable output
+- `--format <format>` - Output format: `json` (default) or `text`. JSON uses structured errors on stderr.
 
 **Example JSON output:**
 
@@ -491,11 +489,23 @@ When **`DBT_TOOLS_WEB_BASE_URL`** is set (for example `http://127.0.0.1:5173`), 
 **`--trace`** (on `discover`, `explain`, `impact`): adds **`investigation_transcript`** to JSON with a small step list for debugging and agents.
 
 ```bash
-dbt-tools discover --dbt-target ./target "orders" --json
+dbt-tools discover --dbt-target ./target "orders"
 dbt-tools discover --dbt-target ./target "type:model" --limit 30
-dbt-tools discover --dbt-target ./target "ordrs" --json
-dbt-tools discover --dbt-target ./target --type model "" --json
+dbt-tools discover --dbt-target ./target "ordrs"
+dbt-tools discover --dbt-target ./target --type model ""
 ```
+
+**Options:**
+
+- `[query]` - Search query with optional `key:value` tokens; may be empty when using `--type` / `--package` / `--tag` / `--path` filters
+- `--dbt-target <path|s3://…|gs://…>` - Artifact root (default: `DBT_TOOLS_DBT_TARGET` when set)
+- `--type`, `--package`, `--tag`, `--path` - Filters (same token semantics as `search`)
+- `--limit <n>` - Max matches (default 50, max 200)
+- `--fields <fields>` - Comma-separated fields to include
+- `--format <format>` - Output format: `json` (default) or `text`
+- `--trace` - Include `investigation_transcript` in JSON output
+
+`explain` and `impact` accept the same **`--format`** and **`--trace`** options (plus `--fields` on both). Use `dbt-tools schema explain` or `dbt-tools schema impact` for the runtime schema.
 
 ---
 
@@ -508,8 +518,11 @@ For **local** `--dbt-target`, this command does **not** download or parse artifa
 ```bash
 dbt-tools status --dbt-target ./target
 
-# JSON output (machine-readable)
-dbt-tools status --dbt-target ./target --json
+# Human-readable summary
+dbt-tools status --dbt-target ./target --format text
+
+# JSON output (default)
+dbt-tools status --dbt-target ./target
 
 # Freshness alias
 dbt-tools freshness --dbt-target ./target
@@ -526,8 +539,7 @@ dbt-tools freshness --dbt-target ./target
 **Options:**
 
 - `--dbt-target <path|s3://…|gs://…>` - Artifact root (default: `DBT_TOOLS_DBT_TARGET` when set)
-- `--json` - Force JSON stdout and structured JSON errors on stderr
-- `--no-json` - Force human-readable output
+- `--format <format>` - Output format: `json` (default) or `text`. JSON uses structured errors on stderr.
 
 **Example JSON output:**
 
@@ -575,7 +587,6 @@ dbt-tools schema
 **Options:**
 
 - `[command]` - Command name (if omitted, returns all schemas)
-- `--json` - Force JSON output (always JSON by default)
 
 **Use Cases:**
 
@@ -593,14 +604,18 @@ Set the root with **`--dbt-target`**, or export **`DBT_TOOLS_DBT_TARGET`** so yo
 
 ---
 
-## JSON output
+## Output format
 
-The CLI automatically outputs **JSON on stdout** when stdout is not a TTY (non-interactive environments):
+Most commands accept **`--format json|text`** (default **`json`**):
 
-- **Non-TTY (agents/pipes)**: JSON stdout by default
-- **TTY (interactive)**: Human-readable stdout by default
-- **`--json`**: force JSON stdout **and** structured JSON errors on stderr (when the failure is modeled with a stable `code`)
-- **`--no-json`**: force human-readable stdout (stderr stays human-readable unless you use `--json`)
+- **`json` (default)**: JSON on stdout; structured JSON errors on stderr when the failure has a stable `code`
+- **`text`**: Human-readable stdout and human-readable stderr
+
+**Exceptions:**
+
+- **`timeline`**: `--format json|table|csv` (default `json`)
+- **`deps`**: `--layout tree|flat` for listing structure; `--format json|text` for stdout
+- **`graph` / `export`**: `--format json|dot|gexf` is the **file export** encoding (not stdout mode)
 
 ---
 
@@ -638,8 +653,8 @@ The CLI validates all inputs to prevent common mistakes:
 
 ## Error handling
 
-- **Human stderr** is the default for failures (checklist-style hints for missing artifact files, validation messages, and similar).
-- **Structured JSON on stderr** is emitted **only when you pass `--json`** on that command (independent of TTY). Scripts that parse errors should pass **`--json`**.
+- With **`--format json`** (default), failures use **structured JSON on stderr** when the error has a stable `code`.
+- With **`--format text`**, stderr stays human-readable (checklist-style hints for missing artifacts, validation messages, and similar).
 
 ```json
 {
@@ -662,6 +677,7 @@ The CLI validates all inputs to prevent common mistakes:
 - `FILE_NOT_FOUND`: artifact file not found (other paths)
 - `PARSE_ERROR`: invalid JSON
 - `UNSUPPORTED_VERSION`: unsupported dbt artifact version
+- `REMOTE_READ_FAILED`: object storage read failed (credentials, IAM, VPC Service Controls, or network) after a `gs://` / `s3://` `--dbt-target`
 - `UNKNOWN_ERROR`: other failures
 
 ---
@@ -675,7 +691,7 @@ The same patterns help **scripts and CI** and **coding agents** (e.g. discover r
 3. **Use field filtering** on large outputs to keep JSON payloads small.
 4. **Set `DBT_TOOLS_DBT_TARGET` in CI** so commands stay short and consistent.
 5. **Validate resource IDs** before querying (use schema introspection if unsure).
-6. **Pass `--json`** when scripts need **structured stderr** (do not rely on non-TTY heuristics for error JSON).
+6. **Use default JSON output** (omit `--format`) so stdout and structured stderr are both machine-parseable.
 7. **Use schema introspection** to discover command capabilities at runtime.
 
 Compose with other tooling as needed (e.g. warehouse job metadata, CI environment variables, or separate analysis of warehouse query logs)—`dbt-tools` stays artifact-grounded and does not execute warehouse queries.
@@ -689,7 +705,7 @@ Compose with other tooling as needed (e.g. warehouse job metadata, CI environmen
 dbt-tools status --dbt-target ./target
 
 # Find a resource before querying its deps
-dbt-tools search --dbt-target ./target orders --json | jq '.results[0].unique_id'
+dbt-tools search --dbt-target ./target orders | jq '.results[0].unique_id'
 
 # List all models with the finance tag
 dbt-tools inventory --dbt-target ./target --type model --tag finance

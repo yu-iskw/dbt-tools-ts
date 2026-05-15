@@ -115,13 +115,13 @@ describe('SchemaGenerator', () => {
       expect(directionOption?.values).toEqual(['upstream', 'downstream']);
     });
 
-    it('should have --format option for deps with flat and tree values', () => {
+    it('should have --layout option for deps with flat and tree values', () => {
       const depsSchema = getCommandSchema('deps');
-      const formatOption = depsSchema?.options.find((opt) => opt.name === '--format');
-      expect(formatOption).toBeDefined();
-      expect(formatOption?.type).toBe('enum');
-      expect(formatOption?.values).toEqual(['flat', 'tree']);
-      expect(formatOption?.default).toBe('tree');
+      const layoutOption = depsSchema?.options.find((opt) => opt.name === '--layout');
+      expect(layoutOption).toBeDefined();
+      expect(layoutOption?.type).toBe('enum');
+      expect(layoutOption?.values).toEqual(['flat', 'tree']);
+      expect(layoutOption?.default).toBe('tree');
     });
   });
 });

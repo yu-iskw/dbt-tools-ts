@@ -15,17 +15,17 @@ Run the gate **before** `deps`, `inventory`, `search`, `summary`, `graph`, `time
 
 ## Commands
 
-Prefer **explicit JSON on stdout** and **structured JSON errors** (pass **`--json`** for both):
+Prefer **explicit JSON on stdout** and **structured JSON errors** (use default JSON output for both):
 
 ```bash
-dbt-tools status --dbt-target ./target --json
+dbt-tools status --dbt-target ./target
 ```
 
 When **`DBT_TOOLS_DBT_TARGET`** is set, you can omit the flag:
 
 ```bash
 export DBT_TOOLS_DBT_TARGET=./target
-dbt-tools status --json
+dbt-tools status
 ```
 
 ## Interpret `readiness`
@@ -47,7 +47,7 @@ Parse the JSON object printed to stdout. The gate depends on **`readiness`** and
 
 When delegating to a sub-agent whose job is **only** readiness:
 
-1. Run `dbt-tools status --json` with the same **`--dbt-target`** / **`DBT_TOOLS_DBT_TARGET`** you will use for downstream commands.
+1. Run `dbt-tools status` with the same **`--dbt-target`** / **`DBT_TOOLS_DBT_TARGET`** you will use for downstream commands.
 2. Return the **parsed JSON** (or the raw stdout line) to the parent. The parent should pass at least **`readiness`**, **`target_dir`**, **`manifest.path`**, and **`run_results.path`** into downstream steps.
 
 Downstream sub-agents (search, deps, run forensics) should assume this contract and **not** re-guess artifact locations.

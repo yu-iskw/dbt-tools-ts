@@ -14,13 +14,13 @@ import {
   getPresentAdapterMetricDescriptors,
   searchRunResults,
   formatOutput,
-  shouldOutputJSON,
   type NodeExecution,
   type AdapterResponseMetrics,
   type ArtifactPaths,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
@@ -31,9 +31,17 @@ export type TimelineOptions = {
   status?: string;
   adapterText?: string;
   format?: string;
-  json?: boolean;
-  noJson?: boolean;
 } & ArtifactRootCliOptions;
+
+type TimelineStdoutFormat = 'json' | 'table' | 'csv';
+
+function resolveTimelineFormat(format?: string): TimelineStdoutFormat {
+  const normalized = (format ?? 'json').trim().toLowerCase();
+  if (normalized === 'json' || normalized === 'table' || normalized === 'csv') {
+    return normalized;
+  }
+  throw new Error(`Invalid --format "${format}". Expected: json, table, csv.`);
+}
 
 export type TimelineEntry = {
   unique_id: string;
@@ -299,16 +307,14 @@ function sortTimelineExecutions(executions: NodeExecution[], sortKey: string): N
   });
 }
 
-function formatTimelineOutput(result: TimelineResult, options: TimelineOptions): string {
-  const outputFormat = (options.format ?? '').toLowerCase();
-  const useJson = shouldOutputJSON(options.json, options.noJson);
-  if (outputFormat === 'csv') {
+function formatTimelineOutput(result: TimelineResult, format: TimelineStdoutFormat): string {
+  if (format === 'csv') {
     return formatTimelineCsv(result.entries);
   }
-  if (outputFormat === 'table' || (!useJson && outputFormat !== 'json')) {
+  if (format === 'table') {
     return formatTimeline(result);
   }
-  return formatOutput(result, true);
+  return formatOutput(result, 'json');
 }
 
 /**
@@ -322,12 +328,10 @@ export async function timelineAction(
     const sortKey = normalizeTimelineSortKey(options.sort);
     validateTimelineSortKey(sortKey);
 
-    const paths = await resolveCliArtifactPaths(
-      {
-        dbtTarget: options.dbtTarget,
-      },
-      { manifest: false, runResults: true },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: false,
+      runResults: true,
+    });
     validateSafePath(paths.runResults);
 
     const context = loadTimelineContext(paths, true);
@@ -341,8 +345,9 @@ export async function timelineAction(
 
     const entries = executions.map((e) => toTimelineEntry(e, context.lookup));
     const result: TimelineResult = { total: entries.length, entries };
-    console.log(formatTimelineOutput(result, options));
+    const format = resolveTimelineFormat(options.format);
+    console.log(formatTimelineOutput(result, format));
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, resolveTimelineFormat(options.format) === 'json');
   }
 }

@@ -114,7 +114,7 @@ describe('runReportAction', () => {
 
   it('renders human adapter sections when adapter summary is enabled', async () => {
     await runReportAction(
-      { dbtTarget: dbtTargetDir, adapterSummary: true, noJson: true },
+      { dbtTarget: dbtTargetDir, adapterSummary: true, format: 'text' },
       handleError,
     );
 

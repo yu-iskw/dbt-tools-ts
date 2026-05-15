@@ -8,18 +8,19 @@ import {
   validateNoControlChars,
   FieldFilter,
   formatOutput,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   resolveIntentTarget,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
 export type DiagnoseCliOptions = {
   fields?: string;
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
 } & ArtifactRootCliOptions;
 
 export type DiagnoseOutput = {
@@ -39,21 +40,21 @@ export async function diagnoseRunAction(
   handleError: (error: unknown, preferStructuredErrors: boolean) => void,
 ): Promise<void> {
   try {
-    const paths = await resolveCliArtifactPaths(
-      { dbtTarget: options.dbtTarget },
-      { manifest: true, runResults: true },
-    );
-    validateSafePath(paths.manifest);
-    if (paths.runResults) validateSafePath(paths.runResults);
-    void paths;
+    await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: true,
+    }).then((paths) => {
+      validateSafePath(paths.manifest);
+      if (paths.runResults) validateSafePath(paths.runResults);
+    });
 
     const targetDir =
       options.dbtTarget != null && options.dbtTarget.trim() !== ''
         ? options.dbtTarget.trim()
         : '${DBT_TOOLS_DBT_TARGET}';
     const primitive_commands = [
-      `dbt-tools run-report --dbt-target ${JSON.stringify(targetDir)} --json`,
-      `dbt-tools timeline --dbt-target ${JSON.stringify(targetDir)} --format json`,
+      `dbt-tools run-report --dbt-target ${JSON.stringify(targetDir)}`,
+      `dbt-tools timeline --dbt-target ${JSON.stringify(targetDir)}`,
     ];
 
     const output: DiagnoseOutput = {
@@ -67,8 +68,8 @@ export async function diagnoseRunAction(
       primitive_commands,
     };
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-    if (useJson) {
+    const stdoutFormat = resolveStdoutFormat(options.format);
+    if (stdoutFormat === 'json') {
       let out: unknown = output;
       if (options.fields) {
         out = FieldFilter.filterFields(
@@ -76,7 +77,7 @@ export async function diagnoseRunAction(
           options.fields,
         );
       }
-      console.log(formatOutput(out, true));
+      console.log(formatOutput(out, options.format));
     } else {
       console.log(
         [
@@ -87,7 +88,7 @@ export async function diagnoseRunAction(
       );
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }
 
@@ -98,10 +99,10 @@ export async function diagnoseNodeAction(
 ): Promise<void> {
   try {
     validateNoControlChars(resourceInput);
-    const paths = await resolveCliArtifactPaths(
-      { dbtTarget: options.dbtTarget },
-      { manifest: true, runResults: true },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: true,
+    });
     validateSafePath(paths.manifest);
     if (paths.runResults) validateSafePath(paths.runResults);
 
@@ -115,8 +116,8 @@ export async function diagnoseNodeAction(
         : '${DBT_TOOLS_DBT_TARGET}';
     const uid = JSON.stringify(resolved.unique_id);
     const primitive_commands = [
-      `dbt-tools run-report --dbt-target ${JSON.stringify(targetDir)} --json`,
-      `dbt-tools deps ${uid} --direction downstream --format flat`,
+      `dbt-tools run-report --dbt-target ${JSON.stringify(targetDir)}`,
+      `dbt-tools deps ${uid} --direction downstream --layout flat`,
       `dbt-tools explain ${uid}`,
     ];
 
@@ -138,8 +139,8 @@ export async function diagnoseNodeAction(
       primitive_commands,
     };
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-    if (useJson) {
+    const stdoutFormat = resolveStdoutFormat(options.format);
+    if (stdoutFormat === 'json') {
       let out: unknown = output;
       if (options.fields) {
         out = FieldFilter.filterFields(
@@ -147,7 +148,7 @@ export async function diagnoseNodeAction(
           options.fields,
         );
       }
-      console.log(formatOutput(out, true));
+      console.log(formatOutput(out, options.format));
     } else {
       console.log(
         [
@@ -158,6 +159,6 @@ export async function diagnoseNodeAction(
       );
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

@@ -1,4 +1,5 @@
 import { ArtifactBundleResolutionError } from './artifact-bundle-resolution-error';
+import { decodeBasicHtmlEntities } from '../strings/basic-html-entities';
 
 /**
  * Structured error format for JSON output
@@ -18,13 +19,14 @@ export class ErrorHandler {
    * Format an error for CLI output.
    * @param preferHumanReadable - When true, return a single-line human string.
    *   When false, return a {@link StructuredError} object for JSON serialization
-   *   (e.g. when the CLI was invoked with `--json`).
+   *   (e.g. when the CLI was invoked with `--format json`, the default).
    */
   static formatError(error: Error, preferHumanReadable: boolean): string | StructuredError {
+    const message = decodeBasicHtmlEntities(error.message);
     const structured: StructuredError = {
       error: error.name || 'Error',
       code: this.getErrorCode(error),
-      message: error.message,
+      message,
     };
 
     // Add details for validation errors
@@ -70,6 +72,13 @@ export class ErrorHandler {
     }
     if (error.name === 'ValidationError') {
       return 'VALIDATION_ERROR';
+    }
+    if (
+      error.name === 'RemoteArtifactReadError' ||
+      /^Failed to read gs:\/\//.test(error.message) ||
+      /^Failed to read s3:\/\//.test(error.message)
+    ) {
+      return 'REMOTE_READ_FAILED';
     }
     if (error.message.includes('not found') || error.message.includes('File not found')) {
       return 'FILE_NOT_FOUND';

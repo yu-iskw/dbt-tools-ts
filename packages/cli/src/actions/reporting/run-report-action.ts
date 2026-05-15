@@ -19,13 +19,15 @@ import {
   formatAdapterTotalsHuman,
   formatAdapterHeavyHuman,
   formatAdapterNodeDetailsHuman,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   type ExecutionSummary,
   type NodeExecution,
   type AdapterHeavyMetric,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 import {
@@ -39,8 +41,7 @@ type RunReportOptions = {
   bottlenecks?: boolean;
   bottlenecksTop?: number;
   bottlenecksThreshold?: number;
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
   adapterSummary?: boolean;
   adapterTopBy?: AdapterHeavyMetric;
   adapterTopN?: number;
@@ -218,12 +219,10 @@ export async function runReportAction(
   handleError: (error: unknown, preferStructuredErrors: boolean) => void,
 ): Promise<void> {
   try {
-    const paths = await resolveCliArtifactPaths(
-      {
-        dbtTarget: options.dbtTarget,
-      },
-      { manifest: false, runResults: true },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: false,
+      runResults: true,
+    });
 
     validateSafePath(paths.runResults);
     const hasManifest = await fs
@@ -266,9 +265,9 @@ export async function runReportAction(
       filteredSummary = FieldFilter.filterFields(summary, options.fields) as ExecutionSummary;
     }
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
+    const stdoutFormat = resolveStdoutFormat(options.format);
 
-    if (useJson) {
+    if (stdoutFormat === 'json') {
       const report: Record<string, unknown> = { ...filteredSummary };
       if (bottlenecks) {
         report.bottlenecks = bottlenecks;
@@ -291,7 +290,7 @@ export async function runReportAction(
         report.node_executions_offset = off;
       }
 
-      console.log(formatOutput(report, true));
+      console.log(formatOutput(report, options.format));
     } else {
       console.log(
         formatRunReport(
@@ -303,6 +302,6 @@ export async function runReportAction(
       );
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

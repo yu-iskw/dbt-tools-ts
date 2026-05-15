@@ -3,6 +3,8 @@
  * Legacy `DBT_*` names remain supported with one-time deprecation warnings.
  */
 
+import { normalizeSlashAffixes } from '../io/normalize-prefix';
+
 const warnedDeprecatedKeys = new Set<string>();
 
 /** @internal Vitest-only: clears deprecation warning deduplication. */
@@ -21,24 +23,6 @@ function warnDeprecatedOnce(legacyKey: string, canonicalKey: string): void {
 function trimEnv(value: string | undefined): string | undefined {
   const t = value?.trim();
   return t === '' ? undefined : t;
-}
-
-const SLASH = 47;
-
-/**
- * Removes leading and trailing `/` in linear time. Used for object-storage
- * prefix normalization; avoids polynomial-time regex on untrusted JSON/env input.
- */
-function trimAffixSlashes(value: string): string {
-  let start = 0;
-  let end = value.length;
-  while (start < end && value.charCodeAt(start) === SLASH) {
-    start += 1;
-  }
-  while (end > start && value.charCodeAt(end - 1) === SLASH) {
-    end -= 1;
-  }
-  return value.slice(start, end);
 }
 
 /**
@@ -70,6 +54,26 @@ export function getDbtToolsTargetDirFromEnv(): string | undefined {
  */
 export function getDbtToolsDbtTargetFromEnv(): string | undefined {
   return trimEnv(process.env.DBT_TOOLS_DBT_TARGET);
+}
+
+/** Shared hint for CLI, MCP, and other entrypoints when `--dbt-target` / env is missing. */
+export const DBT_TOOLS_DBT_TARGET_REQUIRED_HINT =
+  'Pass --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> or set DBT_TOOLS_DBT_TARGET in the environment.';
+
+/**
+ * Effective dbt artifact root: explicit flag wins, then `DBT_TOOLS_DBT_TARGET`.
+ * @throws when both are empty or unset
+ */
+export function resolveDbtToolsDbtTargetFromFlagOrEnv(flag?: string): string {
+  const fromFlag = flag?.trim();
+  if (fromFlag != null && fromFlag !== '') {
+    return fromFlag;
+  }
+  const fromEnv = getDbtToolsDbtTargetFromEnv()?.trim();
+  if (fromEnv != null && fromEnv !== '') {
+    return fromEnv;
+  }
+  throw new Error(`dbt artifact target is required. ${DBT_TOOLS_DBT_TARGET_REQUIRED_HINT}`);
 }
 
 /** Server-side debug logging when value is exactly `"1"`. */
@@ -115,6 +119,30 @@ export interface DbtToolsRemoteSourceConfig {
   endpoint?: string;
   forcePathStyle?: boolean;
   projectId?: string;
+  /** Service account email to impersonate (GCS client only). */
+  impersonateServiceAccount?: string;
+}
+
+/** Optional GCS client auth overrides (CLI/MCP); merged after env JSON for `gs://` targets. */
+export interface GcsAuthOverrides {
+  projectId?: string;
+  impersonateServiceAccount?: string;
+}
+
+/**
+ * Trim and drop empty GCS auth fields. Used by CLI and MCP so flag/env shaping stays consistent.
+ */
+export function normalizeGcsAuthOverrides(input: {
+  projectId?: string;
+  impersonateServiceAccount?: string;
+}): GcsAuthOverrides | undefined {
+  const projectId = trimEnv(input.projectId);
+  const impersonateServiceAccount = trimEnv(input.impersonateServiceAccount);
+  if (projectId === undefined && impersonateServiceAccount === undefined) return undefined;
+  return {
+    ...(projectId !== undefined ? { projectId } : {}),
+    ...(impersonateServiceAccount !== undefined ? { impersonateServiceAccount } : {}),
+  };
 }
 
 function parseNonNegativeInt(raw: string): number {
@@ -161,7 +189,7 @@ export function parseDbtToolsRemoteSourceConfigJson(
     return {
       provider: parsed.provider,
       bucket,
-      prefix: trimAffixSlashes(prefix),
+      prefix: normalizeSlashAffixes(prefix),
       pollIntervalMs:
         typeof parsed.pollIntervalMs === 'number' && parsed.pollIntervalMs > 0
           ? Math.floor(parsed.pollIntervalMs)
@@ -170,6 +198,7 @@ export function parseDbtToolsRemoteSourceConfigJson(
       endpoint: trimEnv(parsed.endpoint),
       forcePathStyle: parsed.forcePathStyle === true,
       projectId: trimEnv(parsed.projectId),
+      impersonateServiceAccount: trimEnv(parsed.impersonateServiceAccount),
     };
   } catch (error) {
     console.warn('[dbt-tools] Failed to parse DBT_TOOLS_REMOTE_SOURCE as JSON.', error);
@@ -200,4 +229,37 @@ export function getDbtToolsRemoteSourceConfigFromEnv(): DbtToolsRemoteSourceConf
 export function getDbtToolsWebBaseUrlFromEnv(): string | undefined {
   const u = trimEnv(process.env.DBT_TOOLS_WEB_BASE_URL);
   return u === undefined ? undefined : u.replace(/\/$/, '');
+}
+
+const DEFAULT_MAX_REMOTE_OBJECT_BYTES = 512 * 1024 * 1024;
+const ABSOLUTE_MAX_REMOTE_OBJECT_BYTES_CAP = 2 * 1024 * 1024 * 1024;
+
+/**
+ * Maximum size (bytes) for a single remote object read (S3 `GetObject` / GCS download)
+ * when loading artifacts. Reads `DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES` as a decimal integer;
+ * invalid, empty, or unset values fall back to **512 MiB**. Values above **2 GiB** are
+ * clamped to limit accidental misconfiguration.
+ */
+export function getDbtToolsMaxRemoteObjectBytesFromEnv(): number {
+  const raw = trimEnv(process.env.DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES);
+  if (raw === undefined) return DEFAULT_MAX_REMOTE_OBJECT_BYTES;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_MAX_REMOTE_OBJECT_BYTES;
+  return Math.min(n, ABSOLUTE_MAX_REMOTE_OBJECT_BYTES_CAP);
+}
+
+const DEFAULT_MAX_REMOTE_LISTING_OBJECTS = 50_000;
+const ABSOLUTE_MAX_REMOTE_LISTING_OBJECTS_CAP = 500_000;
+
+/**
+ * Maximum number of object keys returned from a single S3/GCS prefix listing
+ * (discovery). Reads `DBT_TOOLS_MAX_REMOTE_LISTING_OBJECTS` as a decimal integer;
+ * invalid or unset values default to **50_000**; values above **500_000** are clamped.
+ */
+export function getDbtToolsMaxRemoteListingObjectsFromEnv(): number {
+  const raw = trimEnv(process.env.DBT_TOOLS_MAX_REMOTE_LISTING_OBJECTS);
+  if (raw === undefined) return DEFAULT_MAX_REMOTE_LISTING_OBJECTS;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_MAX_REMOTE_LISTING_OBJECTS;
+  return Math.min(n, ABSOLUTE_MAX_REMOTE_LISTING_OBJECTS_CAP);
 }

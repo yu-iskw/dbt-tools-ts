@@ -1,0 +1,8 @@
+{
+  "name": "dbt-tools-mcp",
+  "version": "0.1.0",
+  "description": "Minimal verification plugin for @dbt-tools/mcp (shared with Codex).",
+  "author": {
+    "name": "dbt-tools-ts"
+  }
+}

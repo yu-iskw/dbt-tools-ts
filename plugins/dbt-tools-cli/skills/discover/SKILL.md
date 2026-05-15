@@ -49,19 +49,19 @@ Use `search` for straightforward filter-only queries where ranking is not needed
 
 ```bash
 # Ranked discovery — best for agents resolving a unique_id
-dbt-tools discover --dbt-target ./target "orders" --json
+dbt-tools discover --dbt-target ./target "orders"
 
 # Filter-only (no query text needed)
-dbt-tools discover --dbt-target ./target --type model --json
+dbt-tools discover --dbt-target ./target --type model
 
 # Simple search when discover is not available or needed
-dbt-tools search --dbt-target ./target "orders" --json
+dbt-tools search --dbt-target ./target "orders"
 ```
 
 Use **`--limit`** to keep response size manageable:
 
 ```bash
-dbt-tools discover --dbt-target ./target "orders" --json --limit 10
+dbt-tools discover --dbt-target ./target "orders" --limit 10
 ```
 
 ## Inline token syntax (both commands)
@@ -76,7 +76,7 @@ Embed filters directly in the query string:
 | `package:core`  | Filter by package    |
 | `source:stripe` | Match as a text term |
 
-Example: `dbt-tools discover --dbt-target ./target "type:model finance" --json`
+Example: `dbt-tools discover --dbt-target ./target "type:model finance"`
 
 Flag-based filters (`--type`, `--tag`, `--package`, `--path`) take precedence over inline tokens.
 
@@ -111,7 +111,7 @@ confirm before proceeding.
 ## Handling zero or ambiguous results
 
 - **Zero results**: broaden the query (remove type/tag filters, try a shorter term), or try
-  `dbt-tools inventory --dbt-target ./target --type model --json` to browse all resources.
+  `dbt-tools inventory --dbt-target ./target --type model` to browse all resources.
 - **Ambiguous results** (`discover` may include a `disambiguation` array): surface the
   `disambiguation` peers to the user for manual selection.
 - **Too many results**: use `--limit 10` to page; inspect `has_more` and `total` in the JSON
@@ -119,7 +119,7 @@ confirm before proceeding.
 
 ## Failure handling
 
-- **Missing manifest** (`ARTIFACT_BUNDLE_INCOMPLETE`): run `dbt-tools status --json` to check
+- **Missing manifest** (`ARTIFACT_BUNDLE_INCOMPLETE`): run `dbt-tools status` to check
   readiness, then tell the user which file is missing.
 - **Invalid query tokens** (`VALIDATION_ERROR`): strip special characters from the query.
 - **Zero matches with no error**: result is valid; broaden the search as described above.

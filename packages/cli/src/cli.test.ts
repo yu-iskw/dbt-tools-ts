@@ -129,11 +129,17 @@ describe('CLI Integration', () => {
       expect(depthOpt).toBeDefined();
       expect(depthOpt?.type).toBe('number');
 
+      const layoutOpt = schema?.options?.find((o) => o.name === '--layout');
+      expect(layoutOpt).toBeDefined();
+      expect(layoutOpt?.type).toBe('enum');
+      expect(layoutOpt?.values).toContain('flat');
+      expect(layoutOpt?.values).toContain('tree');
+
       const formatOpt = schema?.options?.find((o) => o.name === '--format');
       expect(formatOpt).toBeDefined();
       expect(formatOpt?.type).toBe('enum');
-      expect(formatOpt?.values).toContain('flat');
-      expect(formatOpt?.values).toContain('tree');
+      expect(formatOpt?.values).toContain('json');
+      expect(formatOpt?.values).toContain('text');
 
       const fieldOpt = schema?.options?.find((o) => o.name === '--field');
       expect(fieldOpt).toBeDefined();
@@ -249,11 +255,7 @@ describe('CLI command error formatting', () => {
     vi.restoreAllMocks();
   });
 
-  it('graph reports human-readable errors by default', async () => {
-    Object.defineProperty(process.stdout, 'isTTY', {
-      value: true,
-      configurable: true,
-    });
+  it('graph reports structured JSON errors', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { program } = await import('./cli');
     program.exitOverride();
@@ -263,7 +265,7 @@ describe('CLI command error formatting', () => {
     ).rejects.toThrow(/process\.exit unexpectedly called with "1"/);
 
     const output = consoleErrorSpy.mock.calls.flat().join('\n');
-    expect(output).toContain('Error [ARTIFACT_BUNDLE_INCOMPLETE]');
-    expect(output).not.toContain('"error"');
+    expect(output).toContain('"code"');
+    expect(output).toContain('ARTIFACT_BUNDLE_INCOMPLETE');
   });
 });

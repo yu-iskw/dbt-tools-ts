@@ -14,12 +14,14 @@ import {
   type ResolvedArtifactRun,
   type RunReportInput,
   type SearchResourcesInput,
+  type SwitchDbtTargetInput,
 } from '@dbt-tools/core/artifact-workspace';
 export interface ArtifactWorkspaceControl {
   getStatus(): Promise<ArtifactWorkspaceStatus>;
   refreshIfChanged(): Promise<ArtifactWorkspaceStatus>;
   listRuns(): Promise<ResolvedArtifactRun[]>;
   selectRun(runId: string): Promise<ArtifactWorkspaceStatus>;
+  switchDbtTarget(input: SwitchDbtTargetInput): Promise<ArtifactWorkspaceStatus>;
 }
 
 export interface McpJsonToolResult {
@@ -154,6 +156,22 @@ export function createDbtToolsMcpToolHandlers(
         throw new Error('runId is required.');
       }
       return jsonResult(await workspace.selectRun(runId));
+    },
+
+    dbt_tools_set_target: async (input: ToolInput): Promise<McpJsonToolResult> => {
+      const dbtTarget = optionalString(input, 'dbtTarget');
+      if (dbtTarget == null) {
+        throw new Error('dbtTarget is required.');
+      }
+      const switchInput: SwitchDbtTargetInput = { dbtTarget };
+      if ('gcsProjectId' in input || 'gcsImpersonateServiceAccount' in input) {
+        switchInput.gcsProjectId = optionalString(input, 'gcsProjectId');
+        switchInput.gcsImpersonateServiceAccount = optionalString(
+          input,
+          'gcsImpersonateServiceAccount',
+        );
+      }
+      return jsonResult(await workspace.switchDbtTarget(switchInput));
     },
 
     dbt_tools_search_resources: async (input: ToolInput): Promise<McpJsonToolResult> =>

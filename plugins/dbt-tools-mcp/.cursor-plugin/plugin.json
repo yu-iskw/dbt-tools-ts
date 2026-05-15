@@ -1,0 +1,10 @@
+{
+  "name": "dbt-tools-mcp",
+  "displayName": "dbt-tools MCP",
+  "version": "0.1.0",
+  "description": "Minimal plugin for @dbt-tools/mcp workflows (Cursor).",
+  "author": {
+    "name": "dbt-tools-ts"
+  },
+  "skills": "./skills/"
+}

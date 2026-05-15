@@ -11,21 +11,22 @@ import {
   validateSafePath,
   FieldFilter,
   formatOutput,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   searchRunResults,
   type NodeExecution,
 } from '@dbt-tools/core';
 import type { GraphNodeAttributes } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 import { parseListOffset, resolveFailuresLimit } from '../../internal/cli-pagination';
 
 export type FailuresOptions = {
   fields?: string;
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
   status?: string;
   limit?: number;
   offset?: number;
@@ -158,13 +159,13 @@ function buildPrimitiveCommands(
 ): string[] {
   const t = dbtTarget ?? '.';
   const out: string[] = [
-    `dbt-tools timeline --dbt-target "${t}" --failed-only --json`,
-    `dbt-tools run-report --dbt-target "${t}" --json`,
+    `dbt-tools timeline --dbt-target "${t}" --failed-only`,
+    `dbt-tools run-report --dbt-target "${t}"`,
   ];
   if (sampleUniqueId) {
     out.push(
-      `dbt-tools explain "${sampleUniqueId}" --dbt-target "${t}" --json`,
-      `dbt-tools deps "${sampleUniqueId}" --dbt-target "${t}" --direction downstream --json`,
+      `dbt-tools explain "${sampleUniqueId}" --dbt-target "${t}"`,
+      `dbt-tools deps "${sampleUniqueId}" --dbt-target "${t}" --direction downstream`,
     );
   }
   return out;
@@ -276,10 +277,10 @@ export async function failuresAction(
   handleError: (error: unknown, preferStructuredErrors: boolean) => void,
 ): Promise<void> {
   try {
-    const paths = await resolveCliArtifactPaths(
-      { dbtTarget: options.dbtTarget },
-      { manifest: false, runResults: true },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: false,
+      runResults: true,
+    });
     validateSafePath(paths.runResults);
 
     const hasManifest = await fs
@@ -352,17 +353,17 @@ export async function failuresAction(
       primitive_commands: buildPrimitiveCommands(options.dbtTarget, failures[0]?.unique_id),
     };
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-    if (useJson) {
+    const stdoutFormat = resolveStdoutFormat(options.format);
+    if (stdoutFormat === 'json') {
       let out: unknown = output;
       if (options.fields) {
         out = FieldFilter.filterFields(output, options.fields);
       }
-      console.log(formatOutput(out, true));
+      console.log(formatOutput(out, options.format));
     } else {
       console.log(formatFailuresHuman(output));
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

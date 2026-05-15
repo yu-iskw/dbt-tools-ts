@@ -1,10 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreBinaries": ["codeql", "grype", "make", "prettier", "trunk", "semgrep"],
+  "ignoreBinaries": ["grype"],
   "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {
-      "entry": ["scripts/**/*.mjs", "stylelint.config.mjs"],
+      "entry": ["scripts/**/*.mjs"],
       "project": ["scripts/**/*.mjs"],
       "vitest": {
         "config": ["vitest.config.mjs", "vitest.coverage.mjs"],

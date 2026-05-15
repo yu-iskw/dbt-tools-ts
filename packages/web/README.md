@@ -92,11 +92,12 @@ Heavy analysis runs in a **web worker** using `@dbt-tools/core/browser`. The sam
 
 Set these in the environment for the **Node process** that runs `dbt-tools-web` (not in the browser):
 
-| Variable                  | Description                                                                                                                                                                                                                      |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DBT_TOOLS_TARGET_DIR`    | Directory containing `manifest.json` and `run_results.json` (unless using remote source)                                                                                                                                         |
-| `DBT_TOOLS_REMOTE_SOURCE` | JSON config for S3/GCS discovery (server-side only); semantics in [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md) (see also [Remote artifact sources](#remote-artifact-sources) below) |
-| `DBT_TOOLS_DEBUG`         | Set to `1` for server-side debug logs                                                                                                                                                                                            |
+| Variable                            | Description                                                                                                                                                                                                                      |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DBT_TOOLS_TARGET_DIR`              | Directory containing `manifest.json` and `run_results.json` (unless using remote source)                                                                                                                                         |
+| `DBT_TOOLS_REMOTE_SOURCE`           | JSON config for S3/GCS discovery (server-side only); semantics in [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md) (see also [Remote artifact sources](#remote-artifact-sources) below) |
+| `DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES` | Optional cap (bytes) on a **single** S3/GCS object download when loading artifacts (see [`AGENTS.md`](../../AGENTS.md) **Security posture**); enforced in `@dbt-tools/core`                                                      |
+| `DBT_TOOLS_DEBUG`                   | Set to `1` for server-side debug logs                                                                                                                                                                                            |
 
 **Client:** add **`?debug=1`** to the URL for browser console debug logging.
 
@@ -117,13 +118,63 @@ pnpm dev
 
 When **`DBT_TOOLS_TARGET_DIR`** is set, Vite serves `/api/...` like the published server. Extra variables:
 
-| Variable                       | Default | Description                                                                                                                                   |
-| ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DBT_TOOLS_TARGET_DIR`         | —       | Enables serving artifacts via `/api/*` middleware                                                                                             |
-| `DBT_TOOLS_REMOTE_SOURCE`      | —       | JSON for S3/GCS bucket + prefix (server-side only); [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md) |
-| `DBT_TOOLS_DEBUG`              | unset   | `1` enables server-side debug logging                                                                                                         |
-| `DBT_TOOLS_WATCH`              | on      | `0` disables file watching (Vite dev); see [Vite dev server](#vite-dev-server-monorepo)                                                       |
-| `DBT_TOOLS_RELOAD_DEBOUNCE_MS` | `300`   | Reload debounce (Vite dev)                                                                                                                    |
+| Variable                               | Default | Description                                                                                                                                                                                                                           |
+| -------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DBT_TOOLS_TARGET_DIR`                 | —       | Enables serving artifacts via `/api/*` middleware                                                                                                                                                                                     |
+| `DBT_TOOLS_REMOTE_SOURCE`              | —       | JSON for S3/GCS bucket + prefix (server-side only); [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)                                                                                         |
+| `DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES`    | —       | Max bytes per artifact file for **remote** (S3/GCS) and **local** loads (default **512 MiB**); see [`AGENTS.md`](../../AGENTS.md) **Security posture**                                                                                |
+| `DBT_TOOLS_MAX_REMOTE_LISTING_OBJECTS` | —       | Max keys returned from a single S3/GCS prefix listing for discovery (default **50_000**, upper clamp **500_000**); raise or narrow prefix if listing fails                                                                            |
+| `DBT_TOOLS_WEB_API_TOKEN`              | —       | Shared secret for optional POST protection; **does not** enforce the header unless **`DBT_TOOLS_WEB_REQUIRE_POST_TOKEN=1`** (see next row).                                                                                           |
+| `DBT_TOOLS_WEB_REQUIRE_POST_TOKEN`     | —       | Set to **`1`** with **`DBT_TOOLS_WEB_API_TOKEN`** to require **`x-dbt-tools-api-token`** on `/api/artifact-source/*` POSTs (Vite dev and Node server). The bundled app does not send this header; use a proxy to inject it if needed. |
+| `DBT_TOOLS_DEBUG`                      | unset   | `1` enables server-side debug logging                                                                                                                                                                                                 |
+| `DBT_TOOLS_WATCH`                      | on      | `0` disables file watching (Vite dev); see [Vite dev server](#vite-dev-server-monorepo)                                                                                                                                               |
+| `DBT_TOOLS_RELOAD_DEBOUNCE_MS`         | `300`   | Reload debounce (Vite dev)                                                                                                                                                                                                            |
+
+#### Reverse proxy: inject `x-dbt-tools-api-token`
+
+When **`DBT_TOOLS_WEB_REQUIRE_POST_TOKEN=1`** and **`DBT_TOOLS_WEB_API_TOKEN`** are set on the **Node** `dbt-tools-web` process, the bundled UI still does not send **`x-dbt-tools-api-token`**. A reverse proxy in front of the app can add it so browser `fetch` to `/api/artifact-source/*` succeeds. **Do not** commit real tokens into the repo; load secrets from a root-only include, a secret manager, or process env on the proxy host (same single-user trust model as today).
+
+**nginx** (illustrative — replace upstream and token wiring):
+
+```nginx
+upstream dbt_tools_web {
+  server 127.0.0.1:8089;
+}
+
+server {
+  listen 443 ssl;
+  # ssl_certificate ...;
+
+  location /api/artifact-source/ {
+    proxy_pass http://dbt_tools_web;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    # Prefer: include /etc/nginx/snippets/dbt-tools-api-token.conf; with only:
+    #   proxy_set_header x-dbt-tools-api-token "YOUR_TOKEN";
+    proxy_set_header x-dbt-tools-api-token $dbt_tools_web_api_token;
+  }
+
+  location / {
+    proxy_pass http://dbt_tools_web;
+    proxy_set_header Host $host;
+  }
+}
+```
+
+Set **`dbt_tools_web_api_token`** via `map`/`geo` or `env` directive according to your nginx build policy; never log this header.
+
+**Caddy** (illustrative — Caddy reads `{env.VAR}` from **Caddy’s** environment, not the Node app’s):
+
+```caddyfile
+localhost:8443 {
+  tls internal
+  reverse_proxy 127.0.0.1:8089 {
+    header_up X-Dbt-Tools-Api-Token {env.DBT_TOOLS_WEB_API_TOKEN}
+  }
+}
+```
+
+Run Caddy with **`DBT_TOOLS_WEB_API_TOKEN`** exported in **Caddy’s** process (or use a Caddy `envfile` / external secret). The value must match the token configured on **`dbt-tools-web`**.
 
 ---
 

@@ -1,7 +1,10 @@
 import http from 'node:http';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ArtifactSourceService } from './sourceService';
-import { tryHandleArtifactSourceViteRequest } from './viteArtifactRoutes';
+import {
+  resetArtifactPostTokenWarnStateForTests,
+  tryHandleArtifactSourceViteRequest,
+} from './viteArtifactRoutes';
 
 function startRouteServer(service: Partial<ArtifactSourceService>) {
   const requestHandler: http.RequestListener = (req, res) => {
@@ -61,6 +64,10 @@ async function closeServer(server: http.Server | undefined) {
 
 describe('tryHandleArtifactSourceViteRequest', () => {
   let server: http.Server | undefined;
+
+  beforeEach(() => {
+    resetArtifactPostTokenWarnStateForTests();
+  });
 
   afterEach(async () => {
     vi.restoreAllMocks();
@@ -130,5 +137,186 @@ describe('tryHandleArtifactSourceViteRequest', () => {
       error: 'Unknown run id "missing-run"',
     });
     expect(configureArtifactSource).toHaveBeenCalledWith('local', '/tmp/preview', 'missing-run');
+  });
+
+  it('returns 413 when the JSON body exceeds the size cap', async () => {
+    const prevToken = process.env.DBT_TOOLS_WEB_API_TOKEN;
+    const prevRequire = process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    delete process.env.DBT_TOOLS_WEB_API_TOKEN;
+    delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    try {
+      const pad = 'x'.repeat(260 * 1024);
+      const payload = JSON.stringify({ type: 'local', location: '/tmp', pad });
+      expect(Buffer.byteLength(payload, 'utf8')).toBeGreaterThan(256 * 1024);
+
+      server = await startRouteServer({
+        discoverArtifactSource: vi.fn(),
+        configureArtifactSource: vi.fn(),
+      });
+
+      const response = await readJsonResponse(server, '/api/artifact-source/discover', {
+        method: 'POST',
+        body: payload,
+      });
+      expect(response.status).toBe(413);
+      expect(typeof response.body.error).toBe('string');
+      expect(response.body.error).toMatch(/exceeds maximum size/i);
+    } finally {
+      if (prevToken === undefined) delete process.env.DBT_TOOLS_WEB_API_TOKEN;
+      else process.env.DBT_TOOLS_WEB_API_TOKEN = prevToken;
+      if (prevRequire === undefined) delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+      else process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN = prevRequire;
+    }
+  });
+
+  it('returns 400 for invalid JSON bodies', async () => {
+    const prevToken = process.env.DBT_TOOLS_WEB_API_TOKEN;
+    const prevRequire = process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    delete process.env.DBT_TOOLS_WEB_API_TOKEN;
+    delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    try {
+      server = await startRouteServer({
+        discoverArtifactSource: vi.fn(),
+        configureArtifactSource: vi.fn(),
+      });
+
+      const response = await readJsonResponse(server, '/api/artifact-source/discover', {
+        method: 'POST',
+        body: '{not-json',
+      });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Request body must be valid JSON.' });
+    } finally {
+      if (prevToken === undefined) delete process.env.DBT_TOOLS_WEB_API_TOKEN;
+      else process.env.DBT_TOOLS_WEB_API_TOKEN = prevToken;
+      if (prevRequire === undefined) delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+      else process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN = prevRequire;
+    }
+  });
+
+  it('returns 400 when JSON parses but is not a plain object', async () => {
+    const prevToken = process.env.DBT_TOOLS_WEB_API_TOKEN;
+    const prevRequire = process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    delete process.env.DBT_TOOLS_WEB_API_TOKEN;
+    delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    try {
+      server = await startRouteServer({
+        discoverArtifactSource: vi.fn(),
+        configureArtifactSource: vi.fn(),
+      });
+
+      const response = await readJsonResponse(server, '/api/artifact-source/discover', {
+        method: 'POST',
+        body: '[]',
+      });
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Request body must be a JSON object.' });
+    } finally {
+      if (prevToken === undefined) delete process.env.DBT_TOOLS_WEB_API_TOKEN;
+      else process.env.DBT_TOOLS_WEB_API_TOKEN = prevToken;
+      if (prevRequire === undefined) delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+      else process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN = prevRequire;
+    }
+  });
+
+  it('requires x-dbt-tools-api-token when DBT_TOOLS_WEB_REQUIRE_POST_TOKEN=1 and DBT_TOOLS_WEB_API_TOKEN is set', async () => {
+    const prevToken = process.env.DBT_TOOLS_WEB_API_TOKEN;
+    const prevRequire = process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    process.env.DBT_TOOLS_WEB_API_TOKEN = 'expected-secret';
+    process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN = '1';
+    try {
+      const discoverArtifactSource = vi.fn(async () => ({
+        sourceKind: 'local' as const,
+        locationDisplay: '/tmp/preview',
+        candidates: [],
+        needsSelection: false,
+        discoveryError: null,
+      }));
+
+      server = await startRouteServer({
+        discoverArtifactSource,
+        configureArtifactSource: vi.fn(),
+      });
+
+      const address = server.address();
+      if (address == null || typeof address === 'string') {
+        throw new Error('Server address unavailable');
+      }
+
+      const unauthorized = await fetch(
+        `http://127.0.0.1:${address.port}/api/artifact-source/discover`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'local', location: '/tmp/preview' }),
+        },
+      );
+      expect(unauthorized.status).toBe(401);
+      expect((await unauthorized.json()) as Record<string, unknown>).toEqual({
+        error: 'Unauthorized',
+      });
+      expect(discoverArtifactSource).not.toHaveBeenCalled();
+
+      const ok = await fetch(`http://127.0.0.1:${address.port}/api/artifact-source/discover`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-dbt-tools-api-token': 'expected-secret',
+        },
+        body: JSON.stringify({ type: 'local', location: '/tmp/preview' }),
+      });
+      expect(ok.status).toBe(200);
+      expect(discoverArtifactSource).toHaveBeenCalledOnce();
+    } finally {
+      if (prevToken === undefined) delete process.env.DBT_TOOLS_WEB_API_TOKEN;
+      else process.env.DBT_TOOLS_WEB_API_TOKEN = prevToken;
+      if (prevRequire === undefined) delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+      else process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN = prevRequire;
+    }
+  });
+
+  it('allows POST without header when token is set but require flag is unset and warns once', async () => {
+    const prevToken = process.env.DBT_TOOLS_WEB_API_TOKEN;
+    const prevRequire = process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    process.env.DBT_TOOLS_WEB_API_TOKEN = 'expected-secret';
+    delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const discoverArtifactSource = vi.fn(async () => ({
+        sourceKind: 'local' as const,
+        locationDisplay: '/tmp/preview',
+        candidates: [],
+        needsSelection: false,
+        discoveryError: null,
+      }));
+
+      server = await startRouteServer({
+        discoverArtifactSource,
+        configureArtifactSource: vi.fn(),
+      });
+
+      const first = await readJsonResponse(server, '/api/artifact-source/discover', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'local', location: '/tmp/preview' }),
+      });
+      expect(first.status).toBe(200);
+      expect(discoverArtifactSource).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0]?.[0]).toContain('DBT_TOOLS_WEB_REQUIRE_POST_TOKEN');
+
+      const second = await readJsonResponse(server, '/api/artifact-source/discover', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'local', location: '/tmp/preview' }),
+      });
+      expect(second.status).toBe(200);
+      expect(discoverArtifactSource).toHaveBeenCalledTimes(2);
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+      if (prevToken === undefined) delete process.env.DBT_TOOLS_WEB_API_TOKEN;
+      else process.env.DBT_TOOLS_WEB_API_TOKEN = prevToken;
+      if (prevRequire === undefined) delete process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN;
+      else process.env.DBT_TOOLS_WEB_REQUIRE_POST_TOKEN = prevRequire;
+    }
   });
 });

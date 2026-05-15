@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { normalizeGcsAuthOverrides } from '@dbt-tools/core';
 import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -33,8 +34,14 @@ export function startRefreshPolling(
 
 export async function createDbtToolsMcpServer(argv: string[] = process.argv.slice(2)) {
   const options = parseMcpServerOptions(argv);
-  const workspace = new ArtifactWorkspace({ dbtTarget: options.dbtTarget });
-  await workspace.initialize();
+  const gcsAuth = normalizeGcsAuthOverrides({
+    projectId: options.gcsProjectId,
+    impersonateServiceAccount: options.gcsImpersonateServiceAccount,
+  });
+  const workspace = new ArtifactWorkspace({
+    dbtTarget: options.dbtTarget,
+    ...(gcsAuth !== undefined ? { gcsAuth } : {}),
+  });
   startRefreshPolling(workspace, options.pollIntervalMs);
   const useCases = createDbtToolsUseCases(workspace);
   const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);

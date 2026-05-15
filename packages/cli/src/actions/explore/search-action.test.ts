@@ -178,7 +178,7 @@ describe('searchAction', () => {
   });
 
   it('outputs human-readable format in TTY mode', async () => {
-    await searchAction('customers', { dbtTarget: dbtTargetDir, noJson: true }, handleError);
+    await searchAction('customers', { dbtTarget: dbtTargetDir, format: 'text' }, handleError);
 
     const output = consoleLogSpy.mock.calls[0][0] as string;
     expect(output).toContain('Search results');

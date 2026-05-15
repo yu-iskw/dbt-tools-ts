@@ -109,7 +109,7 @@ describe('timelineAction', () => {
   });
 
   it('outputs human-readable table in TTY mode', async () => {
-    await timelineAction({ dbtTarget: dbtTargetDir, noJson: true }, handleError);
+    await timelineAction({ dbtTarget: dbtTargetDir, format: 'table' }, handleError);
 
     const output = consoleLogSpy.mock.calls[0][0] as string;
     expect(output).toContain('dbt Execution Timeline');

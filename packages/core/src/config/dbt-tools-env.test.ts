@@ -1,12 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
+  getDbtToolsMaxRemoteListingObjectsFromEnv,
+  getDbtToolsMaxRemoteObjectBytesFromEnv,
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsTargetDirFromEnv,
   isDbtToolsDebugEnabled,
   isDbtToolsWatchEnabled,
+  normalizeGcsAuthOverrides,
   parseDbtToolsRemoteSourceConfigJson,
   resetDbtToolsEnvDeprecationWarningsForTests,
+  DBT_TOOLS_DBT_TARGET_REQUIRED_HINT,
+  resolveDbtToolsDbtTargetFromFlagOrEnv,
 } from './dbt-tools-env';
 
 const TARGET_KEYS = ['DBT_TOOLS_TARGET_DIR', 'DBT_TARGET_DIR', 'DBT_TARGET'] as const;
@@ -14,6 +19,8 @@ const DEBUG_KEYS = ['DBT_TOOLS_DEBUG', 'DBT_DEBUG'] as const;
 const WATCH_KEYS = ['DBT_TOOLS_WATCH', 'DBT_WATCH'] as const;
 const DEBOUNCE_KEYS = ['DBT_TOOLS_RELOAD_DEBOUNCE_MS', 'DBT_RELOAD_DEBOUNCE_MS'] as const;
 const REMOTE_KEYS = ['DBT_TOOLS_REMOTE_SOURCE'] as const;
+const MAX_REMOTE_OBJECT_KEYS = ['DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES'] as const;
+const MAX_REMOTE_LISTING_KEYS = ['DBT_TOOLS_MAX_REMOTE_LISTING_OBJECTS'] as const;
 
 function clearKeys(keys: readonly string[]): Record<string, string | undefined> {
   const prev: Record<string, string | undefined> = {};
@@ -179,6 +186,97 @@ describe('dbt-tools-env', () => {
     });
   });
 
+  describe('getDbtToolsMaxRemoteObjectBytesFromEnv', () => {
+    let prev: Record<string, string | undefined>;
+
+    beforeEach(() => {
+      prev = clearKeys(MAX_REMOTE_OBJECT_KEYS);
+    });
+
+    afterEach(() => {
+      restoreKeys(prev);
+    });
+
+    it('defaults to 512 MiB when unset', () => {
+      expect(getDbtToolsMaxRemoteObjectBytesFromEnv()).toBe(512 * 1024 * 1024);
+    });
+
+    it('parses a positive integer', () => {
+      process.env.DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES = '1048576';
+      expect(getDbtToolsMaxRemoteObjectBytesFromEnv()).toBe(1048576);
+    });
+
+    it('falls back to default for invalid values', () => {
+      process.env.DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES = 'nope';
+      expect(getDbtToolsMaxRemoteObjectBytesFromEnv()).toBe(512 * 1024 * 1024);
+      process.env.DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES = '0';
+      expect(getDbtToolsMaxRemoteObjectBytesFromEnv()).toBe(512 * 1024 * 1024);
+    });
+
+    it('clamps to the hard ceiling', () => {
+      process.env.DBT_TOOLS_MAX_REMOTE_OBJECT_BYTES = String(3 * 1024 * 1024 * 1024);
+      expect(getDbtToolsMaxRemoteObjectBytesFromEnv()).toBe(2 * 1024 * 1024 * 1024);
+    });
+  });
+
+  describe('getDbtToolsMaxRemoteListingObjectsFromEnv', () => {
+    let prev: Record<string, string | undefined>;
+
+    beforeEach(() => {
+      prev = clearKeys(MAX_REMOTE_LISTING_KEYS);
+    });
+
+    afterEach(() => {
+      restoreKeys(prev);
+    });
+
+    it('defaults to 50_000 when unset', () => {
+      expect(getDbtToolsMaxRemoteListingObjectsFromEnv()).toBe(50_000);
+    });
+
+    it('parses a positive integer', () => {
+      process.env.DBT_TOOLS_MAX_REMOTE_LISTING_OBJECTS = '12345';
+      expect(getDbtToolsMaxRemoteListingObjectsFromEnv()).toBe(12_345);
+    });
+
+    it('falls back to default for invalid values', () => {
+      process.env.DBT_TOOLS_MAX_REMOTE_LISTING_OBJECTS = 'nope';
+      expect(getDbtToolsMaxRemoteListingObjectsFromEnv()).toBe(50_000);
+      process.env.DBT_TOOLS_MAX_REMOTE_LISTING_OBJECTS = '0';
+      expect(getDbtToolsMaxRemoteListingObjectsFromEnv()).toBe(50_000);
+    });
+
+    it('clamps to the hard ceiling', () => {
+      process.env.DBT_TOOLS_MAX_REMOTE_LISTING_OBJECTS = '9999999';
+      expect(getDbtToolsMaxRemoteListingObjectsFromEnv()).toBe(500_000);
+    });
+  });
+
+  describe('normalizeGcsAuthOverrides', () => {
+    it('returns undefined when both fields are empty or whitespace', () => {
+      expect(normalizeGcsAuthOverrides({})).toBeUndefined();
+      expect(
+        normalizeGcsAuthOverrides({ projectId: '  ', impersonateServiceAccount: '' }),
+      ).toBeUndefined();
+    });
+
+    it('trims and returns only set fields', () => {
+      expect(
+        normalizeGcsAuthOverrides({
+          projectId: ' my-proj ',
+          impersonateServiceAccount: ' svc@x.iam.gserviceaccount.com ',
+        }),
+      ).toEqual({
+        projectId: 'my-proj',
+        impersonateServiceAccount: 'svc@x.iam.gserviceaccount.com',
+      });
+    });
+
+    it('allows project id only', () => {
+      expect(normalizeGcsAuthOverrides({ projectId: 'p' })).toEqual({ projectId: 'p' });
+    });
+  });
+
   describe('parseDbtToolsRemoteSourceConfigJson', () => {
     it('parses the same shape as env-backed happy path', () => {
       const json = JSON.stringify({
@@ -197,6 +295,7 @@ describe('dbt-tools-env', () => {
         endpoint: undefined,
         forcePathStyle: false,
         projectId: undefined,
+        impersonateServiceAccount: undefined,
       });
     });
 
@@ -214,6 +313,23 @@ describe('dbt-tools-env', () => {
       expect(parseDbtToolsRemoteSourceConfigJson('{nope')).toBeUndefined();
       expect(warn).toHaveBeenCalled();
       warn.mockRestore();
+    });
+
+    it('parses impersonateServiceAccount for gcs', () => {
+      const json = JSON.stringify({
+        provider: 'gcs',
+        bucket: 'b',
+        prefix: 'runs',
+        projectId: 'proj-1',
+        impersonateServiceAccount: 'other@proj.iam.gserviceaccount.com',
+      });
+      expect(parseDbtToolsRemoteSourceConfigJson(json)).toMatchObject({
+        provider: 'gcs',
+        bucket: 'b',
+        prefix: 'runs',
+        projectId: 'proj-1',
+        impersonateServiceAccount: 'other@proj.iam.gserviceaccount.com',
+      });
     });
   });
 
@@ -250,6 +366,7 @@ describe('dbt-tools-env', () => {
         endpoint: undefined,
         forcePathStyle: false,
         projectId: undefined,
+        impersonateServiceAccount: undefined,
       });
     });
 
@@ -290,6 +407,34 @@ describe('dbt-tools-env', () => {
       expect(warn).toHaveBeenCalled();
 
       warn.mockRestore();
+    });
+  });
+
+  describe('resolveDbtToolsDbtTargetFromFlagOrEnv', () => {
+    let prev: Record<string, string | undefined>;
+
+    beforeEach(() => {
+      prev = clearKeys(['DBT_TOOLS_DBT_TARGET'] as const);
+    });
+
+    afterEach(() => {
+      restoreKeys(prev);
+    });
+
+    it('prefers non-empty flag over env', () => {
+      process.env.DBT_TOOLS_DBT_TARGET = './env';
+      expect(resolveDbtToolsDbtTargetFromFlagOrEnv(' ./flag ')).toBe('./flag');
+    });
+
+    it('uses env when flag omitted', () => {
+      process.env.DBT_TOOLS_DBT_TARGET = './from-env';
+      expect(resolveDbtToolsDbtTargetFromFlagOrEnv(undefined)).toBe('./from-env');
+    });
+
+    it('throws with shared hint when unset', () => {
+      expect(() => resolveDbtToolsDbtTargetFromFlagOrEnv(undefined)).toThrow(
+        DBT_TOOLS_DBT_TARGET_REQUIRED_HINT,
+      );
     });
   });
 });

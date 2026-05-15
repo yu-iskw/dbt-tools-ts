@@ -12,16 +12,22 @@ export * from './analysis/analysis-snapshot';
 export {
   getDbtToolsTargetDirFromEnv,
   getDbtToolsDbtTargetFromEnv,
+  DBT_TOOLS_DBT_TARGET_REQUIRED_HINT,
+  resolveDbtToolsDbtTargetFromFlagOrEnv,
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsWebBaseUrlFromEnv,
+  getDbtToolsMaxRemoteObjectBytesFromEnv,
+  getDbtToolsMaxRemoteListingObjectsFromEnv,
   parseDbtToolsRemoteSourceConfigJson,
   isDbtToolsDebugEnabled,
   isDbtToolsWatchEnabled,
+  normalizeGcsAuthOverrides,
 } from './config/dbt-tools-env';
 export type {
   DbtToolsRemoteSourceConfig,
   DbtToolsRemoteSourceProvider,
+  GcsAuthOverrides,
 } from './config/dbt-tools-env';
 
 // I/O exports
@@ -30,6 +36,7 @@ export * from './io/artifact-loader';
 export * from './io/artifact-discovery';
 export * from './io/artifact-location';
 export * from './io/dbt-artifact-bundle';
+export { readStreamWithByteCap, readFileWithByteCap } from './io/read-bytes-capped';
 
 // Long-lived artifact workspace (Node-safe)
 export * from './artifact-workspace/index';

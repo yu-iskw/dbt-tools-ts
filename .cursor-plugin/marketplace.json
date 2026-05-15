@@ -8,6 +8,11 @@
       "name": "dbt-tools-cli",
       "source": "./plugins/dbt-tools-cli",
       "description": "Minimal shared plugin for @dbt-tools/cli workflows"
+    },
+    {
+      "name": "dbt-tools-mcp",
+      "source": "./plugins/dbt-tools-mcp",
+      "description": "Minimal shared plugin for @dbt-tools/mcp workflows"
     }
   ]
 }

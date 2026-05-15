@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   isTTY,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   formatOutput,
   formatSummary,
   formatDeps,
@@ -50,79 +51,47 @@ describe('OutputFormatter', () => {
     });
   });
 
-  describe('shouldOutputJSON', () => {
-    it('should return false for TTY when no flags', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value: true,
-        writable: true,
-        configurable: true,
-      });
-      expect(shouldOutputJSON()).toBe(false);
+  describe('resolveStdoutFormat', () => {
+    it('defaults to json when format is omitted', () => {
+      expect(resolveStdoutFormat()).toBe('json');
+      expect(resolveStdoutFormat(undefined)).toBe('json');
     });
 
-    it('should return true for non-TTY when no flags', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value: false,
-        writable: true,
-        configurable: true,
-      });
-      expect(shouldOutputJSON()).toBe(true);
+    it('accepts json and text', () => {
+      expect(resolveStdoutFormat('json')).toBe('json');
+      expect(resolveStdoutFormat('text')).toBe('text');
+      expect(resolveStdoutFormat(' JSON ')).toBe('json');
     });
 
-    it('should respect --json flag', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value: true,
-        writable: true,
-        configurable: true,
-      });
-      expect(shouldOutputJSON(true)).toBe(true);
+    it('rejects unknown formats', () => {
+      expect(() => resolveStdoutFormat('table')).toThrow(/Invalid --format/);
     });
+  });
 
-    it('should respect --no-json flag', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value: false,
-        writable: true,
-        configurable: true,
-      });
-      expect(shouldOutputJSON(undefined, true)).toBe(false);
-    });
-
-    it('should prioritize --no-json over --json', () => {
-      expect(shouldOutputJSON(true, true)).toBe(false);
+  describe('preferStructuredErrors', () => {
+    it('is true for json and false for text', () => {
+      expect(preferStructuredErrors()).toBe(true);
+      expect(preferStructuredErrors('json')).toBe(true);
+      expect(preferStructuredErrors('text')).toBe(false);
     });
   });
 
   describe('formatOutput', () => {
-    it('should format as JSON when shouldOutputJSON is true', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value: false,
-        writable: true,
-        configurable: true,
-      });
+    it('formats as JSON by default', () => {
       const data = { test: 'value' };
       const output = formatOutput(data);
       expect(output).toBe(JSON.stringify(data, null, 2));
     });
 
-    it('should format as string when shouldOutputJSON is false', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value: true,
-        writable: true,
-        configurable: true,
-      });
+    it('formats as string when format is text', () => {
       const data = { test: 'value' };
-      const output = formatOutput(data);
-      expect(typeof output).toBe('string');
+      const output = formatOutput(data, 'text');
+      expect(output).toBe('[object Object]');
     });
 
-    it('should respect forceJson flag', () => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value: true,
-        writable: true,
-        configurable: true,
-      });
+    it('formats as JSON when format is json', () => {
       const data = { test: 'value' };
-      const output = formatOutput(data, true);
+      const output = formatOutput(data, 'json');
       expect(output).toBe(JSON.stringify(data, null, 2));
     });
   });

@@ -54,26 +54,31 @@ export function isTTY(): boolean {
   return process.stdout.isTTY === true;
 }
 
+export type StdoutFormat = 'json' | 'text';
+
 /**
- * Determine if output should be JSON
+ * Resolve CLI stdout format (`--format`). Defaults to JSON.
  */
-export function shouldOutputJSON(forceJson?: boolean, forceNoJson?: boolean): boolean {
-  if (forceNoJson === true) {
-    return false;
+export function resolveStdoutFormat(format?: string): StdoutFormat {
+  const normalized = (format ?? 'json').trim().toLowerCase();
+  if (normalized === 'json' || normalized === 'text') {
+    return normalized;
   }
-  if (forceJson === true) {
-    return true;
-  }
-  return !isTTY();
+  throw new Error(`Invalid --format "${format}". Expected: json, text.`);
 }
 
 /**
- * Format output as JSON or human-readable based on context
+ * Whether stderr should use structured JSON errors for this stdout format.
  */
-export function formatOutput(data: unknown, forceJson?: boolean, forceNoJson?: boolean): string {
-  const useJson = shouldOutputJSON(forceJson, forceNoJson);
+export function preferStructuredErrors(format?: string): boolean {
+  return resolveStdoutFormat(format) === 'json';
+}
 
-  if (useJson) {
+/**
+ * Format output as JSON or string based on `--format`.
+ */
+export function formatOutput(data: unknown, format?: string): string {
+  if (resolveStdoutFormat(format) === 'json') {
     return JSON.stringify(data, null, 2);
   }
 

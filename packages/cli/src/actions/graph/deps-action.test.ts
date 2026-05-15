@@ -30,14 +30,15 @@ describe('depsAction', () => {
       {
         dbtTarget: dbtTargetDir,
         direction: 'upstream',
-        format: 'tree',
+        layout: 'tree',
+        format: 'text',
       },
       handleError,
     );
 
     expect(consoleLogSpy).toHaveBeenCalled();
     const output = consoleLogSpy.mock.calls.flat().join('\n');
-    expect(output).toContain('model.jaffle_shop.stg_products');
+    expect(output).toContain('stg_products');
     expect(output).toMatch(/source\.jaffle_shop\.ecom\.raw_products|stg_products/);
   });
 
@@ -49,8 +50,7 @@ describe('depsAction', () => {
         {
           dbtTarget: manifestOnlyDir,
           direction: 'upstream',
-          format: 'tree',
-          json: true,
+          layout: 'tree',
         },
         handleError,
       );
@@ -69,7 +69,8 @@ describe('depsAction', () => {
       {
         dbtTarget: dbtTargetDir,
         direction: 'upstream',
-        format: 'flat',
+        layout: 'flat',
+        format: 'text',
       },
       handleError,
     );
@@ -85,24 +86,24 @@ describe('depsAction', () => {
       {
         dbtTarget: dbtTargetDir,
         direction: 'downstream',
-        format: 'tree',
+        layout: 'tree',
+        format: 'text',
       },
       handleError,
     );
 
     expect(consoleLogSpy).toHaveBeenCalled();
     const output = consoleLogSpy.mock.calls.flat().join('\n');
-    expect(output).toContain('model.jaffle_shop.stg_products');
+    expect(output).toContain('stg_products');
   });
 
-  it('outputs JSON when json option is true', async () => {
+  it('outputs JSON by default', async () => {
     await depsAction(
       'model.jaffle_shop.stg_products',
       {
         dbtTarget: dbtTargetDir,
         direction: 'upstream',
-        format: 'tree',
-        json: true,
+        layout: 'tree',
       },
       handleError,
     );
@@ -120,7 +121,8 @@ describe('depsAction', () => {
       {
         dbtTarget: dbtTargetDir,
         direction: 'upstream',
-        format: 'tree',
+        layout: 'tree',
+        format: 'text',
         depth: 1,
       },
       handleError,
@@ -136,7 +138,8 @@ describe('depsAction', () => {
         {
           dbtTarget: dbtTargetDir,
           direction: 'invalid',
-          format: 'tree',
+          layout: 'tree',
+          format: 'text',
         },
         handleError,
       ),
@@ -150,7 +153,8 @@ describe('depsAction', () => {
         {
           dbtTarget: dbtTargetDir,
           direction: 'upstream',
-          format: 'tree',
+          layout: 'tree',
+          format: 'text',
         },
         handleError,
       ),

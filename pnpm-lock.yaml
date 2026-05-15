@@ -120,6 +120,9 @@ importers:
       '@google-cloud/storage':
         specifier: ^7.19.0
         version: 7.19.0
+      google-auth-library:
+        specifier: ^9.15.1
+        version: 9.15.1
       dbt-artifacts-parser:
         specifier: ^0.5.5
         version: 0.5.5

@@ -8,7 +8,8 @@ import {
   validateNoControlChars,
   FieldFilter,
   formatOutput,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   DependencyService,
   resolveIntentTarget,
   buildImpactWebUrl,
@@ -18,13 +19,13 @@ import {
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
 export type ImpactCliOptions = {
   fields?: string;
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
   trace?: boolean;
 } & ArtifactRootCliOptions;
 
@@ -77,10 +78,10 @@ export async function impactAction(
 ): Promise<void> {
   try {
     validateNoControlChars(resourceInput);
-    const paths = await resolveCliArtifactPaths(
-      { dbtTarget: options.dbtTarget },
-      { manifest: true, runResults: false },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: false,
+    });
     validateSafePath(paths.manifest);
 
     const manifest = loadManifest(paths.manifest);
@@ -127,8 +128,8 @@ export async function impactAction(
 
     const uidJson = JSON.stringify(resolved.unique_id);
     const primitive_commands = [
-      `dbt-tools deps ${uidJson} --direction downstream --format flat`,
-      `dbt-tools deps ${uidJson} --direction upstream --format flat`,
+      `dbt-tools deps ${uidJson} --direction downstream --layout flat`,
+      `dbt-tools deps ${uidJson} --direction upstream --layout flat`,
       `dbt-tools graph --focus ${uidJson} --focus-direction downstream`,
     ];
 
@@ -163,8 +164,8 @@ export async function impactAction(
       };
     }
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-    if (useJson) {
+    const stdoutFormat = resolveStdoutFormat(options.format);
+    if (stdoutFormat === 'json') {
       let out: unknown = output;
       if (options.fields) {
         out = FieldFilter.filterFields(
@@ -172,7 +173,7 @@ export async function impactAction(
           options.fields,
         );
       }
-      console.log(formatOutput(out, true));
+      console.log(formatOutput(out, options.format));
     } else {
       console.log(
         [
@@ -188,6 +189,6 @@ export async function impactAction(
       );
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

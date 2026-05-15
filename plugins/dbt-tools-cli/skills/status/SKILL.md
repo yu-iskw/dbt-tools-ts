@@ -35,22 +35,22 @@ Identify the following before running:
 ## Recommended pattern
 
 ```bash
-dbt-tools status --dbt-target ./target --json
+dbt-tools status --dbt-target ./target
 ```
 
 `freshness` is an alias:
 
 ```bash
-dbt-tools freshness --dbt-target ./target --json
+dbt-tools freshness --dbt-target ./target
 ```
 
 When `DBT_TOOLS_DBT_TARGET` is set:
 
 ```bash
-dbt-tools status --json
+dbt-tools status
 ```
 
-Always pass **`--json`** when you need to parse the result programmatically.
+Always use default JSON output when you need to parse the result programmatically.
 
 ## Interpreting results
 
@@ -82,12 +82,12 @@ For a full matrix of which CLI commands are safe to run by readiness level, see
 
 - **Target directory not found or no artifacts**: `readiness` will be `unavailable`; tell the
   user which path was checked (`target_dir` field) and suggest running `dbt` to generate artifacts.
-- **Remote fetch error** (`s3://` / `gs://`): structured JSON on stderr when `--json` is passed;
+- **Remote fetch error** (`s3://` / `gs://`): structured JSON on stderr when output format is json (default);
   check `error.code` (typically `ARTIFACT_BUNDLE_INCOMPLETE` or `UNKNOWN_ERROR`).
 - **Missing `--dbt-target` and env var not set**: the CLI exits with a validation error asking
   you to pass `--dbt-target`.
 
-When `--json` is set, structured errors appear on stderr:
+With default `--format json`, structured errors appear on stderr:
 
 ```json
 {

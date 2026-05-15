@@ -91,7 +91,7 @@ describe('statusAction', () => {
   });
 
   it('outputs human-readable format', async () => {
-    await statusAction({ dbtTarget: tmpDir, noJson: true }, handleError);
+    await statusAction({ dbtTarget: tmpDir, format: 'text' }, handleError);
 
     const output = consoleLogSpy.mock.calls[0][0] as string;
     expect(output).toContain('dbt Artifact Status');

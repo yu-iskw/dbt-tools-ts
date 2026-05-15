@@ -40,7 +40,7 @@ They ship with the **dbt-tools-cli** agent plugin ([`plugins/dbt-tools-cli/`](..
 
 3. **Content rules**
    - **Triggers** and **when to use** — help agents discover the skill.
-   - **Commands** — link to [`packages/cli/README.md`](../../../packages/cli/README.md) for flags and options; prefer `dbt-tools schema` for discovery and `--json` where appropriate.
+   - **Commands** — link to [`packages/cli/README.md`](../../../packages/cli/README.md) for flags and options; prefer `dbt-tools schema` for discovery. JSON is the default stdout format; document `--format text` when human output is needed.
    - **Workflow order** — e.g. artifact check → search → deps; do not paste the full CLI reference.
    - **Artifact readiness** — if the workflow needs `manifest.json` / `run_results.json`, point to or compose with [`dbt-artifacts-status`](../../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/SKILL.md) instead of duplicating readiness rules.
    - **Progressive disclosure** — long tables in `references/` under the same skill directory (see exemplar [`references/readiness.md`](../../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/references/readiness.md)).
@@ -78,7 +78,7 @@ description: One or two sentences for agent discovery; mention dbt-tools and the
 
 ## Commands
 
-Link to [packages/cli/README.md](../../../../packages/cli/README.md) for flags; prefer `dbt-tools schema` and `--json` where appropriate.
+Link to [packages/cli/README.md](../../../../packages/cli/README.md) for flags; prefer `dbt-tools schema`. Default output is JSON; mention `--format text` only when human-readable stdout is required.
 
 ## Related
 

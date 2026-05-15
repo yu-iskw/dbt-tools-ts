@@ -8,11 +8,13 @@ import {
   validateNoControlChars,
   FieldFilter,
   formatOutput,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   searchResourcesInGraph,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
@@ -24,8 +26,7 @@ export type SearchOptions = {
   fields?: string;
   limit?: number;
   offset?: number;
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
 } & ArtifactRootCliOptions;
 
 export type SearchResult = {
@@ -91,12 +92,10 @@ export async function searchAction(
       validateNoControlChars(query);
     }
 
-    const paths = await resolveCliArtifactPaths(
-      {
-        dbtTarget: options.dbtTarget,
-      },
-      { manifest: true, runResults: false },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: false,
+    });
     validateSafePath(paths.manifest);
 
     const manifest = loadManifest(paths.manifest);
@@ -111,18 +110,17 @@ export async function searchAction(
       offset: options.offset,
     });
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-
-    if (useJson) {
+    const stdoutFormat = resolveStdoutFormat(options.format);
+    if (stdoutFormat === 'json') {
       let out: unknown = output;
       if (options.fields) {
         out = FieldFilter.filterFields(output, options.fields);
       }
-      console.log(formatOutput(out, true));
+      console.log(formatOutput(out, options.format));
     } else {
       console.log(formatSearch(output));
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

@@ -4,10 +4,61 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ArtifactBundleResolutionError } from '../errors/artifact-bundle-resolution-error';
 import {
+  isRemoteObjectNotFoundError,
   parseDbtToolsArtifactTarget,
   resolveDbtToolsArtifactBundlePaths,
 } from './dbt-artifact-bundle';
 import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from './artifact-filenames';
+
+describe('isRemoteObjectNotFoundError', () => {
+  it('detects S3 NoSuchKey', () => {
+    expect(
+      isRemoteObjectNotFoundError(Object.assign(new Error('x'), { name: 'NoSuchKey' }), 's3'),
+    ).toBe(true);
+  });
+
+  it('detects S3 404 metadata', () => {
+    expect(
+      isRemoteObjectNotFoundError(
+        Object.assign(new Error('x'), { name: 'NotFound', $metadata: { httpStatusCode: 404 } }),
+        's3',
+      ),
+    ).toBe(true);
+  });
+
+  it('detects GCS numeric 404 code', () => {
+    expect(
+      isRemoteObjectNotFoundError(Object.assign(new Error('Not Found'), { code: 404 }), 'gcs'),
+    ).toBe(true);
+  });
+
+  it('detects GCS string 404 code', () => {
+    expect(
+      isRemoteObjectNotFoundError(Object.assign(new Error('Not Found'), { code: '404' }), 'gcs'),
+    ).toBe(true);
+  });
+
+  it('detects GCS API errors notFound reason', () => {
+    expect(
+      isRemoteObjectNotFoundError(
+        Object.assign(new Error('No such object'), {
+          errors: [{ reason: 'notFound' }],
+        }),
+        'gcs',
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false for GCS 403', () => {
+    expect(
+      isRemoteObjectNotFoundError(Object.assign(new Error('Forbidden'), { code: 403 }), 'gcs'),
+    ).toBe(false);
+  });
+
+  it('returns false for generic errors', () => {
+    expect(isRemoteObjectNotFoundError(new Error('network'), 'gcs')).toBe(false);
+  });
+});
 
 describe('parseDbtToolsArtifactTarget', () => {
   it('parses s3:// strictly', () => {

@@ -97,4 +97,90 @@ describe('mergeRemoteSourceConfigWithParsedLocation', () => {
       forcePathStyle: true,
     });
   });
+
+  it('merges gcs project and impersonation from env when provider matches', () => {
+    const merged = mergeRemoteSourceConfigWithParsedLocation(
+      {
+        provider: 'gcs',
+        bucket: 'ignored',
+        prefix: 'ignored',
+        pollIntervalMs: 5000,
+        projectId: 'from-env',
+        impersonateServiceAccount: 'env@x.iam.gserviceaccount.com',
+      },
+      {
+        kind: 'remote',
+        provider: 'gcs',
+        bucket: 'real-bucket',
+        prefix: 'real/prefix',
+      },
+    );
+    expect(merged).toEqual({
+      provider: 'gcs',
+      bucket: 'real-bucket',
+      prefix: 'real/prefix',
+      pollIntervalMs: 5000,
+      projectId: 'from-env',
+      impersonateServiceAccount: 'env@x.iam.gserviceaccount.com',
+    });
+  });
+
+  it('lets gcs auth overrides beat env json for project and impersonation', () => {
+    const merged = mergeRemoteSourceConfigWithParsedLocation(
+      {
+        provider: 'gcs',
+        bucket: 'ignored',
+        prefix: 'ignored',
+        pollIntervalMs: 9000,
+        projectId: 'env-project',
+        impersonateServiceAccount: 'env@x.iam.gserviceaccount.com',
+      },
+      {
+        kind: 'remote',
+        provider: 'gcs',
+        bucket: 'b',
+        prefix: 'p',
+      },
+      { projectId: 'flag-project', impersonateServiceAccount: 'flag@y.iam.gserviceaccount.com' },
+    );
+    expect(merged).toMatchObject({
+      bucket: 'b',
+      prefix: 'p',
+      pollIntervalMs: 9000,
+      projectId: 'flag-project',
+      impersonateServiceAccount: 'flag@y.iam.gserviceaccount.com',
+    });
+  });
+
+  it('ignores gcs overrides for s3 parsed target', () => {
+    const merged = mergeRemoteSourceConfigWithParsedLocation(
+      {
+        provider: 'gcs',
+        bucket: 'ignored',
+        prefix: 'ignored',
+        pollIntervalMs: 8000,
+        projectId: 'env-only',
+        impersonateServiceAccount: 'env@x.iam.gserviceaccount.com',
+      },
+      {
+        kind: 'remote',
+        provider: 's3',
+        bucket: 'sb',
+        prefix: 'sp',
+      },
+      {
+        projectId: 'should-not-apply',
+        impersonateServiceAccount: 'nope@x.iam.gserviceaccount.com',
+      },
+    );
+    expect(merged).toEqual({
+      provider: 's3',
+      bucket: 'sb',
+      prefix: 'sp',
+      pollIntervalMs: 8000,
+      region: undefined,
+      endpoint: undefined,
+      forcePathStyle: undefined,
+    });
+  });
 });

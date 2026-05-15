@@ -8,14 +8,13 @@ import {
   validateSafePath,
   FieldFilter,
   formatOutput,
-  shouldOutputJSON,
   validateResourceId,
   validateDepth,
   exportGraphToFormat,
-  writeGraphOutput,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
@@ -26,8 +25,6 @@ export type ExportCliOptions = {
   focusDepth?: number;
   focusDirection?: string;
   fields?: string;
-  json?: boolean;
-  noJson?: boolean;
 } & ArtifactRootCliOptions;
 
 export type ExportOutput = {
@@ -49,10 +46,10 @@ export async function exportAction(
   handleError: (error: unknown, preferStructuredErrors: boolean) => void,
 ): Promise<void> {
   try {
-    const paths = await resolveCliArtifactPaths(
-      { dbtTarget: options.dbtTarget },
-      { manifest: true, runResults: false },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: false,
+    });
     validateSafePath(paths.manifest);
     if (options.output) {
       validateSafePath(options.output);
@@ -99,32 +96,25 @@ export async function exportAction(
       }${options.output ? ` --output ${JSON.stringify(options.output)}` : ''}`,
     ];
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-
-    if (useJson) {
-      if (options.output) {
-        fs.writeFileSync(options.output, body, 'utf-8');
-      }
-      const meta: ExportOutput = {
-        intent: 'export',
-        contract_version: CONTRACT_VERSION,
-        format,
-        ...(options.output ? { output_path: options.output } : {}),
-        graph_export_bytes: Buffer.byteLength(body, 'utf8'),
-        graph_export: body,
-        provenance: { steps: [{ op: 'graph.export', status: 'ok' }] },
-        primitive_commands,
-      };
-      let out: unknown = meta;
-      if (options.fields) {
-        out = FieldFilter.filterFields(meta as unknown as Record<string, unknown>, options.fields);
-      }
-      console.log(formatOutput(out, true));
-      return;
+    if (options.output) {
+      fs.writeFileSync(options.output, body, 'utf-8');
     }
-
-    writeGraphOutput(body, options.output);
+    const meta: ExportOutput = {
+      intent: 'export',
+      contract_version: CONTRACT_VERSION,
+      format,
+      ...(options.output ? { output_path: options.output } : {}),
+      graph_export_bytes: Buffer.byteLength(body, 'utf8'),
+      graph_export: body,
+      provenance: { steps: [{ op: 'graph.export', status: 'ok' }] },
+      primitive_commands,
+    };
+    let out: unknown = meta;
+    if (options.fields) {
+      out = FieldFilter.filterFields(meta as unknown as Record<string, unknown>, options.fields);
+    }
+    console.log(formatOutput(out, 'json'));
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, true);
   }
 }

@@ -152,8 +152,8 @@ describe('inventoryAction', () => {
     expect(parsed).not.toHaveProperty('total');
   });
 
-  it('outputs human-readable format when noJson is set', async () => {
-    await inventoryAction({ dbtTarget: dbtTargetDir, noJson: true }, handleError);
+  it('outputs human-readable format when format is text', async () => {
+    await inventoryAction({ dbtTarget: dbtTargetDir, format: 'text' }, handleError);
 
     expect(consoleLogSpy).toHaveBeenCalled();
     const output = consoleLogSpy.mock.calls[0][0] as string;

@@ -1,30 +1,30 @@
 import {
-  getDbtToolsDbtTargetFromEnv,
+  normalizeGcsAuthOverrides,
+  resolveDbtToolsDbtTargetFromFlagOrEnv,
   type DbtArtifactBundleRequirements,
   resolveDbtToolsArtifactBundlePaths,
   type ArtifactPaths,
 } from '@dbt-tools/core';
 
-const MISSING_TARGET_MSG =
-  'Pass --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> or set DBT_TOOLS_DBT_TARGET in the environment.';
-
 export type ArtifactRootCliOptions = {
   dbtTarget?: string;
+  gcsProjectId?: string;
+  gcsImpersonateServiceAccount?: string;
 };
+
+/**
+ * Subset of CLI options used for artifact path resolution (pass through from action handlers).
+ */
+export function extractArtifactRootCliOptions(o: ArtifactRootCliOptions): ArtifactRootCliOptions {
+  const { dbtTarget, gcsProjectId, gcsImpersonateServiceAccount } = o;
+  return { dbtTarget, gcsProjectId, gcsImpersonateServiceAccount };
+}
 
 /**
  * Effective `--dbt-target`: explicit flag wins, then `DBT_TOOLS_DBT_TARGET`.
  */
 export function resolveEffectiveDbtTarget(flag?: string): string {
-  const fromFlag = flag?.trim();
-  if (fromFlag != null && fromFlag !== '') {
-    return fromFlag;
-  }
-  const fromEnv = getDbtToolsDbtTargetFromEnv()?.trim();
-  if (fromEnv != null && fromEnv !== '') {
-    return fromEnv;
-  }
-  throw new Error(`dbt artifact target is required. ${MISSING_TARGET_MSG}`);
+  return resolveDbtToolsDbtTargetFromFlagOrEnv(flag);
 }
 
 /**
@@ -35,8 +35,13 @@ export async function resolveCliArtifactPaths(
   requirements?: DbtArtifactBundleRequirements,
 ): Promise<ArtifactPaths> {
   const raw = resolveEffectiveDbtTarget(roots.dbtTarget);
+  const gcsAuthOverrides = normalizeGcsAuthOverrides({
+    projectId: roots.gcsProjectId,
+    impersonateServiceAccount: roots.gcsImpersonateServiceAccount,
+  });
   return resolveDbtToolsArtifactBundlePaths({
     dbtTargetRaw: raw,
     requirements,
+    ...(gcsAuthOverrides !== undefined ? { gcsAuthOverrides } : {}),
   });
 }

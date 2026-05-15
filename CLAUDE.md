@@ -6,6 +6,7 @@
 
 ## Environment
 
+- **Security posture** (trust model, env-gated web APIs, remote read caps): see **Security posture** in [`AGENTS.md`](AGENTS.md).
 - Package manager: `pnpm` workspace.
 - Node.js: version in [`.node-version`](.node-version).
 - Packages: `@dbt-tools/core` in [`packages/core`](packages/core), `@dbt-tools/cli` in [`packages/cli`](packages/cli), `@dbt-tools/mcp` in [`packages/mcp`](packages/mcp), and `@dbt-tools/web` in [`packages/web`](packages/web).
@@ -21,6 +22,7 @@ pnpm lint:report
 pnpm knip
 pnpm coverage:report
 pnpm build
+pnpm lint:security
 pnpm test:e2e
 ```
 

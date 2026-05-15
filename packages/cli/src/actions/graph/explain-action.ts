@@ -8,7 +8,8 @@ import {
   validateNoControlChars,
   FieldFilter,
   formatOutput,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   resolveIntentTarget,
   buildExplainWebUrl,
   getDbtToolsWebBaseUrlFromEnv,
@@ -17,13 +18,13 @@ import {
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
 export type ExplainCliOptions = {
   fields?: string;
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
   trace?: boolean;
 } & ArtifactRootCliOptions;
 
@@ -135,10 +136,10 @@ export async function explainAction(
 ): Promise<void> {
   try {
     validateNoControlChars(resourceInput);
-    const paths = await resolveCliArtifactPaths(
-      { dbtTarget: options.dbtTarget },
-      { manifest: true, runResults: false },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: false,
+    });
     validateSafePath(paths.manifest);
 
     const manifest = loadManifest(paths.manifest);
@@ -169,8 +170,8 @@ export async function explainAction(
 
     attachExplainWebAndTrace(output, resolved.unique_id, resourceInput, steps, options.trace);
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-    if (useJson) {
+    const stdoutFormat = resolveStdoutFormat(options.format);
+    if (stdoutFormat === 'json') {
       let out: unknown = output;
       if (options.fields) {
         out = FieldFilter.filterFields(
@@ -178,11 +179,11 @@ export async function explainAction(
           options.fields,
         );
       }
-      console.log(formatOutput(out, true));
+      console.log(formatOutput(out, options.format));
     } else {
       console.log(formatExplainHumanText(output));
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

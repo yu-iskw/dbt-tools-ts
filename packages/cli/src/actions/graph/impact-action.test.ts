@@ -26,10 +26,10 @@ describe('impactAction', () => {
     const raw = consoleLogSpy.mock.calls.at(-1)?.[0] as string;
     const parsed = JSON.parse(raw) as { primitive_commands: string[] };
     expect(parsed.primitive_commands).toContain(
-      'dbt-tools deps "model.jaffle_shop.customers" --direction downstream --format flat',
+      'dbt-tools deps "model.jaffle_shop.customers" --direction downstream --layout flat',
     );
     expect(parsed.primitive_commands).toContain(
-      'dbt-tools deps "model.jaffle_shop.customers" --direction upstream --format flat',
+      'dbt-tools deps "model.jaffle_shop.customers" --direction upstream --layout flat',
     );
   });
 });

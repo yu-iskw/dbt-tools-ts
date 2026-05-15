@@ -32,17 +32,16 @@ type SchemaOption = {
 };
 
 const OPT_DBT_TARGET = '--dbt-target';
-const OPT_JSON = '--json';
-const OPT_NO_JSON = '--no-json';
+const OPT_STDOUT_FORMAT = '--format';
 const OPT_TRACE = '--trace';
 const TYPE_STRING = 'string';
 const TYPE_BOOLEAN = 'boolean';
 const TYPE_NUMBER = 'number';
-const OUTPUT_JSON_OR_HUMAN = 'json or human-readable';
+const OUTPUT_JSON_OR_TEXT = 'json (default) or text';
+const DESC_STDOUT_FORMAT =
+  'Stdout format: json (default) or text; json uses structured errors on stderr.';
 const DESC_DBT_TARGET =
   'Directory containing manifest.json + run_results.json, or s3://bucket/prefix / gs://bucket/prefix. When omitted, uses DBT_TOOLS_DBT_TARGET if set.';
-const DESC_FORCE_JSON = 'Force JSON stdout; with --json, errors on stderr use structured JSON';
-const DESC_FORCE_HUMAN = 'Force human-readable output';
 const DESC_TRACE = 'Include investigation_transcript in JSON output (intent / discover)';
 const DESC_SCHEMA_FILTER_PACKAGE = 'Filter by package name';
 const DESC_SCHEMA_FILTER_TAG = 'Filter by tag(s), comma-separated';
@@ -60,6 +59,18 @@ function getArtifactRootCliSchemaOptions(): SchemaOption[] {
   ];
 }
 
+function getStdoutFormatSchemaOptions(): SchemaOption[] {
+  return [
+    {
+      name: OPT_STDOUT_FORMAT,
+      type: 'enum',
+      values: ['json', 'text'],
+      default: 'json',
+      description: DESC_STDOUT_FORMAT,
+    },
+  ];
+}
+
 function getSummarySchema(): CommandSchema {
   return {
     command: 'summary',
@@ -71,19 +82,10 @@ function getSummarySchema(): CommandSchema {
         type: TYPE_STRING,
         description: DESC_FIELDS,
       },
-      {
-        name: OPT_JSON,
-        type: TYPE_BOOLEAN,
-        description: DESC_FORCE_JSON,
-      },
-      {
-        name: OPT_NO_JSON,
-        type: TYPE_BOOLEAN,
-        description: DESC_FORCE_HUMAN,
-      },
+      ...getStdoutFormatSchemaOptions(),
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
+    output_format: OUTPUT_JSON_OR_TEXT,
     example: 'dbt-tools summary --dbt-target ./target',
   };
 }
@@ -212,19 +214,10 @@ function getRunReportSchema(): CommandSchema {
         description:
           'Skip N node_executions rows before --node-executions-limit (requires --node-executions-limit)',
       },
-      {
-        name: OPT_JSON,
-        type: TYPE_BOOLEAN,
-        description: DESC_FORCE_JSON,
-      },
-      {
-        name: OPT_NO_JSON,
-        type: TYPE_BOOLEAN,
-        description: DESC_FORCE_HUMAN,
-      },
+      ...getStdoutFormatSchemaOptions(),
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
+    output_format: OUTPUT_JSON_OR_TEXT,
     example: 'dbt-tools run-report --dbt-target ./target --bottlenecks',
   };
 }
@@ -254,11 +247,11 @@ function getDepsSchemaOptions(): SchemaOption[] {
       description: 'Max traversal depth; 1 = immediate neighbors, omit for all levels',
     },
     {
-      name: '--format',
+      name: '--layout',
       type: 'enum',
       values: ['flat', 'tree'],
       default: 'tree',
-      description: 'Output structure: flat list or nested tree',
+      description: 'Dependency listing: flat list or nested tree',
     },
     {
       name: '--build-order',
@@ -266,8 +259,7 @@ function getDepsSchemaOptions(): SchemaOption[] {
       description:
         'Output upstream dependencies in topological build order (only with --direction upstream)',
     },
-    { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-    { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+    ...getStdoutFormatSchemaOptions(),
     ...getArtifactRootCliSchemaOptions(),
   ];
 }
@@ -284,7 +276,7 @@ function getDepsSchema(): CommandSchema {
       },
     ],
     options: getDepsSchemaOptions(),
-    output_format: OUTPUT_JSON_OR_HUMAN,
+    output_format: OUTPUT_JSON_OR_TEXT,
     example: 'dbt-tools deps model.my_project.customers --direction downstream',
   };
 }
@@ -300,13 +292,7 @@ function getSchemaCommandSchema(): CommandSchema {
         description: 'Command name (if omitted, returns all command schemas)',
       },
     ],
-    options: [
-      {
-        name: OPT_JSON,
-        type: TYPE_BOOLEAN,
-        description: DESC_FORCE_JSON,
-      },
-    ],
+    options: [],
     output_format: 'json',
     example: 'dbt-tools schema deps',
   };
@@ -361,11 +347,10 @@ function getInventorySchema(): CommandSchema {
         type: TYPE_NUMBER,
         description: 'Skip N entries after sort (requires --limit)',
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getStdoutFormatSchemaOptions(),
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
+    output_format: OUTPUT_JSON_OR_TEXT,
     example: 'dbt-tools inventory --dbt-target ./target --type model --tag finance',
   };
 }
@@ -417,12 +402,11 @@ function getFailuresSchema(): CommandSchema {
         type: TYPE_STRING,
         description: DESC_FIELDS,
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getStdoutFormatSchemaOptions(),
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools failures --dbt-target ./target --json --limit 20',
+    output_format: OUTPUT_JSON_OR_TEXT,
+    example: 'dbt-tools failures --dbt-target ./target --limit 20',
   };
 }
 
@@ -456,13 +440,12 @@ function getTimelineSchema(): CommandSchema {
         description: 'Filter by status (comma-separated, e.g. error,warn)',
       },
       {
-        name: '--format',
+        name: OPT_STDOUT_FORMAT,
         type: 'enum',
         values: ['json', 'table', 'csv'],
-        description: 'Output format (default: json in non-TTY, table in TTY)',
+        default: 'json',
+        description: 'Output format: json (default), table, or csv',
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
       ...getArtifactRootCliSchemaOptions(),
     ],
     output_format: 'json, table, or csv',
@@ -514,12 +497,11 @@ function getDiscoverSchema(): CommandSchema {
         type: TYPE_STRING,
         description: DESC_FIELDS,
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getStdoutFormatSchemaOptions(),
       { name: OPT_TRACE, type: TYPE_BOOLEAN, description: DESC_TRACE },
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
+    output_format: OUTPUT_JSON_OR_TEXT,
     example: 'dbt-tools discover --dbt-target ./target "orders"',
   };
 }
@@ -542,13 +524,12 @@ function getExplainSchema(): CommandSchema {
         type: TYPE_STRING,
         description: DESC_FIELDS,
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getStdoutFormatSchemaOptions(),
       { name: OPT_TRACE, type: TYPE_BOOLEAN, description: DESC_TRACE },
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools explain --dbt-target ./target model.my_pkg.orders --json',
+    output_format: OUTPUT_JSON_OR_TEXT,
+    example: 'dbt-tools explain --dbt-target ./target model.my_pkg.orders',
   };
 }
 
@@ -569,13 +550,12 @@ function getImpactSchema(): CommandSchema {
         type: TYPE_STRING,
         description: DESC_FIELDS,
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getStdoutFormatSchemaOptions(),
       { name: OPT_TRACE, type: TYPE_BOOLEAN, description: DESC_TRACE },
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools impact --dbt-target ./target model.my_pkg.orders --json',
+    output_format: OUTPUT_JSON_OR_TEXT,
+    example: 'dbt-tools impact --dbt-target ./target model.my_pkg.orders',
   };
 }
 
@@ -590,12 +570,11 @@ function getDiagnoseRunSchema(): CommandSchema {
         type: TYPE_STRING,
         description: DESC_FIELDS,
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getStdoutFormatSchemaOptions(),
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools diagnose run --dbt-target ./target --json',
+    output_format: OUTPUT_JSON_OR_TEXT,
+    example: 'dbt-tools diagnose run --dbt-target ./target',
   };
 }
 
@@ -617,12 +596,11 @@ function getDiagnoseNodeSchema(): CommandSchema {
         type: TYPE_STRING,
         description: DESC_FIELDS,
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getStdoutFormatSchemaOptions(),
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools diagnose node --dbt-target ./target model.my_pkg.orders --json',
+    output_format: OUTPUT_JSON_OR_TEXT,
+    example: 'dbt-tools diagnose node --dbt-target ./target model.my_pkg.orders',
   };
 }
 
@@ -660,12 +638,10 @@ function getExportIntentSchema(): CommandSchema {
         type: TYPE_STRING,
         description: DESC_FIELDS,
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools export --dbt-target ./target --format json --focus model.p.m --json',
+    output_format: 'json envelope (graph export format via --format json|dot|gexf)',
+    example: 'dbt-tools export --dbt-target ./target --format json --focus model.p.m',
   };
 }
 
@@ -716,11 +692,10 @@ function getSearchSchema(): CommandSchema {
         type: TYPE_NUMBER,
         description: 'Skip N matches after sort (requires --limit)',
       },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getStdoutFormatSchemaOptions(),
       ...getArtifactRootCliSchemaOptions(),
     ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
+    output_format: OUTPUT_JSON_OR_TEXT,
     example: 'dbt-tools search --dbt-target ./target orders',
   };
 }
@@ -730,12 +705,8 @@ function getStatusSchema(): CommandSchema {
     command: 'status',
     description: 'Report dbt artifact presence, modification times, and analysis readiness',
     arguments: [],
-    options: [
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
-      ...getArtifactRootCliSchemaOptions(),
-    ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
+    options: [...getStdoutFormatSchemaOptions(), ...getArtifactRootCliSchemaOptions()],
+    output_format: OUTPUT_JSON_OR_TEXT,
     example: 'dbt-tools status --dbt-target ./target',
   };
 }

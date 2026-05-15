@@ -1,21 +1,13 @@
 import * as path from 'node:path';
-import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
+import type { DbtToolsRemoteSourceConfig, GcsAuthOverrides } from '../config/dbt-tools-env';
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
+import { normalizeSlashAffixes } from './normalize-prefix';
 
 export type ArtifactSourceKind = 'local' | 's3' | 'gcs';
 
 /** Trim leading/trailing slashes for object-store key prefix handling. */
 export function normalizeArtifactPrefix(prefix: string): string {
-  const slash = 47; // U+002F
-  let start = 0;
-  let end = prefix.length;
-  while (start < end && prefix.charCodeAt(start) === slash) {
-    start += 1;
-  }
-  while (end > start && prefix.charCodeAt(end - 1) === slash) {
-    end -= 1;
-  }
-  return prefix.slice(start, end);
+  return normalizeSlashAffixes(prefix);
 }
 
 export interface ParsedLocalArtifactLocation {
@@ -139,6 +131,7 @@ const DEFAULT_REMOTE_POLL_MS = 30_000;
 export function mergeRemoteSourceConfigWithParsedLocation(
   envConfig: DbtToolsRemoteSourceConfig | undefined,
   parsed: ParsedRemoteArtifactLocation,
+  gcsAuthOverrides?: GcsAuthOverrides,
 ): DbtToolsRemoteSourceConfig {
   const pollIntervalMs =
     envConfig?.pollIntervalMs != null && envConfig.pollIntervalMs >= 0
@@ -164,6 +157,8 @@ export function mergeRemoteSourceConfigWithParsedLocation(
     bucket: parsed.bucket,
     prefix: parsed.prefix,
     pollIntervalMs,
-    projectId: envGcs?.projectId,
+    projectId: gcsAuthOverrides?.projectId ?? envGcs?.projectId,
+    impersonateServiceAccount:
+      gcsAuthOverrides?.impersonateServiceAccount ?? envGcs?.impersonateServiceAccount,
   };
 }

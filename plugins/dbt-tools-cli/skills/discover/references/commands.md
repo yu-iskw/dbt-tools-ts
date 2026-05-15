@@ -4,25 +4,25 @@
 
 ```bash
 # Ranked discovery by name
-dbt-tools discover --dbt-target ./target "orders" --json
+dbt-tools discover --dbt-target ./target "orders"
 
 # Discovery with type filter
-dbt-tools discover --dbt-target ./target "type:model finance" --json
+dbt-tools discover --dbt-target ./target "type:model finance"
 
 # Discovery: filter-only (empty query, flags required)
-dbt-tools discover --dbt-target ./target --type model --json
+dbt-tools discover --dbt-target ./target --type model
 
 # Discovery with paging (discover supports --limit only; --offset is not available)
-dbt-tools discover --dbt-target ./target "orders" --json --limit 10
+dbt-tools discover --dbt-target ./target "orders" --limit 10
 
 # Simple search
-dbt-tools search --dbt-target ./target "orders" --json
+dbt-tools search --dbt-target ./target "orders"
 
 # Search with flag-based filters
-dbt-tools search --dbt-target ./target --type model --tag finance --json
+dbt-tools search --dbt-target ./target --type model --tag finance
 
 # Search with paging
-dbt-tools search --dbt-target ./target "orders" --limit 10 --offset 0 --json
+dbt-tools search --dbt-target ./target "orders" --limit 10 --offset 0
 
 # Check runtime schema when unsure of options
 dbt-tools schema discover
@@ -92,10 +92,10 @@ Flag-based filters take precedence over inline tokens.
 
 ## Failure responses
 
-| Symptom                                 | Likely cause                   | Response                                                                   |
-| --------------------------------------- | ------------------------------ | -------------------------------------------------------------------------- |
-| `ARTIFACT_BUNDLE_INCOMPLETE` on stderr  | `manifest.json` missing        | Run `dbt-tools status --json` to confirm; tell user to generate artifacts. |
-| `VALIDATION_ERROR` on stderr            | Invalid characters in query    | Remove `?`, `#`, `%`, path traversal segments from the query.              |
-| `total: 0`, no error                    | No resources match the query   | Broaden query; try `inventory` to browse all resources.                    |
-| Multiple high-confidence matches        | Ambiguous resource name        | Surface candidates to user; check `disambiguation` array in `discover`.    |
-| `command not found: dbt-tools discover` | CLI version may not include it | Fall back to `dbt-tools search`; verify with `dbt-tools schema`.           |
+| Symptom                                 | Likely cause                   | Response                                                                |
+| --------------------------------------- | ------------------------------ | ----------------------------------------------------------------------- |
+| `ARTIFACT_BUNDLE_INCOMPLETE` on stderr  | `manifest.json` missing        | Run `dbt-tools status` to confirm; tell user to generate artifacts.     |
+| `VALIDATION_ERROR` on stderr            | Invalid characters in query    | Remove `?`, `#`, `%`, path traversal segments from the query.           |
+| `total: 0`, no error                    | No resources match the query   | Broaden query; try `inventory` to browse all resources.                 |
+| Multiple high-confidence matches        | Ambiguous resource name        | Surface candidates to user; check `disambiguation` array in `discover`. |
+| `command not found: dbt-tools discover` | CLI version may not include it | Fall back to `dbt-tools search`; verify with `dbt-tools schema`.        |

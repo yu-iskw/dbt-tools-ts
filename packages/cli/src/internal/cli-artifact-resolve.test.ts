@@ -2,7 +2,12 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { resolveCliArtifactPaths, resolveEffectiveDbtTarget } from './cli-artifact-resolve';
+import {
+  resolveCliArtifactPaths,
+  resolveEffectiveDbtTarget,
+  extractArtifactRootCliOptions,
+  type ArtifactRootCliOptions,
+} from './cli-artifact-resolve';
 
 describe('cli-artifact-resolve', () => {
   const prevDbtTarget = process.env.DBT_TOOLS_DBT_TARGET;
@@ -28,6 +33,20 @@ describe('cli-artifact-resolve', () => {
   it('resolveEffectiveDbtTarget throws when unset', () => {
     delete process.env.DBT_TOOLS_DBT_TARGET;
     expect(() => resolveEffectiveDbtTarget(undefined)).toThrow(/dbt artifact target is required/i);
+  });
+
+  it('extractArtifactRootCliOptions picks only artifact root keys', () => {
+    const opts: ArtifactRootCliOptions & { json?: boolean } = {
+      dbtTarget: './t',
+      gcsProjectId: 'p1',
+      gcsImpersonateServiceAccount: 'svc@p1.iam.gserviceaccount.com',
+      json: true,
+    };
+    expect(extractArtifactRootCliOptions(opts)).toEqual({
+      dbtTarget: './t',
+      gcsProjectId: 'p1',
+      gcsImpersonateServiceAccount: 'svc@p1.iam.gserviceaccount.com',
+    });
   });
 
   it('resolveCliArtifactPaths loads fixed files from --dbt-target', async () => {

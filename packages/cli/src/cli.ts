@@ -7,7 +7,8 @@ import {
   validateSafePath,
   validateDepth,
   validateResourceId,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   formatOutput,
   formatSummary,
   FieldFilter,
@@ -34,23 +35,33 @@ import {
   statusAction,
   failuresAction,
 } from './cli-actions';
-import { resolveCliArtifactPaths } from './internal/cli-artifact-resolve';
+import {
+  resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
+  type ArtifactRootCliOptions,
+} from './internal/cli-artifact-resolve';
 import { CLI_PACKAGE_VERSION } from './internal/version';
 
 const program = new Command();
 
-type ArtifactRootFlags = {
-  dbtTarget?: string;
-};
+type ArtifactRootFlags = ArtifactRootCliOptions;
 
 /** CLI option/argument description constants (avoid no-duplicate-string) */
 const OPT_DBT_TARGET = '--dbt-target <string>';
 const DESC_DBT_TARGET =
   'Directory with manifest.json + run_results.json, or s3://bucket/prefix / gs://bucket/prefix. Default: DBT_TOOLS_DBT_TARGET env when set.';
-const OPT_JSON = '--json';
-const DESC_JSON = 'Force JSON output (stdout and structured errors on stderr)';
-const OPT_NO_JSON = '--no-json';
-const DESC_NO_JSON = 'Force human-readable output';
+const OPT_GCS_PROJECT_ID = '--gcs-project-id <string>';
+const DESC_GCS_PROJECT_ID =
+  'Google Cloud project ID for the GCS client (gs:// targets only). Overrides projectId from DBT_TOOLS_REMOTE_SOURCE when set.';
+const OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT = '--gcs-impersonate-service-account <string>';
+const DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT =
+  'Service account email to impersonate for GCS access (gs:// targets only). Requires source credentials with roles/iam.serviceAccountTokenCreator on the target.';
+const OPT_STDOUT_FORMAT = '--format <format>';
+const DESC_STDOUT_FORMAT =
+  'Output format: json (default) or text. JSON uses structured errors on stderr.';
+const DESC_TIMELINE_FORMAT = 'Output format: json (default), table, or csv';
+const OPT_DEPS_LAYOUT = '--layout <layout>';
+const DESC_DEPS_LAYOUT = 'Dependency listing: tree or flat';
 const OPT_TRACE = '--trace';
 const DESC_TRACE = 'Include investigation_transcript in JSON output (discover / intent commands)';
 const OPT_FILTER_TYPE = '--type <type>';
@@ -83,7 +94,7 @@ program
 
 /**
  * Handle errors: structured JSON on stderr only when `preferStructuredErrors`
- * (typically `shouldOutputJSON(--json, --no-json)`).
+ * (typically `preferStructuredErrors(--format)`).
  */
 function handleCliError(error: unknown, preferStructuredErrors: boolean): void {
   const formatted = ErrorHandler.formatError(
@@ -142,23 +153,21 @@ program
   .command('summary')
   .description('Provide summary statistics for dbt manifest')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       options: {
         fields?: string;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       try {
-        const paths = await resolveCliArtifactPaths(
-          {
-            dbtTarget: options.dbtTarget,
-          },
-          { manifest: true, runResults: false },
-        );
+        const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+          manifest: true,
+          runResults: false,
+        });
 
         // Validate path
         validateSafePath(paths.manifest);
@@ -173,16 +182,14 @@ program
           summary = FieldFilter.filterFields(summary, options.fields) as typeof summary;
         }
 
-        // Format output
-        const useJson = shouldOutputJSON(options.json, options.noJson);
-
-        if (useJson) {
-          console.log(formatOutput(summary, true));
+        const format = resolveStdoutFormat(options.format);
+        if (format === 'json') {
+          console.log(formatOutput(summary, options.format));
         } else {
           console.log(formatSummary(summary));
         }
       } catch (error) {
-        handleCliError(error, shouldOutputJSON(options.json, options.noJson));
+        handleCliError(error, preferStructuredErrors(options.format));
       }
     },
   );
@@ -198,6 +205,8 @@ program
   .option(OPT_FORMAT, DESC_GRAPH_FORMAT, DEFAULT_GRAPH_FORMAT)
   .option('--output <path>', 'Output file path (default: stdout)')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option('--field-level', 'Include field-level (column-level) lineage')
   .option('--focus <resource-id>', 'Focus on a single node; exports its subgraph only')
@@ -230,12 +239,10 @@ program
     ) => {
       try {
         // Resolve artifact paths
-        const paths = await resolveCliArtifactPaths(
-          {
-            dbtTarget: options.dbtTarget,
-          },
-          { manifest: true, runResults: false },
-        );
+        const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+          manifest: true,
+          runResults: false,
+        });
 
         // Validate path
         validateSafePath(paths.manifest);
@@ -289,7 +296,7 @@ program
         });
         writeGraphOutput(output, options.output);
       } catch (error) {
-        handleCliError(error, shouldOutputJSON(undefined, undefined));
+        handleCliError(error, true);
       }
     },
   );
@@ -301,6 +308,8 @@ program
   .command('run-report')
   .description('Generate execution report from run_results.json')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option('--bottlenecks', 'Include bottleneck section in report')
   .option('--bottlenecks-top <n>', 'Top N slowest nodes (default: 10 when --bottlenecks)', parseInt)
@@ -343,8 +352,7 @@ program
     'Skip N node_executions rows before applying --node-executions-limit (requires --node-executions-limit)',
     parseInt,
   )
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       options: {
@@ -360,8 +368,7 @@ program
         adapterMinRowsAffected?: number;
         nodeExecutionsLimit?: number;
         nodeExecutionsOffset?: number;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       const allowed = new Set([
@@ -388,7 +395,7 @@ program
         if (!allowed.has(options.adapterTopBy)) {
           handleCliError(
             new Error(`--adapter-top-by must be one of: ${[...allowed].join(', ')}`),
-            shouldOutputJSON(options.json, options.noJson),
+            preferStructuredErrors(options.format),
           );
           return;
         }
@@ -416,8 +423,7 @@ program
           adapterMinRowsAffected: options.adapterMinRowsAffected,
           nodeExecutionsLimit: options.nodeExecutionsLimit,
           nodeExecutionsOffset: options.nodeExecutionsOffset,
-          json: options.json,
-          noJson: options.noJson,
+          format: options.format,
           dbtTarget: options.dbtTarget,
         },
         handleCliError,
@@ -434,6 +440,8 @@ program
   .argument('<resource-id>', 'Unique ID of the dbt resource (e.g., model.my_project.customers)')
   .option('--direction <direction>', 'Direction: upstream or downstream', 'downstream')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option('--field <name>', 'Specific field (column) to trace dependencies for')
   .option(
@@ -441,13 +449,12 @@ program
     'Max traversal depth; 1 = immediate neighbors, omit for all levels',
     parseInt,
   )
-  .option(OPT_FORMAT, 'Output structure: flat list or nested tree', 'tree')
+  .option(OPT_DEPS_LAYOUT, DESC_DEPS_LAYOUT, 'tree')
   .option(
     '--build-order',
     'Output upstream dependencies in topological build order (only with --direction upstream)',
   )
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       resourceId: string,
@@ -456,10 +463,9 @@ program
         fields?: string;
         field?: string;
         depth?: number;
+        layout?: string;
         format?: string;
         buildOrder?: boolean;
-        json?: boolean;
-        noJson?: boolean;
       } & ArtifactRootFlags,
     ) => {
       await depsAction(resourceId, options, handleCliError);
@@ -480,8 +486,9 @@ program
   .option(OPT_LIMIT_N, DESC_INVENTORY_LIMIT, parseInt)
   .option(OPT_OFFSET_N, DESC_OFFSET_REQUIRES_LIMIT, parseInt)
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       options: {
@@ -492,8 +499,7 @@ program
         fields?: string;
         limit?: number;
         offset?: number;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       await inventoryAction(options, handleCliError);
@@ -509,6 +515,8 @@ program
     'List non-successful nodes from run_results.json with optional manifest enrichment and suggested follow-up commands',
   )
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
   .option(
     '--status <status>',
     'Override default filter: comma-separated statuses (default: all except success and pass)',
@@ -530,8 +538,7 @@ program
     parseInt,
   )
   .option(OPT_FIELDS, DESC_FIELDS)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       options: {
@@ -543,8 +550,7 @@ program
         includeCompiled?: boolean;
         compiledMaxChars?: number;
         fields?: string;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       await failuresAction(options, handleCliError);
@@ -560,6 +566,8 @@ program
     'Show per-node execution timeline from run_results.json (row-level, unlike run-report)',
   )
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
   .option(
     '--sort <key>',
     'Sort key: duration | start | query_id | adapter_code | adapter_message | bytes_processed | bytes_billed | slot_ms | rows_affected | rows_inserted | rows_updated | rows_deleted | rows_duplicated',
@@ -572,9 +580,7 @@ program
     '--adapter-text <text>',
     'Filter by normalized adapter text (query ID, code, message, location, project)',
   )
-  .option(OPT_FORMAT, 'Output format: json (default non-TTY), table (default TTY), csv')
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_STDOUT_FORMAT, DESC_TIMELINE_FORMAT, 'json')
   .action(
     async (
       options: {
@@ -584,8 +590,6 @@ program
         status?: string;
         adapterText?: string;
         format?: string;
-        json?: boolean;
-        noJson?: boolean;
       } & ArtifactRootFlags,
     ) => {
       await timelineAction(options, handleCliError);
@@ -607,8 +611,9 @@ program
   .option(OPT_LIMIT_N, DESC_SEARCH_LIMIT, parseInt)
   .option(OPT_OFFSET_N, DESC_OFFSET_REQUIRES_LIMIT, parseInt)
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       query: string | undefined,
@@ -620,8 +625,7 @@ program
         fields?: string;
         limit?: number;
         offset?: number;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       await searchAction(query, options, handleCliError);
@@ -647,8 +651,9 @@ program
   .option(OPT_LIMIT_N, 'Max matches (default 50, max 200)', parseInt)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .option(OPT_TRACE, DESC_TRACE)
   .action(
     async (
@@ -660,8 +665,7 @@ program
         path?: string;
         limit?: number;
         fields?: string;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
         trace?: boolean;
       } & ArtifactRootFlags,
     ) => {
@@ -678,16 +682,16 @@ program
   .argument(ARG_RESOURCE, DESC_ARG_RESOURCE_OR_DISCOVER)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .option(OPT_TRACE, DESC_TRACE)
   .action(
     async (
       resource: string,
       options: {
         fields?: string;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
         trace?: boolean;
       } & ArtifactRootFlags,
     ) => {
@@ -704,16 +708,16 @@ program
   .argument(ARG_RESOURCE, DESC_ARG_RESOURCE_OR_DISCOVER)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .option(OPT_TRACE, DESC_TRACE)
   .action(
     async (
       resource: string,
       options: {
         fields?: string;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
         trace?: boolean;
       } & ArtifactRootFlags,
     ) => {
@@ -730,14 +734,14 @@ diagnoseCmd
   .description('Diagnose the current run (execution-focused primitives)')
   .option(OPT_FIELDS, DESC_FIELDS)
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       options: {
         fields?: string;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       await diagnoseRunAction(options, handleCliError);
@@ -750,15 +754,15 @@ diagnoseCmd
   .argument(ARG_RESOURCE, DESC_ARG_RESOURCE_OR_DISCOVER)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       resource: string,
       options: {
         fields?: string;
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       await diagnoseNodeAction(resource, options, handleCliError);
@@ -774,12 +778,12 @@ program
   .option(OPT_FORMAT, DESC_GRAPH_FORMAT, DEFAULT_GRAPH_FORMAT)
   .option('--output <path>', 'Output file path (when omitted, stdout)')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option('--focus <resource-id>', 'Export subgraph centered on this node')
   .option('--focus-depth <number>', 'Max depth for --focus', parseInt)
   .option('--focus-direction <direction>', 'upstream | downstream | both (default: both)', 'both')
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
       options: {
@@ -789,8 +793,6 @@ program
         focus?: string;
         focusDepth?: number;
         focusDirection?: string;
-        json?: boolean;
-        noJson?: boolean;
       } & ArtifactRootFlags,
     ) => {
       await exportAction(options, handleCliError);
@@ -804,13 +806,13 @@ program
   .command('status')
   .description('Report dbt artifact presence, modification times, and analysis readiness')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       options: {
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       await statusAction(options, handleCliError);
@@ -824,13 +826,13 @@ program
   .command('freshness')
   .description('Alias for status – shows artifact recency and readiness')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_GCS_PROJECT_ID, DESC_GCS_PROJECT_ID)
+  .option(OPT_GCS_IMPERSONATE_SERVICE_ACCOUNT, DESC_GCS_IMPERSONATE_SERVICE_ACCOUNT)
+  .option(OPT_STDOUT_FORMAT, DESC_STDOUT_FORMAT, 'json')
   .action(
     async (
       options: {
-        json?: boolean;
-        noJson?: boolean;
+        format?: string;
       } & ArtifactRootFlags,
     ) => {
       await statusAction(options, handleCliError);
@@ -844,8 +846,7 @@ program
   .command('schema')
   .description('Get machine-readable schema for a command')
   .argument('[command]', 'Command name (if omitted, returns all command schemas)')
-  .option('--json', 'Force JSON output (always JSON by default)')
-  .action((command: string | undefined, _options: { json?: boolean }) => {
+  .action((command: string | undefined) => {
     try {
       let result: unknown;
 
@@ -859,10 +860,9 @@ program
         result = getAllSchemas();
       }
 
-      // Schema command always outputs JSON
-      console.log(formatOutput(result, true));
+      console.log(formatOutput(result, 'json'));
     } catch (error) {
-      handleCliError(error, false);
+      handleCliError(error, true);
     }
   });
 

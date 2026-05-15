@@ -52,8 +52,8 @@ Identify the following before running:
 ## Workflow
 
 1. **Check availability** with `dbt-tools schema explain` and `dbt-tools schema impact`.
-2. **Explain the resource** — run `dbt-tools explain <unique_id> --dbt-target ./target --json`.
-3. **Assess impact** — run `dbt-tools impact <unique_id> --dbt-target ./target --json`.
+2. **Explain the resource** — run `dbt-tools explain <unique_id> --dbt-target ./target`.
+3. **Assess impact** — run `dbt-tools impact <unique_id> --dbt-target ./target`.
 4. **Synthesize** — combine the explanation and impact surface into a clear summary for the user.
 
 If either command is unavailable, skip to the **Fallback pattern** section.
@@ -62,13 +62,13 @@ If either command is unavailable, skip to the **Fallback pattern** section.
 
 ```bash
 # Explain a resource
-dbt-tools explain model.my_project.orders --dbt-target ./target --json
+dbt-tools explain model.my_project.orders --dbt-target ./target
 
 # Assess downstream impact
-dbt-tools impact model.my_project.orders --dbt-target ./target --json
+dbt-tools impact model.my_project.orders --dbt-target ./target
 
 # Add --trace for investigation transcript (useful for debugging)
-dbt-tools explain model.my_project.orders --dbt-target ./target --json --trace
+dbt-tools explain model.my_project.orders --dbt-target ./target --trace
 ```
 
 ## Interpreting results
@@ -93,13 +93,13 @@ When `explain` or `impact` are not available, compose equivalent workflows from 
 
 ```bash
 # Fallback for explain: use discover to get description and context
-dbt-tools discover --dbt-target ./target "<name or unique_id>" --json
+dbt-tools discover --dbt-target ./target "<name or unique_id>"
 
 # Fallback for impact: use deps to enumerate the downstream surface
-dbt-tools deps <unique_id> --dbt-target ./target --direction downstream --json
+dbt-tools deps <unique_id> --dbt-target ./target --direction downstream
 
 # For a bounded view of immediate downstream impact only
-dbt-tools deps <unique_id> --dbt-target ./target --direction downstream --depth 2 --json
+dbt-tools deps <unique_id> --dbt-target ./target --direction downstream --depth 2
 ```
 
 The `discover` command returns `reasons`, `related`, `next_actions`, and `primitive_commands`
@@ -110,7 +110,7 @@ surface.
 
 - **Command not in `dbt-tools schema`**: use the fallback pattern above.
 - **`VALIDATION_ERROR`**: invalid `unique_id`; re-run `discover` to get a clean ID.
-- **`ARTIFACT_BUNDLE_INCOMPLETE`**: `manifest.json` missing; run `dbt-tools status --json`.
+- **`ARTIFACT_BUNDLE_INCOMPLETE`**: `manifest.json` missing; run `dbt-tools status`.
 - **Uncertain options**: run `dbt-tools explain --help` or `dbt-tools schema explain` to
   inspect available flags rather than guessing.
 

@@ -4,10 +4,13 @@ import type {
   DbtToolsUseCases,
   ResolvedArtifactRun,
   SearchResourcesInput,
+  SwitchDbtTargetInput,
 } from '@dbt-tools/core/artifact-workspace';
 import { createDbtToolsMcpToolHandlers, type ArtifactWorkspaceControl } from './toolHandlers.js';
 
 class FakeWorkspaceControl implements ArtifactWorkspaceControl {
+  lastSwitch: SwitchDbtTargetInput | null = null;
+
   status: ArtifactWorkspaceStatus = {
     target: './target',
     selectedRunId: 'current',
@@ -40,6 +43,12 @@ class FakeWorkspaceControl implements ArtifactWorkspaceControl {
 
   async selectRun(runId: string): Promise<ArtifactWorkspaceStatus> {
     this.status = { ...this.status, selectedRunId: runId };
+    return this.status;
+  }
+
+  async switchDbtTarget(input: SwitchDbtTargetInput): Promise<ArtifactWorkspaceStatus> {
+    this.lastSwitch = input;
+    this.status = { ...this.status, target: input.dbtTarget };
     return this.status;
   }
 }
@@ -167,5 +176,40 @@ describe('createDbtToolsMcpToolHandlers', () => {
     const payload = parseToolJson(await handlers.dbt_tools_select_run({ runId: 'new-run' }));
 
     expect(payload).toMatchObject({ selectedRunId: 'new-run' });
+  });
+
+  it('switches target through the workspace control surface', async () => {
+    const workspace = new FakeWorkspaceControl();
+    const handlers = createDbtToolsMcpToolHandlers(workspace, new FakeUseCases());
+
+    const payload = parseToolJson(
+      await handlers.dbt_tools_set_target({ dbtTarget: '/other/target' }),
+    );
+
+    expect(payload).toMatchObject({ target: '/other/target' });
+    expect(workspace.lastSwitch).toEqual({ dbtTarget: '/other/target' });
+  });
+
+  it('forwards optional GCS fields when set_target includes them', async () => {
+    const workspace = new FakeWorkspaceControl();
+    const handlers = createDbtToolsMcpToolHandlers(workspace, new FakeUseCases());
+
+    await handlers.dbt_tools_set_target({
+      dbtTarget: 'gs://b/p',
+      gcsProjectId: 'my-project',
+      gcsImpersonateServiceAccount: 'svc@proj.iam.gserviceaccount.com',
+    });
+
+    expect(workspace.lastSwitch).toEqual({
+      dbtTarget: 'gs://b/p',
+      gcsProjectId: 'my-project',
+      gcsImpersonateServiceAccount: 'svc@proj.iam.gserviceaccount.com',
+    });
+  });
+
+  it('rejects set_target without dbtTarget', async () => {
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), new FakeUseCases());
+
+    await expect(handlers.dbt_tools_set_target({})).rejects.toThrow('dbtTarget is required.');
   });
 });

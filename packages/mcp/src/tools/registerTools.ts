@@ -66,6 +66,22 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
   );
 
   server.registerTool(
+    'dbt_tools_set_target',
+    {
+      title: 'dbt-tools set target',
+      description:
+        'Point the server at a new dbt artifact target (local path, s3://, or gs://), optionally overriding GCS auth for gs://, then load the default run. Returns the same fields as dbt_tools_status.',
+      inputSchema: z.object({
+        dbtTarget: z.string().min(1),
+        gcsProjectId: z.string().optional(),
+        gcsImpersonateServiceAccount: z.string().optional(),
+      }),
+      annotations: { readOnlyHint: false, idempotentHint: true },
+    },
+    handlers.dbt_tools_set_target,
+  );
+
+  server.registerTool(
     'dbt_tools_search_resources',
     {
       title: 'dbt-tools search resources',

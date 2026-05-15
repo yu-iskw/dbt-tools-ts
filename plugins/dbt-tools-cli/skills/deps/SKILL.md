@@ -36,27 +36,29 @@ Identify the following before running:
 
 ```bash
 # Downstream dependencies (default) — what uses this resource
-dbt-tools deps model.my_project.orders --dbt-target ./target --json
+dbt-tools deps model.my_project.orders --dbt-target ./target
 
 # Upstream dependencies — what this resource depends on
-dbt-tools deps model.my_project.orders --dbt-target ./target --direction upstream --json
+dbt-tools deps model.my_project.orders --dbt-target ./target --direction upstream
 ```
 
 ## Output styles
 
 | Style       | Flag                                 | When to use                                                  |
 | ----------- | ------------------------------------ | ------------------------------------------------------------ |
-| Tree        | (default)                            | Show hierarchical lineage; easy to read                      |
-| Flat list   | `--format flat`                      | Simple list of all deps; easy to count or pipe               |
+| JSON        | `--format json` (default)            | Machine-readable stdout for agents and CI                    |
+| Text        | `--format text`                      | Human-readable tables in the terminal                        |
+| Tree        | (default layout)                     | Show hierarchical lineage; easy to read                      |
+| Flat list   | `--layout flat`                      | Simple list of all deps; easy to count or pipe               |
 | Build order | `--direction upstream --build-order` | Topological order for upstream deps; shows what to run first |
 
 ```bash
 # Flat list of all downstream deps
-dbt-tools deps model.my_project.orders --dbt-target ./target --format flat --json
+dbt-tools deps model.my_project.orders --dbt-target ./target --layout flat
 
 # Upstream deps in topological build order
 dbt-tools deps model.my_project.orders --dbt-target ./target \
-  --direction upstream --build-order --json
+  --direction upstream --build-order
 ```
 
 ## Depth control
@@ -65,10 +67,10 @@ Use `--depth` to limit traversal hops:
 
 ```bash
 # Immediate neighbors only (depth 1)
-dbt-tools deps model.my_project.orders --dbt-target ./target --depth 1 --json
+dbt-tools deps model.my_project.orders --dbt-target ./target --depth 1
 
 # Up to 3 hops
-dbt-tools deps model.my_project.orders --dbt-target ./target --depth 3 --json
+dbt-tools deps model.my_project.orders --dbt-target ./target --depth 3
 ```
 
 Omit `--depth` to return the full transitive graph.
@@ -80,11 +82,11 @@ For resources with wide dependency graphs, reduce output with field filtering or
 ```bash
 # Only return unique_id and name per node
 dbt-tools deps model.my_project.orders --dbt-target ./target \
-  --fields "unique_id,name" --json
+  --fields "unique_id,name"
 
 # Combine depth and field filtering
 dbt-tools deps model.my_project.orders --dbt-target ./target \
-  --depth 2 --fields "unique_id,name" --json
+  --depth 2 --fields "unique_id,name"
 ```
 
 ## Failure handling
@@ -93,7 +95,7 @@ dbt-tools deps model.my_project.orders --dbt-target ./target \
   not a valid format. Re-resolve with `discover` or `search`.
 - **`unique_id` not found in manifest** (`VALIDATION_ERROR` or similar): the resource does not
   exist in the manifest at `--dbt-target`. Check the target or re-discover.
-- **Missing manifest** (`ARTIFACT_BUNDLE_INCOMPLETE`): run `dbt-tools status --json` to confirm
+- **Missing manifest** (`ARTIFACT_BUNDLE_INCOMPLETE`): run `dbt-tools status` to confirm
   readiness.
 - **Very large output**: apply `--depth` and `--fields` to bound the response.
 

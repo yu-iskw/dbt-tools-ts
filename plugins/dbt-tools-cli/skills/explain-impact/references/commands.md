@@ -21,14 +21,14 @@ version. Use the fallback recipes at the bottom of this file.
 
 ```bash
 # Explain a resource
-dbt-tools explain model.my_project.orders --dbt-target ./target --json
+dbt-tools explain model.my_project.orders --dbt-target ./target
 
 # Assess downstream impact
-dbt-tools impact model.my_project.orders --dbt-target ./target --json
+dbt-tools impact model.my_project.orders --dbt-target ./target
 
 # With investigation transcript (debug / agent trace)
-dbt-tools explain model.my_project.orders --dbt-target ./target --json --trace
-dbt-tools impact model.my_project.orders --dbt-target ./target --json --trace
+dbt-tools explain model.my_project.orders --dbt-target ./target --trace
+dbt-tools impact model.my_project.orders --dbt-target ./target --trace
 ```
 
 ## Typical JSON output (explain)
@@ -66,7 +66,7 @@ Fields vary by CLI version; verify with `dbt-tools schema impact`:
   "why_it_matters": ["high downstream fanout"],
   "next_actions": ["explain", "diagnose"],
   "primitive_commands": [
-    "dbt-tools deps \"model.my_project.orders\" --direction downstream --format flat"
+    "dbt-tools deps \"model.my_project.orders\" --direction downstream --layout flat"
   ]
 }
 ```
@@ -78,15 +78,15 @@ Parse impact results from `impact.upstream_count`, `impact.downstream_count`, an
 
 ```bash
 # Fallback for explain: ranked discovery with context
-dbt-tools discover --dbt-target ./target "model.my_project.orders" --json
+dbt-tools discover --dbt-target ./target "model.my_project.orders"
 
 # Fallback for impact: full downstream dependency graph
 dbt-tools deps model.my_project.orders --dbt-target ./target \
-  --direction downstream --json
+  --direction downstream
 
 # Bounded fallback for impact (2 hops, names only)
 dbt-tools deps model.my_project.orders --dbt-target ./target \
-  --direction downstream --depth 2 --fields "unique_id,name" --json
+  --direction downstream --depth 2 --fields "unique_id,name"
 ```
 
 ## Decision guidance
@@ -104,5 +104,5 @@ dbt-tools deps model.my_project.orders --dbt-target ./target \
 | --------------------------------------- | ------------------------------------- | --------------------------------------------------------------- |
 | Command absent from `dbt-tools schema`  | Not available in this CLI version     | Use fallback recipes above.                                     |
 | `VALIDATION_ERROR`: invalid resource ID | Bad format or characters in unique_id | Re-run `discover` to get a clean ID.                            |
-| `ARTIFACT_BUNDLE_INCOMPLETE` on stderr  | `manifest.json` missing               | Run `dbt-tools status --json`; tell user to generate artifacts. |
+| `ARTIFACT_BUNDLE_INCOMPLETE` on stderr  | `manifest.json` missing               | Run `dbt-tools status`; tell user to generate artifacts.        |
 | Unknown option flag                     | CLI version changed                   | Check `dbt-tools schema explain` or `--help` for current flags. |

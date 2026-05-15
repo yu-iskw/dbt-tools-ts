@@ -8,7 +8,8 @@ import {
   validateNoControlChars,
   FieldFilter,
   formatOutput,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   discoverResources,
   buildDiscoverWebUrl,
   getDbtToolsWebBaseUrlFromEnv,
@@ -16,6 +17,7 @@ import {
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
@@ -25,8 +27,7 @@ export type DiscoverCliOptions = {
   tag?: string;
   path?: string;
   fields?: string;
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
   limit?: number;
   trace?: boolean;
 } & ArtifactRootCliOptions;
@@ -111,12 +112,10 @@ export async function discoverAction(
       validateNoControlChars(q);
     }
 
-    const paths = await resolveCliArtifactPaths(
-      {
-        dbtTarget: options.dbtTarget,
-      },
-      { manifest: true, runResults: false },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: false,
+    });
     validateSafePath(paths.manifest);
 
     const manifest = loadManifest(paths.manifest);
@@ -133,7 +132,7 @@ export async function discoverAction(
       path: options.path,
     });
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
+    const stdoutFormat = resolveStdoutFormat(options.format);
     const enriched = enrichDiscoverJson(output, {
       type: options.type,
       package: options.package,
@@ -142,7 +141,7 @@ export async function discoverAction(
       trace: options.trace,
     });
 
-    if (useJson) {
+    if (stdoutFormat === 'json') {
       let out: unknown = enriched;
       if (options.fields) {
         out = FieldFilter.filterFields(
@@ -150,7 +149,7 @@ export async function discoverAction(
           options.fields,
         );
       }
-      console.log(formatOutput(out, true));
+      console.log(formatOutput(out, options.format));
     } else {
       let text = formatDiscoverHuman(output);
       if (enriched.web_url) {
@@ -159,6 +158,6 @@ export async function discoverAction(
       console.log(text);
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

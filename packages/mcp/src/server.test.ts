@@ -3,6 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ArtifactWorkspace } from '@dbt-tools/core/artifact-workspace';
 import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '@dbt-tools/core';
 import type { DbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
 import { registerDbtToolsTools } from './tools/registerTools.js';
@@ -59,6 +60,7 @@ describe('dbt-tools MCP server wiring', () => {
       dbt_tools_refresh: async () => ({ content: [] }),
       dbt_tools_list_runs: async () => ({ content: [] }),
       dbt_tools_select_run: async () => ({ content: [] }),
+      dbt_tools_set_target: async () => ({ content: [] }),
       dbt_tools_search_resources: async () => ({ content: [] }),
       dbt_tools_get_resource: async () => ({ content: [] }),
       dbt_tools_lineage: async () => ({ content: [] }),
@@ -74,6 +76,7 @@ describe('dbt-tools MCP server wiring', () => {
       'dbt_tools_refresh',
       'dbt_tools_list_runs',
       'dbt_tools_select_run',
+      'dbt_tools_set_target',
       'dbt_tools_search_resources',
       'dbt_tools_get_resource',
       'dbt_tools_lineage',
@@ -81,6 +84,17 @@ describe('dbt-tools MCP server wiring', () => {
       'dbt_tools_failures',
       'dbt_tools_run_report',
     ]);
+  });
+
+  it('does not eagerly initialize artifacts while constructing the MCP server', async () => {
+    await writeArtifacts(tempDir);
+    const spy = vi.spyOn(ArtifactWorkspace.prototype, 'initialize').mockResolvedValue(undefined);
+    try {
+      await createDbtToolsMcpServer(['--dbt-target', tempDir]);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('initializes a server from a real local artifact target', async () => {
@@ -113,6 +127,7 @@ describe('dbt-tools MCP server wiring', () => {
 
     expect(exitCode).toBe(0);
     expect(stdout).toContain('Usage: dbt-tools-mcp');
+    expect(stdout).toContain('--gcs-project-id');
     expect(stderr).toBe('');
   });
 });

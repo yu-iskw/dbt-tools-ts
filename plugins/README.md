@@ -31,6 +31,7 @@ To install or register plugins the way Claude’s docs describe (for example `/p
 | Plugin id     | Path                    | Purpose                                                     |
 | ------------- | ----------------------- | ----------------------------------------------------------- |
 | dbt-tools-cli | `plugins/dbt-tools-cli` | Workflows for [`@dbt-tools/cli`](../packages/cli/README.md) |
+| dbt-tools-mcp | `plugins/dbt-tools-mcp` | Workflows for [`@dbt-tools/mcp`](../packages/mcp/README.md) |
 
 ---
 

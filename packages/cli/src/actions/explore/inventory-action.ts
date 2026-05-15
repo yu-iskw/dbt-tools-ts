@@ -7,11 +7,13 @@ import {
   validateSafePath,
   FieldFilter,
   formatOutput,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   type GraphNodeAttributes,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 import { applyListPaging } from '../../internal/cli-pagination';
@@ -24,8 +26,7 @@ export type InventoryOptions = {
   fields?: string;
   limit?: number;
   offset?: number;
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
 } & ArtifactRootCliOptions;
 
 export type InventoryEntry = {
@@ -128,12 +129,10 @@ export async function inventoryAction(
   handleError: (error: unknown, preferStructuredErrors: boolean) => void,
 ): Promise<void> {
   try {
-    const paths = await resolveCliArtifactPaths(
-      {
-        dbtTarget: options.dbtTarget,
-      },
-      { manifest: true, runResults: false },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: false,
+    });
     validateSafePath(paths.manifest);
 
     const manifest = loadManifest(paths.manifest);
@@ -173,18 +172,17 @@ export async function inventoryAction(
       ...(limit !== undefined ? { limit, offset, has_more: hasMore } : {}),
     };
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-
-    if (useJson) {
+    const stdoutFormat = resolveStdoutFormat(options.format);
+    if (stdoutFormat === 'json') {
       let output: unknown = result;
       if (options.fields) {
         output = FieldFilter.filterFields(result, options.fields);
       }
-      console.log(formatOutput(output, true));
+      console.log(formatOutput(output, options.format));
     } else {
       console.log(formatInventory(result));
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

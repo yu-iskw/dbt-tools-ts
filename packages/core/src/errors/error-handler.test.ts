@@ -38,6 +38,21 @@ describe('ErrorHandler', () => {
       const versionError = new Error('Unsupported dbt version');
       const versionResult = ErrorHandler.formatError(versionError, false);
       expect((versionResult as { code: string }).code).toBe('UNSUPPORTED_VERSION');
+
+      const remoteRead = new Error('Failed to read gs://b/k: denied');
+      remoteRead.name = 'RemoteArtifactReadError';
+      const remoteResult = ErrorHandler.formatError(remoteRead, false);
+      expect((remoteResult as { code: string }).code).toBe('REMOTE_READ_FAILED');
+
+      const remoteByMessage = new Error('Failed to read gs://b/k: denied');
+      const remoteByMsgResult = ErrorHandler.formatError(remoteByMessage, false);
+      expect((remoteByMsgResult as { code: string }).code).toBe('REMOTE_READ_FAILED');
+    });
+
+    it('decodes HTML entities in formatted messages', () => {
+      const error = new Error('org&#39;s policy blocked');
+      const human = ErrorHandler.formatError(error, true) as string;
+      expect(human).toContain("org's policy");
     });
 
     it('should include field details for validation errors', () => {

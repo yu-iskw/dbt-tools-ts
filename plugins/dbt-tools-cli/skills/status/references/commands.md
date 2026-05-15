@@ -4,20 +4,20 @@
 
 ```bash
 # Local target — JSON output
-dbt-tools status --dbt-target ./target --json
+dbt-tools status --dbt-target ./target
 
 # Remote S3 target
-dbt-tools status --dbt-target s3://my-bucket/dbt/prod --json
+dbt-tools status --dbt-target s3://my-bucket/dbt/prod
 
 # Remote GCS target
-dbt-tools status --dbt-target gs://my-bucket/dbt/prod --json
+dbt-tools status --dbt-target gs://my-bucket/dbt/prod
 
 # Using environment variable (omit --dbt-target)
 export DBT_TOOLS_DBT_TARGET=./target
-dbt-tools status --json
+dbt-tools status
 
 # freshness is an alias for status
-dbt-tools freshness --dbt-target ./target --json
+dbt-tools freshness --dbt-target ./target
 ```
 
 ## JSON output shape
@@ -68,4 +68,6 @@ dbt-tools freshness --dbt-target ./target --json
 - For **local** targets, `status` only stats files — it does not parse artifact JSON.
 - For **remote** targets (`s3://`, `gs://`), the CLI downloads the files first, then stats the temp copies.
 - `--fields` is **not** supported on `status`; the output is always the full readiness object.
+- **`--format json`** (default): JSON stdout and structured JSON errors on stderr.
+- **`--format text`**: human-readable stdout (use when presenting readiness to a user in the terminal).
 - `dbt-tools schema status` returns the runtime option schema if you need to verify available flags.

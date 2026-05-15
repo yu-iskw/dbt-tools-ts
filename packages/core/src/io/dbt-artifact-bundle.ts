@@ -1,7 +1,10 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { getDbtToolsRemoteSourceConfigFromEnv } from '../config/dbt-tools-env';
+import {
+  getDbtToolsRemoteSourceConfigFromEnv,
+  type GcsAuthOverrides,
+} from '../config/dbt-tools-env';
 import { ArtifactBundleResolutionError } from '../errors/artifact-bundle-resolution-error';
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
 import {
@@ -11,6 +14,7 @@ import {
   DBT_SOURCES_JSON,
 } from './artifact-filenames';
 import type { ArtifactPaths } from './artifact-loader';
+import { decodeBasicHtmlEntities } from '../strings/basic-html-entities';
 import {
   joinObjectStorageKey,
   mergeRemoteSourceConfigWithParsedLocation,
@@ -18,6 +22,54 @@ import {
   type ParsedArtifactLocation,
 } from './artifact-location';
 import { createRemoteObjectStoreClient } from './remote-object-store';
+
+/**
+ * True when the cloud SDK indicates the object key does not exist (vs permission,
+ * network, or byte-cap errors). Used so we do not mislabel read failures as "missing files".
+ *
+ * Shapes covered in unit tests:
+ * - **S3:** `name === 'NoSuchKey'` or `$metadata.httpStatusCode === 404`
+ * - **GCS:** `code === 404` / `'404'`, or first API error `reason === 'notFound'`
+ */
+export function isRemoteObjectNotFoundError(error: unknown, provider: 's3' | 'gcs'): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const e = error as Record<string, unknown>;
+  const meta = e.$metadata as { httpStatusCode?: number } | undefined;
+  if (meta?.httpStatusCode === 404) return true;
+  if (e.name === 'NoSuchKey') return true;
+  const code = e.code;
+  if (code === 404 || code === '404') return true;
+  if (provider === 'gcs') {
+    const errors = e.errors as Array<{ reason?: string }> | undefined;
+    if (Array.isArray(errors) && errors.some((x) => x?.reason === 'notFound')) return true;
+  }
+  return false;
+}
+
+function remoteReadFailureHint(decodedMessage: string): string {
+  if (/vpcServiceControls|VPC\s*Service\s*Controls/i.test(decodedMessage)) {
+    return ' (GCS blocked this request under VPC Service Controls or organization policy — use a permitted network or identity, Cloud Shell in an allowed context, or copy artifacts locally and pass a filesystem path for --dbt-target.)';
+  }
+  return '';
+}
+
+function throwRemoteReadFailed(
+  provider: 's3' | 'gcs',
+  bucket: string,
+  key: string,
+  error: unknown,
+): never {
+  const scheme = provider === 's3' ? 's3' : 'gs';
+  const rawMsg = error instanceof Error ? error.message : String(error);
+  const msg = decodeBasicHtmlEntities(rawMsg);
+  const hint = remoteReadFailureHint(msg);
+  const err = Object.assign(
+    new Error(`Failed to read ${scheme}://${bucket}/${key}: ${msg}${hint}`),
+    { cause: error instanceof Error ? error : undefined },
+  );
+  err.name = 'RemoteArtifactReadError';
+  throw err;
+}
 
 export type DbtArtifactBundleRequirements = {
   manifest?: boolean;
@@ -194,9 +246,15 @@ async function writeRemoteBytesToTemp(args: {
       await fs.writeFile(filePath, bytes);
       found.push(relative);
       return filePath;
-    } catch {
-      if (required) missing.push(relative);
-      return undefined;
+    } catch (error) {
+      if (!required) {
+        return undefined;
+      }
+      if (isRemoteObjectNotFoundError(error, provider)) {
+        missing.push(relative);
+        return undefined;
+      }
+      throwRemoteReadFailed(provider, bucket, key, error);
     }
   };
 
@@ -235,6 +293,7 @@ export async function resolveDbtToolsArtifactBundlePaths(options: {
   dbtTargetRaw: string;
   cwd?: string;
   requirements?: DbtArtifactBundleRequirements;
+  gcsAuthOverrides?: GcsAuthOverrides;
 }): Promise<ArtifactPaths> {
   const cwd = options.cwd ?? process.cwd();
   const displayTarget = options.dbtTargetRaw.trim();
@@ -249,7 +308,7 @@ export async function resolveDbtToolsArtifactBundlePaths(options: {
   }
 
   const env = getDbtToolsRemoteSourceConfigFromEnv();
-  const merged = mergeRemoteSourceConfigWithParsedLocation(env, parsed);
+  const merged = mergeRemoteSourceConfigWithParsedLocation(env, parsed, options.gcsAuthOverrides);
   const client = createRemoteObjectStoreClient(merged);
   const prefixNorm = normalizeArtifactPrefix(merged.prefix);
 

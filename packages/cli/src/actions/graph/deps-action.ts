@@ -13,11 +13,13 @@ import {
   sqlDialectFromDbtAdapterType,
   formatOutput,
   formatDeps,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
 } from '@dbt-tools/core';
 import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 import {
   resolveCliArtifactPaths,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
@@ -26,10 +28,9 @@ type DepsOptions = {
   fields?: string;
   field?: string;
   depth?: number;
+  layout?: string;
   format?: string;
   buildOrder?: boolean;
-  json?: boolean;
-  noJson?: boolean;
 } & ArtifactRootCliOptions;
 
 /** Add field-level lineage to graph and return targetId */
@@ -96,21 +97,19 @@ export async function depsAction(
 
     validateDepth(options.depth);
 
-    const format = (options.format ?? 'tree').toLowerCase();
-    if (format !== 'flat' && format !== 'tree') {
-      throw new Error(`Invalid format: ${options.format}. Must be 'flat' or 'tree'`);
+    const layout = (options.layout ?? 'tree').toLowerCase();
+    if (layout !== 'flat' && layout !== 'tree') {
+      throw new Error(`Invalid layout: ${options.layout}. Must be 'flat' or 'tree'`);
     }
 
     if (options.buildOrder && direction !== 'upstream') {
       throw new Error(`--build-order is only valid with --direction upstream`);
     }
 
-    const paths = await resolveCliArtifactPaths(
-      {
-        dbtTarget: options.dbtTarget,
-      },
-      { manifest: true, runResults: false },
-    );
+    const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options), {
+      manifest: true,
+      runResults: false,
+    });
 
     validateSafePath(paths.manifest);
 
@@ -128,18 +127,17 @@ export async function depsAction(
       direction as 'upstream' | 'downstream',
       options.fields,
       options.depth,
-      format as 'flat' | 'tree',
+      layout as 'flat' | 'tree',
       options.buildOrder,
     );
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-
-    if (useJson) {
-      console.log(formatOutput(result, true));
+    const stdoutFormat = resolveStdoutFormat(options.format);
+    if (stdoutFormat === 'json') {
+      console.log(formatOutput(result, options.format));
     } else {
-      console.log(formatDeps(result, format));
+      console.log(formatDeps(result, layout as 'flat' | 'tree'));
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

@@ -11,18 +11,19 @@ import {
   DBT_SOURCES_JSON,
   formatOutput,
   parseDbtToolsArtifactTarget,
-  shouldOutputJSON,
+  resolveStdoutFormat,
+  preferStructuredErrors,
   validateSafePath,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
   resolveEffectiveDbtTarget,
+  extractArtifactRootCliOptions,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
 export type StatusOptions = {
-  json?: boolean;
-  noJson?: boolean;
+  format?: string;
 } & ArtifactRootCliOptions;
 
 export type ArtifactFileStatus = {
@@ -143,9 +144,7 @@ export async function statusAction(
       catalogStatus = getFileStatus(path.join(dir, DBT_CATALOG_JSON));
       sourcesStatus = getFileStatus(path.join(dir, DBT_SOURCES_JSON));
     } else {
-      const paths = await resolveCliArtifactPaths({
-        dbtTarget: options.dbtTarget,
-      });
+      const paths = await resolveCliArtifactPaths(extractArtifactRootCliOptions(options));
       validateSafePath(paths.manifest);
       validateSafePath(paths.runResults);
       if (paths.catalog) validateSafePath(paths.catalog);
@@ -206,14 +205,13 @@ export async function statusAction(
       summary: summaryMap[readiness],
     };
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-
-    if (useJson) {
-      console.log(formatOutput(result, true));
+    const format = resolveStdoutFormat(options.format);
+    if (format === 'json') {
+      console.log(formatOutput(result, options.format));
     } else {
       console.log(formatStatus(result));
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    handleError(error, preferStructuredErrors(options.format));
   }
 }

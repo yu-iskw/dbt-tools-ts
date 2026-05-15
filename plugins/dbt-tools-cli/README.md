@@ -1,6 +1,6 @@
 # dbt-tools-cli (agent plugin)
 
-First-party plugin wrapping the **[`@dbt-tools/cli`](../../packages/cli/README.md)** **structured interface** (JSON, `schema`, `status`) so coding agents and skills can orchestrate artifact analysis alongside other tools. Skills live under [`skills/`](skills/).
+First-party plugin wrapping the **[`@dbt-tools/cli`](../../packages/cli/README.md)** **structured interface** (JSON stdout by default via `--format json`, `schema`, `status`) so coding agents and skills can orchestrate artifact analysis alongside other tools. Use **`--format text`** for human-readable output. Skills live under [`skills/`](skills/).
 
 ## Skill handles (FQH)
 

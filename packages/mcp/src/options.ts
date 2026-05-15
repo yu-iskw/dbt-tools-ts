@@ -1,9 +1,13 @@
-import { getDbtToolsDbtTargetFromEnv } from '@dbt-tools/core';
+import {
+  getDbtToolsDbtTargetFromEnv,
+  resolveDbtToolsDbtTargetFromFlagOrEnv,
+} from '@dbt-tools/core';
 
 export interface McpServerOptions {
   dbtTarget: string;
   pollIntervalMs?: number;
-  maxCachedRuns?: number;
+  gcsProjectId?: string;
+  gcsImpersonateServiceAccount?: string;
 }
 
 export class McpHelpRequested extends Error {
@@ -23,7 +27,7 @@ function readFlagValue(args: string[], index: number, flag: string): string {
   return value;
 }
 
-function parsePositiveInteger(raw: string, flag: string): number {
+function parseNonNegativeInteger(raw: string, flag: string): number {
   const parsed = Number(raw);
   if (!Number.isInteger(parsed) || parsed < 0) {
     throw new Error(`${flag} must be a non-negative integer.`);
@@ -49,40 +53,68 @@ function targetFromEnv(env: Env): string | undefined {
   }
 }
 
-export function parseMcpServerOptions(args: string[], env: Env = process.env): McpServerOptions {
-  let dbtTarget: string | undefined;
-  let pollIntervalMs: number | undefined;
-  let maxCachedRuns: number | undefined;
+interface McpFlagScratch {
+  dbtTarget?: string;
+  pollIntervalMs?: number;
+  gcsProjectId?: string;
+  gcsImpersonateServiceAccount?: string;
+}
 
-  for (let i = 0; i < args.length; i += 1) {
+const MCP_STRING_FLAGS: Record<
+  string,
+  keyof Pick<McpFlagScratch, 'dbtTarget' | 'gcsProjectId' | 'gcsImpersonateServiceAccount'>
+> = {
+  '--dbt-target': 'dbtTarget',
+  '--gcs-project-id': 'gcsProjectId',
+  '--gcs-impersonate-service-account': 'gcsImpersonateServiceAccount',
+};
+
+const MCP_INT_FLAGS: Record<string, keyof Pick<McpFlagScratch, 'pollIntervalMs'>> = {
+  '--poll-interval-ms': 'pollIntervalMs',
+};
+
+function parseMcpFlagArgsIntoScratch(args: string[]): McpFlagScratch {
+  const s: McpFlagScratch = {};
+  for (let i = 0; i < args.length; ) {
     const arg = args[i];
-    if (arg === '--dbt-target') {
-      dbtTarget = readFlagValue(args, i, arg).trim();
-      i += 1;
-    } else if (arg === '--poll-interval-ms') {
-      pollIntervalMs = parsePositiveInteger(readFlagValue(args, i, arg), arg);
-      i += 1;
-    } else if (arg === '--max-cached-runs') {
-      maxCachedRuns = parsePositiveInteger(readFlagValue(args, i, arg), arg);
-      i += 1;
-    } else if (arg === '--help' || arg === '-h') {
+    if (arg === '--help' || arg === '-h') {
       throw new McpHelpRequested();
-    } else {
-      throw new Error(`Unknown option: ${arg}`);
     }
+    const strField = MCP_STRING_FLAGS[arg];
+    if (strField != null) {
+      const raw = readFlagValue(args, i, arg).trim();
+      (s as Record<string, string | undefined>)[strField] = raw;
+      i += 2;
+      continue;
+    }
+    const intField = MCP_INT_FLAGS[arg];
+    if (intField != null) {
+      const raw = readFlagValue(args, i, arg);
+      (s as Record<string, number | undefined>)[intField] = parseNonNegativeInteger(raw, arg);
+      i += 2;
+      continue;
+    }
+    throw new Error(`Unknown option: ${arg}`);
   }
+  return s;
+}
 
-  const resolvedTarget = dbtTarget && dbtTarget !== '' ? dbtTarget : targetFromEnv(env);
-  if (resolvedTarget == null) {
-    throw new Error(
-      'dbt artifact target is required. Pass --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> or set DBT_TOOLS_DBT_TARGET.',
-    );
-  }
+export function parseMcpServerOptions(args: string[], env: Env = process.env): McpServerOptions {
+  const scratch = parseMcpFlagArgsIntoScratch(args);
+  const fromFlagOrTestEnv =
+    scratch.dbtTarget && scratch.dbtTarget !== '' ? scratch.dbtTarget : targetFromEnv(env);
+  const resolvedTarget = resolveDbtToolsDbtTargetFromFlagOrEnv(fromFlagOrTestEnv);
 
   return {
     dbtTarget: resolvedTarget,
-    ...(pollIntervalMs !== undefined ? { pollIntervalMs } : {}),
-    ...(maxCachedRuns !== undefined ? { maxCachedRuns } : {}),
+    ...(scratch.pollIntervalMs !== undefined ? { pollIntervalMs: scratch.pollIntervalMs } : {}),
+    ...(scratch.gcsProjectId !== undefined && scratch.gcsProjectId !== ''
+      ? { gcsProjectId: scratch.gcsProjectId }
+      : {}),
+    ...(scratch.gcsImpersonateServiceAccount !== undefined &&
+    scratch.gcsImpersonateServiceAccount !== ''
+      ? { gcsImpersonateServiceAccount: scratch.gcsImpersonateServiceAccount }
+      : {}),
   };
 }
 
@@ -91,9 +123,11 @@ export function helpText(): string {
     'Usage: dbt-tools-mcp --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> [options]',
     '',
     'Options:',
-    '  --dbt-target <target>       Local target directory, s3:// prefix, or gs:// prefix',
-    '  --poll-interval-ms <ms>     Best-effort refresh polling interval',
-    '  --max-cached-runs <count>   Reserved cache bound; first release keeps one selected run',
-    '  -h, --help                  Show this help message',
+    '  --dbt-target <target>             Local target directory, s3:// prefix, or gs:// prefix',
+    '  --gcs-project-id <id>             Google Cloud project ID for the GCS client (gs:// targets only)',
+    '  --gcs-impersonate-service-account <email>',
+    '                                    Service account to impersonate for GCS (gs:// targets only)',
+    '  --poll-interval-ms <ms>           Best-effort refresh polling interval',
+    '  -h, --help                        Show this help message',
   ].join('\n');
 }
