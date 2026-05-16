@@ -10,8 +10,11 @@ export * from './analysis/analysis-snapshot';
 
 // Config exports (Node; not re-exported from browser entry)
 export {
+  assertGcsImpersonationPrincipalAllowed,
   getDbtToolsTargetDirFromEnv,
   getDbtToolsDbtTargetFromEnv,
+  getDbtToolsGcsImpersonationAllowlistFromEnv,
+  getDbtToolsGcsImpersonationAllowedSuffixesFromEnv,
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsWebBaseUrlFromEnv,

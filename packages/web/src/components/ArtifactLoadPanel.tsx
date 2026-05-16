@@ -63,6 +63,22 @@ function gcsDiscoveryMismatchMessage(
   return 'Run artifact discovery again after changing the GCS location or impersonated service account.';
 }
 
+function gcsLoadPrecheckMessage(
+  kind: UserArtifactSourceKind,
+  locationTrimmed: string,
+  impersonationTrimmed: string,
+  lastScanKey: string,
+  discoveryInFlight: boolean,
+): string | null {
+  if (kind !== 'gcs' || locationTrimmed === '') {
+    return null;
+  }
+  if (discoveryInFlight) {
+    return 'Wait for artifact discovery to finish, then try loading again.';
+  }
+  return gcsDiscoveryMismatchMessage(kind, locationTrimmed, impersonationTrimmed, lastScanKey);
+}
+
 export interface ArtifactLoadPanelProps {
   onManagedLoad: (
     result: AnalysisLoadResult,
@@ -93,6 +109,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
 
   const discoverySeqRef = useRef(0);
   const lastScanKeyRef = useRef('');
+  const discoveryInFlightRef = useRef(false);
 
   const readinessInput = useMemo(
     () => ({
@@ -132,14 +149,15 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       }
       const kind = sourceKindRef.current;
       const loc = locationRef.current.trim();
-      const gcsMismatch = gcsDiscoveryMismatchMessage(
+      const precheck = gcsLoadPrecheckMessage(
         kind,
         loc,
         impersonatedServiceAccountRef.current.trim(),
         lastScanKeyRef.current,
+        discoveryInFlightRef.current,
       );
-      if (gcsMismatch != null) {
-        onError(gcsMismatch);
+      if (precheck != null) {
+        onError(precheck);
         return;
       }
       setLoadLoading(true);
@@ -175,6 +193,11 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
           return;
         }
         onManagedLoad(result, source, caps);
+        if (sourceKindRef.current === 'gcs') {
+          lastScanKeyRef.current = '';
+          setCandidateRunIds([]);
+          setSelectedRunId(null);
+        }
         setImpersonatedServiceAccount('');
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load artifacts.';
@@ -202,6 +225,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         return;
       }
       const seq = ++discoverySeqRef.current;
+      discoveryInFlightRef.current = true;
       setDiscoverLoading(true);
       onError(null);
       setDiscoveryError(null);
@@ -225,6 +249,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         setCandidateRunIds(summary.candidateIds);
         setSelectedRunId(summary.selectedRunId);
         lastScanKeyRef.current = scanKey;
+        discoveryInFlightRef.current = false;
         if (summary.autoLoadRunId != null) {
           await loadWorkspaceForRunId(summary.autoLoadRunId);
         }
@@ -237,6 +262,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         onError(message);
       } finally {
         if (seq === discoverySeqRef.current) {
+          discoveryInFlightRef.current = false;
           setDiscoverLoading(false);
         }
       }

@@ -321,6 +321,8 @@ describe('ArtifactSourceService', () => {
     );
 
     try {
+      delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
+      delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
       const service = new ArtifactSourceService({ seedFromEnv: false });
       await service.discoverArtifactSource('gcs', 'mybucket/prefix', {
         impersonatedServiceAccount: '  target@svc.iam.gserviceaccount.com  ',
@@ -335,6 +337,31 @@ describe('ArtifactSourceService', () => {
       );
     } finally {
       spy.mockRestore();
+    }
+  });
+
+  it('rejects GCS discover when impersonation is not permitted by allowlist', async () => {
+    const prevAllow = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
+    const prevSuf = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
+    process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = 'only@allowed.iam.gserviceaccount.com';
+    delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
+    const spy = vi
+      .spyOn(artifactIo, 'createRemoteObjectStoreClient')
+      .mockResolvedValue(new FakeRemoteClient([]));
+    try {
+      const service = new ArtifactSourceService({ seedFromEnv: false });
+      await expect(
+        service.discoverArtifactSource('gcs', 'gs://mybucket/prefix', {
+          impersonatedServiceAccount: 'other@proj.iam.gserviceaccount.com',
+        }),
+      ).rejects.toThrow(/not permitted/);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+      if (prevAllow === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
+      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = prevAllow;
+      if (prevSuf === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
+      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES = prevSuf;
     }
   });
 });

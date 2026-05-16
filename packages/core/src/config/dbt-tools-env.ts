@@ -206,3 +206,53 @@ export function getDbtToolsWebBaseUrlFromEnv(): string | undefined {
   const u = trimEnv(process.env.DBT_TOOLS_WEB_BASE_URL);
   return u === undefined ? undefined : u.replace(/\/$/, '');
 }
+
+function parseCommaSeparatedEnvList(raw: string | undefined): string[] {
+  if (raw == null || raw.trim() === '') {
+    return [];
+  }
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+/**
+ * Comma-separated list of allowed GCS impersonation principals (exact match).
+ * When empty together with {@link getDbtToolsGcsImpersonationAllowedSuffixesFromEnv}, any principal is allowed.
+ */
+export function getDbtToolsGcsImpersonationAllowlistFromEnv(): string[] {
+  return parseCommaSeparatedEnvList(trimEnv(process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST));
+}
+
+/**
+ * Comma-separated suffixes; a principal is allowed if it ends with any entry
+ * (e.g. `@myorg.iam.gserviceaccount.com`).
+ */
+export function getDbtToolsGcsImpersonationAllowedSuffixesFromEnv(): string[] {
+  return parseCommaSeparatedEnvList(
+    trimEnv(process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES),
+  );
+}
+
+/**
+ * Enforces optional operator allowlists for GCS service account impersonation.
+ * When both the allowlist and suffix list are empty, all principals are permitted.
+ */
+export function assertGcsImpersonationPrincipalAllowed(principal: string): void {
+  const allow = getDbtToolsGcsImpersonationAllowlistFromEnv();
+  const suffixes = getDbtToolsGcsImpersonationAllowedSuffixesFromEnv();
+  if (allow.length === 0 && suffixes.length === 0) {
+    return;
+  }
+  if (allow.includes(principal)) {
+    return;
+  }
+  if (suffixes.some((suffix) => principal.endsWith(suffix))) {
+    return;
+  }
+  throw new Error(
+    'This GCS impersonated service account is not permitted. Configure DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST ' +
+      '(comma-separated principals) and/or DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES (comma-separated suffix substrings).',
+  );
+}

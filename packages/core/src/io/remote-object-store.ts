@@ -1,7 +1,10 @@
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Storage } from '@google-cloud/storage';
 import { GoogleAuth, Impersonated } from 'google-auth-library';
-import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
+import {
+  assertGcsImpersonationPrincipalAllowed,
+  type DbtToolsRemoteSourceConfig,
+} from '../config/dbt-tools-env';
 import type { RemoteObjectMetadata } from './artifact-discovery';
 
 export interface RemoteObjectStoreClient {
@@ -94,6 +97,9 @@ class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
 
 async function createGcsStorage(config: DbtToolsRemoteSourceConfig): Promise<Storage> {
   const targetPrincipal = config.impersonatedServiceAccount?.trim();
+  if (targetPrincipal != null && targetPrincipal !== '') {
+    assertGcsImpersonationPrincipalAllowed(targetPrincipal);
+  }
   if (targetPrincipal == null || targetPrincipal === '') {
     return new Storage({
       projectId: config.projectId,

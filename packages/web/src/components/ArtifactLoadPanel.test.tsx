@@ -359,4 +359,75 @@ describe('ArtifactLoadPanel', () => {
 
     cleanupRoot(root, container);
   });
+
+  it('clears GCS impersonation and candidate list after a successful managed load', async () => {
+    discoverArtifactSourceFromApi.mockResolvedValue({
+      sourceKind: 'gcs',
+      locationDisplay: 'gs://b/p',
+      candidates: [
+        {
+          runId: 'solo',
+          label: 'GCS (solo)',
+          updatedAtMs: 1,
+          versionToken: 'solo',
+        },
+      ],
+      needsSelection: false,
+      discoveryError: null,
+    });
+    configureArtifactSourceFromApi.mockResolvedValue({
+      mode: 'remote',
+      currentSource: 'remote',
+      label: 'Artifacts',
+      checkedAtMs: 1,
+      remoteProvider: 'gcs',
+      remoteLocation: 'gs://b/p',
+      pollIntervalMs: null,
+      currentRun: {
+        runId: 'solo',
+        label: 'GCS (solo)',
+        updatedAtMs: 1,
+        versionToken: 'solo',
+      },
+      pendingRun: null,
+      supportsSwitch: false,
+      missingOptionalArtifacts: {
+        missingCatalog: false,
+        missingSources: false,
+      },
+    });
+
+    const { container, root, onManagedLoad } = renderPanel();
+    const sourceSelect = container.querySelector('#artifact-source-kind') as HTMLSelectElement;
+    const locationInput = container.querySelector('#artifact-location-input') as HTMLInputElement;
+
+    changeInput(sourceSelect, 'gcs');
+    await flushAsync();
+    const impersonationInput = container.querySelector(
+      '#artifact-gcs-impersonated-service-account',
+    ) as HTMLInputElement;
+    changeInput(impersonationInput, 'svc@proj.iam.gserviceaccount.com');
+    await flushAsync();
+    changeInput(locationInput, 'gs://b/p');
+    await flushAsync();
+    await act(async () => {
+      locationInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(onManagedLoad).toHaveBeenCalledTimes(1);
+    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith(
+      'gcs',
+      'gs://b/p',
+      'solo',
+      expect.objectContaining({
+        impersonatedServiceAccount: 'svc@proj.iam.gserviceaccount.com',
+      }),
+    );
+    expect(container.querySelector('#artifact-run-solo')).toBeNull();
+    expect(impersonationInput.value).toBe('');
+
+    cleanupRoot(root, container);
+  });
 });
