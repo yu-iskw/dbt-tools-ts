@@ -1,5 +1,6 @@
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Storage } from '@google-cloud/storage';
+import { GoogleAuth, Impersonated } from 'google-auth-library';
 import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
 import type { RemoteObjectMetadata } from './artifact-discovery';
 
@@ -66,19 +67,42 @@ class S3RemoteObjectStoreClient implements RemoteObjectStoreClient {
 }
 
 class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
-  private readonly storage: Storage;
+  private readonly projectId: string | undefined;
+  private readonly impersonatedServiceAccount: string | undefined;
+  private storagePromise: Promise<Storage> | null = null;
 
   constructor(config: DbtToolsRemoteSourceConfig, options?: GcsRemoteObjectStoreOptions) {
-    this.storage = new Storage({
-      projectId: config.projectId,
-      ...(options?.impersonatedServiceAccount
-        ? { impersonatedServiceAccount: options.impersonatedServiceAccount }
-        : {}),
-    });
+    this.projectId = config.projectId;
+    this.impersonatedServiceAccount = options?.impersonatedServiceAccount;
+  }
+
+  private getStorage(): Promise<Storage> {
+    if (this.storagePromise == null) {
+      this.storagePromise = this.initStorage();
+    }
+    return this.storagePromise;
+  }
+
+  private async initStorage(): Promise<Storage> {
+    if (this.impersonatedServiceAccount != null) {
+      const auth = new GoogleAuth({
+        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      });
+      const sourceClient = await auth.getClient();
+      const impersonatedClient = new Impersonated({
+        sourceClient,
+        targetPrincipal: this.impersonatedServiceAccount,
+        targetScopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        lifetime: 3600,
+      });
+      return new Storage({ projectId: this.projectId, authClient: impersonatedClient });
+    }
+    return new Storage({ projectId: this.projectId });
   }
 
   async listObjects(bucket: string, prefix: string): Promise<RemoteObjectMetadata[]> {
-    const [files] = await this.storage.bucket(bucket).getFiles({
+    const storage = await this.getStorage();
+    const [files] = await storage.bucket(bucket).getFiles({
       prefix: prefix === '' ? undefined : `${prefix}/`,
       autoPaginate: true,
     });
@@ -99,7 +123,8 @@ class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
   }
 
   async readObjectBytes(bucket: string, key: string): Promise<Uint8Array> {
-    const [bytes] = await this.storage.bucket(bucket).file(key).download();
+    const storage = await this.getStorage();
+    const [bytes] = await storage.bucket(bucket).file(key).download();
     return bytes;
   }
 }
