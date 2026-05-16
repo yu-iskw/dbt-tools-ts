@@ -5,6 +5,7 @@ import {
   discoverArtifactSourceFromApi,
   refetchFromApi,
   type ArtifactSourceDiscoveryResult,
+  type GcsArtifactSourceClientOptions,
   type MissingOptionalArtifactsState,
   type UserArtifactSourceKind,
 } from '../services/artifactSourceApi';
@@ -15,6 +16,14 @@ import {
 } from '../lib/artifactLoadPanelCopy';
 import { ArtifactLoadPanelForm } from './ArtifactLoadPanelForm';
 import { ArtifactLoadPanelHero } from './ArtifactLoadPanelHero';
+
+function gcsClientOptionsFromRefs(
+  kind: UserArtifactSourceKind,
+  impersonatedServiceAccountRaw: string,
+): GcsArtifactSourceClientOptions | undefined {
+  if (kind !== 'gcs') return undefined;
+  return { impersonatedServiceAccount: impersonatedServiceAccountRaw };
+}
 
 function summarizeArtifactDiscovery(discovery: ArtifactSourceDiscoveryResult): {
   error: string | null;
@@ -32,9 +41,9 @@ function summarizeArtifactDiscovery(discovery: ArtifactSourceDiscoveryResult): {
   }
   const candidateIds = discovery.candidates?.map((c) => c.runId) ?? [];
   const needsSelection = discovery.needsSelection === true;
-  const selectedRunId = candidateIds.length === 1 ? candidateIds[0]! : null;
-  const autoLoadRunId =
-    candidateIds.length === 1 && !needsSelection ? candidateIds[0]! : null;
+  const soleRunId = candidateIds.length === 1 ? candidateIds[0]! : null;
+  const selectedRunId = soleRunId;
+  const autoLoadRunId = soleRunId != null && !needsSelection ? soleRunId : null;
   return { error: null, candidateIds, selectedRunId, autoLoadRunId };
 }
 
@@ -112,9 +121,10 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
           sourceKindRef.current,
           locationRef.current.trim(),
           runId,
-          sourceKindRef.current === 'gcs'
-            ? { impersonatedServiceAccount: impersonatedServiceAccountRef.current }
-            : undefined,
+          gcsClientOptionsFromRefs(
+            sourceKindRef.current,
+            impersonatedServiceAccountRef.current,
+          ),
         );
         const source = status.currentSource;
         if (source !== 'preload' && source !== 'remote') {
@@ -176,9 +186,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         const discovery = await discoverArtifactSourceFromApi(
           kind,
           loc,
-          kind === 'gcs'
-            ? { impersonatedServiceAccount: impersonatedServiceAccountRef.current }
-            : undefined,
+          gcsClientOptionsFromRefs(kind, impersonatedServiceAccountRef.current),
         );
         if (seq !== discoverySeqRef.current) {
           return;

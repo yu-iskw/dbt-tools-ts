@@ -149,6 +149,46 @@ function multiCandidatePostSwitchStatus(runId: string) {
   };
 }
 
+async function registerMultiRunConfigurePostRoute(page: Page): Promise<void> {
+  await page.route(ARTIFACT_SOURCE_CONFIGURE_GLOB, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({ status: 405 });
+      return;
+    }
+    let runId = '';
+    try {
+      const body = route.request().postDataJSON() as { runId?: unknown };
+      if (typeof body.runId === 'string') runId = body.runId;
+    } catch {
+      runId = '';
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(multiCandidatePostSwitchStatus(runId)),
+    });
+  });
+}
+
+async function registerArtifactSourceManagedNoneGetRoute(page: Page): Promise<void> {
+  await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname !== ARTIFACT_SOURCE_PATH) {
+      await route.continue();
+      return;
+    }
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(managedNoneStatus()),
+    });
+  });
+}
+
 /** Fulfill managed + legacy artifact JSON byte routes (use with configure/switch mocks). */
 async function registerArtifactJsonByteRoutes(
   page: Page,
@@ -226,40 +266,8 @@ export async function registerMultiCandidateArtifactSourceMocks(
       body: JSON.stringify(multiCandidateDiscoveryStatus()),
     });
   });
-  await page.route(ARTIFACT_SOURCE_CONFIGURE_GLOB, async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.fulfill({ status: 405 });
-      return;
-    }
-    let runId = '';
-    try {
-      const body = route.request().postDataJSON() as { runId?: unknown };
-      if (typeof body.runId === 'string') runId = body.runId;
-    } catch {
-      runId = '';
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(multiCandidatePostSwitchStatus(runId)),
-    });
-  });
-  await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
-    const pathname = new URL(route.request().url()).pathname;
-    if (pathname !== ARTIFACT_SOURCE_PATH) {
-      await route.continue();
-      return;
-    }
-    if (route.request().method() !== 'GET') {
-      await route.continue();
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(managedNoneStatus()),
-    });
-  });
+  await registerMultiRunConfigurePostRoute(page);
+  await registerArtifactSourceManagedNoneGetRoute(page);
   await registerArtifactJsonByteRoutes(page, options);
 }
 
@@ -296,22 +304,7 @@ export async function registerSingleCandidateArtifactSourceMocks(
       body: JSON.stringify(singleCandidatePostSwitchStatus()),
     });
   });
-  await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
-    const pathname = new URL(route.request().url()).pathname;
-    if (pathname !== ARTIFACT_SOURCE_PATH) {
-      await route.continue();
-      return;
-    }
-    if (route.request().method() !== 'GET') {
-      await route.continue();
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(managedNoneStatus()),
-    });
-  });
+  await registerArtifactSourceManagedNoneGetRoute(page);
   await registerArtifactJsonByteRoutes(page, options);
 }
 
@@ -355,40 +348,8 @@ export async function registerGcsMultiCandidateArtifactSourceMocks(
       body: JSON.stringify(gcsMultiCandidateDiscoveryStatus()),
     });
   });
-  await page.route(ARTIFACT_SOURCE_CONFIGURE_GLOB, async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.fulfill({ status: 405 });
-      return;
-    }
-    let runId = '';
-    try {
-      const body = route.request().postDataJSON() as { runId?: unknown };
-      if (typeof body.runId === 'string') runId = body.runId;
-    } catch {
-      runId = '';
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(multiCandidatePostSwitchStatus(runId)),
-    });
-  });
-  await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
-    const pathname = new URL(route.request().url()).pathname;
-    if (pathname !== ARTIFACT_SOURCE_PATH) {
-      await route.continue();
-      return;
-    }
-    if (route.request().method() !== 'GET') {
-      await route.continue();
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(managedNoneStatus()),
-    });
-  });
+  await registerMultiRunConfigurePostRoute(page);
+  await registerArtifactSourceManagedNoneGetRoute(page);
   await registerArtifactJsonByteRoutes(page, options);
 }
 

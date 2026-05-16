@@ -51,6 +51,12 @@ function buildGcsOptionsFragment(
   return { options: { impersonatedServiceAccount: trimmed } };
 }
 
+function errorMessageFromArtifactSourceJson(data: unknown, fallback: string): string {
+  if (typeof data !== 'object' || data === null) return fallback;
+  const err = (data as { error?: unknown }).error;
+  return typeof err === 'string' && err.trim() !== '' ? err : fallback;
+}
+
 export interface MissingOptionalArtifactsState {
   missingCatalog: boolean;
   missingSources: boolean;
@@ -325,12 +331,7 @@ export async function discoverArtifactSourceFromApi(
     | { error?: string };
 
   if (!response.ok) {
-    const message =
-      typeof (data as { error?: string }).error === 'string' &&
-      (data as { error: string }).error.trim() !== ''
-        ? (data as { error: string }).error
-        : 'Failed to configure artifact source';
-    throw new Error(message);
+    throw new Error(errorMessageFromArtifactSourceJson(data, 'Failed to discover artifact source'));
   }
 
   return data as ArtifactSourceDiscoveryResult;
@@ -368,12 +369,7 @@ export async function configureArtifactSourceFromApi(
     | { error?: string };
 
   if (!response.ok) {
-    const message =
-      typeof (data as { error?: string }).error === 'string' &&
-      (data as { error: string }).error.trim() !== ''
-        ? (data as { error: string }).error
-        : 'Failed to configure artifact source';
-    throw new Error(message);
+    throw new Error(errorMessageFromArtifactSourceJson(data, 'Failed to configure artifact source'));
   }
 
   return data as ArtifactSourceStatus;

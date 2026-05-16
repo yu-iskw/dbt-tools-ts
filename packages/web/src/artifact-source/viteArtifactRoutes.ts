@@ -8,7 +8,7 @@ import {
 import type { ArtifactSourceKind, GcsArtifactSourceRequestOptions } from '@dbt-tools/core';
 import type { ArtifactSourceService } from './sourceService';
 
-const ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR =
+export const ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR =
   'Service account impersonation is only supported for Google Cloud Storage. Options are not supported for local or S3 artifact sources.';
 
 function parseArtifactSourceRequestOptions(

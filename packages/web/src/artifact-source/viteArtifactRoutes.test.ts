@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ArtifactSourceService } from './sourceService';
-import { tryHandleArtifactSourceViteRequest } from './viteArtifactRoutes';
+import { tryHandleArtifactSourceViteRequest, ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR } from './viteArtifactRoutes';
 
 function startRouteServer(service: Partial<ArtifactSourceService>) {
   const requestHandler: http.RequestListener = (req, res) => {
@@ -147,8 +147,7 @@ describe('tryHandleArtifactSourceViteRequest', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
-      error:
-        'Service account impersonation is only supported for Google Cloud Storage. Options are not supported for local or S3 artifact sources.',
+      error: ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR,
     });
     expect(discoverArtifactSource).not.toHaveBeenCalled();
   });
@@ -168,8 +167,7 @@ describe('tryHandleArtifactSourceViteRequest', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
-      error:
-        'Service account impersonation is only supported for Google Cloud Storage. Options are not supported for local or S3 artifact sources.',
+      error: ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR,
     });
     expect(discoverArtifactSource).not.toHaveBeenCalled();
   });
