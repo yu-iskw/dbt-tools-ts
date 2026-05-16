@@ -229,6 +229,8 @@ export function getDbtToolsGcsImpersonationAllowlistFromEnv(): string[] {
  * Comma-separated suffix strings. A principal is allowed if it **ends with**
  * any configured entry (suffix match, not arbitrary substring).
  * Example entry: `@myorg.iam.gserviceaccount.com`.
+ * Prefer a long, specific suffix (for example the full `@project.iam.gserviceaccount.com`
+ * domain) so principals cannot satisfy the rule via an unrelated email that merely ends with a short token.
  */
 export function getDbtToolsGcsImpersonationAllowedSuffixesFromEnv(): string[] {
   return parseCommaSeparatedEnvList(
