@@ -47,6 +47,22 @@ function summarizeArtifactDiscovery(discovery: ArtifactSourceDiscoveryResult): {
   return { error: null, candidateIds, selectedRunId, autoLoadRunId };
 }
 
+function gcsDiscoveryMismatchMessage(
+  kind: UserArtifactSourceKind,
+  locationTrimmed: string,
+  impersonationTrimmed: string,
+  lastScanKey: string,
+): string | null {
+  if (kind !== 'gcs' || locationTrimmed === '') {
+    return null;
+  }
+  const scanKey = `gcs|${locationTrimmed}|${impersonationTrimmed}`;
+  if (scanKey === lastScanKey) {
+    return null;
+  }
+  return 'Run artifact discovery again after changing the GCS location or impersonated service account.';
+}
+
 export interface ArtifactLoadPanelProps {
   onManagedLoad: (
     result: AnalysisLoadResult,
@@ -116,15 +132,15 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       }
       const kind = sourceKindRef.current;
       const loc = locationRef.current.trim();
-      if (kind === 'gcs' && loc !== '') {
-        const impersonationTrimmed = impersonatedServiceAccountRef.current.trim();
-        const scanKey = `gcs|${loc}|${impersonationTrimmed}`;
-        if (scanKey !== lastScanKeyRef.current) {
-          onError(
-            'Run artifact discovery again after changing the GCS location or impersonated service account.',
-          );
-          return;
-        }
+      const gcsMismatch = gcsDiscoveryMismatchMessage(
+        kind,
+        loc,
+        impersonatedServiceAccountRef.current.trim(),
+        lastScanKeyRef.current,
+      );
+      if (gcsMismatch != null) {
+        onError(gcsMismatch);
+        return;
       }
       setLoadLoading(true);
       onError(null);
