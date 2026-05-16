@@ -369,7 +369,9 @@ export async function configureArtifactSourceFromApi(
     | { error?: string };
 
   if (!response.ok) {
-    throw new Error(errorMessageFromArtifactSourceJson(data, 'Failed to configure artifact source'));
+    throw new Error(
+      errorMessageFromArtifactSourceJson(data, 'Failed to configure artifact source'),
+    );
   }
 
   return data as ArtifactSourceStatus;

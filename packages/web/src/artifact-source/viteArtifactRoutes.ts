@@ -35,8 +35,7 @@ function parseArtifactSourceRequestOptions(
   if (isa !== undefined && isa !== null && typeof isa !== 'string') {
     return {
       ok: false,
-      error:
-        'Invalid options.impersonatedServiceAccount for Google Cloud Storage artifact source.',
+      error: 'Invalid options.impersonatedServiceAccount for Google Cloud Storage artifact source.',
     };
   }
   const trimmed = typeof isa === 'string' ? isa.trim() : '';

@@ -1,7 +1,10 @@
 import http from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ArtifactSourceService } from './sourceService';
-import { tryHandleArtifactSourceViteRequest, ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR } from './viteArtifactRoutes';
+import {
+  tryHandleArtifactSourceViteRequest,
+  ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR,
+} from './viteArtifactRoutes';
 
 function startRouteServer(service: Partial<ArtifactSourceService>) {
   const requestHandler: http.RequestListener = (req, res) => {
@@ -129,7 +132,12 @@ describe('tryHandleArtifactSourceViteRequest', () => {
     expect(response.body).toEqual({
       error: 'Unknown run id "missing-run"',
     });
-    expect(configureArtifactSource).toHaveBeenCalledWith('local', '/tmp/preview', 'missing-run', undefined);
+    expect(configureArtifactSource).toHaveBeenCalledWith(
+      'local',
+      '/tmp/preview',
+      'missing-run',
+      undefined,
+    );
   });
 
   it('rejects options for local artifact sources', async () => {

@@ -149,10 +149,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
           sourceKindRef.current,
           locationRef.current.trim(),
           runId,
-          gcsClientOptionsFromRefs(
-            sourceKindRef.current,
-            impersonatedServiceAccountRef.current,
-          ),
+          gcsClientOptionsFromRefs(sourceKindRef.current, impersonatedServiceAccountRef.current),
         );
         const source = status.currentSource;
         if (source !== 'preload' && source !== 'remote') {
