@@ -226,8 +226,9 @@ export function getDbtToolsGcsImpersonationAllowlistFromEnv(): string[] {
 }
 
 /**
- * Comma-separated suffixes; a principal is allowed if it ends with any entry
- * (e.g. `@myorg.iam.gserviceaccount.com`).
+ * Comma-separated suffix strings. A principal is allowed if it **ends with**
+ * any configured entry (suffix match, not arbitrary substring).
+ * Example entry: `@myorg.iam.gserviceaccount.com`.
  */
 export function getDbtToolsGcsImpersonationAllowedSuffixesFromEnv(): string[] {
   return parseCommaSeparatedEnvList(
@@ -253,6 +254,7 @@ export function assertGcsImpersonationPrincipalAllowed(principal: string): void 
   }
   throw new Error(
     'This GCS impersonated service account is not permitted. Configure DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST ' +
-      '(comma-separated principals) and/or DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES (comma-separated suffix substrings).',
+      '(comma-separated principals, exact match after trim) and/or DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES ' +
+      '(comma-separated suffix strings; the principal must end with one of them).',
   );
 }

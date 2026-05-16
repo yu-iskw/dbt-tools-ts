@@ -305,6 +305,8 @@ describe('ArtifactSourceService', () => {
   });
 
   it('forwards trimmed GCS impersonation to remote object store client creation', async () => {
+    const prevAllow = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
+    const prevSuf = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
     const spy = vi.spyOn(artifactIo, 'createRemoteObjectStoreClient').mockResolvedValue(
       new FakeRemoteClient([
         {
@@ -337,6 +339,10 @@ describe('ArtifactSourceService', () => {
       );
     } finally {
       spy.mockRestore();
+      if (prevAllow === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
+      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = prevAllow;
+      if (prevSuf === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
+      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES = prevSuf;
     }
   });
 
