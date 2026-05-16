@@ -11,6 +11,8 @@ const e2eOrigin = `http://127.0.0.1:${e2ePort}`;
 
 export default defineConfig({
   testDir: './e2e',
+  /** Opt-in recordings under `e2e/demo/` use `playwright.demo.config.ts`. */
+  testIgnore: ['**/demo/**'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   // One retry keeps CI resilient without tripling wall time on every flake (was 2).
