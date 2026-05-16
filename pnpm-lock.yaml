@@ -122,6 +122,9 @@ importers:
       dbt-artifacts-parser:
         specifier: ^0.5.5
         version: 0.5.5
+      google-auth-library:
+        specifier: ^9.15.1
+        version: 9.15.1
       graphology:
         specifier: ^0.26.0
         version: 0.26.0(graphology-types@0.24.8)
