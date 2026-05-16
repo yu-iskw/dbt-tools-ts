@@ -9,6 +9,7 @@ import {
   type ArtifactDiscoveryResult,
   type ArtifactSourceKind,
   type DbtToolsRemoteSourceConfig,
+  type GcsArtifactSourceRequestOptions,
 } from '@dbt-tools/core';
 import {
   createRemoteObjectStoreClient,
@@ -159,7 +160,7 @@ export class ArtifactSourceService {
     if (options.remoteConfig != null) {
       await this.applyRemoteConfiguration(
         options.remoteConfig,
-        options.remoteClient ?? createRemoteObjectStoreClient(options.remoteConfig),
+        options.remoteClient ?? (await createRemoteObjectStoreClient(options.remoteConfig)),
         true,
       );
       return;
@@ -176,7 +177,7 @@ export class ArtifactSourceService {
     if (remoteEnv != null) {
       await this.applyRemoteConfiguration(
         remoteEnv,
-        createRemoteObjectStoreClient(remoteEnv),
+        await createRemoteObjectStoreClient(remoteEnv),
         true,
       );
       return;
@@ -475,6 +476,7 @@ export class ArtifactSourceService {
   private async discoverArtifactSourceInternal(
     kind: ArtifactSourceKind,
     location: string,
+    providerOptions?: GcsArtifactSourceRequestOptions,
   ): Promise<DiscoveredArtifactSource> {
     const parsed = parseArtifactSourceLocation(kind, location, this.cwd);
     if (parsed.kind === 'local') {
@@ -482,8 +484,12 @@ export class ArtifactSourceService {
     }
 
     const env = getDbtToolsRemoteSourceConfigFromEnv();
-    const merged = mergeRemoteSourceConfigWithParsedLocation(env, parsed);
-    const client = createRemoteObjectStoreClient(merged);
+    const merged = mergeRemoteSourceConfigWithParsedLocation(
+      env,
+      parsed,
+      kind === 'gcs' ? providerOptions : undefined,
+    );
+    const client = await createRemoteObjectStoreClient(merged);
     return this.discoverRemoteConfiguration(merged, client);
   }
 
@@ -512,9 +518,10 @@ export class ArtifactSourceService {
   async discoverArtifactSource(
     kind: ArtifactSourceKind,
     location: string,
+    providerOptions?: GcsArtifactSourceRequestOptions,
   ): Promise<ArtifactSourceDiscoveryResult> {
     await this.ensureReady();
-    const discovery = await this.discoverArtifactSourceInternal(kind, location);
+    const discovery = await this.discoverArtifactSourceInternal(kind, location, providerOptions);
     const candidates = this.previewToUiRows(discovery);
     const needsSelection = this.discoveryNeedsSelection(discovery, null);
     return {
@@ -535,9 +542,10 @@ export class ArtifactSourceService {
     kind: ArtifactSourceKind,
     location: string,
     runId?: string,
+    providerOptions?: GcsArtifactSourceRequestOptions,
   ): Promise<ArtifactSourceStatus> {
     await this.ensureReady();
-    const discovery = await this.discoverArtifactSourceInternal(kind, location);
+    const discovery = await this.discoverArtifactSourceInternal(kind, location, providerOptions);
     const selectedRunId = this.resolveConfiguredRunId(discovery, runId);
     this.applyDiscoveredArtifactSource(discovery, selectedRunId);
 

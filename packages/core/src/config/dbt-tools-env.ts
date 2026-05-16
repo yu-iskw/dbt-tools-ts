@@ -115,6 +115,11 @@ export interface DbtToolsRemoteSourceConfig {
   endpoint?: string;
   forcePathStyle?: boolean;
   projectId?: string;
+  /**
+   * GCS only: optional service account to impersonate using the ambient
+   * Google credential (e.g. user ADC or workload identity).
+   */
+  impersonatedServiceAccount?: string;
 }
 
 function parseNonNegativeInt(raw: string): number {

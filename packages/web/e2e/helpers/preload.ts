@@ -16,6 +16,9 @@ export const CATALOG_PATH = path.resolve(__dirname, '../fixtures/dbt-artifacts/c
 export const SOURCES_PATH = path.resolve(__dirname, '../fixtures/sources.json');
 
 const ARTIFACT_SOURCE_ROUTE_GLOB = '**/api/artifact-source';
+const ARTIFACT_SOURCE_DISCOVER_GLOB = '**/api/artifact-source/discover';
+const ARTIFACT_SOURCE_CONFIGURE_GLOB = '**/api/artifact-source/configure';
+const ARTIFACT_SOURCE_PATH = '/api/artifact-source';
 
 function managedPreloadStatus() {
   return {
@@ -212,7 +215,7 @@ export async function registerMultiCandidateArtifactSourceMocks(
     sourcesPath?: string;
   },
 ) {
-  await page.route('**/api/artifact-source/discover', async (route) => {
+  await page.route(ARTIFACT_SOURCE_DISCOVER_GLOB, async (route) => {
     if (route.request().method() !== 'POST') {
       await route.fulfill({ status: 405 });
       return;
@@ -223,7 +226,7 @@ export async function registerMultiCandidateArtifactSourceMocks(
       body: JSON.stringify(multiCandidateDiscoveryStatus()),
     });
   });
-  await page.route('**/api/artifact-source/configure', async (route) => {
+  await page.route(ARTIFACT_SOURCE_CONFIGURE_GLOB, async (route) => {
     if (route.request().method() !== 'POST') {
       await route.fulfill({ status: 405 });
       return;
@@ -243,7 +246,7 @@ export async function registerMultiCandidateArtifactSourceMocks(
   });
   await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
     const pathname = new URL(route.request().url()).pathname;
-    if (pathname !== '/api/artifact-source') {
+    if (pathname !== ARTIFACT_SOURCE_PATH) {
       await route.continue();
       return;
     }
@@ -271,7 +274,7 @@ export async function registerSingleCandidateArtifactSourceMocks(
     sourcesPath?: string;
   },
 ) {
-  await page.route('**/api/artifact-source/discover', async (route) => {
+  await page.route(ARTIFACT_SOURCE_DISCOVER_GLOB, async (route) => {
     if (route.request().method() !== 'POST') {
       await route.fulfill({ status: 405 });
       return;
@@ -282,7 +285,7 @@ export async function registerSingleCandidateArtifactSourceMocks(
       body: JSON.stringify(singleCandidateDiscoveryStatus()),
     });
   });
-  await page.route('**/api/artifact-source/configure', async (route) => {
+  await page.route(ARTIFACT_SOURCE_CONFIGURE_GLOB, async (route) => {
     if (route.request().method() !== 'POST') {
       await route.fulfill({ status: 405 });
       return;
@@ -295,7 +298,84 @@ export async function registerSingleCandidateArtifactSourceMocks(
   });
   await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
     const pathname = new URL(route.request().url()).pathname;
-    if (pathname !== '/api/artifact-source') {
+    if (pathname !== ARTIFACT_SOURCE_PATH) {
+      await route.continue();
+      return;
+    }
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(managedNoneStatus()),
+    });
+  });
+  await registerArtifactJsonByteRoutes(page, options);
+}
+
+export const GCS_MOCK_IMPERSONATION_SA = 'e2e-impersonation@test.iam.gserviceaccount.com';
+
+function gcsMultiCandidateDiscoveryStatus() {
+  return {
+    sourceKind: 'gcs' as const,
+    locationDisplay: 'GCS mock-bucket/mock-prefix',
+    candidates: [MULTI_CANDIDATE_RUN_ALPHA, MULTI_CANDIDATE_RUN_BETA],
+    needsSelection: true,
+    discoveryError: null,
+  };
+}
+
+/**
+ * Like {@link registerMultiCandidateArtifactSourceMocks}, but asserts GCS discover requests
+ * include {@link GCS_MOCK_IMPERSONATION_SA} in `options.impersonatedServiceAccount`.
+ */
+export async function registerGcsMultiCandidateArtifactSourceMocks(
+  page: Page,
+  options?: {
+    catalogPath?: string;
+    sourcesPath?: string;
+  },
+) {
+  await page.route(ARTIFACT_SOURCE_DISCOVER_GLOB, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({ status: 405 });
+      return;
+    }
+    const body = route.request().postDataJSON() as {
+      type?: unknown;
+      options?: { impersonatedServiceAccount?: unknown };
+    };
+    expect(body.type).toBe('gcs');
+    expect(body.options).toEqual({ impersonatedServiceAccount: GCS_MOCK_IMPERSONATION_SA });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(gcsMultiCandidateDiscoveryStatus()),
+    });
+  });
+  await page.route(ARTIFACT_SOURCE_CONFIGURE_GLOB, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({ status: 405 });
+      return;
+    }
+    let runId = '';
+    try {
+      const body = route.request().postDataJSON() as { runId?: unknown };
+      if (typeof body.runId === 'string') runId = body.runId;
+    } catch {
+      runId = '';
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(multiCandidatePostSwitchStatus(runId)),
+    });
+  });
+  await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname !== ARTIFACT_SOURCE_PATH) {
       await route.continue();
       return;
     }

@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import * as artifactIo from '@dbt-tools/core/artifact-io';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactSourceService, type RemoteObjectStoreClient } from './sourceService';
 
 class FakeRemoteClient implements RemoteObjectStoreClient {
@@ -301,5 +302,39 @@ describe('ArtifactSourceService', () => {
     await expect(service.configureArtifactSource('local', dir, 'missing-run')).rejects.toThrow(
       /Unknown run id/,
     );
+  });
+
+  it('forwards trimmed GCS impersonation to remote object store client creation', async () => {
+    const spy = vi.spyOn(artifactIo, 'createRemoteObjectStoreClient').mockResolvedValue(
+      new FakeRemoteClient([
+        {
+          key: 'prefix/x/manifest.json',
+          updatedAtMs: 1,
+          bytes: new TextEncoder().encode('{"metadata":{"project_name":"x"}}'),
+        },
+        {
+          key: 'prefix/x/run_results.json',
+          updatedAtMs: 1,
+          bytes: new TextEncoder().encode('{"metadata":{"project_name":"x"}}'),
+        },
+      ]),
+    );
+
+    try {
+      const service = new ArtifactSourceService({ seedFromEnv: false });
+      await service.discoverArtifactSource('gcs', 'mybucket/prefix', {
+        impersonatedServiceAccount: '  target@svc.iam.gserviceaccount.com  ',
+      });
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'gcs',
+          bucket: 'mybucket',
+          prefix: 'prefix',
+          impersonatedServiceAccount: 'target@svc.iam.gserviceaccount.com',
+        }),
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

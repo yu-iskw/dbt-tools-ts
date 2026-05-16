@@ -97,4 +97,31 @@ describe('mergeRemoteSourceConfigWithParsedLocation', () => {
       forcePathStyle: true,
     });
   });
+
+  it('merges GCS request impersonation and inherits projectId from env when provider matches', () => {
+    const merged = mergeRemoteSourceConfigWithParsedLocation(
+      {
+        provider: 'gcs',
+        bucket: 'ignored',
+        prefix: 'ignored',
+        pollIntervalMs: 9_000,
+        projectId: 'env-proj',
+      },
+      {
+        kind: 'remote',
+        provider: 'gcs',
+        bucket: 'b',
+        prefix: 'p',
+      },
+      { impersonatedServiceAccount: '  target@svc.iam.gserviceaccount.com  ' },
+    );
+    expect(merged).toEqual({
+      provider: 'gcs',
+      bucket: 'b',
+      prefix: 'p',
+      pollIntervalMs: 9_000,
+      projectId: 'env-proj',
+      impersonatedServiceAccount: 'target@svc.iam.gserviceaccount.com',
+    });
+  });
 });

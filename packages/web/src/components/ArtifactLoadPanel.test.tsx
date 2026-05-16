@@ -201,7 +201,7 @@ describe('ArtifactLoadPanel', () => {
       await Promise.resolve();
     });
 
-    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith('local', '/mock/solo', 'soloRun');
+    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith('local', '/mock/solo', 'soloRun', undefined);
     expect(refetchFromApi).toHaveBeenCalledWith('preload');
     expect(onManagedLoad).toHaveBeenCalledTimes(1);
 
@@ -276,7 +276,7 @@ describe('ArtifactLoadPanel', () => {
       await Promise.resolve();
     });
 
-    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith('local', '/mock/multi', 'runBeta');
+    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith('local', '/mock/multi', 'runBeta', undefined);
     expect(onManagedLoad).toHaveBeenCalledTimes(1);
 
     cleanupRoot(root, container);

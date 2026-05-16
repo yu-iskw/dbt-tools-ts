@@ -5,8 +5,46 @@ import {
   DBT_RUN_RESULTS_JSON,
   DBT_SOURCES_JSON,
 } from '@dbt-tools/core';
-import type { ArtifactSourceKind } from '@dbt-tools/core';
+import type { ArtifactSourceKind, GcsArtifactSourceRequestOptions } from '@dbt-tools/core';
 import type { ArtifactSourceService } from './sourceService';
+
+const ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR =
+  'Service account impersonation is only supported for Google Cloud Storage. Options are not supported for local or S3 artifact sources.';
+
+function parseArtifactSourceRequestOptions(
+  kind: ArtifactSourceKind,
+  body: Record<string, unknown>,
+):
+  | { ok: true; gcsOptions: GcsArtifactSourceRequestOptions | undefined }
+  | { ok: false; error: string } {
+  if (!Object.prototype.hasOwnProperty.call(body, 'options')) {
+    return { ok: true, gcsOptions: undefined };
+  }
+  const raw = body.options;
+  if (kind !== 'gcs') {
+    return { ok: false, error: ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR };
+  }
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {
+      ok: false,
+      error: 'Invalid options payload for Google Cloud Storage artifact source.',
+    };
+  }
+  const record = raw as Record<string, unknown>;
+  const isa = record.impersonatedServiceAccount;
+  if (isa !== undefined && isa !== null && typeof isa !== 'string') {
+    return {
+      ok: false,
+      error:
+        'Invalid options.impersonatedServiceAccount for Google Cloud Storage artifact source.',
+    };
+  }
+  const trimmed = typeof isa === 'string' ? isa.trim() : '';
+  return {
+    ok: true,
+    gcsOptions: trimmed === '' ? undefined : { impersonatedServiceAccount: trimmed },
+  };
+}
 
 async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
@@ -109,11 +147,18 @@ async function respondArtifactConfigure(
     });
     return;
   }
+  const kind = typeRaw as ArtifactSourceKind;
+  const parsedOptions = parseArtifactSourceRequestOptions(kind, body);
+  if (!parsedOptions.ok) {
+    sendJson(res, 400, { error: parsedOptions.error });
+    return;
+  }
   try {
     const status = await service.configureArtifactSource(
-      typeRaw as ArtifactSourceKind,
+      kind,
       location,
       runId,
+      parsedOptions.gcsOptions,
     );
     sendJson(res, 200, status);
   } catch (error) {
@@ -138,8 +183,18 @@ async function respondArtifactDiscover(
     });
     return;
   }
+  const kind = typeRaw as ArtifactSourceKind;
+  const parsedOptions = parseArtifactSourceRequestOptions(kind, body);
+  if (!parsedOptions.ok) {
+    sendJson(res, 400, { error: parsedOptions.error });
+    return;
+  }
   try {
-    const discovery = await service.discoverArtifactSource(typeRaw as ArtifactSourceKind, location);
+    const discovery = await service.discoverArtifactSource(
+      kind,
+      location,
+      parsedOptions.gcsOptions,
+    );
     sendJson(res, 200, discovery);
   } catch (error) {
     sendJson(res, 400, {

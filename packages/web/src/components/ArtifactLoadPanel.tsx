@@ -4,6 +4,7 @@ import {
   configureArtifactSourceFromApi,
   discoverArtifactSourceFromApi,
   refetchFromApi,
+  type ArtifactSourceDiscoveryResult,
   type MissingOptionalArtifactsState,
   type UserArtifactSourceKind,
 } from '../services/artifactSourceApi';
@@ -14,6 +15,28 @@ import {
 } from '../lib/artifactLoadPanelCopy';
 import { ArtifactLoadPanelForm } from './ArtifactLoadPanelForm';
 import { ArtifactLoadPanelHero } from './ArtifactLoadPanelHero';
+
+function summarizeArtifactDiscovery(discovery: ArtifactSourceDiscoveryResult): {
+  error: string | null;
+  candidateIds: string[];
+  selectedRunId: string | null;
+  autoLoadRunId: string | null;
+} {
+  if (discovery.discoveryError != null) {
+    return {
+      error: discovery.discoveryError,
+      candidateIds: [],
+      selectedRunId: null,
+      autoLoadRunId: null,
+    };
+  }
+  const candidateIds = discovery.candidates?.map((c) => c.runId) ?? [];
+  const needsSelection = discovery.needsSelection === true;
+  const selectedRunId = candidateIds.length === 1 ? candidateIds[0]! : null;
+  const autoLoadRunId =
+    candidateIds.length === 1 && !needsSelection ? candidateIds[0]! : null;
+  return { error: null, candidateIds, selectedRunId, autoLoadRunId };
+}
 
 export interface ArtifactLoadPanelProps {
   onManagedLoad: (
@@ -29,6 +52,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
   const readinessRegionId = useId();
   const [sourceKind, setSourceKind] = useState<UserArtifactSourceKind>('local');
   const [location, setLocation] = useState('');
+  const [impersonatedServiceAccount, setImpersonatedServiceAccount] = useState('');
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [loadLoading, setLoadLoading] = useState(false);
   const [candidateRunIds, setCandidateRunIds] = useState<string[]>([]);
@@ -37,8 +61,10 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
 
   const locationRef = useRef(location);
   const sourceKindRef = useRef(sourceKind);
+  const impersonatedServiceAccountRef = useRef(impersonatedServiceAccount);
   locationRef.current = location;
   sourceKindRef.current = sourceKind;
+  impersonatedServiceAccountRef.current = impersonatedServiceAccount;
 
   const discoverySeqRef = useRef(0);
   const lastScanKeyRef = useRef('');
@@ -86,6 +112,9 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
           sourceKindRef.current,
           locationRef.current.trim(),
           runId,
+          sourceKindRef.current === 'gcs'
+            ? { impersonatedServiceAccount: impersonatedServiceAccountRef.current }
+            : undefined,
         );
         const source = status.currentSource;
         if (source !== 'preload' && source !== 'remote') {
@@ -111,6 +140,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
           return;
         }
         onManagedLoad(result, source, caps);
+        setImpersonatedServiceAccount('');
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load artifacts.';
         onError(message);
@@ -126,7 +156,9 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
     async (force?: boolean) => {
       const kind = sourceKindRef.current;
       const loc = locationRef.current.trim();
-      const scanKey = `${kind}|${loc}`;
+      const impersonationTrimmed =
+        kind === 'gcs' ? impersonatedServiceAccountRef.current.trim() : '';
+      const scanKey = kind === 'gcs' ? `${kind}|${loc}|${impersonationTrimmed}` : `${kind}|${loc}`;
       if (loc === '') {
         onError('Enter a directory or bucket prefix.');
         return;
@@ -141,26 +173,27 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       setCandidateRunIds([]);
       setSelectedRunId(null);
       try {
-        const discovery = await discoverArtifactSourceFromApi(kind, loc);
+        const discovery = await discoverArtifactSourceFromApi(
+          kind,
+          loc,
+          kind === 'gcs'
+            ? { impersonatedServiceAccount: impersonatedServiceAccountRef.current }
+            : undefined,
+        );
         if (seq !== discoverySeqRef.current) {
           return;
         }
-        if (discovery.discoveryError != null) {
-          setDiscoveryError(discovery.discoveryError);
-          onError(discovery.discoveryError);
+        const summary = summarizeArtifactDiscovery(discovery);
+        if (summary.error != null) {
+          setDiscoveryError(summary.error);
+          onError(summary.error);
           return;
         }
-        const ids = discovery.candidates?.map((c) => c.runId) ?? [];
-        const needsSel = discovery.needsSelection === true;
-        setCandidateRunIds(ids);
-        if (ids.length === 1) {
-          setSelectedRunId(ids[0]!);
-        } else if (ids.length > 1) {
-          setSelectedRunId(null);
-        }
+        setCandidateRunIds(summary.candidateIds);
+        setSelectedRunId(summary.selectedRunId);
         lastScanKeyRef.current = scanKey;
-        if (ids.length === 1 && !needsSel) {
-          await loadWorkspaceForRunId(ids[0]!);
+        if (summary.autoLoadRunId != null) {
+          await loadWorkspaceForRunId(summary.autoLoadRunId);
         }
       } catch (err) {
         if (seq !== discoverySeqRef.current) {
@@ -203,6 +236,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         }}
         location={location}
         onLocationChange={setLocation}
+        impersonatedServiceAccount={impersonatedServiceAccount}
+        onImpersonatedServiceAccountChange={setImpersonatedServiceAccount}
         onLocationBlur={() => {
           if (locationRef.current.trim() === '') {
             return;

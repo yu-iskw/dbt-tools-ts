@@ -58,6 +58,8 @@ describe('ArtifactLoadPanelForm', () => {
         loadLoading={false}
         loadWorkspaceHint="Press Enter or blur Location to scan, then click Load workspace."
         onLoadWorkspace={vi.fn()}
+        impersonatedServiceAccount=""
+        onImpersonatedServiceAccountChange={vi.fn()}
       />,
     );
     const loadBtn = container.querySelector('button.primary-action[type="button"]');
@@ -68,5 +70,87 @@ describe('ArtifactLoadPanelForm', () => {
       'Press Enter or leave the Location field to scan for artifact runs.',
     );
     cleanupRoot(root, container);
+  });
+
+  it('shows impersonation field only for GCS with help text', () => {
+    const noop = vi.fn();
+    const { container: c1, root: r1 } = renderForm(
+      <ArtifactLoadPanelForm
+        readinessRegionId="r"
+        readinessLabel=""
+        sourceKind="local"
+        onSourceKindChange={noop}
+        location=""
+        onLocationChange={noop}
+        onLocationBlur={noop}
+        onLocationKeyDown={noop}
+        impersonatedServiceAccount=""
+        onImpersonatedServiceAccountChange={noop}
+        candidateRunIds={[]}
+        selectedRunId={null}
+        onSelectRunId={noop}
+        discoverLoading={false}
+        canLoad={false}
+        loadLoading={false}
+        loadWorkspaceHint={undefined}
+        onLoadWorkspace={noop}
+      />,
+    );
+    expect(c1.textContent).not.toContain('Impersonated service account');
+    cleanupRoot(r1, c1);
+
+    const { container: c3, root: r3 } = renderForm(
+      <ArtifactLoadPanelForm
+        readinessRegionId="r"
+        readinessLabel=""
+        sourceKind="s3"
+        onSourceKindChange={noop}
+        location=""
+        onLocationChange={noop}
+        onLocationBlur={noop}
+        onLocationKeyDown={noop}
+        impersonatedServiceAccount=""
+        onImpersonatedServiceAccountChange={noop}
+        candidateRunIds={[]}
+        selectedRunId={null}
+        onSelectRunId={noop}
+        discoverLoading={false}
+        canLoad={false}
+        loadLoading={false}
+        loadWorkspaceHint={undefined}
+        onLoadWorkspace={noop}
+      />,
+    );
+    expect(c3.textContent).not.toContain('Impersonated service account');
+    cleanupRoot(r3, c3);
+
+    const { container: c2, root: r2 } = renderForm(
+      <ArtifactLoadPanelForm
+        readinessRegionId="r"
+        readinessLabel=""
+        sourceKind="gcs"
+        onSourceKindChange={noop}
+        location=""
+        onLocationChange={noop}
+        onLocationBlur={noop}
+        onLocationKeyDown={noop}
+        impersonatedServiceAccount=""
+        onImpersonatedServiceAccountChange={noop}
+        candidateRunIds={[]}
+        selectedRunId={null}
+        onSelectRunId={noop}
+        discoverLoading={false}
+        canLoad={false}
+        loadLoading={false}
+        loadWorkspaceHint={undefined}
+        onLoadWorkspace={noop}
+      />,
+    );
+    expect(c2.textContent).toContain('Impersonated service account');
+    expect(c2.textContent).toContain(
+      'Uses server-side Google credentials to impersonate this service account for GCS access.',
+    );
+    expect(document.getElementById('artifact-gcs-impersonated-service-account')).not.toBeNull();
+    cleanupRoot(r2, c2);
   });
 });

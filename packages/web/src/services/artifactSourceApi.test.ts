@@ -468,4 +468,119 @@ describe('artifactSourceApi', () => {
       }),
     });
   });
+
+  it('sends GCS impersonation options when the trimmed value is non-empty', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS b/p',
+        candidates: [],
+        needsSelection: false,
+        discoveryError: null,
+      }),
+    );
+
+    await discoverArtifactSourceFromApi('gcs', 'gs://b/p', {
+      impersonatedServiceAccount: '  svc@p.iam.gserviceaccount.com  ',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/artifact-source/discover', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'gcs',
+        location: 'gs://b/p',
+        options: { impersonatedServiceAccount: 'svc@p.iam.gserviceaccount.com' },
+      }),
+    });
+  });
+
+  it('omits options for GCS when impersonation is blank after trim', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS b/p',
+        candidates: [],
+        needsSelection: false,
+        discoveryError: null,
+      }),
+    );
+
+    await discoverArtifactSourceFromApi('gcs', 'gs://b/p', {
+      impersonatedServiceAccount: '   ',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/artifact-source/discover', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type: 'gcs', location: 'gs://b/p' }),
+    });
+  });
+
+  it('does not send options for local or S3 discover requests', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        sourceKind: 's3',
+        locationDisplay: 'S3 x/y',
+        candidates: [],
+        needsSelection: false,
+        discoveryError: null,
+      }),
+    );
+
+    await discoverArtifactSourceFromApi('s3', 's3://x/y', {
+      impersonatedServiceAccount: 'svc@p.iam.gserviceaccount.com',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/artifact-source/discover', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type: 's3', location: 's3://x/y' }),
+    });
+  });
+
+  it('includes GCS options on configure when impersonation is set', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        mode: 'remote',
+        currentSource: 'remote',
+        label: 'Artifacts',
+        checkedAtMs: 1,
+        remoteProvider: 'gcs',
+        remoteLocation: 'GCS b/p',
+        pollIntervalMs: null,
+        currentRun: {
+          runId: 'r1',
+          label: 'GCS r1',
+          updatedAtMs: 2,
+          versionToken: 'v',
+        },
+        pendingRun: null,
+        supportsSwitch: false,
+      }),
+    );
+
+    await configureArtifactSourceFromApi('gcs', 'gs://b/p', 'r1', {
+      impersonatedServiceAccount: 'svc@p.iam.gserviceaccount.com',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/artifact-source/configure', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'gcs',
+        location: 'gs://b/p',
+        runId: 'r1',
+        options: { impersonatedServiceAccount: 'svc@p.iam.gserviceaccount.com' },
+      }),
+    });
+  });
 });
