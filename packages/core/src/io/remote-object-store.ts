@@ -89,13 +89,19 @@ class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
         scopes: ['https://www.googleapis.com/auth/cloud-platform'],
       });
       const sourceClient = await auth.getClient();
-      const impersonatedClient = new Impersonated({
+      const impersonated = new Impersonated({
         sourceClient,
         targetPrincipal: this.impersonatedServiceAccount,
         targetScopes: ['https://www.googleapis.com/auth/cloud-platform'],
         lifetime: 3600,
       });
-      return new Storage({ projectId: this.projectId, authClient: impersonatedClient });
+      // Use Impersonated only to call IAM generateAccessToken — not as authClient
+      // (Impersonated is not supported with REST-based clients like @google-cloud/storage)
+      const tokenResponse = await impersonated.getAccessToken();
+      if (!tokenResponse.token) {
+        throw new Error('Failed to obtain impersonated access token for GCS');
+      }
+      return new Storage({ projectId: this.projectId, token: tokenResponse.token });
     }
     return new Storage({ projectId: this.projectId });
   }
