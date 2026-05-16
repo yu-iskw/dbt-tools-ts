@@ -150,7 +150,47 @@ describe('ArtifactLoadPanelForm', () => {
     expect(c2.textContent).toContain(
       'Uses server-side Google credentials to impersonate this service account for GCS access.',
     );
+    expect(c2.textContent).toContain(
+      'After editing, leave this field or press Enter in Location so candidate runs match the impersonation setting.',
+    );
     expect(document.getElementById('artifact-gcs-impersonated-service-account')).not.toBeNull();
     cleanupRoot(r2, c2);
+  });
+
+  it('invokes onImpersonatedServiceAccountBlur when the impersonation field blurs', () => {
+    const onBlur = vi.fn();
+    const noop = vi.fn();
+    const { container, root } = renderForm(
+      <ArtifactLoadPanelForm
+        readinessRegionId="r"
+        readinessLabel=""
+        sourceKind="gcs"
+        onSourceKindChange={noop}
+        location="gs://b/p"
+        onLocationChange={noop}
+        onLocationBlur={noop}
+        onLocationKeyDown={noop}
+        impersonatedServiceAccount=""
+        onImpersonatedServiceAccountChange={noop}
+        onImpersonatedServiceAccountBlur={onBlur}
+        candidateRunIds={[]}
+        selectedRunId={null}
+        onSelectRunId={noop}
+        discoverLoading={false}
+        canLoad={false}
+        loadLoading={false}
+        loadWorkspaceHint={undefined}
+        onLoadWorkspace={noop}
+      />,
+    );
+    const input = container.querySelector(
+      '#artifact-gcs-impersonated-service-account',
+    ) as HTMLInputElement;
+    act(() => {
+      input.focus();
+      input.blur();
+    });
+    expect(onBlur).toHaveBeenCalledTimes(1);
+    cleanupRoot(root, container);
   });
 });

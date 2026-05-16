@@ -114,6 +114,18 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         onError('Select a candidate artifact set.');
         return;
       }
+      const kind = sourceKindRef.current;
+      const loc = locationRef.current.trim();
+      if (kind === 'gcs' && loc !== '') {
+        const impersonationTrimmed = impersonatedServiceAccountRef.current.trim();
+        const scanKey = `gcs|${loc}|${impersonationTrimmed}`;
+        if (scanKey !== lastScanKeyRef.current) {
+          onError(
+            'Run artifact discovery again after changing the GCS location or impersonated service account.',
+          );
+          return;
+        }
+      }
       setLoadLoading(true);
       onError(null);
       try {
@@ -246,6 +258,15 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         onLocationChange={setLocation}
         impersonatedServiceAccount={impersonatedServiceAccount}
         onImpersonatedServiceAccountChange={setImpersonatedServiceAccount}
+        onImpersonatedServiceAccountBlur={() => {
+          if (sourceKindRef.current !== 'gcs') {
+            return;
+          }
+          if (locationRef.current.trim() === '') {
+            return;
+          }
+          void runDiscovery(false);
+        }}
         onLocationBlur={() => {
           if (locationRef.current.trim() === '') {
             return;

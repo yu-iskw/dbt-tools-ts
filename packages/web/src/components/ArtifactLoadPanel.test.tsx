@@ -281,4 +281,72 @@ describe('ArtifactLoadPanel', () => {
 
     cleanupRoot(root, container);
   });
+
+  it('blocks GCS load when impersonation changed after discovery until discovery is re-run', async () => {
+    discoverArtifactSourceFromApi.mockResolvedValue({
+      sourceKind: 'gcs',
+      locationDisplay: 'gs://b/p',
+      candidates: [
+        {
+          runId: 'runAlpha',
+          label: 'GCS (runAlpha)',
+          updatedAtMs: 1,
+          versionToken: 'alpha',
+        },
+        {
+          runId: 'runBeta',
+          label: 'GCS (runBeta)',
+          updatedAtMs: 2,
+          versionToken: 'beta',
+        },
+      ],
+      needsSelection: true,
+      discoveryError: null,
+    });
+
+    const { container, root, onError, onManagedLoad } = renderPanel();
+    const sourceSelect = container.querySelector('#artifact-source-kind') as HTMLSelectElement;
+    const locationInput = container.querySelector('#artifact-location-input') as HTMLInputElement;
+
+    changeInput(sourceSelect, 'gcs');
+    await flushAsync();
+    changeInput(locationInput, 'gs://b/p');
+    await flushAsync();
+    await act(async () => {
+      locationInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(discoverArtifactSourceFromApi).toHaveBeenCalledWith('gcs', 'gs://b/p', {
+      impersonatedServiceAccount: '',
+    });
+    expect(configureArtifactSourceFromApi).not.toHaveBeenCalled();
+
+    const betaRadio = container.querySelector('#artifact-run-runBeta') as HTMLInputElement;
+    act(() => {
+      betaRadio.click();
+    });
+
+    const impersonationInput = container.querySelector(
+      '#artifact-gcs-impersonated-service-account',
+    ) as HTMLInputElement;
+    changeInput(impersonationInput, 'other@proj.iam.gserviceaccount.com');
+    await flushAsync();
+
+    const loadButton = container.querySelector('button.primary-action') as HTMLButtonElement;
+    await act(async () => {
+      loadButton.click();
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(onError).toHaveBeenCalledWith(
+      'Run artifact discovery again after changing the GCS location or impersonated service account.',
+    );
+    expect(configureArtifactSourceFromApi).not.toHaveBeenCalled();
+    expect(onManagedLoad).not.toHaveBeenCalled();
+
+    cleanupRoot(root, container);
+  });
 });
