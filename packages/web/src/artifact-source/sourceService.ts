@@ -12,6 +12,7 @@ import {
 } from '@dbt-tools/core';
 import {
   createRemoteObjectStoreClient,
+  type GcsRemoteObjectStoreOptions,
   type RemoteObjectStoreClient,
 } from '@dbt-tools/core/artifact-io';
 import {
@@ -35,6 +36,8 @@ import type {
 } from '../services/artifactSourceApi';
 
 export type { RemoteObjectStoreClient } from '@dbt-tools/core/artifact-io';
+
+export type GcsArtifactSourceOptions = GcsRemoteObjectStoreOptions;
 
 interface CurrentArtifactPayload {
   source: Exclude<WorkspaceArtifactSource, 'upload'>;
@@ -475,6 +478,7 @@ export class ArtifactSourceService {
   private async discoverArtifactSourceInternal(
     kind: ArtifactSourceKind,
     location: string,
+    options?: GcsArtifactSourceOptions,
   ): Promise<DiscoveredArtifactSource> {
     const parsed = parseArtifactSourceLocation(kind, location, this.cwd);
     if (parsed.kind === 'local') {
@@ -483,7 +487,7 @@ export class ArtifactSourceService {
 
     const env = getDbtToolsRemoteSourceConfigFromEnv();
     const merged = mergeRemoteSourceConfigWithParsedLocation(env, parsed);
-    const client = createRemoteObjectStoreClient(merged);
+    const client = createRemoteObjectStoreClient(merged, kind === 'gcs' ? options : undefined);
     return this.discoverRemoteConfiguration(merged, client);
   }
 
@@ -512,9 +516,10 @@ export class ArtifactSourceService {
   async discoverArtifactSource(
     kind: ArtifactSourceKind,
     location: string,
+    options?: GcsArtifactSourceOptions,
   ): Promise<ArtifactSourceDiscoveryResult> {
     await this.ensureReady();
-    const discovery = await this.discoverArtifactSourceInternal(kind, location);
+    const discovery = await this.discoverArtifactSourceInternal(kind, location, options);
     const candidates = this.previewToUiRows(discovery);
     const needsSelection = this.discoveryNeedsSelection(discovery, null);
     return {
@@ -535,9 +540,10 @@ export class ArtifactSourceService {
     kind: ArtifactSourceKind,
     location: string,
     runId?: string,
+    options?: GcsArtifactSourceOptions,
   ): Promise<ArtifactSourceStatus> {
     await this.ensureReady();
-    const discovery = await this.discoverArtifactSourceInternal(kind, location);
+    const discovery = await this.discoverArtifactSourceInternal(kind, location, options);
     const selectedRunId = this.resolveConfiguredRunId(discovery, runId);
     this.applyDiscoveredArtifactSource(discovery, selectedRunId);
 

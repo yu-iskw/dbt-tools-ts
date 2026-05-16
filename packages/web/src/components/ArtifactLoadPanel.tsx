@@ -4,6 +4,7 @@ import {
   configureArtifactSourceFromApi,
   discoverArtifactSourceFromApi,
   refetchFromApi,
+  type GcsProviderOptions,
   type MissingOptionalArtifactsState,
   type UserArtifactSourceKind,
 } from '../services/artifactSourceApi';
@@ -24,11 +25,18 @@ export interface ArtifactLoadPanelProps {
   onError: (message: string | null) => void;
 }
 
+function buildGcsOptions(kind: UserArtifactSourceKind, sa: string): GcsProviderOptions | undefined {
+  if (kind !== 'gcs') return undefined;
+  const trimmed = sa.trim();
+  return trimmed !== '' ? { impersonatedServiceAccount: trimmed } : undefined;
+}
+
 export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelProps) {
   const { toast } = useToast();
   const readinessRegionId = useId();
   const [sourceKind, setSourceKind] = useState<UserArtifactSourceKind>('local');
   const [location, setLocation] = useState('');
+  const [impersonatedServiceAccount, setImpersonatedServiceAccount] = useState('');
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [loadLoading, setLoadLoading] = useState(false);
   const [candidateRunIds, setCandidateRunIds] = useState<string[]>([]);
@@ -37,8 +45,10 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
 
   const locationRef = useRef(location);
   const sourceKindRef = useRef(sourceKind);
+  const impersonatedServiceAccountRef = useRef(impersonatedServiceAccount);
   locationRef.current = location;
   sourceKindRef.current = sourceKind;
+  impersonatedServiceAccountRef.current = impersonatedServiceAccount;
 
   const discoverySeqRef = useRef(0);
   const lastScanKeyRef = useRef('');
@@ -82,10 +92,15 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       setLoadLoading(true);
       onError(null);
       try {
+        const options = buildGcsOptions(
+          sourceKindRef.current,
+          impersonatedServiceAccountRef.current,
+        );
         const status = await configureArtifactSourceFromApi(
           sourceKindRef.current,
           locationRef.current.trim(),
           runId,
+          options,
         );
         const source = status.currentSource;
         if (source !== 'preload' && source !== 'remote') {
@@ -111,6 +126,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
           return;
         }
         onManagedLoad(result, source, caps);
+        setImpersonatedServiceAccount('');
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load artifacts.';
         onError(message);
@@ -126,7 +142,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
     async (force?: boolean) => {
       const kind = sourceKindRef.current;
       const loc = locationRef.current.trim();
-      const scanKey = `${kind}|${loc}`;
+      const sa = impersonatedServiceAccountRef.current.trim();
+      const scanKey = `${kind}|${loc}|${sa}`;
       if (loc === '') {
         onError('Enter a directory or bucket prefix.');
         return;
@@ -141,7 +158,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       setCandidateRunIds([]);
       setSelectedRunId(null);
       try {
-        const discovery = await discoverArtifactSourceFromApi(kind, loc);
+        const options = buildGcsOptions(kind, sa);
+        const discovery = await discoverArtifactSourceFromApi(kind, loc, options);
         if (seq !== discoverySeqRef.current) {
           return;
         }
@@ -203,6 +221,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         }}
         location={location}
         onLocationChange={setLocation}
+        impersonatedServiceAccount={impersonatedServiceAccount}
+        onImpersonatedServiceAccountChange={setImpersonatedServiceAccount}
         onLocationBlur={() => {
           if (locationRef.current.trim() === '') {
             return;

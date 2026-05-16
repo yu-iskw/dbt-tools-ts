@@ -6,7 +6,11 @@ import {
   DBT_SOURCES_JSON,
 } from '@dbt-tools/core';
 import type { ArtifactSourceKind } from '@dbt-tools/core';
-import type { ArtifactSourceService } from './sourceService';
+import type { ArtifactSourceService, GcsArtifactSourceOptions } from './sourceService';
+
+const OPTIONS_NOT_SUPPORTED_ERROR =
+  'Service account impersonation is only supported for Google Cloud Storage. ' +
+  'Options are not supported for local or S3 artifact sources.';
 
 async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
@@ -20,6 +24,30 @@ async function readJsonBody(request: IncomingMessage): Promise<Record<string, un
   } catch {
     return {};
   }
+}
+
+function parseProviderOptions(
+  typeRaw: unknown,
+  optionsRaw: unknown,
+): { ok: true; options: GcsArtifactSourceOptions | undefined } | { ok: false } {
+  if (optionsRaw == null) {
+    return { ok: true, options: undefined };
+  }
+  if (typeof optionsRaw !== 'object' || Array.isArray(optionsRaw)) {
+    return { ok: false };
+  }
+  if (typeRaw !== 'gcs') {
+    return { ok: false };
+  }
+  const opts = optionsRaw as Record<string, unknown>;
+  const raw =
+    typeof opts.impersonatedServiceAccount === 'string'
+      ? opts.impersonatedServiceAccount.trim()
+      : undefined;
+  return {
+    ok: true,
+    options: raw != null && raw !== '' ? { impersonatedServiceAccount: raw } : undefined,
+  };
 }
 
 function sendJson(res: ServerResponse, statusCode: number, payload: unknown): void {
@@ -109,11 +137,17 @@ async function respondArtifactConfigure(
     });
     return;
   }
+  const parsed = parseProviderOptions(typeRaw, body.options);
+  if (!parsed.ok) {
+    sendJson(res, 400, { error: OPTIONS_NOT_SUPPORTED_ERROR });
+    return;
+  }
   try {
     const status = await service.configureArtifactSource(
       typeRaw as ArtifactSourceKind,
       location,
       runId,
+      parsed.options,
     );
     sendJson(res, 200, status);
   } catch (error) {
@@ -138,8 +172,17 @@ async function respondArtifactDiscover(
     });
     return;
   }
+  const parsed = parseProviderOptions(typeRaw, body.options);
+  if (!parsed.ok) {
+    sendJson(res, 400, { error: OPTIONS_NOT_SUPPORTED_ERROR });
+    return;
+  }
   try {
-    const discovery = await service.discoverArtifactSource(typeRaw as ArtifactSourceKind, location);
+    const discovery = await service.discoverArtifactSource(
+      typeRaw as ArtifactSourceKind,
+      location,
+      parsed.options,
+    );
     sendJson(res, 200, discovery);
   } catch (error) {
     sendJson(res, 400, {

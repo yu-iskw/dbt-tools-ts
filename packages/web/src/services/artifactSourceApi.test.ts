@@ -433,6 +433,106 @@ describe('artifactSourceApi', () => {
     });
   });
 
+  it('sends options.impersonatedServiceAccount for gcs discover with non-empty service account', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS bucket/prefix',
+        candidates: [],
+        needsSelection: false,
+        discoveryError: null,
+      }),
+    );
+
+    await discoverArtifactSourceFromApi('gcs', 'gs://bucket/prefix', {
+      impersonatedServiceAccount: '  sa@project.iam.gserviceaccount.com  ',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/artifact-source/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'gcs',
+        location: 'gs://bucket/prefix',
+        options: { impersonatedServiceAccount: 'sa@project.iam.gserviceaccount.com' },
+      }),
+    });
+  });
+
+  it('omits options from discover payload when impersonatedServiceAccount is blank', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS bucket/prefix',
+        candidates: [],
+        needsSelection: false,
+        discoveryError: null,
+      }),
+    );
+
+    await discoverArtifactSourceFromApi('gcs', 'gs://bucket/prefix', {
+      impersonatedServiceAccount: '   ',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/artifact-source/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'gcs', location: 'gs://bucket/prefix' }),
+    });
+  });
+
+  it('omits options from discover payload for local source', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        sourceKind: 'local',
+        locationDisplay: '/tmp/dir',
+        candidates: [],
+        needsSelection: false,
+        discoveryError: null,
+      }),
+    );
+
+    await discoverArtifactSourceFromApi('local', '/tmp/dir');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/artifact-source/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'local', location: '/tmp/dir' }),
+    });
+  });
+
+  it('sends options.impersonatedServiceAccount in configure payload for gcs', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        mode: 'remote',
+        currentSource: 'remote',
+        label: 'GCS',
+        checkedAtMs: 1,
+        remoteProvider: 'gcs',
+        remoteLocation: 'gs://b/p',
+        pollIntervalMs: null,
+        currentRun: { runId: 'runX', label: 'runX', updatedAtMs: 1, versionToken: 'v' },
+        pendingRun: null,
+        supportsSwitch: false,
+      }),
+    );
+
+    await configureArtifactSourceFromApi('gcs', 'gs://b/p', 'runX', {
+      impersonatedServiceAccount: 'sa@project.iam.gserviceaccount.com',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/artifact-source/configure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'gcs',
+        location: 'gs://b/p',
+        runId: 'runX',
+        options: { impersonatedServiceAccount: 'sa@project.iam.gserviceaccount.com' },
+      }),
+    });
+  });
+
   it('includes runId when committing a configured artifact source', async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({

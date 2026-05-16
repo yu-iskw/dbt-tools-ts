@@ -19,6 +19,10 @@ export interface RemoteArtifactRun {
 
 export type UserArtifactSourceKind = 'local' | 's3' | 'gcs';
 
+export interface GcsProviderOptions {
+  impersonatedServiceAccount?: string;
+}
+
 export interface MissingOptionalArtifactsState {
   missingCatalog: boolean;
   missingSources: boolean;
@@ -271,13 +275,20 @@ export async function switchToArtifactRun(runId?: string): Promise<ArtifactSourc
 export async function discoverArtifactSourceFromApi(
   kind: UserArtifactSourceKind,
   location: string,
+  options?: GcsProviderOptions,
 ): Promise<ArtifactSourceDiscoveryResult> {
+  const trimmedSa = kind === 'gcs' ? (options?.impersonatedServiceAccount?.trim() ?? '') : '';
+  const resolvedOptions = trimmedSa !== '' ? { impersonatedServiceAccount: trimmedSa } : undefined;
   const response = await fetch('/api/artifact-source/discover', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ type: kind, location }),
+    body: JSON.stringify({
+      type: kind,
+      location,
+      ...(resolvedOptions != null ? { options: resolvedOptions } : {}),
+    }),
   });
 
   const data = (await response.json().catch(() => ({}))) as
@@ -300,7 +311,10 @@ export async function configureArtifactSourceFromApi(
   kind: UserArtifactSourceKind,
   location: string,
   runId?: string,
+  options?: GcsProviderOptions,
 ): Promise<ArtifactSourceStatus> {
+  const trimmedSa = kind === 'gcs' ? (options?.impersonatedServiceAccount?.trim() ?? '') : '';
+  const resolvedOptions = trimmedSa !== '' ? { impersonatedServiceAccount: trimmedSa } : undefined;
   const response = await fetch('/api/artifact-source/configure', {
     method: 'POST',
     headers: {
@@ -310,6 +324,7 @@ export async function configureArtifactSourceFromApi(
       type: kind,
       location,
       ...(runId != null && runId.trim() !== '' ? { runId } : {}),
+      ...(resolvedOptions != null ? { options: resolvedOptions } : {}),
     }),
   });
 

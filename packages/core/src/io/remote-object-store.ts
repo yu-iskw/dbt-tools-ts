@@ -8,6 +8,10 @@ export interface RemoteObjectStoreClient {
   readObjectBytes(bucket: string, key: string): Promise<Uint8Array>;
 }
 
+export interface GcsRemoteObjectStoreOptions {
+  impersonatedServiceAccount?: string;
+}
+
 class S3RemoteObjectStoreClient implements RemoteObjectStoreClient {
   private readonly client: S3Client;
 
@@ -64,9 +68,12 @@ class S3RemoteObjectStoreClient implements RemoteObjectStoreClient {
 class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
   private readonly storage: Storage;
 
-  constructor(config: DbtToolsRemoteSourceConfig) {
+  constructor(config: DbtToolsRemoteSourceConfig, options?: GcsRemoteObjectStoreOptions) {
     this.storage = new Storage({
       projectId: config.projectId,
+      ...(options?.impersonatedServiceAccount
+        ? { impersonatedServiceAccount: options.impersonatedServiceAccount }
+        : {}),
     });
   }
 
@@ -99,8 +106,9 @@ class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
 
 export function createRemoteObjectStoreClient(
   config: DbtToolsRemoteSourceConfig,
+  gcsOptions?: GcsRemoteObjectStoreOptions,
 ): RemoteObjectStoreClient {
   return config.provider === 's3'
     ? new S3RemoteObjectStoreClient(config)
-    : new GcsRemoteObjectStoreClient(config);
+    : new GcsRemoteObjectStoreClient(config, gcsOptions);
 }

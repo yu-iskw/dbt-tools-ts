@@ -12,6 +12,8 @@ export type ArtifactLoadPanelFormProps = {
   onLocationChange: (value: string) => void;
   onLocationBlur: () => void;
   onLocationKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  impersonatedServiceAccount: string;
+  onImpersonatedServiceAccountChange: (value: string) => void;
   candidateRunIds: string[];
   selectedRunId: string | null;
   onSelectRunId: (runId: string) => void;
@@ -31,6 +33,8 @@ export function ArtifactLoadPanelForm({
   onLocationChange,
   onLocationBlur,
   onLocationKeyDown,
+  impersonatedServiceAccount,
+  onImpersonatedServiceAccountChange,
   candidateRunIds,
   selectedRunId,
   onSelectRunId,
@@ -84,6 +88,23 @@ export function ArtifactLoadPanelForm({
             onKeyDown={onLocationKeyDown}
           />
         </div>
+        {sourceKind === 'gcs' ? (
+          <div className="file-input-card">
+            <label htmlFor="artifact-impersonated-sa-input">Impersonated service account</label>
+            <input
+              id="artifact-impersonated-sa-input"
+              type="text"
+              autoComplete="off"
+              placeholder="service-account@project.iam.gserviceaccount.com"
+              value={impersonatedServiceAccount}
+              onChange={(e) => onImpersonatedServiceAccountChange(e.target.value)}
+            />
+            <p className="upload-panel__field-hint">
+              Optional. Uses server-side Google credentials to impersonate this service account for
+              GCS access.
+            </p>
+          </div>
+        ) : null}
         {candidateRunIds.length > 0 ? (
           <fieldset className="file-input-card">
             <legend>

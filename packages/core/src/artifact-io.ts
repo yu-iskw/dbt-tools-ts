@@ -4,5 +4,6 @@
 export type { RemoteObjectMetadata } from './io/artifact-discovery';
 export {
   createRemoteObjectStoreClient,
+  type GcsRemoteObjectStoreOptions,
   type RemoteObjectStoreClient,
 } from './io/remote-object-store';
