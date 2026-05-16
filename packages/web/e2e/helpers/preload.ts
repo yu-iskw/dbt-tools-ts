@@ -310,14 +310,71 @@ export async function registerSingleCandidateArtifactSourceMocks(
 
 export const GCS_MOCK_IMPERSONATION_SA = 'e2e-impersonation@test.iam.gserviceaccount.com';
 
+const GCS_MOCK_LOCATION_DISPLAY = 'GCS mock-bucket/mock-prefix';
+
+const GCS_SOLO_RUN = {
+  runId: 'gcsSoloRun',
+  label: 'GCS (gcsSoloRun)',
+  updatedAtMs: 13,
+  versionToken: 'v-gcs-solo',
+} as const;
+
 function gcsMultiCandidateDiscoveryStatus() {
   return {
     sourceKind: 'gcs' as const,
-    locationDisplay: 'GCS mock-bucket/mock-prefix',
+    locationDisplay: GCS_MOCK_LOCATION_DISPLAY,
     candidates: [MULTI_CANDIDATE_RUN_ALPHA, MULTI_CANDIDATE_RUN_BETA],
     needsSelection: true,
     discoveryError: null,
   };
+}
+
+function gcsSingleCandidateDiscoveryStatus() {
+  return {
+    sourceKind: 'gcs' as const,
+    locationDisplay: GCS_MOCK_LOCATION_DISPLAY,
+    candidates: [GCS_SOLO_RUN],
+    needsSelection: false,
+    discoveryError: null,
+  };
+}
+
+function gcsSingleCandidatePostSwitchStatus() {
+  return {
+    mode: 'preload' as const,
+    currentSource: 'preload' as const,
+    label: 'Mock GCS single-run location',
+    checkedAtMs: Date.now(),
+    remoteProvider: null,
+    remoteLocation: null,
+    pollIntervalMs: null,
+    currentRun: GCS_SOLO_RUN,
+    pendingRun: null,
+    supportsSwitch: false,
+    needsSelection: false,
+    discoveryError: null,
+    candidates: [GCS_SOLO_RUN],
+    sourceKind: 'gcs' as const,
+    locationDisplay: GCS_MOCK_LOCATION_DISPLAY,
+    missingOptionalArtifacts: {
+      missingCatalog: true,
+      missingSources: true,
+    },
+  };
+}
+
+async function registerGcsSingleCandidateConfigurePostRoute(page: Page): Promise<void> {
+  await page.route(ARTIFACT_SOURCE_CONFIGURE_GLOB, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({ status: 405 });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(gcsSingleCandidatePostSwitchStatus()),
+    });
+  });
 }
 
 /**
@@ -349,6 +406,40 @@ export async function registerGcsMultiCandidateArtifactSourceMocks(
     });
   });
   await registerMultiRunConfigurePostRoute(page);
+  await registerArtifactSourceManagedNoneGetRoute(page);
+  await registerArtifactJsonByteRoutes(page, options);
+}
+
+/**
+ * GCS discover with impersonation (same assertions as
+ * {@link registerGcsMultiCandidateArtifactSourceMocks}), but a single candidate and
+ * `needsSelection: false` so the UI auto-configures after Enter (no candidate radios).
+ */
+export async function registerGcsSingleCandidateWithImpersonationMocks(
+  page: Page,
+  options?: {
+    catalogPath?: string;
+    sourcesPath?: string;
+  },
+) {
+  await page.route(ARTIFACT_SOURCE_DISCOVER_GLOB, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({ status: 405 });
+      return;
+    }
+    const body = route.request().postDataJSON() as {
+      type?: unknown;
+      options?: { impersonatedServiceAccount?: unknown };
+    };
+    expect(body.type).toBe('gcs');
+    expect(body.options).toEqual({ impersonatedServiceAccount: GCS_MOCK_IMPERSONATION_SA });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(gcsSingleCandidateDiscoveryStatus()),
+    });
+  });
+  await registerGcsSingleCandidateConfigurePostRoute(page);
   await registerArtifactSourceManagedNoneGetRoute(page);
   await registerArtifactJsonByteRoutes(page, options);
 }
