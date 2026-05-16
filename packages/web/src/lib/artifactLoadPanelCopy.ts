@@ -29,9 +29,6 @@ export function getArtifactReadinessLabel(input: ArtifactLoadReadinessInput): st
   if (input.candidateRunIds.length > 0 && hasRunSelection) {
     return 'Ready to load the workspace.';
   }
-  if (input.candidateRunIds.length > 1 && !hasRunSelection) {
-    return 'Pick a candidate set, then load.';
-  }
   if (input.location.trim() === '') {
     return 'Enter a location, then press Enter or move focus away to scan.';
   }
@@ -66,10 +63,6 @@ export function getArtifactLoadWorkspaceHint(
   }
   if (input.candidateRunIds.length === 0) {
     return 'Press Enter or blur Location to scan, then click Load workspace.';
-  }
-  const hasRunSelection = input.selectedRunId != null && input.selectedRunId.trim() !== '';
-  if (input.candidateRunIds.length > 1 && !hasRunSelection) {
-    return 'Pick a candidate run, then click Load workspace.';
   }
   return 'Press Enter or blur Location to scan, then click Load workspace.';
 }

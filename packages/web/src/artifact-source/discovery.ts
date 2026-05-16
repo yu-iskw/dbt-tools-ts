@@ -65,6 +65,11 @@ export function discoverRemoteArtifactDiscovery(
   return discoverArtifactCandidates(listed);
 }
 
+/**
+ * Resolve object-store keys to at most one {@link ResolvedArtifactRun}.
+ * Returns an empty array when discovery fails, including when multiple complete
+ * runs exist under the same prefix (caller should surface {@link discoverRemoteArtifactDiscovery}).
+ */
 export function discoverLatestArtifactRuns(
   objects: RemoteObjectMetadata[],
   prefix: string,

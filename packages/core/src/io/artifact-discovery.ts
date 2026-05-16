@@ -34,8 +34,10 @@ export interface ResolvedArtifactCandidate {
 
 export type MissingRequiredBasename = typeof DBT_MANIFEST_JSON | typeof DBT_RUN_RESULTS_JSON;
 
+export type ArtifactDiscoveryFailureCode = 'MISSING_REQUIRED_PAIR' | 'MULTIPLE_ARTIFACT_RUNS';
+
 export interface ArtifactDiscoveryFailure {
-  readonly code: 'MISSING_REQUIRED_PAIR';
+  readonly code: ArtifactDiscoveryFailureCode;
   readonly message: string;
   readonly missingBasenames: MissingRequiredBasename[];
 }
@@ -165,6 +167,21 @@ function buildResolvedCandidates(
   return candidates;
 }
 
+function multipleRunsFailure(runIds: readonly string[]): ArtifactDiscoveryResult {
+  const sorted = [...runIds].sort();
+  return {
+    ok: false,
+    failure: {
+      code: 'MULTIPLE_ARTIFACT_RUNS',
+      message:
+        `Multiple dbt artifact runs were found (${sorted.join(', ')}). ` +
+        'Point to a single directory or bucket prefix that contains only one manifest.json + ' +
+        'run_results.json pair (for example one run subfolder), then scan again.',
+      missingBasenames: [],
+    },
+  };
+}
+
 function noCandidatesFailure(filtered: ListedArtifactObject[]): ArtifactDiscoveryResult {
   const sawManifest = filtered.some((o) => basenamePosix(o.relativePath) === DBT_MANIFEST_JSON);
   const sawRunResults = filtered.some(
@@ -207,7 +224,10 @@ export function discoverArtifactCandidates(
   const grouped = groupListedByRunId(filtered);
   const candidates = buildResolvedCandidates(grouped);
 
-  if (candidates.length > 0) {
+  if (candidates.length > 1) {
+    return multipleRunsFailure(candidates.map((c) => c.runId));
+  }
+  if (candidates.length === 1) {
     return { ok: true, candidates };
   }
 

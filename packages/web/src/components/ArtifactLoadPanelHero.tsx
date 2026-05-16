@@ -28,8 +28,9 @@ export function ArtifactLoadPanelHero() {
         <span className="upload-hero__callout-badge">Layout</span>
         <strong>Artifacts at the location root or one subdirectory deep.</strong>
         <p>
-          Multiple complete pairs under the same location require an explicit choice—nothing is
-          auto-picked when several candidates exist.
+          Only one complete dbt run (manifest.json + run_results.json together) is supported per
+          location. If several runs are present, narrow the path to a single run folder or prefix,
+          then scan again.
         </p>
       </div>
 

@@ -34,27 +34,16 @@ function managedPreloadStatus() {
   };
 }
 
-const MULTI_CANDIDATE_RUN_ALPHA = {
-  runId: 'runAlpha',
-  label: 'Local (runAlpha)',
-  updatedAtMs: 10,
-  versionToken: 'v-alpha',
-} as const;
+const MULTI_RUN_DISCOVERY_ERROR =
+  'Multiple dbt artifact runs were found (runAlpha, runBeta). Point to a single directory or bucket prefix that contains only one manifest.json + run_results.json pair (for example one run subfolder), then scan again.';
 
-const MULTI_CANDIDATE_RUN_BETA = {
-  runId: 'runBeta',
-  label: 'Local (runBeta)',
-  updatedAtMs: 11,
-  versionToken: 'v-beta',
-} as const;
-
-function multiCandidateDiscoveryStatus() {
+function ambiguousDiscoveryStatus() {
   return {
     sourceKind: 'local' as const,
-    locationDisplay: '/mock/multi',
-    candidates: [MULTI_CANDIDATE_RUN_ALPHA, MULTI_CANDIDATE_RUN_BETA],
-    needsSelection: true,
-    discoveryError: null,
+    locationDisplay: '/mock/ambiguous',
+    candidates: undefined,
+    needsSelection: false,
+    discoveryError: MULTI_RUN_DISCOVERY_ERROR,
   };
 }
 
@@ -120,30 +109,45 @@ function singleCandidatePostSwitchStatus() {
   };
 }
 
-function multiCandidatePostSwitchStatus(runId: string) {
-  const currentRun =
-    runId === MULTI_CANDIDATE_RUN_BETA.runId ? MULTI_CANDIDATE_RUN_BETA : MULTI_CANDIDATE_RUN_ALPHA;
-  return {
-    mode: 'preload' as const,
-    currentSource: 'preload' as const,
-    label: 'Mock multi-run location',
-    checkedAtMs: Date.now(),
-    remoteProvider: null,
-    remoteLocation: null,
-    pollIntervalMs: null,
-    currentRun,
-    pendingRun: null,
-    supportsSwitch: false,
-    needsSelection: false,
-    discoveryError: null,
-    candidates: [MULTI_CANDIDATE_RUN_ALPHA, MULTI_CANDIDATE_RUN_BETA],
-    sourceKind: 'local' as const,
-    locationDisplay: '/mock/multi',
-    missingOptionalArtifacts: {
-      missingCatalog: true,
-      missingSources: true,
-    },
-  };
+/**
+ * Mock POST discover returning a multiple-runs error (no configure flow).
+ * Register before `goto("/")`.
+ */
+export async function registerAmbiguousArtifactDiscoveryMocks(
+  page: Page,
+  options?: {
+    catalogPath?: string;
+    sourcesPath?: string;
+  },
+) {
+  await page.route('**/api/artifact-source/discover', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({ status: 405 });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(ambiguousDiscoveryStatus()),
+    });
+  });
+  await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname !== '/api/artifact-source') {
+      await route.continue();
+      return;
+    }
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(managedNoneStatus()),
+    });
+  });
+  await registerArtifactJsonByteRoutes(page, options);
 }
 
 /** Fulfill managed + legacy artifact JSON byte routes (use with configure/switch mocks). */
@@ -198,66 +202,6 @@ async function registerArtifactJsonByteRoutes(
         })
       : route.fulfill({ status: 404 }),
   );
-}
-
-/**
- * Mock POST discover (two candidates, needs selection) + POST configure + artifact bytes.
- * Register before `goto("/")`. GET `/api/artifact-source` returns `mode: "none"` so the
- * client does not fall through to legacy manifest URLs while artifact byte routes are mocked.
- */
-export async function registerMultiCandidateArtifactSourceMocks(
-  page: Page,
-  options?: {
-    catalogPath?: string;
-    sourcesPath?: string;
-  },
-) {
-  await page.route('**/api/artifact-source/discover', async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.fulfill({ status: 405 });
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(multiCandidateDiscoveryStatus()),
-    });
-  });
-  await page.route('**/api/artifact-source/configure', async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.fulfill({ status: 405 });
-      return;
-    }
-    let runId = '';
-    try {
-      const body = route.request().postDataJSON() as { runId?: unknown };
-      if (typeof body.runId === 'string') runId = body.runId;
-    } catch {
-      runId = '';
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(multiCandidatePostSwitchStatus(runId)),
-    });
-  });
-  await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
-    const pathname = new URL(route.request().url()).pathname;
-    if (pathname !== '/api/artifact-source') {
-      await route.continue();
-      return;
-    }
-    if (route.request().method() !== 'GET') {
-      await route.continue();
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(managedNoneStatus()),
-    });
-  });
-  await registerArtifactJsonByteRoutes(page, options);
 }
 
 /**

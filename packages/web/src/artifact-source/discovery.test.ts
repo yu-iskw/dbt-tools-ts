@@ -6,7 +6,7 @@ import {
 } from './discovery';
 
 describe('discoverLatestArtifactRuns', () => {
-  it('returns complete runs sorted by most recent update', () => {
+  it('returns empty when multiple complete runs exist under the same prefix', () => {
     const objects: RemoteObjectMetadata[] = [
       {
         key: 'prod/runs/2026-03-29T12-00-00Z/manifest.json',
@@ -30,16 +30,7 @@ describe('discoverLatestArtifactRuns', () => {
       },
     ];
 
-    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toMatchObject([
-      {
-        runId: '2026-03-29T13-00-00Z',
-        manifestKey: 'prod/runs/2026-03-29T13-00-00Z/manifest.json',
-        runResultsKey: 'prod/runs/2026-03-29T13-00-00Z/run_results.json',
-      },
-      {
-        runId: '2026-03-29T12-00-00Z',
-      },
-    ]);
+    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toEqual([]);
   });
 
   it('rejects partial uploads', () => {
@@ -85,7 +76,7 @@ describe('discoverLatestArtifactRuns', () => {
     });
   });
 
-  it('sorts by required artifact freshness instead of optional enrichments', () => {
+  it('returns empty when two timestamp runs are both complete (ambiguous prefix)', () => {
     const objects: RemoteObjectMetadata[] = [
       {
         key: 'prod/runs/2026-03-29T12-00-00Z/manifest.json',
@@ -96,11 +87,6 @@ describe('discoverLatestArtifactRuns', () => {
         key: 'prod/runs/2026-03-29T12-00-00Z/run_results.json',
         updatedAtMs: 110,
         etag: 'r1',
-      },
-      {
-        key: 'prod/runs/2026-03-29T12-00-00Z/catalog.json',
-        updatedAtMs: 300,
-        etag: 'c1',
       },
       {
         key: 'prod/runs/2026-03-29T13-00-00Z/manifest.json',
@@ -114,16 +100,7 @@ describe('discoverLatestArtifactRuns', () => {
       },
     ];
 
-    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toMatchObject([
-      {
-        runId: '2026-03-29T13-00-00Z',
-        updatedAtMs: 210,
-      },
-      {
-        runId: '2026-03-29T12-00-00Z',
-        updatedAtMs: 110,
-      },
-    ]);
+    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toEqual([]);
   });
 
   it('includes optional artifact metadata in the version token', () => {

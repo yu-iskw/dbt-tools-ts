@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import {
   loadWorkspace,
   mockPreload,
-  registerMultiCandidateArtifactSourceMocks,
+  registerAmbiguousArtifactDiscoveryMocks,
   registerSingleCandidateArtifactSourceMocks,
 } from './helpers/preload';
 
@@ -61,20 +61,14 @@ test.describe('analyze flow', () => {
     await expectNoErrorBanner(page);
   });
 
-  test('artifact load panel multi-candidate scan, pick run, load workspace', async ({ page }) => {
-    await registerMultiCandidateArtifactSourceMocks(page);
+  test('artifact load panel reports error when multiple runs would match', async ({ page }) => {
+    await registerAmbiguousArtifactDiscoveryMocks(page);
     await page.goto('/');
-    await page.getByRole('textbox', { name: 'Location' }).fill('/mock/multi');
+    await page.getByRole('textbox', { name: 'Location' }).fill('/mock/ambiguous');
     await commitLocationScan(page);
-    await expect(page.getByRole('group', { name: /Candidate sets/i })).toBeVisible();
-    await expect(page.getByRole('radio', { name: 'runAlpha' })).toBeVisible();
-    await expect(page.getByRole('radio', { name: 'runBeta' })).toBeVisible();
-    await page.getByRole('radio', { name: 'runBeta' }).click();
-    await page.getByRole('button', { name: LOAD_WORKSPACE }).click();
-    await expect(page.getByRole('heading', { name: 'Health' }).first()).toBeVisible({
-      timeout: 30_000,
-    });
-    await expectNoErrorBanner(page);
+    await expect(page.getByRole('status')).toContainText('Multiple dbt artifact runs');
+    const loadBtn = page.getByRole('button', { name: LOAD_WORKSPACE });
+    await expect(loadBtn).toBeDisabled();
   });
 
   test('artifact load panel source type updates location placeholder', async ({ page }) => {

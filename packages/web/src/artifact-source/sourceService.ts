@@ -238,8 +238,8 @@ export class ArtifactSourceService {
     return runToUiRow(this.mode, this.remoteProvider, run);
   }
 
-  private needsExplicitRunSelection(discoveryError: string | null): boolean {
-    return this.runs.length > 0 && this.selectedRunId == null && discoveryError == null;
+  private needsExplicitRunSelection(_discoveryError: string | null): boolean {
+    return false;
   }
 
   private optionalArtifactsForResolved(
@@ -378,15 +378,6 @@ export class ArtifactSourceService {
     return discovery.runs.map((run) => runToUiRow(discovery.mode, discovery.remoteProvider, run));
   }
 
-  private discoveryNeedsSelection(
-    discovery: DiscoveredArtifactSource,
-    selectedRunId: string | null,
-  ): boolean {
-    const discoveryError =
-      discovery.discoveryResult.ok === true ? null : discovery.discoveryResult.failure.message;
-    return discovery.runs.length > 0 && selectedRunId == null && discoveryError == null;
-  }
-
   private resolveConfiguredRunId(discovery: DiscoveredArtifactSource, runId?: string): string {
     if (!discovery.discoveryResult.ok) {
       throw new Error(discovery.discoveryResult.failure.message);
@@ -410,7 +401,7 @@ export class ArtifactSourceService {
       throw new Error('No complete dbt artifact pair found at this location.');
     }
     throw new Error(
-      `Multiple artifact sets found (${discovery.runs.length}). Select a candidate run before loading.`,
+      `Expected at most one artifact run, found ${discovery.runs.length}. This should be unreachable when discovery is enforced upstream.`,
     );
   }
 
@@ -516,12 +507,11 @@ export class ArtifactSourceService {
     await this.ensureReady();
     const discovery = await this.discoverArtifactSourceInternal(kind, location);
     const candidates = this.previewToUiRows(discovery);
-    const needsSelection = this.discoveryNeedsSelection(discovery, null);
     return {
       sourceKind: discovery.sourceKind,
       locationDisplay: discovery.locationDisplay,
       candidates: candidates.length > 0 ? candidates : undefined,
-      needsSelection,
+      needsSelection: false,
       discoveryError:
         discovery.discoveryResult.ok === true ? null : discovery.discoveryResult.failure.message,
     };

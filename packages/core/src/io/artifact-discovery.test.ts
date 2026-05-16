@@ -69,18 +69,18 @@ describe('discoverArtifactCandidates', () => {
     expect(r.failure.missingBasenames).toContain(DBT_RUN_RESULTS_JSON);
   });
 
-  it('groups multiple immediate subdirectories as separate candidates', () => {
+  it('fails when multiple complete runs exist under the same location', () => {
     const r = discoverArtifactCandidates([
       { relativePath: `a/${DBT_MANIFEST_JSON}`, updatedAtMs: 1 },
       { relativePath: `a/${DBT_RUN_RESULTS_JSON}`, updatedAtMs: 2 },
       { relativePath: `b/${DBT_MANIFEST_JSON}`, updatedAtMs: 3 },
       { relativePath: `b/${DBT_RUN_RESULTS_JSON}`, updatedAtMs: 4 },
     ]);
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.candidates).toHaveLength(2);
-    const ids = r.candidates.map((c) => c.runId).sort();
-    expect(ids).toEqual(['a', 'b']);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.failure.code).toBe('MULTIPLE_ARTIFACT_RUNS');
+    expect(r.failure.message).toContain('a');
+    expect(r.failure.message).toContain('b');
   });
 
   it('ignores too-deep keys in input', () => {
@@ -137,8 +137,8 @@ describe('listLocalArtifactObjects', () => {
     );
 
     const r = discoverArtifactCandidates(listed);
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.candidates.length).toBeGreaterThanOrEqual(2);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.failure.code).toBe('MULTIPLE_ARTIFACT_RUNS');
   });
 });

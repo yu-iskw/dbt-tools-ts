@@ -76,7 +76,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
   const loadWorkspaceForRunId = useCallback(
     async (runId: string) => {
       if (runId.trim() === '') {
-        onError('Select a candidate artifact set.');
+        onError('No artifact run is ready to load. Scan the location first.');
         return;
       }
       setLoadLoading(true);
@@ -151,16 +151,13 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
           return;
         }
         const ids = discovery.candidates?.map((c) => c.runId) ?? [];
-        const needsSel = discovery.needsSelection === true;
         setCandidateRunIds(ids);
+        lastScanKeyRef.current = scanKey;
         if (ids.length === 1) {
           setSelectedRunId(ids[0]!);
-        } else if (ids.length > 1) {
-          setSelectedRunId(null);
-        }
-        lastScanKeyRef.current = scanKey;
-        if (ids.length === 1 && !needsSel) {
           await loadWorkspaceForRunId(ids[0]!);
+        } else {
+          setSelectedRunId(null);
         }
       } catch (err) {
         if (seq !== discoverySeqRef.current) {
@@ -180,7 +177,7 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
 
   async function handleLoad() {
     if (selectedRunId == null || selectedRunId.trim() === '') {
-      onError('Select a candidate artifact set.');
+      onError('No artifact run is ready to load. Scan the location first.');
       return;
     }
     await loadWorkspaceForRunId(selectedRunId);
@@ -215,9 +212,6 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
             void runDiscovery(false);
           }
         }}
-        candidateRunIds={candidateRunIds}
-        selectedRunId={selectedRunId}
-        onSelectRunId={setSelectedRunId}
         discoverLoading={discoverLoading}
         canLoad={canLoad}
         loadLoading={loadLoading}

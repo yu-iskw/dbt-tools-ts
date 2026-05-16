@@ -50,18 +50,6 @@ describe('getArtifactReadinessLabel', () => {
     ).toBe('Ready to load the workspace.');
   });
 
-  it('asks to pick when multiple runs and none selected', () => {
-    expect(
-      getArtifactReadinessLabel({
-        discoverLoading: false,
-        discoveryError: null,
-        candidateRunIds: ['a', 'b'],
-        selectedRunId: null,
-        location: '/x',
-      }),
-    ).toBe('Pick a candidate set, then load.');
-  });
-
   it('asks for location when empty', () => {
     expect(
       getArtifactReadinessLabel({

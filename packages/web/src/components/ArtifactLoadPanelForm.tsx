@@ -12,9 +12,6 @@ export type ArtifactLoadPanelFormProps = {
   onLocationChange: (value: string) => void;
   onLocationBlur: () => void;
   onLocationKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
-  candidateRunIds: string[];
-  selectedRunId: string | null;
-  onSelectRunId: (runId: string) => void;
   discoverLoading: boolean;
   canLoad: boolean;
   loadLoading: boolean;
@@ -31,9 +28,6 @@ export function ArtifactLoadPanelForm({
   onLocationChange,
   onLocationBlur,
   onLocationKeyDown,
-  candidateRunIds,
-  selectedRunId,
-  onSelectRunId,
   discoverLoading,
   canLoad,
   loadLoading,
@@ -84,31 +78,6 @@ export function ArtifactLoadPanelForm({
             onKeyDown={onLocationKeyDown}
           />
         </div>
-        {candidateRunIds.length > 0 ? (
-          <fieldset className="file-input-card">
-            <legend>
-              Candidate sets
-              {candidateRunIds.length > 1 ? ' — choose one before loading.' : null}
-            </legend>
-            {candidateRunIds.map((id) => (
-              <label
-                key={id}
-                className="artifact-load-panel__radio-row"
-                htmlFor={`artifact-run-${id}`}
-              >
-                <input
-                  id={`artifact-run-${id}`}
-                  type="radio"
-                  name="artifact-run"
-                  value={id}
-                  checked={selectedRunId === id}
-                  onChange={() => onSelectRunId(id)}
-                />
-                <span>{id}</span>
-              </label>
-            ))}
-          </fieldset>
-        ) : null}
       </div>
 
       <div className="upload-panel__tips">
@@ -131,7 +100,7 @@ export function ArtifactLoadPanelForm({
         <button
           type="button"
           className="primary-action"
-          disabled={!canLoad || candidateRunIds.length === 0 || loadLoading}
+          disabled={!canLoad || loadLoading}
           aria-busy={loadLoading}
           aria-describedby={readinessRegionId}
           title={loadWorkspaceHint ?? undefined}

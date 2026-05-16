@@ -208,53 +208,21 @@ describe('ArtifactLoadPanel', () => {
     cleanupRoot(root, container);
   });
 
-  it('waits for explicit selection before committing multiple candidates', async () => {
+  it('shows discovery error when the server reports multiple runs', async () => {
+    const err =
+      'Multiple dbt artifact runs were found (runAlpha, runBeta). Point to a single directory';
     discoverArtifactSourceFromApi.mockResolvedValue({
       sourceKind: 'local',
-      locationDisplay: '/mock/multi',
-      candidates: [
-        {
-          runId: 'runAlpha',
-          label: 'Local (runAlpha)',
-          updatedAtMs: 1,
-          versionToken: 'alpha',
-        },
-        {
-          runId: 'runBeta',
-          label: 'Local (runBeta)',
-          updatedAtMs: 2,
-          versionToken: 'beta',
-        },
-      ],
-      needsSelection: true,
-      discoveryError: null,
-    });
-    configureArtifactSourceFromApi.mockResolvedValue({
-      mode: 'preload',
-      currentSource: 'preload',
-      label: 'Artifacts',
-      checkedAtMs: 1,
-      remoteProvider: null,
-      remoteLocation: null,
-      pollIntervalMs: null,
-      currentRun: {
-        runId: 'runBeta',
-        label: 'Local (runBeta)',
-        updatedAtMs: 2,
-        versionToken: 'beta',
-      },
-      pendingRun: null,
-      supportsSwitch: false,
-      missingOptionalArtifacts: {
-        missingCatalog: false,
-        missingSources: false,
-      },
+      locationDisplay: '/mock/bad',
+      candidates: undefined,
+      needsSelection: false,
+      discoveryError: err,
     });
 
-    const { container, root, onManagedLoad } = renderPanel();
+    const { container, root, onManagedLoad, onError } = renderPanel();
     const locationInput = container.querySelector('#artifact-location-input') as HTMLInputElement;
 
-    changeInput(locationInput, '/mock/multi');
+    changeInput(locationInput, '/mock/bad');
     await flushAsync();
     await act(async () => {
       locationInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
@@ -263,21 +231,8 @@ describe('ArtifactLoadPanel', () => {
 
     expect(configureArtifactSourceFromApi).not.toHaveBeenCalled();
     expect(onManagedLoad).not.toHaveBeenCalled();
-
-    const betaRadio = container.querySelector('#artifact-run-runBeta') as HTMLInputElement;
-    expect(betaRadio).not.toBeNull();
-    act(() => {
-      betaRadio.click();
-    });
-
-    const loadButton = container.querySelector('button.primary-action') as HTMLButtonElement;
-    await act(async () => {
-      loadButton.click();
-      await Promise.resolve();
-    });
-
-    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith('local', '/mock/multi', 'runBeta');
-    expect(onManagedLoad).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain('Multiple dbt artifact runs');
+    expect(onError).toHaveBeenCalledWith(err);
 
     cleanupRoot(root, container);
   });
