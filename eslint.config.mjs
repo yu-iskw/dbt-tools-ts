@@ -14,6 +14,7 @@ const tsProjectOptions = {
   ecmaVersion: 2022,
   sourceType: 'module',
   project: [
+    './tsconfig.eslint.json',
     './packages/core/tsconfig.eslint.json',
     './packages/cli/tsconfig.eslint.json',
     './packages/mcp/tsconfig.eslint.json',
@@ -100,7 +101,13 @@ export default [
     },
   },
   {
-    files: ['packages/**/*.ts', 'packages/**/*.tsx'],
+    files: [
+      'packages/**/*.ts',
+      'packages/**/*.tsx',
+      'vitest.config.ts',
+      'vitest.coverage.ts',
+      'vitest.shared.ts',
+    ],
     ignores: ['**/dist/**', '**/*.test.ts', '**/*.test.tsx'],
     languageOptions: {
       parser: tsparser,

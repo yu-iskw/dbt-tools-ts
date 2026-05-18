@@ -8,5 +8,6 @@
       "@dbt-tools/core/browser": ["../core/src/browser.ts"]
     }
   },
+  "include": ["src", "vitest.config.ts", "coverage.policy.ts"],
   "exclude": []
 }

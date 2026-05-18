@@ -1,4 +1,5 @@
 {
   "extends": "./tsconfig.json",
+  "include": ["src", "vitest.config.ts", "coverage.policy.ts"],
   "exclude": ["src/dbt-target-plugin.ts"]
 }
