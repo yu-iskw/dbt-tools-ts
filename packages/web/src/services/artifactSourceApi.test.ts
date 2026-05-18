@@ -405,15 +405,6 @@ describe('artifactSourceApi', () => {
       jsonResponse({
         sourceKind: 'local',
         locationDisplay: '/tmp/target',
-        candidates: [
-          {
-            runId: 'current',
-            label: 'Local (root)',
-            updatedAtMs: 1,
-            versionToken: 'v1',
-          },
-        ],
-        needsSelection: false,
         discoveryError: null,
       }),
     );
@@ -474,8 +465,6 @@ describe('artifactSourceApi', () => {
       jsonResponse({
         sourceKind: 'gcs',
         locationDisplay: 'GCS b/p',
-        candidates: [],
-        needsSelection: false,
         discoveryError: null,
       }),
     );
@@ -502,8 +491,6 @@ describe('artifactSourceApi', () => {
       jsonResponse({
         sourceKind: 'gcs',
         locationDisplay: 'GCS b/p',
-        candidates: [],
-        needsSelection: false,
         discoveryError: null,
       }),
     );
@@ -526,8 +513,6 @@ describe('artifactSourceApi', () => {
       jsonResponse({
         sourceKind: 's3',
         locationDisplay: 'S3 x/y',
-        candidates: [],
-        needsSelection: false,
         discoveryError: null,
       }),
     );

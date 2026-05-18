@@ -4,7 +4,7 @@ import {
   registerGcsSingleCandidateWithImpersonationMocks,
 } from '../helpers/preload';
 
-const ARTIFACT_SOURCE_TYPE_LABEL = 'Source type';
+const CONNECTION_TABLIST = 'Connection';
 
 async function pauseForDemo(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,10 +15,10 @@ test.describe('demo reel: GCS + impersonation (mocked)', () => {
     test.setTimeout(120_000);
     await registerGcsSingleCandidateWithImpersonationMocks(page);
     await page.goto('/');
-    await expect(page.getByLabel(ARTIFACT_SOURCE_TYPE_LABEL)).toBeVisible();
+    await expect(page.getByRole('tablist', { name: CONNECTION_TABLIST })).toBeVisible();
     await pauseForDemo(600);
 
-    await page.getByLabel(ARTIFACT_SOURCE_TYPE_LABEL).selectOption('gcs');
+    await page.getByRole('tab', { name: 'Google Cloud Storage' }).click();
     await pauseForDemo(400);
     await expect(page.getByRole('textbox', { name: 'Impersonated service account' })).toBeVisible();
 

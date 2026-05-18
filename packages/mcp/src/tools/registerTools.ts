@@ -47,7 +47,7 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
     'dbt_tools_list_runs',
     {
       title: 'dbt-tools list runs',
-      description: 'List discovered artifact runs and their version tokens.',
+      description: 'List the discovered artifact run and its version token (0 or 1 entry).',
       inputSchema: emptySchema,
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
@@ -58,7 +58,7 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
     'dbt_tools_select_run',
     {
       title: 'dbt-tools select run',
-      description: 'Select and load one discovered artifact run by run id.',
+      description: 'Select and load the discovered artifact run by run id (typically "current").',
       inputSchema: z.object({ runId: z.string().min(1) }),
       annotations: { readOnlyHint: false, idempotentHint: true },
     },

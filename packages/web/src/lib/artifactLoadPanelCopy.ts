@@ -10,35 +10,34 @@ export function artifactLocationPlaceholder(sourceKind: UserArtifactSourceKind):
   return 'gs://bucket/prefix or bucket/prefix';
 }
 
+export function artifactLocationHelper(sourceKind: UserArtifactSourceKind): string {
+  if (sourceKind === 'local') {
+    return 'Resolved on the server running this app, not in your browser.';
+  }
+  return 'Uses server-side SDK credentials; keys never enter the browser.';
+}
+
 export type ArtifactLoadReadinessInput = {
   discoverLoading: boolean;
   discoveryError: string | null;
-  candidateRunIds: readonly string[];
-  selectedRunId: string | null;
+  scanSucceeded: boolean;
   location: string;
 };
 
 export function getArtifactReadinessLabel(input: ArtifactLoadReadinessInput): string {
-  const hasRunSelection = input.selectedRunId != null && input.selectedRunId.trim() !== '';
   if (input.discoverLoading) {
-    return 'Scanning for artifact runs…';
+    return 'Scanning for artifacts…';
   }
-  if (input.discoveryError) {
-    return input.discoveryError;
+  if (input.discoveryError != null) {
+    return 'Scan failed. Fix the location and scan again.';
   }
-  if (input.candidateRunIds.length > 0 && hasRunSelection) {
-    return 'Ready to load the workspace.';
-  }
-  if (input.candidateRunIds.length > 1 && !hasRunSelection) {
-    return 'Pick a candidate set, then load.';
+  if (input.scanSucceeded) {
+    return 'Artifacts found. You can load the workspace again if needed.';
   }
   if (input.location.trim() === '') {
-    return 'Enter a location, then press Enter or move focus away to scan.';
+    return 'Enter a location, then scan.';
   }
-  if (input.candidateRunIds.length === 0) {
-    return 'Press Enter or leave the Location field to scan for artifact runs.';
-  }
-  return 'Press Enter or leave the field to refresh the scan, then load.';
+  return 'Press Enter or Scan to check this location.';
 }
 
 export type ArtifactLoadWorkspaceHintInput = ArtifactLoadReadinessInput & {
@@ -56,20 +55,16 @@ export function getArtifactLoadWorkspaceHint(
     return undefined;
   }
   if (input.discoverLoading) {
-    return 'Scanning for artifact runs…';
+    return 'Scanning for artifacts…';
   }
   if (input.discoveryError != null) {
-    return input.discoveryError;
+    return 'Fix the error below, then scan again.';
   }
   if (input.location.trim() === '') {
-    return 'Enter a path, then press Enter or leave the Location field to scan.';
+    return 'Enter a path, then press Enter, blur the field, or click Scan location.';
   }
-  if (input.candidateRunIds.length === 0) {
-    return 'Press Enter or blur Location to scan, then click Load workspace.';
+  if (!input.scanSucceeded) {
+    return 'Press Enter, blur Location, or click Scan location, then click Load workspace.';
   }
-  const hasRunSelection = input.selectedRunId != null && input.selectedRunId.trim() !== '';
-  if (input.candidateRunIds.length > 1 && !hasRunSelection) {
-    return 'Pick a candidate run, then click Load workspace.';
-  }
-  return 'Press Enter or blur Location to scan, then click Load workspace.';
+  return undefined;
 }

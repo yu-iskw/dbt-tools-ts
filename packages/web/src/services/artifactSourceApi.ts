@@ -65,8 +65,6 @@ export interface MissingOptionalArtifactsState {
 export interface ArtifactSourceDiscoveryResult {
   sourceKind: UserArtifactSourceKind;
   locationDisplay: string;
-  candidates?: RemoteArtifactRun[];
-  needsSelection: boolean;
   discoveryError: string | null;
 }
 
@@ -81,9 +79,6 @@ export interface ArtifactSourceStatus {
   currentRun: RemoteArtifactRun | null;
   pendingRun: RemoteArtifactRun | null;
   supportsSwitch: boolean;
-  /** When true, artifact bytes are not served until {@link #currentRun} is chosen. */
-  needsSelection?: boolean;
-  candidates?: RemoteArtifactRun[];
   discoveryError?: string | null;
   sourceKind?: UserArtifactSourceKind | null;
   locationDisplay?: string | null;
@@ -124,8 +119,6 @@ function emptyManagedArtifactStatusFields(): Pick<
   | 'currentRun'
   | 'pendingRun'
   | 'supportsSwitch'
-  | 'needsSelection'
-  | 'candidates'
   | 'discoveryError'
   | 'sourceKind'
   | 'locationDisplay'
@@ -139,8 +132,6 @@ function emptyManagedArtifactStatusFields(): Pick<
     currentRun: null,
     pendingRun: null,
     supportsSwitch: false,
-    needsSelection: false,
-    candidates: undefined,
     discoveryError: null,
     sourceKind: null,
     locationDisplay: null,

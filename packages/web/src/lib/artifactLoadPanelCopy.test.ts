@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  artifactLocationHelper,
   artifactLocationPlaceholder,
   getArtifactLoadWorkspaceHint,
   getArtifactReadinessLabel,
@@ -13,53 +14,46 @@ describe('artifactLocationPlaceholder', () => {
   });
 });
 
+describe('artifactLocationHelper', () => {
+  it('returns local vs cloud helper text', () => {
+    expect(artifactLocationHelper('local')).toContain('server running this app');
+    expect(artifactLocationHelper('s3')).toContain('SDK credentials');
+    expect(artifactLocationHelper('gcs')).toContain('SDK credentials');
+  });
+});
+
 describe('getArtifactReadinessLabel', () => {
   it('shows scanning while discoverLoading even if an error is present', () => {
     expect(
       getArtifactReadinessLabel({
         discoverLoading: true,
         discoveryError: 'No manifest',
-        candidateRunIds: [],
-        selectedRunId: null,
+        scanSucceeded: false,
         location: '/x',
       }),
-    ).toBe('Scanning for artifact runs…');
+    ).toBe('Scanning for artifacts…');
   });
 
-  it('shows discovery error when not loading', () => {
+  it('shows short summary when not loading and discovery failed', () => {
     expect(
       getArtifactReadinessLabel({
         discoverLoading: false,
         discoveryError: 'No manifest',
-        candidateRunIds: [],
-        selectedRunId: null,
+        scanSucceeded: false,
         location: '/x',
       }),
-    ).toBe('No manifest');
+    ).toBe('Scan failed. Fix the location and scan again.');
   });
 
-  it('shows ready when a run is selected', () => {
+  it('shows ready when scan succeeded', () => {
     expect(
       getArtifactReadinessLabel({
         discoverLoading: false,
         discoveryError: null,
-        candidateRunIds: ['a'],
-        selectedRunId: 'a',
+        scanSucceeded: true,
         location: '/x',
       }),
-    ).toBe('Ready to load the workspace.');
-  });
-
-  it('asks to pick when multiple runs and none selected', () => {
-    expect(
-      getArtifactReadinessLabel({
-        discoverLoading: false,
-        discoveryError: null,
-        candidateRunIds: ['a', 'b'],
-        selectedRunId: null,
-        location: '/x',
-      }),
-    ).toBe('Pick a candidate set, then load.');
+    ).toBe('Artifacts found. You can load the workspace again if needed.');
   });
 
   it('asks for location when empty', () => {
@@ -67,23 +61,21 @@ describe('getArtifactReadinessLabel', () => {
       getArtifactReadinessLabel({
         discoverLoading: false,
         discoveryError: null,
-        candidateRunIds: [],
-        selectedRunId: null,
+        scanSucceeded: false,
         location: '  ',
       }),
-    ).toBe('Enter a location, then press Enter or move focus away to scan.');
+    ).toBe('Enter a location, then scan.');
   });
 
-  it('prompts scan when location set but no candidates', () => {
+  it('prompts scan when location set but scan has not succeeded', () => {
     expect(
       getArtifactReadinessLabel({
         discoverLoading: false,
         discoveryError: null,
-        candidateRunIds: [],
-        selectedRunId: null,
+        scanSucceeded: false,
         location: '/path',
       }),
-    ).toBe('Press Enter or leave the Location field to scan for artifact runs.');
+    ).toBe('Press Enter or Scan to check this location.');
   });
 });
 
@@ -91,8 +83,7 @@ describe('getArtifactLoadWorkspaceHint', () => {
   const base = {
     discoverLoading: false,
     discoveryError: null,
-    candidateRunIds: [] as string[],
-    selectedRunId: null as string | null,
+    scanSucceeded: false,
     location: '/p',
     loadLoading: false,
     canLoad: false,
@@ -102,15 +93,14 @@ describe('getArtifactLoadWorkspaceHint', () => {
     expect(
       getArtifactLoadWorkspaceHint({
         ...base,
-        candidateRunIds: ['a'],
-        selectedRunId: 'a',
+        scanSucceeded: true,
         canLoad: true,
       }),
     ).toBeUndefined();
   });
 
-  it('hints scan when no candidates', () => {
-    expect(getArtifactLoadWorkspaceHint(base)).toContain('Press Enter');
+  it('hints scan when scan has not succeeded', () => {
+    expect(getArtifactLoadWorkspaceHint(base)).toContain('Scan location');
   });
 
   it('hints empty location', () => {
@@ -119,6 +109,15 @@ describe('getArtifactLoadWorkspaceHint', () => {
         ...base,
         location: '',
       }),
-    ).toBe('Enter a path, then press Enter or leave the Location field to scan.');
+    ).toBe('Enter a path, then press Enter, blur the field, or click Scan location.');
+  });
+
+  it('hints fix error when discovery failed', () => {
+    expect(
+      getArtifactLoadWorkspaceHint({
+        ...base,
+        discoveryError: 'No manifest',
+      }),
+    ).toBe('Fix the error below, then scan again.');
   });
 });

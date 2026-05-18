@@ -37,30 +37,6 @@ function managedPreloadStatus() {
   };
 }
 
-const MULTI_CANDIDATE_RUN_ALPHA = {
-  runId: 'runAlpha',
-  label: 'Local (runAlpha)',
-  updatedAtMs: 10,
-  versionToken: 'v-alpha',
-} as const;
-
-const MULTI_CANDIDATE_RUN_BETA = {
-  runId: 'runBeta',
-  label: 'Local (runBeta)',
-  updatedAtMs: 11,
-  versionToken: 'v-beta',
-} as const;
-
-function multiCandidateDiscoveryStatus() {
-  return {
-    sourceKind: 'local' as const,
-    locationDisplay: '/mock/multi',
-    candidates: [MULTI_CANDIDATE_RUN_ALPHA, MULTI_CANDIDATE_RUN_BETA],
-    needsSelection: true,
-    discoveryError: null,
-  };
-}
-
 function managedNoneStatus() {
   return {
     mode: 'none' as const,
@@ -73,9 +49,7 @@ function managedNoneStatus() {
     currentRun: null,
     pendingRun: null,
     supportsSwitch: false,
-    needsSelection: false,
     discoveryError: null,
-    candidates: undefined,
     sourceKind: null,
     locationDisplay: null,
     missingOptionalArtifacts: undefined,
@@ -93,8 +67,6 @@ function singleCandidateDiscoveryStatus() {
   return {
     sourceKind: 'local' as const,
     locationDisplay: '/mock/solo',
-    candidates: [SOLO_RUN],
-    needsSelection: false,
     discoveryError: null,
   };
 }
@@ -111,9 +83,7 @@ function singleCandidatePostSwitchStatus() {
     currentRun: SOLO_RUN,
     pendingRun: null,
     supportsSwitch: false,
-    needsSelection: false,
     discoveryError: null,
-    candidates: [SOLO_RUN],
     sourceKind: 'local' as const,
     locationDisplay: '/mock/solo',
     missingOptionalArtifacts: {
@@ -121,53 +91,6 @@ function singleCandidatePostSwitchStatus() {
       missingSources: true,
     },
   };
-}
-
-function multiCandidatePostSwitchStatus(runId: string) {
-  const currentRun =
-    runId === MULTI_CANDIDATE_RUN_BETA.runId ? MULTI_CANDIDATE_RUN_BETA : MULTI_CANDIDATE_RUN_ALPHA;
-  return {
-    mode: 'preload' as const,
-    currentSource: 'preload' as const,
-    label: 'Mock multi-run location',
-    checkedAtMs: Date.now(),
-    remoteProvider: null,
-    remoteLocation: null,
-    pollIntervalMs: null,
-    currentRun,
-    pendingRun: null,
-    supportsSwitch: false,
-    needsSelection: false,
-    discoveryError: null,
-    candidates: [MULTI_CANDIDATE_RUN_ALPHA, MULTI_CANDIDATE_RUN_BETA],
-    sourceKind: 'local' as const,
-    locationDisplay: '/mock/multi',
-    missingOptionalArtifacts: {
-      missingCatalog: true,
-      missingSources: true,
-    },
-  };
-}
-
-async function registerMultiRunConfigurePostRoute(page: Page): Promise<void> {
-  await page.route(ARTIFACT_SOURCE_CONFIGURE_GLOB, async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.fulfill({ status: 405 });
-      return;
-    }
-    let runId = '';
-    try {
-      const body = route.request().postDataJSON() as { runId?: unknown };
-      if (typeof body.runId === 'string') runId = body.runId;
-    } catch {
-      runId = '';
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(multiCandidatePostSwitchStatus(runId)),
-    });
-  });
 }
 
 async function registerArtifactSourceManagedNoneGetRoute(page: Page): Promise<void> {
@@ -244,36 +167,8 @@ async function registerArtifactJsonByteRoutes(
 }
 
 /**
- * Mock POST discover (two candidates, needs selection) + POST configure + artifact bytes.
- * Register before `goto("/")`. GET `/api/artifact-source` returns `mode: "none"` so the
- * client does not fall through to legacy manifest URLs while artifact byte routes are mocked.
- */
-export async function registerMultiCandidateArtifactSourceMocks(
-  page: Page,
-  options?: {
-    catalogPath?: string;
-    sourcesPath?: string;
-  },
-) {
-  await page.route(ARTIFACT_SOURCE_DISCOVER_GLOB, async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.fulfill({ status: 405 });
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(multiCandidateDiscoveryStatus()),
-    });
-  });
-  await registerMultiRunConfigurePostRoute(page);
-  await registerArtifactSourceManagedNoneGetRoute(page);
-  await registerArtifactJsonByteRoutes(page, options);
-}
-
-/**
- * Mock POST discover (one candidate, no selection step) + POST configure + artifact bytes.
- * Discover triggers auto-load in the UI when needsSelection is false.
+ * Mock POST discover + POST configure + artifact bytes.
+ * Successful discover triggers auto-load in the UI.
  */
 export async function registerSingleCandidateArtifactSourceMocks(
   page: Page,
@@ -319,22 +214,10 @@ const GCS_SOLO_RUN = {
   versionToken: 'v-gcs-solo',
 } as const;
 
-function gcsMultiCandidateDiscoveryStatus() {
-  return {
-    sourceKind: 'gcs' as const,
-    locationDisplay: GCS_MOCK_LOCATION_DISPLAY,
-    candidates: [MULTI_CANDIDATE_RUN_ALPHA, MULTI_CANDIDATE_RUN_BETA],
-    needsSelection: true,
-    discoveryError: null,
-  };
-}
-
 function gcsSingleCandidateDiscoveryStatus() {
   return {
     sourceKind: 'gcs' as const,
     locationDisplay: GCS_MOCK_LOCATION_DISPLAY,
-    candidates: [GCS_SOLO_RUN],
-    needsSelection: false,
     discoveryError: null,
   };
 }
@@ -351,9 +234,7 @@ function gcsSingleCandidatePostSwitchStatus() {
     currentRun: GCS_SOLO_RUN,
     pendingRun: null,
     supportsSwitch: false,
-    needsSelection: false,
     discoveryError: null,
-    candidates: [GCS_SOLO_RUN],
     sourceKind: 'gcs' as const,
     locationDisplay: GCS_MOCK_LOCATION_DISPLAY,
     missingOptionalArtifacts: {
@@ -378,42 +259,7 @@ async function registerGcsSingleCandidateConfigurePostRoute(page: Page): Promise
 }
 
 /**
- * Like {@link registerMultiCandidateArtifactSourceMocks}, but asserts GCS discover requests
- * include {@link GCS_MOCK_IMPERSONATION_SA} in `options.impersonatedServiceAccount`.
- */
-export async function registerGcsMultiCandidateArtifactSourceMocks(
-  page: Page,
-  options?: {
-    catalogPath?: string;
-    sourcesPath?: string;
-  },
-) {
-  await page.route(ARTIFACT_SOURCE_DISCOVER_GLOB, async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.fulfill({ status: 405 });
-      return;
-    }
-    const body = route.request().postDataJSON() as {
-      type?: unknown;
-      options?: { impersonatedServiceAccount?: unknown };
-    };
-    expect(body.type).toBe('gcs');
-    expect(body.options).toEqual({ impersonatedServiceAccount: GCS_MOCK_IMPERSONATION_SA });
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(gcsMultiCandidateDiscoveryStatus()),
-    });
-  });
-  await registerMultiRunConfigurePostRoute(page);
-  await registerArtifactSourceManagedNoneGetRoute(page);
-  await registerArtifactJsonByteRoutes(page, options);
-}
-
-/**
- * GCS discover with impersonation (same assertions as
- * {@link registerGcsMultiCandidateArtifactSourceMocks}), but a single candidate and
- * `needsSelection: false` so the UI auto-configures after Enter (no candidate radios).
+ * GCS discover with impersonation; successful discover triggers auto-load in the UI.
  */
 export async function registerGcsSingleCandidateWithImpersonationMocks(
   page: Page,

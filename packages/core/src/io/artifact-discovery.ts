@@ -34,8 +34,10 @@ export interface ResolvedArtifactCandidate {
 
 export type MissingRequiredBasename = typeof DBT_MANIFEST_JSON | typeof DBT_RUN_RESULTS_JSON;
 
+export type ArtifactDiscoveryFailureCode = 'MISSING_REQUIRED_PAIR' | 'AMBIGUOUS_LOCATION';
+
 export interface ArtifactDiscoveryFailure {
-  readonly code: 'MISSING_REQUIRED_PAIR';
+  readonly code: ArtifactDiscoveryFailureCode;
   readonly message: string;
   readonly missingBasenames: MissingRequiredBasename[];
 }
@@ -64,16 +66,14 @@ function isSupportedBasename(name: string): boolean {
 }
 
 /**
- * Non-recursive layout: only the location root and immediate subdirectories
- * may contain artifact files (at most one `/` in the relative path).
+ * Root-only layout: artifact files must sit directly under the location root
+ * (no subdirectories in relative paths).
  */
 export function isAllowedArtifactRelativePath(relativePath: string): boolean {
   const norm = relativePath.replace(/^\/+/, '');
   if (norm === '' || norm.includes('//')) return false;
   const segments = norm.split('/');
-  if (segments.length > 2) return false;
-  if (segments.length === 1) return isSupportedBasename(segments[0]!);
-  return isSupportedBasename(segments[1]!);
+  return segments.length === 1 && isSupportedBasename(segments[0]!);
 }
 
 function runIdForRelativePath(relativePath: string): string {
@@ -89,11 +89,14 @@ function versionTokenForParts(
     .join('|');
 }
 
+const AMBIGUOUS_LOCATION_MESSAGE =
+  'Multiple artifact sets found at this location. Use a single dbt target directory with one manifest.json and run_results.json at the root.';
+
 function buildMissingRequiredMessage(missing: MissingRequiredBasename[]): string {
   if (missing.length === 0) {
     return (
       'No complete dbt artifact pair found: require manifest.json and ' +
-      'run_results.json in the same location root or immediate subdirectory.'
+      'run_results.json at the location root (typical dbt target/).'
     );
   }
   const list = missing.join(', ');
@@ -207,7 +210,18 @@ export function discoverArtifactCandidates(
   const grouped = groupListedByRunId(filtered);
   const candidates = buildResolvedCandidates(grouped);
 
-  if (candidates.length > 0) {
+  if (candidates.length > 1) {
+    return {
+      ok: false,
+      failure: {
+        code: 'AMBIGUOUS_LOCATION',
+        message: AMBIGUOUS_LOCATION_MESSAGE,
+        missingBasenames: [],
+      },
+    };
+  }
+
+  if (candidates.length === 1) {
     return { ok: true, candidates };
   }
 
@@ -255,7 +269,7 @@ export function remoteKeysToListedArtifacts(
 }
 
 /**
- * List immediate artifact files under a local directory (non-recursive beyond one subdirectory).
+ * List supported artifact files at the root of a local directory (no subdirectories).
  */
 export interface DiscoveredArtifactRunPaths {
   runId: string;
@@ -292,34 +306,6 @@ export async function discoverLocalArtifactRunPaths(resolvedDirAbs: string): Pro
   return { discovery, runs };
 }
 
-async function listedFromSubdirArtifacts(
-  subDirAbs: string,
-  dirSegment: string,
-): Promise<ListedArtifactObject[]> {
-  let subEntries;
-  try {
-    subEntries = await fs.readdir(subDirAbs, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  const out: ListedArtifactObject[] = [];
-  for (const subEntry of subEntries) {
-    const subName = String(subEntry.name);
-    if (!subEntry.isFile() || !isSupportedBasename(subName)) continue;
-    const full = path.join(subDirAbs, subName);
-    try {
-      const stat = await fs.stat(full);
-      out.push({
-        relativePath: `${dirSegment}/${subName}`.replace(/\\/g, '/'),
-        updatedAtMs: stat.mtimeMs,
-      });
-    } catch {
-      /* skip */
-    }
-  }
-  return out;
-}
-
 export async function listLocalArtifactObjects(
   resolvedDirAbs: string,
 ): Promise<ListedArtifactObject[]> {
@@ -328,17 +314,13 @@ export async function listLocalArtifactObjects(
 
   for (const entry of entries) {
     const name = entry.name;
-    if (entry.isFile() && isSupportedBasename(name)) {
-      const full = path.join(resolvedDirAbs, name);
-      const stat = await fs.stat(full);
-      results.push({
-        relativePath: name,
-        updatedAtMs: stat.mtimeMs,
-      });
-    } else if (entry.isDirectory()) {
-      const sub = path.join(resolvedDirAbs, name);
-      results.push(...(await listedFromSubdirArtifacts(sub, name)));
-    }
+    if (!entry.isFile() || !isSupportedBasename(name)) continue;
+    const full = path.join(resolvedDirAbs, name);
+    const stat = await fs.stat(full);
+    results.push({
+      relativePath: name,
+      updatedAtMs: stat.mtimeMs,
+    });
   }
 
   return results;
