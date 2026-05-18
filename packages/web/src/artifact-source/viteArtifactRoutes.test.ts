@@ -75,15 +75,6 @@ describe('tryHandleArtifactSourceViteRequest', () => {
     const discoverArtifactSource = vi.fn(async () => ({
       sourceKind: 'local' as const,
       locationDisplay: '/tmp/preview',
-      candidates: [
-        {
-          runId: 'run-a',
-          label: 'Local (run-a)',
-          updatedAtMs: 1,
-          versionToken: 'a',
-        },
-      ],
-      needsSelection: false,
       discoveryError: null,
     }));
     const configureArtifactSource = vi.fn();
@@ -184,8 +175,6 @@ describe('tryHandleArtifactSourceViteRequest', () => {
     const discoverArtifactSource = vi.fn(async () => ({
       sourceKind: 'gcs' as const,
       locationDisplay: 'GCS b/p',
-      candidates: [],
-      needsSelection: false,
       discoveryError: null,
     }));
 

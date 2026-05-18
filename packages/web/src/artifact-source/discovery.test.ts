@@ -6,18 +6,8 @@ import {
 } from './discovery';
 
 describe('discoverLatestArtifactRuns', () => {
-  it('returns complete runs sorted by most recent update', () => {
+  it('returns a complete run at the prefix root', () => {
     const objects: RemoteObjectMetadata[] = [
-      {
-        key: 'prod/runs/2026-03-29T12-00-00Z/manifest.json',
-        updatedAtMs: 100,
-        etag: 'm1',
-      },
-      {
-        key: 'prod/runs/2026-03-29T12-00-00Z/run_results.json',
-        updatedAtMs: 101,
-        etag: 'r1',
-      },
       {
         key: 'prod/runs/2026-03-29T13-00-00Z/manifest.json',
         updatedAtMs: 200,
@@ -30,39 +20,28 @@ describe('discoverLatestArtifactRuns', () => {
       },
     ];
 
-    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toMatchObject([
+    expect(discoverLatestArtifactRuns(objects, 'prod/runs/2026-03-29T13-00-00Z')).toMatchObject([
       {
-        runId: '2026-03-29T13-00-00Z',
+        runId: 'current',
         manifestKey: 'prod/runs/2026-03-29T13-00-00Z/manifest.json',
         runResultsKey: 'prod/runs/2026-03-29T13-00-00Z/run_results.json',
-      },
-      {
-        runId: '2026-03-29T12-00-00Z',
       },
     ]);
   });
 
-  it('rejects partial uploads', () => {
+  it('ignores artifact files in subdirectories under the prefix', () => {
     const objects: RemoteObjectMetadata[] = [
       {
         key: 'prod/runs/2026-03-29T12-00-00Z/manifest.json',
         updatedAtMs: 100,
       },
       {
-        key: 'prod/runs/2026-03-29T13-00-00Z/manifest.json',
-        updatedAtMs: 200,
-      },
-      {
-        key: 'prod/runs/2026-03-29T13-00-00Z/run_results.json',
-        updatedAtMs: 201,
+        key: 'prod/runs/2026-03-29T12-00-00Z/run_results.json',
+        updatedAtMs: 101,
       },
     ];
 
-    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toMatchObject([
-      {
-        runId: '2026-03-29T13-00-00Z',
-      },
-    ]);
+    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toEqual([]);
   });
 
   it('supports a direct prefix pair as the current run', () => {
@@ -85,56 +64,26 @@ describe('discoverLatestArtifactRuns', () => {
     });
   });
 
-  it('sorts by required artifact freshness instead of optional enrichments', () => {
+  it('rejects partial uploads at the prefix root', () => {
     const objects: RemoteObjectMetadata[] = [
       {
-        key: 'prod/runs/2026-03-29T12-00-00Z/manifest.json',
+        key: 'prod/runs/manifest.json',
         updatedAtMs: 100,
-        etag: 'm1',
-      },
-      {
-        key: 'prod/runs/2026-03-29T12-00-00Z/run_results.json',
-        updatedAtMs: 110,
-        etag: 'r1',
-      },
-      {
-        key: 'prod/runs/2026-03-29T12-00-00Z/catalog.json',
-        updatedAtMs: 300,
-        etag: 'c1',
-      },
-      {
-        key: 'prod/runs/2026-03-29T13-00-00Z/manifest.json',
-        updatedAtMs: 200,
-        etag: 'm2',
-      },
-      {
-        key: 'prod/runs/2026-03-29T13-00-00Z/run_results.json',
-        updatedAtMs: 210,
-        etag: 'r2',
       },
     ];
 
-    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toMatchObject([
-      {
-        runId: '2026-03-29T13-00-00Z',
-        updatedAtMs: 210,
-      },
-      {
-        runId: '2026-03-29T12-00-00Z',
-        updatedAtMs: 110,
-      },
-    ]);
+    expect(discoverLatestArtifactRuns(objects, 'prod/runs')).toEqual([]);
   });
 
   it('includes optional artifact metadata in the version token', () => {
     const baseObjects: RemoteObjectMetadata[] = [
       {
-        key: 'prod/runs/2026-03-29T12-00-00Z/manifest.json',
+        key: 'prod/runs/manifest.json',
         updatedAtMs: 100,
         etag: 'm1',
       },
       {
-        key: 'prod/runs/2026-03-29T12-00-00Z/run_results.json',
+        key: 'prod/runs/run_results.json',
         updatedAtMs: 110,
         etag: 'r1',
       },
@@ -143,7 +92,7 @@ describe('discoverLatestArtifactRuns', () => {
       [
         ...baseObjects,
         {
-          key: 'prod/runs/2026-03-29T12-00-00Z/catalog.json',
+          key: 'prod/runs/catalog.json',
           updatedAtMs: 120,
           etag: 'c1',
         },
@@ -154,7 +103,7 @@ describe('discoverLatestArtifactRuns', () => {
       [
         ...baseObjects,
         {
-          key: 'prod/runs/2026-03-29T12-00-00Z/catalog.json',
+          key: 'prod/runs/catalog.json',
           updatedAtMs: 121,
           etag: 'c2',
         },

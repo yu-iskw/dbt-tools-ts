@@ -1,7 +1,19 @@
 import type { KeyboardEvent } from 'react';
 import type { UserArtifactSourceKind } from '../services/artifactSourceApi';
-import { artifactLocationPlaceholder } from '../lib/artifactLoadPanelCopy';
+import { artifactLocationHelper, artifactLocationPlaceholder } from '../lib/artifactLoadPanelCopy';
 import { Spinner } from './ui/Spinner';
+
+const SOURCE_TABS: { value: UserArtifactSourceKind; label: string }[] = [
+  { value: 'local', label: 'Local directory' },
+  { value: 's3', label: 'Amazon S3' },
+  { value: 'gcs', label: 'Google Cloud Storage' },
+];
+
+function segmentedTabClass(active: boolean): string {
+  return active
+    ? 'workspace-segmented-control__button workspace-segmented-control__button--active'
+    : 'workspace-segmented-control__button';
+}
 
 export type ArtifactLoadPanelFormProps = {
   readinessRegionId: string;
@@ -15,9 +27,8 @@ export type ArtifactLoadPanelFormProps = {
   impersonatedServiceAccount: string;
   onImpersonatedServiceAccountChange: (value: string) => void;
   onImpersonatedServiceAccountBlur?: () => void;
-  candidateRunIds: string[];
-  selectedRunId: string | null;
-  onSelectRunId: (runId: string) => void;
+  discoveryError: string | null;
+  onScan: () => void;
   discoverLoading: boolean;
   canLoad: boolean;
   loadLoading: boolean;
@@ -37,62 +48,111 @@ export function ArtifactLoadPanelForm({
   impersonatedServiceAccount,
   onImpersonatedServiceAccountChange,
   onImpersonatedServiceAccountBlur,
-  candidateRunIds,
-  selectedRunId,
-  onSelectRunId,
+  discoveryError,
+  onScan,
   discoverLoading,
   canLoad,
   loadLoading,
   loadWorkspaceHint,
   onLoadWorkspace,
 }: ArtifactLoadPanelFormProps) {
+  const describedByIds = [
+    'artifact-location-helper',
+    discoveryError != null ? 'artifact-location-error' : undefined,
+    readinessRegionId,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className="upload-panel">
-      <div className="upload-panel__header">
-        <div>
-          <p className="eyebrow">Artifact source</p>
-          <h3>Configure directory or prefix</h3>
-        </div>
-        <span id={readinessRegionId} className="upload-panel__status" role="status">
-          {discoverLoading ? (
-            <>
-              <Spinner size={16} /> {readinessLabel}
-            </>
-          ) : (
-            readinessLabel
-          )}
-        </span>
-      </div>
+      <header className="upload-panel__header">
+        <p className="eyebrow">Artifact source</p>
+        <h3>Artifact location</h3>
+        <p className="upload-panel__lede">
+          Folder or prefix with <code>manifest.json</code> and <code>run_results.json</code> at the
+          root.
+        </p>
+      </header>
 
-      <div className="upload-panel__inputs artifact-load-panel__inputs">
-        <div className="file-input-card">
-          <label htmlFor="artifact-source-kind">Source type</label>
-          <select
-            id="artifact-source-kind"
-            value={sourceKind}
-            onChange={(e) => onSourceKindChange(e.target.value as UserArtifactSourceKind)}
+      <div className="upload-panel__body artifact-load-panel__inputs">
+        <div className="upload-panel__field">
+          <span className="upload-panel__label" id="artifact-source-kind-label">
+            Connection
+          </span>
+          <div
+            className="workspace-segmented-control"
+            role="tablist"
+            aria-labelledby="artifact-source-kind-label"
           >
-            <option value="local">Local directory</option>
-            <option value="s3">Amazon S3</option>
-            <option value="gcs">Google Cloud Storage</option>
-          </select>
+            {SOURCE_TABS.map((tab) => {
+              const active = sourceKind === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  role="tab"
+                  id={`artifact-source-tab-${tab.value}`}
+                  aria-selected={active}
+                  className={segmentedTabClass(active)}
+                  onClick={() => onSourceKindChange(tab.value)}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="file-input-card">
-          <label htmlFor="artifact-location-input">Location</label>
-          <input
-            id="artifact-location-input"
-            type="text"
-            autoComplete="off"
-            placeholder={artifactLocationPlaceholder(sourceKind)}
-            value={location}
-            onChange={(e) => onLocationChange(e.target.value)}
-            onBlur={onLocationBlur}
-            onKeyDown={onLocationKeyDown}
-          />
+
+        <div className="upload-panel__field">
+          <label className="upload-panel__label" htmlFor="artifact-location-input">
+            Location
+          </label>
+          <div className="upload-panel__location-row">
+            <input
+              id="artifact-location-input"
+              type="text"
+              autoComplete="off"
+              aria-invalid={discoveryError != null}
+              aria-describedby={describedByIds}
+              placeholder={artifactLocationPlaceholder(sourceKind)}
+              value={location}
+              onChange={(e) => onLocationChange(e.target.value)}
+              onBlur={onLocationBlur}
+              onKeyDown={onLocationKeyDown}
+            />
+            <button
+              type="button"
+              className="secondary-action"
+              disabled={discoverLoading || location.trim() === ''}
+              aria-busy={discoverLoading}
+              onClick={onScan}
+            >
+              {discoverLoading ? (
+                <>
+                  <Spinner size={16} /> Scanning…
+                </>
+              ) : (
+                'Scan location'
+              )}
+            </button>
+          </div>
+          <p id="artifact-location-helper" className="upload-panel__helper">
+            {artifactLocationHelper(sourceKind)}
+          </p>
+          {discoveryError != null ? (
+            <p id="artifact-location-error" className="upload-panel__error" role="alert">
+              {discoveryError}
+            </p>
+          ) : null}
         </div>
+
         {sourceKind === 'gcs' ? (
-          <div className="file-input-card">
-            <label htmlFor="artifact-gcs-impersonated-service-account">
+          <div className="upload-panel__field">
+            <label
+              className="upload-panel__label"
+              htmlFor="artifact-gcs-impersonated-service-account"
+            >
               Impersonated service account
             </label>
             <input
@@ -106,67 +166,33 @@ export function ArtifactLoadPanelForm({
                 onImpersonatedServiceAccountBlur?.();
               }}
             />
-            <span className="file-input-card__filename">
+            <p className="upload-panel__helper">
               Optional. Uses server-side Google credentials to impersonate this service account for
-              GCS access. After editing, leave this field or press Enter in Location so candidate
-              runs match the impersonation setting.
-            </span>
+              GCS access. After editing, leave this field or run Scan location (or press Enter in
+              Location).
+            </p>
           </div>
         ) : null}
-        {candidateRunIds.length > 0 ? (
-          <fieldset className="file-input-card">
-            <legend>
-              Candidate sets
-              {candidateRunIds.length > 1 ? ' — choose one before loading.' : null}
-            </legend>
-            {candidateRunIds.map((id) => (
-              <label
-                key={id}
-                className="artifact-load-panel__radio-row"
-                htmlFor={`artifact-run-${id}`}
-              >
-                <input
-                  id={`artifact-run-${id}`}
-                  type="radio"
-                  name="artifact-run"
-                  value={id}
-                  checked={selectedRunId === id}
-                  onChange={() => onSelectRunId(id)}
-                />
-                <span>{id}</span>
-              </label>
-            ))}
-          </fieldset>
-        ) : null}
       </div>
 
-      <div className="upload-panel__tips">
-        <div>
-          <strong>Local paths</strong>
-          <span>
-            Resolved on the machine running the dev server or <code>dbt-tools-web</code>, not in
-            your browser.
-          </span>
-        </div>
-        <div>
-          <strong>S3 and GCS</strong>
-          <span>
-            Use default SDK credential chains on the server. UI never receives cloud keys.
-          </span>
-        </div>
-      </div>
-
-      <div className="artifact-load-panel__actions artifact-load-panel__actions--load-only">
+      <footer className="upload-panel__footer">
+        <span id={readinessRegionId} className="upload-panel__footer-status" role="status">
+          {discoverLoading ? (
+            <>
+              <Spinner size={16} /> {readinessLabel}
+            </>
+          ) : (
+            readinessLabel
+          )}
+        </span>
         <button
           type="button"
           className="primary-action"
-          disabled={!canLoad || candidateRunIds.length === 0 || loadLoading}
+          disabled={!canLoad || loadLoading}
           aria-busy={loadLoading}
           aria-describedby={readinessRegionId}
           title={loadWorkspaceHint ?? undefined}
-          onClick={() => {
-            onLoadWorkspace();
-          }}
+          onClick={onLoadWorkspace}
         >
           {loadLoading ? (
             <>
@@ -176,7 +202,7 @@ export function ArtifactLoadPanelForm({
             'Load workspace'
           )}
         </button>
-      </div>
+      </footer>
     </div>
   );
 }

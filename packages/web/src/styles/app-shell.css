@@ -487,7 +487,8 @@
   color: var(--text-inverse);
 }
 
-.primary-action:disabled {
+.primary-action:disabled,
+.secondary-action:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   box-shadow: none;

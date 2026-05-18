@@ -26,10 +26,10 @@ export function ArtifactLoadPanelHero() {
 
       <div className="upload-hero__callout">
         <span className="upload-hero__callout-badge">Layout</span>
-        <strong>Artifacts at the location root or one subdirectory deep.</strong>
+        <strong>Artifacts must be at the location root (typical dbt target/).</strong>
         <p>
-          Multiple complete pairs under the same location require an explicit choice—nothing is
-          auto-picked when several candidates exist.
+          Point at the directory or prefix that directly contains manifest.json and
+          run_results.json.
         </p>
       </div>
 

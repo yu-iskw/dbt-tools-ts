@@ -42,8 +42,6 @@ vi.mock('../artifact-source/sourceService', () => {
       return {
         sourceKind: 'local',
         locationDisplay: '/tmp/mock',
-        candidates: undefined,
-        needsSelection: false,
         discoveryError: null,
       };
     }

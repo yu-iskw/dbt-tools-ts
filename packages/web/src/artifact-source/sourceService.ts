@@ -190,13 +190,8 @@ export class ArtifactSourceService {
     await this.applyLocalDirectory(resolved, true);
   }
 
-  private pickBootstrapRunId(
-    mode: 'preload' | 'remote',
-    runs: ResolvedArtifactRun[],
-  ): string | null {
-    if (mode === 'remote') return runs[0]?.runId ?? null;
-    if (runs.length === 1) return runs[0]!.runId;
-    return null;
+  private pickBootstrapRunId(runs: ResolvedArtifactRun[]): string | null {
+    return runs.length === 1 ? runs[0]!.runId : null;
   }
 
   private discoveryErrorMessage(): string | null {
@@ -221,8 +216,6 @@ export class ArtifactSourceService {
       currentRun: null,
       pendingRun: null,
       supportsSwitch: false,
-      needsSelection: false,
-      candidates: undefined,
       discoveryError: null,
       sourceKind: null,
       locationDisplay: null,
@@ -230,17 +223,9 @@ export class ArtifactSourceService {
     });
   }
 
-  private mapRunsToUiRows(): RemoteArtifactRun[] {
-    return this.runs.map((run) => runToUiRow(this.mode, this.remoteProvider, run));
-  }
-
   private runToUiOrNull(run: ResolvedArtifactRun | null): RemoteArtifactRun | null {
     if (run == null) return null;
     return runToUiRow(this.mode, this.remoteProvider, run);
-  }
-
-  private needsExplicitRunSelection(discoveryError: string | null): boolean {
-    return this.runs.length > 0 && this.selectedRunId == null && discoveryError == null;
   }
 
   private optionalArtifactsForResolved(
@@ -254,19 +239,15 @@ export class ArtifactSourceService {
     return this.remoteConfig?.pollIntervalMs ?? null;
   }
 
-  private remoteSupportsPendingSwitch(
-    pendingRun: RemoteArtifactRun | null,
-    needsSelection: boolean,
-  ): boolean {
-    return this.mode === 'remote' && pendingRun != null && !needsSelection;
+  private remoteSupportsPendingSwitch(pendingRun: RemoteArtifactRun | null): boolean {
+    return this.mode === 'remote' && pendingRun != null;
   }
 
   private currentManagedSourceOrNull(params: {
-    needsSelection: boolean;
     discoveryError: string | null;
     currentResolved: ResolvedArtifactRun | null;
   }): Exclude<WorkspaceArtifactSource, 'upload'> | null {
-    if (params.needsSelection || params.discoveryError != null || params.currentResolved == null) {
+    if (params.discoveryError != null || params.currentResolved == null) {
       return null;
     }
     if (this.mode === 'none') return null;
@@ -275,16 +256,13 @@ export class ArtifactSourceService {
 
   private buildActiveArtifactStatus(): Omit<ArtifactSourceStatus, 'checkedAtMs'> {
     const discoveryError = this.discoveryErrorMessage();
-    const candidatesUi = this.mapRunsToUiRows();
     const currentResolved = this.resolveSelectedRun();
     const currentRunUi = this.runToUiOrNull(currentResolved);
     const pendingRun = this.pendingRunAfterLatest(currentResolved);
-    const needsSelection = this.needsExplicitRunSelection(discoveryError);
     const missingOptionalArtifacts = this.optionalArtifactsForResolved(currentResolved);
-    const supportsSwitch = this.remoteSupportsPendingSwitch(pendingRun, needsSelection);
+    const supportsSwitch = this.remoteSupportsPendingSwitch(pendingRun);
     const pollIntervalMs = this.remotePollIntervalOrNull();
     const currentSource = this.currentManagedSourceOrNull({
-      needsSelection,
       discoveryError,
       currentResolved,
     });
@@ -299,8 +277,6 @@ export class ArtifactSourceService {
       currentRun: currentRunUi,
       pendingRun,
       supportsSwitch,
-      needsSelection,
-      candidates: candidatesUi.length > 0 ? candidatesUi : undefined,
       discoveryError,
       sourceKind: this.sourceKind ?? undefined,
       locationDisplay: this.locationDisplay,
@@ -375,44 +351,19 @@ export class ArtifactSourceService {
     };
   }
 
-  private previewToUiRows(discovery: DiscoveredArtifactSource): RemoteArtifactRun[] {
-    return discovery.runs.map((run) => runToUiRow(discovery.mode, discovery.remoteProvider, run));
-  }
-
-  private discoveryNeedsSelection(
-    discovery: DiscoveredArtifactSource,
-    selectedRunId: string | null,
-  ): boolean {
-    const discoveryError =
-      discovery.discoveryResult.ok === true ? null : discovery.discoveryResult.failure.message;
-    return discovery.runs.length > 0 && selectedRunId == null && discoveryError == null;
-  }
-
   private resolveConfiguredRunId(discovery: DiscoveredArtifactSource, runId?: string): string {
     if (!discovery.discoveryResult.ok) {
       throw new Error(discovery.discoveryResult.failure.message);
     }
-    const trimmedRunId = runId?.trim();
-    if (trimmedRunId != null && trimmedRunId !== '') {
-      const found = discovery.runs.some((run) => run.runId === trimmedRunId);
-      if (!found) {
-        throw new Error(
-          `Unknown run id "${trimmedRunId}". Candidates: ${discovery.runs
-            .map((run) => run.runId)
-            .join(', ')}`,
-        );
-      }
-      return trimmedRunId;
-    }
-    if (discovery.runs.length === 1) {
-      return discovery.runs[0]!.runId;
-    }
     if (discovery.runs.length === 0) {
       throw new Error('No complete dbt artifact pair found at this location.');
     }
-    throw new Error(
-      `Multiple artifact sets found (${discovery.runs.length}). Select a candidate run before loading.`,
-    );
+    const sole = discovery.runs[0]!;
+    const trimmedRunId = runId?.trim();
+    if (trimmedRunId != null && trimmedRunId !== '' && trimmedRunId !== sole.runId) {
+      throw new Error(`Unknown run id "${trimmedRunId}".`);
+    }
+    return sole.runId;
   }
 
   private applyDiscoveredArtifactSource(
@@ -497,7 +448,7 @@ export class ArtifactSourceService {
     const discovery = await this.discoverLocalDirectory(resolvedDir);
     const selectedRunId =
       discovery.discoveryResult.ok && fromEnvBootstrap
-        ? this.pickBootstrapRunId('preload', discovery.runs)
+        ? this.pickBootstrapRunId(discovery.runs)
         : null;
     this.applyDiscoveredArtifactSource(discovery, selectedRunId);
   }
@@ -510,7 +461,7 @@ export class ArtifactSourceService {
     const discovery = await this.discoverRemoteConfiguration(config, client);
     const selectedRunId =
       discovery.discoveryResult.ok && fromEnvBootstrap
-        ? this.pickBootstrapRunId('remote', discovery.runs)
+        ? this.pickBootstrapRunId(discovery.runs)
         : null;
     this.applyDiscoveredArtifactSource(discovery, selectedRunId);
   }
@@ -522,13 +473,9 @@ export class ArtifactSourceService {
   ): Promise<ArtifactSourceDiscoveryResult> {
     await this.ensureReady();
     const discovery = await this.discoverArtifactSourceInternal(kind, location, providerOptions);
-    const candidates = this.previewToUiRows(discovery);
-    const needsSelection = this.discoveryNeedsSelection(discovery, null);
     return {
       sourceKind: discovery.sourceKind,
       locationDisplay: discovery.locationDisplay,
-      candidates: candidates.length > 0 ? candidates : undefined,
-      needsSelection,
       discoveryError:
         discovery.discoveryResult.ok === true ? null : discovery.discoveryResult.failure.message,
     };

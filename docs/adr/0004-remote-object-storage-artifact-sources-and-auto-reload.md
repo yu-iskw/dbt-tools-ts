@@ -46,11 +46,12 @@ The product recognizes three durable artifact-source modes:
    `run_results.json` must not be mixed across different runs.
 6. **A remote run must be complete before it is eligible.** Newly discovered remote
    runs cannot become active until the backend confirms a complete artifact pair.
-7. **Multi-run discovery requires explicit run choice.** When a location contains
-   multiple complete pairs, the product does not silently pick one on the user's behalf.
-8. **CLI and web share the discovery model but not the exact contract.** The interactive
-   load flow supports discovery and run choice, while the CLI remains a stricter
-   single-root loader for automation and CI.
+7. **One complete artifact set per location root.** A location (local directory or
+   object prefix) must contain exactly one `manifest.json` and `run_results.json` pair
+   at its root (typical dbt `target/`). Multiple sets in subdirectories or under a
+   parent prefix are not supported.
+8. **CLI and web share the discovery model.** Both resolve root-level artifact pairs
+   at the configured location; the CLI uses the same root-only layout for automation.
 9. **Local and remote freshness have different semantics.**
    Local dev flows may re-analyze immediately from trusted local files.
    Remote managed sources may detect a newer complete run automatically, but the active
@@ -88,8 +89,8 @@ The product recognizes three durable artifact-source modes:
   often publish run-specific prefixes.
 - **Keep legacy mixed `DBT_*` names indefinitely:** Rejected because they blur product
   ownership and create avoidable confusion.
-- **Silently auto-select a run when discovery finds many:** Rejected because active
-  investigation context should not change behind the user's back.
+- **Silently auto-select among multiple sets at one location:** Rejected; locations
+  must point at a single coherent artifact set (per-run prefix for remote storage).
 
 ## References
 

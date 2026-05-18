@@ -3,11 +3,36 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ArtifactLoadPanelForm } from './ArtifactLoadPanelForm';
+import { ArtifactLoadPanelForm, type ArtifactLoadPanelFormProps } from './ArtifactLoadPanelForm';
 
 const actEnvironment = globalThis as typeof globalThis & {
   IS_REACT_ACT_ENVIRONMENT?: boolean;
 };
+
+function mkFormProps(
+  overrides: Partial<ArtifactLoadPanelFormProps> = {},
+): ArtifactLoadPanelFormProps {
+  return {
+    readinessRegionId: 'r',
+    readinessLabel: '',
+    sourceKind: 'local',
+    onSourceKindChange: vi.fn(),
+    location: '',
+    onLocationChange: vi.fn(),
+    onLocationBlur: vi.fn(),
+    onLocationKeyDown: vi.fn(),
+    discoveryError: null,
+    onScan: vi.fn(),
+    impersonatedServiceAccount: '',
+    onImpersonatedServiceAccountChange: vi.fn(),
+    discoverLoading: false,
+    canLoad: false,
+    loadLoading: false,
+    loadWorkspaceHint: undefined,
+    onLoadWorkspace: vi.fn(),
+    ...overrides,
+  };
+}
 
 function renderForm(ui: React.ReactNode) {
   const container = document.createElement('div');
@@ -42,145 +67,92 @@ describe('ArtifactLoadPanelForm', () => {
     const regionId = 'test-readiness-id';
     const { container, root } = renderForm(
       <ArtifactLoadPanelForm
-        readinessRegionId={regionId}
-        readinessLabel="Press Enter or leave the Location field to scan for artifact runs."
-        sourceKind="local"
-        onSourceKindChange={vi.fn()}
-        location="/tmp"
-        onLocationChange={vi.fn()}
-        onLocationBlur={vi.fn()}
-        onLocationKeyDown={vi.fn()}
-        candidateRunIds={[]}
-        selectedRunId={null}
-        onSelectRunId={vi.fn()}
-        discoverLoading={false}
-        canLoad={false}
-        loadLoading={false}
-        loadWorkspaceHint="Press Enter or blur Location to scan, then click Load workspace."
-        onLoadWorkspace={vi.fn()}
-        impersonatedServiceAccount=""
-        onImpersonatedServiceAccountChange={vi.fn()}
+        {...mkFormProps({
+          readinessRegionId: regionId,
+          readinessLabel: 'Press Enter or Scan to check this location.',
+          location: '/tmp',
+          loadWorkspaceHint:
+            'Press Enter, blur Location, or click Scan location, then click Load workspace.',
+        })}
       />,
     );
     const loadBtn = container.querySelector('button.primary-action[type="button"]');
     expect(loadBtn).not.toBeNull();
     expect(loadBtn?.getAttribute('aria-describedby')).toBe(regionId);
     const region = document.getElementById(regionId);
-    expect(region?.textContent).toBe(
-      'Press Enter or leave the Location field to scan for artifact runs.',
+    expect(region?.textContent).toBe('Press Enter or Scan to check this location.');
+    cleanupRoot(root, container);
+  });
+
+  it('does not render legacy tip cards', () => {
+    const { container, root } = renderForm(<ArtifactLoadPanelForm {...mkFormProps()} />);
+    expect(container.querySelector('.upload-panel__tips')).toBeNull();
+    cleanupRoot(root, container);
+  });
+
+  it('calls onScan when Scan location is clicked', () => {
+    const onScan = vi.fn();
+    const { container, root } = renderForm(
+      <ArtifactLoadPanelForm {...mkFormProps({ location: '/tmp', onScan })} />,
     );
+    const scanBtn = container.querySelector(
+      'button.secondary-action[type="button"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      scanBtn.click();
+    });
+    expect(onScan).toHaveBeenCalledTimes(1);
+    cleanupRoot(root, container);
+  });
+
+  it('shows inline discovery error when provided', () => {
+    const { container, root } = renderForm(
+      <ArtifactLoadPanelForm
+        {...mkFormProps({
+          location: '/bad',
+          discoveryError: 'No manifest.json at this path.',
+        })}
+      />,
+    );
+    const err = container.querySelector('#artifact-location-error');
+    expect(err?.textContent).toBe('No manifest.json at this path.');
     cleanupRoot(root, container);
   });
 
   it('shows impersonation field only for GCS with help text', () => {
-    const noop = vi.fn();
     const { container: c1, root: r1 } = renderForm(
-      <ArtifactLoadPanelForm
-        readinessRegionId="r"
-        readinessLabel=""
-        sourceKind="local"
-        onSourceKindChange={noop}
-        location=""
-        onLocationChange={noop}
-        onLocationBlur={noop}
-        onLocationKeyDown={noop}
-        impersonatedServiceAccount=""
-        onImpersonatedServiceAccountChange={noop}
-        candidateRunIds={[]}
-        selectedRunId={null}
-        onSelectRunId={noop}
-        discoverLoading={false}
-        canLoad={false}
-        loadLoading={false}
-        loadWorkspaceHint={undefined}
-        onLoadWorkspace={noop}
-      />,
+      <ArtifactLoadPanelForm {...mkFormProps({ sourceKind: 'local' })} />,
     );
     expect(c1.textContent).not.toContain('Impersonated service account');
     cleanupRoot(r1, c1);
 
     const { container: c3, root: r3 } = renderForm(
-      <ArtifactLoadPanelForm
-        readinessRegionId="r"
-        readinessLabel=""
-        sourceKind="s3"
-        onSourceKindChange={noop}
-        location=""
-        onLocationChange={noop}
-        onLocationBlur={noop}
-        onLocationKeyDown={noop}
-        impersonatedServiceAccount=""
-        onImpersonatedServiceAccountChange={noop}
-        candidateRunIds={[]}
-        selectedRunId={null}
-        onSelectRunId={noop}
-        discoverLoading={false}
-        canLoad={false}
-        loadLoading={false}
-        loadWorkspaceHint={undefined}
-        onLoadWorkspace={noop}
-      />,
+      <ArtifactLoadPanelForm {...mkFormProps({ sourceKind: 's3' })} />,
     );
     expect(c3.textContent).not.toContain('Impersonated service account');
     cleanupRoot(r3, c3);
 
     const { container: c2, root: r2 } = renderForm(
-      <ArtifactLoadPanelForm
-        readinessRegionId="r"
-        readinessLabel=""
-        sourceKind="gcs"
-        onSourceKindChange={noop}
-        location=""
-        onLocationChange={noop}
-        onLocationBlur={noop}
-        onLocationKeyDown={noop}
-        impersonatedServiceAccount=""
-        onImpersonatedServiceAccountChange={noop}
-        candidateRunIds={[]}
-        selectedRunId={null}
-        onSelectRunId={noop}
-        discoverLoading={false}
-        canLoad={false}
-        loadLoading={false}
-        loadWorkspaceHint={undefined}
-        onLoadWorkspace={noop}
-      />,
+      <ArtifactLoadPanelForm {...mkFormProps({ sourceKind: 'gcs' })} />,
     );
     expect(c2.textContent).toContain('Impersonated service account');
     expect(c2.textContent).toContain(
       'Uses server-side Google credentials to impersonate this service account for GCS access.',
     );
-    expect(c2.textContent).toContain(
-      'After editing, leave this field or press Enter in Location so candidate runs match the impersonation setting.',
-    );
+    expect(c2.textContent).toContain('run Scan location (or press Enter in Location).');
     expect(document.getElementById('artifact-gcs-impersonated-service-account')).not.toBeNull();
     cleanupRoot(r2, c2);
   });
 
   it('invokes onImpersonatedServiceAccountBlur when the impersonation field blurs', () => {
-    const onBlur = vi.fn();
-    const noop = vi.fn();
+    const onImpersonatedServiceAccountBlur = vi.fn();
     const { container, root } = renderForm(
       <ArtifactLoadPanelForm
-        readinessRegionId="r"
-        readinessLabel=""
-        sourceKind="gcs"
-        onSourceKindChange={noop}
-        location="gs://b/p"
-        onLocationChange={noop}
-        onLocationBlur={noop}
-        onLocationKeyDown={noop}
-        impersonatedServiceAccount=""
-        onImpersonatedServiceAccountChange={noop}
-        onImpersonatedServiceAccountBlur={onBlur}
-        candidateRunIds={[]}
-        selectedRunId={null}
-        onSelectRunId={noop}
-        discoverLoading={false}
-        canLoad={false}
-        loadLoading={false}
-        loadWorkspaceHint={undefined}
-        onLoadWorkspace={noop}
+        {...mkFormProps({
+          sourceKind: 'gcs',
+          location: 'gs://b/p',
+          onImpersonatedServiceAccountBlur,
+        })}
       />,
     );
     const input = container.querySelector(
@@ -190,7 +162,7 @@ describe('ArtifactLoadPanelForm', () => {
       input.focus();
       input.blur();
     });
-    expect(onBlur).toHaveBeenCalledTimes(1);
+    expect(onImpersonatedServiceAccountBlur).toHaveBeenCalledTimes(1);
     cleanupRoot(root, container);
   });
 });

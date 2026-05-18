@@ -297,7 +297,18 @@ export class ArtifactWorkspace {
   async initialize(): Promise<void> {
     const source = await this.discoverSource();
     this.runs = source.runs;
-    this.selectedRunId = this.selectedRunId ?? this.runs[0]?.runId ?? null;
+    if (!source.discovery.ok) {
+      throw new Error(
+        this.discoveryErrorMessage(source.discovery) ?? 'No dbt artifact runs found.',
+      );
+    }
+    if (source.runs.length !== 1) {
+      throw new Error(
+        this.discoveryErrorMessage(source.discovery) ??
+          `Expected exactly one artifact set, found ${source.runs.length}.`,
+      );
+    }
+    this.selectedRunId = this.selectedRunId ?? source.runs[0]!.runId;
     const run = this.resolveSelectedRun();
     if (run == null) {
       throw new Error(

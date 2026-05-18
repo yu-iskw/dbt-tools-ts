@@ -93,7 +93,7 @@ export function toRemoteArtifactRun(
 export function toLocalManagedArtifactRun(run: ResolvedArtifactRun): RemoteArtifactRun {
   return {
     runId: run.runId,
-    label: run.runId === ARTIFACT_RUN_ID_CURRENT ? 'Local (root)' : `Local (${run.runId})`,
+    label: 'Local',
     updatedAtMs: run.updatedAtMs,
     versionToken: run.versionToken,
   };

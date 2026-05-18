@@ -4,7 +4,6 @@ import {
   configureArtifactSourceFromApi,
   discoverArtifactSourceFromApi,
   refetchFromApi,
-  type ArtifactSourceDiscoveryResult,
   type GcsArtifactSourceClientOptions,
   type MissingOptionalArtifactsState,
   type UserArtifactSourceKind,
@@ -17,66 +16,51 @@ import {
 import { ArtifactLoadPanelForm } from './ArtifactLoadPanelForm';
 import { ArtifactLoadPanelHero } from './ArtifactLoadPanelHero';
 
+function buildArtifactScanKey(
+  kind: UserArtifactSourceKind,
+  locationTrimmed: string,
+  impersonationTrimmed: string,
+): string {
+  return kind === 'gcs'
+    ? `gcs|${locationTrimmed}|${impersonationTrimmed}`
+    : `${kind}|${locationTrimmed}`;
+}
+
+function discoveryMismatchMessage(
+  kind: UserArtifactSourceKind,
+  locationTrimmed: string,
+  impersonationTrimmed: string,
+  lastScannedKey: string,
+): string | null {
+  if (locationTrimmed === '') {
+    return null;
+  }
+  const inputKey = buildArtifactScanKey(kind, locationTrimmed, impersonationTrimmed);
+  if (lastScannedKey !== '' && inputKey === lastScannedKey) {
+    return null;
+  }
+  return 'Run artifact discovery again after changing the location or connection settings.';
+}
+
+function loadPrecheckMessage(
+  kind: UserArtifactSourceKind,
+  locationTrimmed: string,
+  impersonationTrimmed: string,
+  lastScannedKey: string,
+  discoveryInFlight: boolean,
+): string | null {
+  if (discoveryInFlight) {
+    return 'Wait for artifact discovery to finish, then try loading again.';
+  }
+  return discoveryMismatchMessage(kind, locationTrimmed, impersonationTrimmed, lastScannedKey);
+}
+
 function gcsClientOptionsFromRefs(
   kind: UserArtifactSourceKind,
   impersonatedServiceAccountRaw: string,
 ): GcsArtifactSourceClientOptions | undefined {
   if (kind !== 'gcs') return undefined;
   return { impersonatedServiceAccount: impersonatedServiceAccountRaw };
-}
-
-function summarizeArtifactDiscovery(discovery: ArtifactSourceDiscoveryResult): {
-  error: string | null;
-  candidateIds: string[];
-  selectedRunId: string | null;
-  autoLoadRunId: string | null;
-} {
-  if (discovery.discoveryError != null) {
-    return {
-      error: discovery.discoveryError,
-      candidateIds: [],
-      selectedRunId: null,
-      autoLoadRunId: null,
-    };
-  }
-  const candidateIds = discovery.candidates?.map((c) => c.runId) ?? [];
-  const needsSelection = discovery.needsSelection === true;
-  const soleRunId = candidateIds.length === 1 ? candidateIds[0]! : null;
-  const selectedRunId = soleRunId;
-  const autoLoadRunId = soleRunId != null && !needsSelection ? soleRunId : null;
-  return { error: null, candidateIds, selectedRunId, autoLoadRunId };
-}
-
-function gcsDiscoveryMismatchMessage(
-  kind: UserArtifactSourceKind,
-  locationTrimmed: string,
-  impersonationTrimmed: string,
-  lastScanKey: string,
-): string | null {
-  if (kind !== 'gcs' || locationTrimmed === '') {
-    return null;
-  }
-  const scanKey = `gcs|${locationTrimmed}|${impersonationTrimmed}`;
-  if (scanKey === lastScanKey) {
-    return null;
-  }
-  return 'Run artifact discovery again after changing the GCS location or impersonated service account.';
-}
-
-function gcsLoadPrecheckMessage(
-  kind: UserArtifactSourceKind,
-  locationTrimmed: string,
-  impersonationTrimmed: string,
-  lastScanKey: string,
-  discoveryInFlight: boolean,
-): string | null {
-  if (kind !== 'gcs' || locationTrimmed === '') {
-    return null;
-  }
-  if (discoveryInFlight) {
-    return 'Wait for artifact discovery to finish, then try loading again.';
-  }
-  return gcsDiscoveryMismatchMessage(kind, locationTrimmed, impersonationTrimmed, lastScanKey);
 }
 
 export interface ArtifactLoadPanelProps {
@@ -96,40 +80,39 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
   const [impersonatedServiceAccount, setImpersonatedServiceAccount] = useState('');
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [loadLoading, setLoadLoading] = useState(false);
-  const [candidateRunIds, setCandidateRunIds] = useState<string[]>([]);
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [lastScannedKey, setLastScannedKey] = useState('');
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   const locationRef = useRef(location);
   const sourceKindRef = useRef(sourceKind);
   const impersonatedServiceAccountRef = useRef(impersonatedServiceAccount);
+  const lastScannedKeyRef = useRef(lastScannedKey);
   locationRef.current = location;
   sourceKindRef.current = sourceKind;
   impersonatedServiceAccountRef.current = impersonatedServiceAccount;
+  lastScannedKeyRef.current = lastScannedKey;
 
   const discoverySeqRef = useRef(0);
-  const lastScanKeyRef = useRef('');
   const discoveryInFlightRef = useRef(false);
+
+  const locationTrimmed = location.trim();
+  const impersonationTrimmed = impersonatedServiceAccount.trim();
+  const inputKey = buildArtifactScanKey(sourceKind, locationTrimmed, impersonationTrimmed);
+  const scanFresh = lastScannedKey !== '' && inputKey === lastScannedKey;
 
   const readinessInput = useMemo(
     () => ({
       discoverLoading,
       discoveryError,
-      candidateRunIds,
-      selectedRunId,
+      scanSucceeded: scanFresh,
       location,
     }),
-    [candidateRunIds, discoverLoading, discoveryError, location, selectedRunId],
+    [discoverLoading, discoveryError, location, scanFresh],
   );
 
   const readinessLabel = useMemo(() => getArtifactReadinessLabel(readinessInput), [readinessInput]);
 
-  const canLoad =
-    candidateRunIds.length > 0 &&
-    selectedRunId != null &&
-    selectedRunId.trim() !== '' &&
-    !loadLoading &&
-    discoveryError == null;
+  const canLoad = scanFresh && !loadLoading && !discoverLoading && discoveryError == null;
 
   const loadWorkspaceHint = useMemo(
     () =>
@@ -141,74 +124,67 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
     [canLoad, loadLoading, readinessInput],
   );
 
-  const loadWorkspaceForRunId = useCallback(
-    async (runId: string) => {
-      if (runId.trim() === '') {
-        onError('Select a candidate artifact set.');
-        return;
-      }
-      const kind = sourceKindRef.current;
-      const loc = locationRef.current.trim();
-      const precheck = gcsLoadPrecheckMessage(
-        kind,
-        loc,
-        impersonatedServiceAccountRef.current.trim(),
-        lastScanKeyRef.current,
-        discoveryInFlightRef.current,
+  const loadWorkspace = useCallback(async () => {
+    const kind = sourceKindRef.current;
+    const loc = locationRef.current.trim();
+    const impersonation = impersonatedServiceAccountRef.current.trim();
+    const precheck = loadPrecheckMessage(
+      kind,
+      loc,
+      impersonation,
+      lastScannedKeyRef.current,
+      discoveryInFlightRef.current,
+    );
+    if (precheck != null) {
+      onError(precheck);
+      return;
+    }
+    setLoadLoading(true);
+    onError(null);
+    try {
+      const status = await configureArtifactSourceFromApi(
+        sourceKindRef.current,
+        locationRef.current.trim(),
+        undefined,
+        gcsClientOptionsFromRefs(sourceKindRef.current, impersonatedServiceAccountRef.current),
       );
-      if (precheck != null) {
-        onError(precheck);
+      const source = status.currentSource;
+      if (source !== 'preload' && source !== 'remote') {
+        onError('Artifacts are not ready to load.');
         return;
       }
-      setLoadLoading(true);
-      onError(null);
-      try {
-        const status = await configureArtifactSourceFromApi(
-          sourceKindRef.current,
-          locationRef.current.trim(),
-          runId,
-          gcsClientOptionsFromRefs(sourceKindRef.current, impersonatedServiceAccountRef.current),
+      const caps: MissingOptionalArtifactsState = status.missingOptionalArtifacts ?? {
+        missingCatalog: false,
+        missingSources: false,
+      };
+      if (caps.missingCatalog || caps.missingSources) {
+        const parts: string[] = [];
+        if (caps.missingCatalog) parts.push('catalog.json');
+        if (caps.missingSources) parts.push('sources.json');
+        toast(
+          `Optional artifacts not loaded: ${parts.join(', ')}. Related inventory panels may be limited.`,
+          'positive',
         );
-        const source = status.currentSource;
-        if (source !== 'preload' && source !== 'remote') {
-          onError('Artifacts are not ready to load.');
-          return;
-        }
-        const caps: MissingOptionalArtifactsState = status.missingOptionalArtifacts ?? {
-          missingCatalog: false,
-          missingSources: false,
-        };
-        if (caps.missingCatalog || caps.missingSources) {
-          const parts: string[] = [];
-          if (caps.missingCatalog) parts.push('catalog.json');
-          if (caps.missingSources) parts.push('sources.json');
-          toast(
-            `Optional artifacts not loaded: ${parts.join(', ')}. Related inventory panels may be limited.`,
-            'positive',
-          );
-        }
-        const result = await refetchFromApi(source);
-        if (result == null) {
-          onError('Could not read artifact bytes from the server.');
-          return;
-        }
-        onManagedLoad(result, source, caps);
-        if (sourceKindRef.current === 'gcs') {
-          lastScanKeyRef.current = '';
-          setCandidateRunIds([]);
-          setSelectedRunId(null);
-        }
-        setImpersonatedServiceAccount('');
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load artifacts.';
-        onError(message);
-        toast(message, 'danger');
-      } finally {
-        setLoadLoading(false);
       }
-    },
-    [onError, onManagedLoad, toast],
-  );
+      const result = await refetchFromApi(source);
+      if (result == null) {
+        onError('Could not read artifact bytes from the server.');
+        return;
+      }
+      onManagedLoad(result, source, caps);
+      if (sourceKindRef.current === 'gcs') {
+        lastScannedKeyRef.current = '';
+        setLastScannedKey('');
+      }
+      setImpersonatedServiceAccount('');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load artifacts.';
+      onError(message);
+      toast(message, 'danger');
+    } finally {
+      setLoadLoading(false);
+    }
+  }, [onError, onManagedLoad, toast]);
 
   const runDiscovery = useCallback(
     async (force?: boolean) => {
@@ -216,12 +192,12 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       const loc = locationRef.current.trim();
       const impersonationTrimmed =
         kind === 'gcs' ? impersonatedServiceAccountRef.current.trim() : '';
-      const scanKey = kind === 'gcs' ? `${kind}|${loc}|${impersonationTrimmed}` : `${kind}|${loc}`;
+      const scanKey = buildArtifactScanKey(kind, loc, impersonationTrimmed);
       if (loc === '') {
         onError('Enter a directory or bucket prefix.');
         return;
       }
-      if (!force && scanKey === lastScanKeyRef.current) {
+      if (!force && scanKey === lastScannedKeyRef.current) {
         return;
       }
       const seq = ++discoverySeqRef.current;
@@ -229,8 +205,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       setDiscoverLoading(true);
       onError(null);
       setDiscoveryError(null);
-      setCandidateRunIds([]);
-      setSelectedRunId(null);
+      lastScannedKeyRef.current = '';
+      setLastScannedKey('');
       try {
         const discovery = await discoverArtifactSourceFromApi(
           kind,
@@ -240,19 +216,15 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         if (seq !== discoverySeqRef.current) {
           return;
         }
-        const summary = summarizeArtifactDiscovery(discovery);
-        if (summary.error != null) {
-          setDiscoveryError(summary.error);
-          onError(summary.error);
+        if (discovery.discoveryError != null) {
+          setDiscoveryError(discovery.discoveryError);
+          onError(discovery.discoveryError);
           return;
         }
-        setCandidateRunIds(summary.candidateIds);
-        setSelectedRunId(summary.selectedRunId);
-        lastScanKeyRef.current = scanKey;
+        lastScannedKeyRef.current = scanKey;
+        setLastScannedKey(scanKey);
         discoveryInFlightRef.current = false;
-        if (summary.autoLoadRunId != null) {
-          await loadWorkspaceForRunId(summary.autoLoadRunId);
-        }
+        await loadWorkspace();
       } catch (err) {
         if (seq !== discoverySeqRef.current) {
           return;
@@ -267,16 +239,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         }
       }
     },
-    [loadWorkspaceForRunId, onError],
+    [loadWorkspace, onError],
   );
-
-  async function handleLoad() {
-    if (selectedRunId == null || selectedRunId.trim() === '') {
-      onError('Select a candidate artifact set.');
-      return;
-    }
-    await loadWorkspaceForRunId(selectedRunId);
-  }
 
   return (
     <section className="upload-hero">
@@ -284,13 +248,16 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       <ArtifactLoadPanelForm
         readinessRegionId={readinessRegionId}
         readinessLabel={readinessLabel}
+        discoveryError={discoveryError}
+        onScan={() => {
+          void runDiscovery(true);
+        }}
         sourceKind={sourceKind}
         onSourceKindChange={(nextKind) => {
           setSourceKind(nextKind);
-          setCandidateRunIds([]);
-          setSelectedRunId(null);
           setDiscoveryError(null);
-          lastScanKeyRef.current = '';
+          lastScannedKeyRef.current = '';
+          setLastScannedKey('');
           onError(null);
         }}
         location={location}
@@ -318,15 +285,12 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
             void runDiscovery(false);
           }
         }}
-        candidateRunIds={candidateRunIds}
-        selectedRunId={selectedRunId}
-        onSelectRunId={setSelectedRunId}
         discoverLoading={discoverLoading}
         canLoad={canLoad}
         loadLoading={loadLoading}
         loadWorkspaceHint={loadWorkspaceHint}
         onLoadWorkspace={() => {
-          void handleLoad();
+          void loadWorkspace();
         }}
       />
     </section>

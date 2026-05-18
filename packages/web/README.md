@@ -104,7 +104,7 @@ Set these in the environment for the **Node process** that runs `dbt-tools-web` 
 
 ### Remote artifact sources
 
-**Variable:** `DBT_TOOLS_REMOTE_SOURCE`. The dev server and **`dbt-tools-web`** can list keys under a bucket prefix, discover complete **`manifest.json` + `run_results.json`** pairs (non-recursive layout: root files or one subdirectory level per candidate), **poll** for changes, and surface newer runs in the UI **without switching your selected run automatically**. Credentials stay in the **Node process** (AWS default chain, GCS ADC / `GOOGLE_APPLICATION_CREDENTIALS`), not in the browser.
+**Variable:** `DBT_TOOLS_REMOTE_SOURCE`. The dev server and **`dbt-tools-web`** can list keys under a bucket prefix that points at a **single run** (root-level `manifest.json` and `run_results.json`), **poll** for changes, and surface newer artifact versions in the UI **without switching your selected location automatically**. Credentials stay in the **Node process** (AWS default chain, GCS ADC / `GOOGLE_APPLICATION_CREDENTIALS`), not in the browser.
 
 Example (shape only — adjust bucket/prefix):
 
