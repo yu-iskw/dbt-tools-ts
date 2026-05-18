@@ -174,15 +174,54 @@ describe('ArtifactLoadPanel', () => {
     cleanupRoot(root, container);
   });
 
-  it('blocks GCS load when impersonation changed after discovery until discovery is re-run', async () => {
+  it('disables load and blocks configure when location changes after a successful local scan', async () => {
+    discoverArtifactSourceFromApi.mockResolvedValue({
+      sourceKind: 'local',
+      locationDisplay: '/mock/a',
+      discoveryError: null,
+    });
+
+    const { container, root, onManagedLoad, onError } = renderPanel();
+    const locationInput = container.querySelector('#artifact-location-input') as HTMLInputElement;
+
+    changeInput(locationInput, '/mock/a');
+    await flushAsync();
+    await act(async () => {
+      locationInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    configureArtifactSourceFromApi.mockClear();
+    onManagedLoad.mockClear();
+    onError.mockClear();
+
+    changeInput(locationInput, '/mock/b');
+    await flushAsync();
+
+    const loadButton = container.querySelector('button.primary-action') as HTMLButtonElement;
+    expect(loadButton.disabled).toBe(true);
+
+    await act(async () => {
+      loadButton.click();
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(configureArtifactSourceFromApi).not.toHaveBeenCalled();
+    expect(onManagedLoad).not.toHaveBeenCalled();
+
+    cleanupRoot(root, container);
+  });
+
+  it('disables load when GCS impersonation changes after a successful scan', async () => {
     discoverArtifactSourceFromApi.mockResolvedValue({
       sourceKind: 'gcs',
       locationDisplay: 'gs://b/p',
       discoveryError: null,
     });
-    configureArtifactSourceFromApi.mockRejectedValueOnce(new Error('configure blocked for test'));
 
-    const { container, root, onError, onManagedLoad } = renderPanel();
+    const { container, root, onManagedLoad } = renderPanel();
     const locationInput = container.querySelector('#artifact-location-input') as HTMLInputElement;
 
     clickSourceTab(container, 'gcs');
@@ -205,15 +244,14 @@ describe('ArtifactLoadPanel', () => {
     await flushAsync();
 
     const loadButton = container.querySelector('button.primary-action') as HTMLButtonElement;
+    expect(loadButton.disabled).toBe(true);
+
     await act(async () => {
       loadButton.click();
       await Promise.resolve();
     });
     await flushAsync();
 
-    expect(onError).toHaveBeenCalledWith(
-      'Run artifact discovery again after changing the GCS location or impersonated service account.',
-    );
     expect(configureArtifactSourceFromApi).not.toHaveBeenCalled();
     expect(onManagedLoad).not.toHaveBeenCalled();
 

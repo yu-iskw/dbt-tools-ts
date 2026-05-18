@@ -16,44 +16,51 @@ import {
 import { ArtifactLoadPanelForm } from './ArtifactLoadPanelForm';
 import { ArtifactLoadPanelHero } from './ArtifactLoadPanelHero';
 
+function buildArtifactScanKey(
+  kind: UserArtifactSourceKind,
+  locationTrimmed: string,
+  impersonationTrimmed: string,
+): string {
+  return kind === 'gcs'
+    ? `gcs|${locationTrimmed}|${impersonationTrimmed}`
+    : `${kind}|${locationTrimmed}`;
+}
+
+function discoveryMismatchMessage(
+  kind: UserArtifactSourceKind,
+  locationTrimmed: string,
+  impersonationTrimmed: string,
+  lastScannedKey: string,
+): string | null {
+  if (locationTrimmed === '') {
+    return null;
+  }
+  const inputKey = buildArtifactScanKey(kind, locationTrimmed, impersonationTrimmed);
+  if (lastScannedKey !== '' && inputKey === lastScannedKey) {
+    return null;
+  }
+  return 'Run artifact discovery again after changing the location or connection settings.';
+}
+
+function loadPrecheckMessage(
+  kind: UserArtifactSourceKind,
+  locationTrimmed: string,
+  impersonationTrimmed: string,
+  lastScannedKey: string,
+  discoveryInFlight: boolean,
+): string | null {
+  if (discoveryInFlight) {
+    return 'Wait for artifact discovery to finish, then try loading again.';
+  }
+  return discoveryMismatchMessage(kind, locationTrimmed, impersonationTrimmed, lastScannedKey);
+}
+
 function gcsClientOptionsFromRefs(
   kind: UserArtifactSourceKind,
   impersonatedServiceAccountRaw: string,
 ): GcsArtifactSourceClientOptions | undefined {
   if (kind !== 'gcs') return undefined;
   return { impersonatedServiceAccount: impersonatedServiceAccountRaw };
-}
-
-function gcsDiscoveryMismatchMessage(
-  kind: UserArtifactSourceKind,
-  locationTrimmed: string,
-  impersonationTrimmed: string,
-  lastScanKey: string,
-): string | null {
-  if (kind !== 'gcs' || locationTrimmed === '') {
-    return null;
-  }
-  const scanKey = `gcs|${locationTrimmed}|${impersonationTrimmed}`;
-  if (scanKey === lastScanKey) {
-    return null;
-  }
-  return 'Run artifact discovery again after changing the GCS location or impersonated service account.';
-}
-
-function gcsLoadPrecheckMessage(
-  kind: UserArtifactSourceKind,
-  locationTrimmed: string,
-  impersonationTrimmed: string,
-  lastScanKey: string,
-  discoveryInFlight: boolean,
-): string | null {
-  if (kind !== 'gcs' || locationTrimmed === '') {
-    return null;
-  }
-  if (discoveryInFlight) {
-    return 'Wait for artifact discovery to finish, then try loading again.';
-  }
-  return gcsDiscoveryMismatchMessage(kind, locationTrimmed, impersonationTrimmed, lastScanKey);
 }
 
 export interface ArtifactLoadPanelProps {
@@ -73,33 +80,39 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
   const [impersonatedServiceAccount, setImpersonatedServiceAccount] = useState('');
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [loadLoading, setLoadLoading] = useState(false);
-  const [scanSucceeded, setScanSucceeded] = useState(false);
+  const [lastScannedKey, setLastScannedKey] = useState('');
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   const locationRef = useRef(location);
   const sourceKindRef = useRef(sourceKind);
   const impersonatedServiceAccountRef = useRef(impersonatedServiceAccount);
+  const lastScannedKeyRef = useRef(lastScannedKey);
   locationRef.current = location;
   sourceKindRef.current = sourceKind;
   impersonatedServiceAccountRef.current = impersonatedServiceAccount;
+  lastScannedKeyRef.current = lastScannedKey;
 
   const discoverySeqRef = useRef(0);
-  const lastScanKeyRef = useRef('');
   const discoveryInFlightRef = useRef(false);
+
+  const locationTrimmed = location.trim();
+  const impersonationTrimmed = impersonatedServiceAccount.trim();
+  const inputKey = buildArtifactScanKey(sourceKind, locationTrimmed, impersonationTrimmed);
+  const scanFresh = lastScannedKey !== '' && inputKey === lastScannedKey;
 
   const readinessInput = useMemo(
     () => ({
       discoverLoading,
       discoveryError,
-      scanSucceeded,
+      scanSucceeded: scanFresh,
       location,
     }),
-    [discoverLoading, discoveryError, location, scanSucceeded],
+    [discoverLoading, discoveryError, location, scanFresh],
   );
 
   const readinessLabel = useMemo(() => getArtifactReadinessLabel(readinessInput), [readinessInput]);
 
-  const canLoad = scanSucceeded && !loadLoading && !discoverLoading && discoveryError == null;
+  const canLoad = scanFresh && !loadLoading && !discoverLoading && discoveryError == null;
 
   const loadWorkspaceHint = useMemo(
     () =>
@@ -114,11 +127,12 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
   const loadWorkspace = useCallback(async () => {
     const kind = sourceKindRef.current;
     const loc = locationRef.current.trim();
-    const precheck = gcsLoadPrecheckMessage(
+    const impersonation = impersonatedServiceAccountRef.current.trim();
+    const precheck = loadPrecheckMessage(
       kind,
       loc,
-      impersonatedServiceAccountRef.current.trim(),
-      lastScanKeyRef.current,
+      impersonation,
+      lastScannedKeyRef.current,
       discoveryInFlightRef.current,
     );
     if (precheck != null) {
@@ -159,8 +173,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       }
       onManagedLoad(result, source, caps);
       if (sourceKindRef.current === 'gcs') {
-        lastScanKeyRef.current = '';
-        setScanSucceeded(false);
+        lastScannedKeyRef.current = '';
+        setLastScannedKey('');
       }
       setImpersonatedServiceAccount('');
     } catch (err) {
@@ -178,12 +192,12 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       const loc = locationRef.current.trim();
       const impersonationTrimmed =
         kind === 'gcs' ? impersonatedServiceAccountRef.current.trim() : '';
-      const scanKey = kind === 'gcs' ? `${kind}|${loc}|${impersonationTrimmed}` : `${kind}|${loc}`;
+      const scanKey = buildArtifactScanKey(kind, loc, impersonationTrimmed);
       if (loc === '') {
         onError('Enter a directory or bucket prefix.');
         return;
       }
-      if (!force && scanKey === lastScanKeyRef.current) {
+      if (!force && scanKey === lastScannedKeyRef.current) {
         return;
       }
       const seq = ++discoverySeqRef.current;
@@ -191,7 +205,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
       setDiscoverLoading(true);
       onError(null);
       setDiscoveryError(null);
-      setScanSucceeded(false);
+      lastScannedKeyRef.current = '';
+      setLastScannedKey('');
       try {
         const discovery = await discoverArtifactSourceFromApi(
           kind,
@@ -206,8 +221,8 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
           onError(discovery.discoveryError);
           return;
         }
-        setScanSucceeded(true);
-        lastScanKeyRef.current = scanKey;
+        lastScannedKeyRef.current = scanKey;
+        setLastScannedKey(scanKey);
         discoveryInFlightRef.current = false;
         await loadWorkspace();
       } catch (err) {
@@ -240,9 +255,9 @@ export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelP
         sourceKind={sourceKind}
         onSourceKindChange={(nextKind) => {
           setSourceKind(nextKind);
-          setScanSucceeded(false);
           setDiscoveryError(null);
-          lastScanKeyRef.current = '';
+          lastScannedKeyRef.current = '';
+          setLastScannedKey('');
           onError(null);
         }}
         location={location}
