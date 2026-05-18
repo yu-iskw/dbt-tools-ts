@@ -1,7 +1,10 @@
 import http from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ArtifactSourceService } from './sourceService';
-import { tryHandleArtifactSourceViteRequest } from './viteArtifactRoutes';
+import {
+  tryHandleArtifactSourceViteRequest,
+  ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR,
+} from './viteArtifactRoutes';
 
 function startRouteServer(service: Partial<ArtifactSourceService>) {
   const requestHandler: http.RequestListener = (req, res) => {
@@ -102,7 +105,7 @@ describe('tryHandleArtifactSourceViteRequest', () => {
         locationDisplay: '/tmp/preview',
       }),
     );
-    expect(discoverArtifactSource).toHaveBeenCalledWith('local', '/tmp/preview');
+    expect(discoverArtifactSource).toHaveBeenCalledWith('local', '/tmp/preview', undefined);
     expect(configureArtifactSource).not.toHaveBeenCalled();
   });
 
@@ -129,6 +132,160 @@ describe('tryHandleArtifactSourceViteRequest', () => {
     expect(response.body).toEqual({
       error: 'Unknown run id "missing-run"',
     });
-    expect(configureArtifactSource).toHaveBeenCalledWith('local', '/tmp/preview', 'missing-run');
+    expect(configureArtifactSource).toHaveBeenCalledWith(
+      'local',
+      '/tmp/preview',
+      'missing-run',
+      undefined,
+    );
+  });
+
+  it('rejects options for local artifact sources', async () => {
+    const discoverArtifactSource = vi.fn();
+    server = await startRouteServer({ discoverArtifactSource });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/discover', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'local',
+        location: '/tmp',
+        options: { impersonatedServiceAccount: 'x@y.iam.gserviceaccount.com' },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR,
+    });
+    expect(discoverArtifactSource).not.toHaveBeenCalled();
+  });
+
+  it('rejects options for S3 artifact sources', async () => {
+    const discoverArtifactSource = vi.fn();
+    server = await startRouteServer({ discoverArtifactSource });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/discover', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 's3',
+        location: 's3://b/p',
+        options: {},
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR,
+    });
+    expect(discoverArtifactSource).not.toHaveBeenCalled();
+  });
+
+  it('passes trimmed GCS impersonation options to discover', async () => {
+    const discoverArtifactSource = vi.fn(async () => ({
+      sourceKind: 'gcs' as const,
+      locationDisplay: 'GCS b/p',
+      candidates: [],
+      needsSelection: false,
+      discoveryError: null,
+    }));
+
+    server = await startRouteServer({ discoverArtifactSource });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/discover', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'gcs',
+        location: 'gs://b/p',
+        options: { impersonatedServiceAccount: '  svc@proj.iam.gserviceaccount.com  ' },
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(discoverArtifactSource).toHaveBeenCalledWith('gcs', 'gs://b/p', {
+      impersonatedServiceAccount: 'svc@proj.iam.gserviceaccount.com',
+    });
+  });
+
+  it('rejects options for local configure requests', async () => {
+    const configureArtifactSource = vi.fn();
+    server = await startRouteServer({ configureArtifactSource });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/configure', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'local',
+        location: '/tmp',
+        runId: 'run-1',
+        options: { impersonatedServiceAccount: 'x@y.iam.gserviceaccount.com' },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR,
+    });
+    expect(configureArtifactSource).not.toHaveBeenCalled();
+  });
+
+  it('rejects options for S3 configure requests', async () => {
+    const configureArtifactSource = vi.fn();
+    server = await startRouteServer({ configureArtifactSource });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/configure', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 's3',
+        location: 's3://b/p',
+        runId: 'run-1',
+        options: {},
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR,
+    });
+    expect(configureArtifactSource).not.toHaveBeenCalled();
+  });
+
+  it('passes trimmed GCS impersonation options to configure', async () => {
+    const configureArtifactSource = vi.fn(async () => ({
+      mode: 'remote' as const,
+      currentSource: 'remote' as const,
+      label: 'GCS',
+      checkedAtMs: 1,
+      remoteProvider: 'gcs' as const,
+      remoteLocation: 'gs://b/p',
+      pollIntervalMs: null,
+      currentRun: {
+        runId: 'r1',
+        label: 'Run r1',
+        updatedAtMs: 1,
+        versionToken: 't',
+      },
+      pendingRun: null,
+      supportsSwitch: false,
+      missingOptionalArtifacts: {
+        missingCatalog: false,
+        missingSources: false,
+      },
+    }));
+
+    server = await startRouteServer({ configureArtifactSource });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/configure', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'gcs',
+        location: 'gs://b/p',
+        runId: 'r1',
+        options: { impersonatedServiceAccount: '  svc@proj.iam.gserviceaccount.com  ' },
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(configureArtifactSource).toHaveBeenCalledWith('gcs', 'gs://b/p', 'r1', {
+      impersonatedServiceAccount: 'svc@proj.iam.gserviceaccount.com',
+    });
   });
 });

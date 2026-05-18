@@ -1,6 +1,10 @@
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Storage } from '@google-cloud/storage';
-import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
+import { GoogleAuth, Impersonated } from 'google-auth-library';
+import {
+  assertGcsImpersonationPrincipalAllowed,
+  type DbtToolsRemoteSourceConfig,
+} from '../config/dbt-tools-env';
 import type { RemoteObjectMetadata } from './artifact-discovery';
 
 export interface RemoteObjectStoreClient {
@@ -62,13 +66,7 @@ class S3RemoteObjectStoreClient implements RemoteObjectStoreClient {
 }
 
 class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
-  private readonly storage: Storage;
-
-  constructor(config: DbtToolsRemoteSourceConfig) {
-    this.storage = new Storage({
-      projectId: config.projectId,
-    });
-  }
+  constructor(private readonly storage: Storage) {}
 
   async listObjects(bucket: string, prefix: string): Promise<RemoteObjectMetadata[]> {
     const [files] = await this.storage.bucket(bucket).getFiles({
@@ -97,10 +95,39 @@ class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
   }
 }
 
-export function createRemoteObjectStoreClient(
+async function createGcsStorage(config: DbtToolsRemoteSourceConfig): Promise<Storage> {
+  const targetPrincipal = config.impersonatedServiceAccount?.trim();
+  if (targetPrincipal != null && targetPrincipal !== '') {
+    assertGcsImpersonationPrincipalAllowed(targetPrincipal);
+  }
+  if (targetPrincipal == null || targetPrincipal === '') {
+    return new Storage({
+      projectId: config.projectId,
+    });
+  }
+
+  const auth = new GoogleAuth({
+    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  });
+  const sourceClient = await auth.getClient();
+  const impersonatedClient = new Impersonated({
+    sourceClient,
+    targetPrincipal,
+    delegates: [],
+    targetScopes: ['https://www.googleapis.com/auth/devstorage.read_only'],
+  });
+  return new Storage({
+    projectId: config.projectId,
+    authClient: impersonatedClient,
+  });
+}
+
+export async function createRemoteObjectStoreClient(
   config: DbtToolsRemoteSourceConfig,
-): RemoteObjectStoreClient {
-  return config.provider === 's3'
-    ? new S3RemoteObjectStoreClient(config)
-    : new GcsRemoteObjectStoreClient(config);
+): Promise<RemoteObjectStoreClient> {
+  if (config.provider === 's3') {
+    return new S3RemoteObjectStoreClient(config);
+  }
+  const storage = await createGcsStorage(config);
+  return new GcsRemoteObjectStoreClient(storage);
 }

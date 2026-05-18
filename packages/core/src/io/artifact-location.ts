@@ -1,5 +1,8 @@
 import * as path from 'node:path';
-import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
+import {
+  assertGcsImpersonationPrincipalAllowed,
+  type DbtToolsRemoteSourceConfig,
+} from '../config/dbt-tools-env';
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
 
 export type ArtifactSourceKind = 'local' | 's3' | 'gcs';
@@ -131,6 +134,11 @@ function parseGcsLocation(raw: string): { bucket: string; prefix: string } {
 
 const DEFAULT_REMOTE_POLL_MS = 30_000;
 
+/** Request-time GCS-only options (web artifact-source); not part of env JSON. */
+export interface GcsArtifactSourceRequestOptions {
+  impersonatedServiceAccount?: string;
+}
+
 /**
  * Build {@link DbtToolsRemoteSourceConfig} for SDK clients using UI-provided
  * bucket/prefix while inheriting poll interval and provider-specific options
@@ -139,6 +147,7 @@ const DEFAULT_REMOTE_POLL_MS = 30_000;
 export function mergeRemoteSourceConfigWithParsedLocation(
   envConfig: DbtToolsRemoteSourceConfig | undefined,
   parsed: ParsedRemoteArtifactLocation,
+  gcsRequestOptions?: GcsArtifactSourceRequestOptions,
 ): DbtToolsRemoteSourceConfig {
   const pollIntervalMs =
     envConfig?.pollIntervalMs != null && envConfig.pollIntervalMs >= 0
@@ -159,11 +168,18 @@ export function mergeRemoteSourceConfigWithParsedLocation(
   }
 
   const envGcs = envConfig?.provider === 'gcs' ? envConfig : undefined;
+  const trimmedImpersonation = gcsRequestOptions?.impersonatedServiceAccount?.trim();
+  if (trimmedImpersonation != null && trimmedImpersonation !== '') {
+    assertGcsImpersonationPrincipalAllowed(trimmedImpersonation);
+  }
   return {
     provider: 'gcs',
     bucket: parsed.bucket,
     prefix: parsed.prefix,
     pollIntervalMs,
     projectId: envGcs?.projectId,
+    ...(trimmedImpersonation != null && trimmedImpersonation !== ''
+      ? { impersonatedServiceAccount: trimmedImpersonation }
+      : {}),
   };
 }

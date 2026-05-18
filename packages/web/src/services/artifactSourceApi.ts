@@ -19,6 +19,44 @@ export interface RemoteArtifactRun {
 
 export type UserArtifactSourceKind = 'local' | 's3' | 'gcs';
 
+/** GCS-only request options for discover/configure (browser → server). */
+export type GcsArtifactSourceClientOptions = {
+  impersonatedServiceAccount?: string;
+};
+
+export type ArtifactSourceDiscoverRequestBody =
+  | { type: 'local'; location: string }
+  | { type: 's3'; location: string }
+  | {
+      type: 'gcs';
+      location: string;
+      options?: { impersonatedServiceAccount: string };
+    };
+
+export type ArtifactSourceConfigureRequestBody = ArtifactSourceDiscoverRequestBody & {
+  runId?: string;
+};
+
+function buildGcsOptionsFragment(
+  kind: UserArtifactSourceKind,
+  gcsOptions?: GcsArtifactSourceClientOptions,
+): Pick<Extract<ArtifactSourceDiscoverRequestBody, { type: 'gcs' }>, 'options'> {
+  if (kind !== 'gcs' || gcsOptions == null) {
+    return {};
+  }
+  const trimmed = gcsOptions.impersonatedServiceAccount?.trim();
+  if (trimmed == null || trimmed === '') {
+    return {};
+  }
+  return { options: { impersonatedServiceAccount: trimmed } };
+}
+
+function errorMessageFromArtifactSourceJson(data: unknown, fallback: string): string {
+  if (typeof data !== 'object' || data === null) return fallback;
+  const err = (data as { error?: unknown }).error;
+  return typeof err === 'string' && err.trim() !== '' ? err : fallback;
+}
+
 export interface MissingOptionalArtifactsState {
   missingCatalog: boolean;
   missingSources: boolean;
@@ -271,13 +309,21 @@ export async function switchToArtifactRun(runId?: string): Promise<ArtifactSourc
 export async function discoverArtifactSourceFromApi(
   kind: UserArtifactSourceKind,
   location: string,
+  gcsOptions?: GcsArtifactSourceClientOptions,
 ): Promise<ArtifactSourceDiscoveryResult> {
+  const body: ArtifactSourceDiscoverRequestBody =
+    kind === 'local'
+      ? { type: 'local', location }
+      : kind === 's3'
+        ? { type: 's3', location }
+        : { type: 'gcs', location, ...buildGcsOptionsFragment(kind, gcsOptions) };
+
   const response = await fetch('/api/artifact-source/discover', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ type: kind, location }),
+    body: JSON.stringify(body),
   });
 
   const data = (await response.json().catch(() => ({}))) as
@@ -285,12 +331,7 @@ export async function discoverArtifactSourceFromApi(
     | { error?: string };
 
   if (!response.ok) {
-    const message =
-      typeof (data as { error?: string }).error === 'string' &&
-      (data as { error: string }).error.trim() !== ''
-        ? (data as { error: string }).error
-        : 'Failed to configure artifact source';
-    throw new Error(message);
+    throw new Error(errorMessageFromArtifactSourceJson(data, 'Failed to discover artifact source'));
   }
 
   return data as ArtifactSourceDiscoveryResult;
@@ -300,17 +341,27 @@ export async function configureArtifactSourceFromApi(
   kind: UserArtifactSourceKind,
   location: string,
   runId?: string,
+  gcsOptions?: GcsArtifactSourceClientOptions,
 ): Promise<ArtifactSourceStatus> {
+  const base: ArtifactSourceConfigureRequestBody =
+    kind === 'local'
+      ? { type: 'local', location }
+      : kind === 's3'
+        ? { type: 's3', location }
+        : { type: 'gcs', location };
+
+  const body: ArtifactSourceConfigureRequestBody = {
+    ...base,
+    ...(runId != null && runId.trim() !== '' ? { runId } : {}),
+    ...buildGcsOptionsFragment(kind, gcsOptions),
+  };
+
   const response = await fetch('/api/artifact-source/configure', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      type: kind,
-      location,
-      ...(runId != null && runId.trim() !== '' ? { runId } : {}),
-    }),
+    body: JSON.stringify(body),
   });
 
   const data = (await response.json().catch(() => ({}))) as
@@ -318,12 +369,9 @@ export async function configureArtifactSourceFromApi(
     | { error?: string };
 
   if (!response.ok) {
-    const message =
-      typeof (data as { error?: string }).error === 'string' &&
-      (data as { error: string }).error.trim() !== ''
-        ? (data as { error: string }).error
-        : 'Failed to configure artifact source';
-    throw new Error(message);
+    throw new Error(
+      errorMessageFromArtifactSourceJson(data, 'Failed to configure artifact source'),
+    );
   }
 
   return data as ArtifactSourceStatus;

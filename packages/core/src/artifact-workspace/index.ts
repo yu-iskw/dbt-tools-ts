@@ -410,7 +410,7 @@ export class ArtifactWorkspace {
       getDbtToolsRemoteSourceConfigFromEnv(),
       parsed,
     );
-    const client = this.injectedRemoteClient ?? createRemoteObjectStoreClient(config);
+    const client = this.injectedRemoteClient ?? (await createRemoteObjectStoreClient(config));
     const prefix = normalizeArtifactPrefix(config.prefix);
     const objects = await client.listObjects(config.bucket, prefix);
     const discovery = discoverArtifactCandidates(remoteKeysToListedArtifacts(objects, prefix));

@@ -17,7 +17,7 @@ import {
   normalizeArtifactPrefix,
   type ParsedArtifactLocation,
 } from './artifact-location';
-import { createRemoteObjectStoreClient } from './remote-object-store';
+import { createRemoteObjectStoreClient, type RemoteObjectStoreClient } from './remote-object-store';
 
 export type DbtArtifactBundleRequirements = {
   manifest?: boolean;
@@ -162,7 +162,7 @@ async function resolveLocalBundle(
 
 async function writeRemoteBytesToTemp(args: {
   bucket: string;
-  client: ReturnType<typeof createRemoteObjectStoreClient>;
+  client: RemoteObjectStoreClient;
   prefixNorm: string;
   displayTarget: string;
   provider: 's3' | 'gcs';
@@ -250,7 +250,7 @@ export async function resolveDbtToolsArtifactBundlePaths(options: {
 
   const env = getDbtToolsRemoteSourceConfigFromEnv();
   const merged = mergeRemoteSourceConfigWithParsedLocation(env, parsed);
-  const client = createRemoteObjectStoreClient(merged);
+  const client = await createRemoteObjectStoreClient(merged);
   const prefixNorm = normalizeArtifactPrefix(merged.prefix);
 
   return writeRemoteBytesToTemp({

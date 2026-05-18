@@ -201,7 +201,12 @@ describe('ArtifactLoadPanel', () => {
       await Promise.resolve();
     });
 
-    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith('local', '/mock/solo', 'soloRun');
+    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith(
+      'local',
+      '/mock/solo',
+      'soloRun',
+      undefined,
+    );
     expect(refetchFromApi).toHaveBeenCalledWith('preload');
     expect(onManagedLoad).toHaveBeenCalledTimes(1);
 
@@ -276,8 +281,152 @@ describe('ArtifactLoadPanel', () => {
       await Promise.resolve();
     });
 
-    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith('local', '/mock/multi', 'runBeta');
+    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith(
+      'local',
+      '/mock/multi',
+      'runBeta',
+      undefined,
+    );
     expect(onManagedLoad).toHaveBeenCalledTimes(1);
+
+    cleanupRoot(root, container);
+  });
+
+  it('blocks GCS load when impersonation changed after discovery until discovery is re-run', async () => {
+    discoverArtifactSourceFromApi.mockResolvedValue({
+      sourceKind: 'gcs',
+      locationDisplay: 'gs://b/p',
+      candidates: [
+        {
+          runId: 'runAlpha',
+          label: 'GCS (runAlpha)',
+          updatedAtMs: 1,
+          versionToken: 'alpha',
+        },
+        {
+          runId: 'runBeta',
+          label: 'GCS (runBeta)',
+          updatedAtMs: 2,
+          versionToken: 'beta',
+        },
+      ],
+      needsSelection: true,
+      discoveryError: null,
+    });
+
+    const { container, root, onError, onManagedLoad } = renderPanel();
+    const sourceSelect = container.querySelector('#artifact-source-kind') as HTMLSelectElement;
+    const locationInput = container.querySelector('#artifact-location-input') as HTMLInputElement;
+
+    changeInput(sourceSelect, 'gcs');
+    await flushAsync();
+    changeInput(locationInput, 'gs://b/p');
+    await flushAsync();
+    await act(async () => {
+      locationInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(discoverArtifactSourceFromApi).toHaveBeenCalledWith('gcs', 'gs://b/p', {
+      impersonatedServiceAccount: '',
+    });
+    expect(configureArtifactSourceFromApi).not.toHaveBeenCalled();
+
+    const betaRadio = container.querySelector('#artifact-run-runBeta') as HTMLInputElement;
+    act(() => {
+      betaRadio.click();
+    });
+
+    const impersonationInput = container.querySelector(
+      '#artifact-gcs-impersonated-service-account',
+    ) as HTMLInputElement;
+    changeInput(impersonationInput, 'other@proj.iam.gserviceaccount.com');
+    await flushAsync();
+
+    const loadButton = container.querySelector('button.primary-action') as HTMLButtonElement;
+    await act(async () => {
+      loadButton.click();
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(onError).toHaveBeenCalledWith(
+      'Run artifact discovery again after changing the GCS location or impersonated service account.',
+    );
+    expect(configureArtifactSourceFromApi).not.toHaveBeenCalled();
+    expect(onManagedLoad).not.toHaveBeenCalled();
+
+    cleanupRoot(root, container);
+  });
+
+  it('clears GCS impersonation and candidate list after a successful managed load', async () => {
+    discoverArtifactSourceFromApi.mockResolvedValue({
+      sourceKind: 'gcs',
+      locationDisplay: 'gs://b/p',
+      candidates: [
+        {
+          runId: 'solo',
+          label: 'GCS (solo)',
+          updatedAtMs: 1,
+          versionToken: 'solo',
+        },
+      ],
+      needsSelection: false,
+      discoveryError: null,
+    });
+    configureArtifactSourceFromApi.mockResolvedValue({
+      mode: 'remote',
+      currentSource: 'remote',
+      label: 'Artifacts',
+      checkedAtMs: 1,
+      remoteProvider: 'gcs',
+      remoteLocation: 'gs://b/p',
+      pollIntervalMs: null,
+      currentRun: {
+        runId: 'solo',
+        label: 'GCS (solo)',
+        updatedAtMs: 1,
+        versionToken: 'solo',
+      },
+      pendingRun: null,
+      supportsSwitch: false,
+      missingOptionalArtifacts: {
+        missingCatalog: false,
+        missingSources: false,
+      },
+    });
+
+    const { container, root, onManagedLoad } = renderPanel();
+    const sourceSelect = container.querySelector('#artifact-source-kind') as HTMLSelectElement;
+    const locationInput = container.querySelector('#artifact-location-input') as HTMLInputElement;
+
+    changeInput(sourceSelect, 'gcs');
+    await flushAsync();
+    const impersonationInput = container.querySelector(
+      '#artifact-gcs-impersonated-service-account',
+    ) as HTMLInputElement;
+    changeInput(impersonationInput, 'svc@proj.iam.gserviceaccount.com');
+    await flushAsync();
+    changeInput(locationInput, 'gs://b/p');
+    await flushAsync();
+    await act(async () => {
+      locationInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(onManagedLoad).toHaveBeenCalledTimes(1);
+    expect(configureArtifactSourceFromApi).toHaveBeenCalledWith(
+      'gcs',
+      'gs://b/p',
+      'solo',
+      expect.objectContaining({
+        impersonatedServiceAccount: 'svc@proj.iam.gserviceaccount.com',
+      }),
+    );
+    expect(container.querySelector('#artifact-run-solo')).toBeNull();
+    expect(impersonationInput.value).toBe('');
 
     cleanupRoot(root, container);
   });

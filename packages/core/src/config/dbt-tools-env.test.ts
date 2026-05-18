@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
+  assertGcsImpersonationPrincipalAllowed,
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsTargetDirFromEnv,
@@ -290,6 +291,48 @@ describe('dbt-tools-env', () => {
       expect(warn).toHaveBeenCalled();
 
       warn.mockRestore();
+    });
+  });
+
+  describe('assertGcsImpersonationPrincipalAllowed', () => {
+    let prevAllow: string | undefined;
+    let prevSuf: string | undefined;
+
+    beforeEach(() => {
+      prevAllow = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
+      prevSuf = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
+      delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
+      delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
+    });
+
+    afterEach(() => {
+      if (prevAllow === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
+      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = prevAllow;
+      if (prevSuf === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
+      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES = prevSuf;
+    });
+
+    it('allows any principal when both lists are unset', () => {
+      expect(() =>
+        assertGcsImpersonationPrincipalAllowed('any@x.iam.gserviceaccount.com'),
+      ).not.toThrow();
+    });
+
+    it('throws when allowlist is set and principal is missing', () => {
+      process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = 'a@b.com,c@d.com';
+      expect(() => assertGcsImpersonationPrincipalAllowed('x@y.com')).toThrow(/not permitted/);
+    });
+
+    it('allows principal in allowlist', () => {
+      process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = 'ok@prin.com';
+      expect(() => assertGcsImpersonationPrincipalAllowed('ok@prin.com')).not.toThrow();
+    });
+
+    it('allows principal matching a suffix', () => {
+      process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES = '@org.iam.gserviceaccount.com';
+      expect(() =>
+        assertGcsImpersonationPrincipalAllowed('svc@org.iam.gserviceaccount.com'),
+      ).not.toThrow();
     });
   });
 });

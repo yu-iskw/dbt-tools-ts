@@ -1,7 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
+  GCS_MOCK_IMPERSONATION_SA,
   loadWorkspace,
   mockPreload,
+  registerGcsMultiCandidateArtifactSourceMocks,
+  registerGcsSingleCandidateWithImpersonationMocks,
   registerMultiCandidateArtifactSourceMocks,
   registerSingleCandidateArtifactSourceMocks,
 } from './helpers/preload';
@@ -85,6 +88,45 @@ test.describe('analyze flow', () => {
     await expect(location).toHaveAttribute('placeholder', /s3:\/\/bucket\/prefix|bucket\/prefix/);
     await page.getByLabel(ARTIFACT_SOURCE_TYPE_LABEL).selectOption('gcs');
     await expect(location).toHaveAttribute('placeholder', /gs:\/\/bucket\/prefix|bucket\/prefix/);
+  });
+
+  test('artifact load panel GCS flow sends impersonated service account on discover', async ({
+    page,
+  }) => {
+    await registerGcsMultiCandidateArtifactSourceMocks(page);
+    await page.goto('/');
+    await page.getByLabel(ARTIFACT_SOURCE_TYPE_LABEL).selectOption('gcs');
+    await page
+      .getByRole('textbox', { name: 'Impersonated service account' })
+      .fill(GCS_MOCK_IMPERSONATION_SA);
+    await page.getByRole('textbox', { name: 'Location' }).fill('gs://mock-bucket/mock-prefix');
+    await page.getByRole('textbox', { name: 'Location' }).press('Enter');
+    await expect(page.getByRole('group', { name: /Candidate sets/i })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'runBeta' })).toBeVisible();
+    await page.getByRole('radio', { name: 'runBeta' }).click();
+    await page.getByRole('button', { name: LOAD_WORKSPACE }).click();
+    await expect(page.getByRole('heading', { name: 'Health' }).first()).toBeVisible({
+      timeout: 30_000,
+    });
+    await expectNoErrorBanner(page);
+  });
+
+  test('artifact load panel GCS with impersonation auto-loads when a single run is found', async ({
+    page,
+  }) => {
+    await registerGcsSingleCandidateWithImpersonationMocks(page);
+    await page.goto('/');
+    await page.getByLabel(ARTIFACT_SOURCE_TYPE_LABEL).selectOption('gcs');
+    await page
+      .getByRole('textbox', { name: 'Impersonated service account' })
+      .fill(GCS_MOCK_IMPERSONATION_SA);
+    await page.getByRole('textbox', { name: 'Location' }).fill('gs://mock-bucket/mock-prefix');
+    await page.getByRole('textbox', { name: 'Location' }).press('Enter');
+    await expect(page.getByRole('group', { name: /Candidate sets/i })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Health' }).first()).toBeVisible({
+      timeout: 30_000,
+    });
+    await expectNoErrorBanner(page);
   });
 
   test('preload mock mounts workspace', async ({ page }) => {
