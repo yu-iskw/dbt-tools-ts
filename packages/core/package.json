@@ -49,8 +49,8 @@
   "scripts": {
     "build": "tsc",
     "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
-    "test": "vitest run packages/core/src",
-    "test:watch": "vitest packages/core/src"
+    "test": "vitest run --project @dbt-tools/core",
+    "test:watch": "vitest --project @dbt-tools/core"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1025.0",

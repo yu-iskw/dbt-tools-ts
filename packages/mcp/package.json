@@ -33,8 +33,8 @@
   "scripts": {
     "build": "tsc",
     "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
-    "test": "vitest run packages/mcp/src",
-    "test:watch": "vitest packages/mcp/src"
+    "test": "vitest run --project @dbt-tools/mcp",
+    "test:watch": "vitest --project @dbt-tools/mcp"
   },
   "dependencies": {
     "@dbt-tools/core": "workspace:*",

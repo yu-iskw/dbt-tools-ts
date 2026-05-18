@@ -2,24 +2,21 @@
 /**
  * Coverage harness for AI agent feedback.
  * Runs Vitest with coverage, produces coverage-report.json with score and threshold status.
- * Score: floor of average of lines, branches, functions, statements percentages.
- * Exits 1 if any metric is below its threshold.
+ * Threshold enforcement is Vitest's job (vitest.config.ts); this script mirrors global policy for agents.
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import {
+  GLOBAL_THRESHOLDS,
+  PACKAGE_LABELS,
+  isBelowGlobalThresholds,
+} from '../coverage-thresholds.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '..');
-
-const THRESHOLDS = {
-  lines: 60,
-  branches: 50,
-  functions: 60,
-  statements: 60,
-};
 
 /** Larger heap for Vitest + v8 coverage; default Node heap can OOM during compilation. */
 const VITEST_NODE_OPTIONS_HEAP = '--max-old-space-size=8192';
@@ -32,11 +29,24 @@ function vitestChildEnv() {
   };
 }
 
+function buildViolations(metrics) {
+  const violations = [];
+  for (const metric of ['lines', 'branches', 'functions', 'statements']) {
+    if (metrics[metric].pct < GLOBAL_THRESHOLDS[metric]) {
+      violations.push({
+        metric,
+        pct: metrics[metric].pct,
+        threshold: GLOBAL_THRESHOLDS[metric],
+      });
+    }
+  }
+  return violations;
+}
+
 function run() {
-  // 1. Run vitest with coverage (vitest.coverage.mjs serializes workers; see AGENTS.md)
   const r = spawnSync(
     'pnpm',
-    ['exec', 'vitest', 'run', '--coverage', '--config', join(projectRoot, 'vitest.coverage.mjs')],
+    ['exec', 'vitest', 'run', '--coverage', '--config', join(projectRoot, 'vitest.coverage.ts')],
     {
       cwd: projectRoot,
       encoding: 'utf8',
@@ -50,7 +60,6 @@ function run() {
     process.exit(r.status ?? 1);
   }
 
-  // 2. Read coverage summary (Istanbul json-summary format)
   const summaryPath = join(projectRoot, 'coverage', 'coverage-summary.json');
   if (!existsSync(summaryPath)) {
     console.error(
@@ -72,58 +81,19 @@ function run() {
   const statementsPct = total.statements?.pct ?? 0;
 
   const metrics = {
-    lines: { pct: linesPct, threshold: THRESHOLDS.lines },
-    branches: { pct: branchesPct, threshold: THRESHOLDS.branches },
-    functions: { pct: functionsPct, threshold: THRESHOLDS.functions },
-    statements: { pct: statementsPct, threshold: THRESHOLDS.statements },
+    lines: { pct: linesPct, threshold: GLOBAL_THRESHOLDS.lines },
+    branches: { pct: branchesPct, threshold: GLOBAL_THRESHOLDS.branches },
+    functions: { pct: functionsPct, threshold: GLOBAL_THRESHOLDS.functions },
+    statements: { pct: statementsPct, threshold: GLOBAL_THRESHOLDS.statements },
   };
 
-  const belowThreshold =
-    linesPct < THRESHOLDS.lines ||
-    branchesPct < THRESHOLDS.branches ||
-    functionsPct < THRESHOLDS.functions ||
-    statementsPct < THRESHOLDS.statements;
+  const belowThreshold = isBelowGlobalThresholds(metrics);
+  const violations = buildViolations(metrics);
 
   const avg = (linesPct + branchesPct + functionsPct + statementsPct) / 4;
   const score = Math.min(100, Math.floor(avg));
 
-  const violations = [];
-  if (linesPct < THRESHOLDS.lines) {
-    violations.push({
-      metric: 'lines',
-      pct: linesPct,
-      threshold: THRESHOLDS.lines,
-    });
-  }
-  if (branchesPct < THRESHOLDS.branches) {
-    violations.push({
-      metric: 'branches',
-      pct: branchesPct,
-      threshold: THRESHOLDS.branches,
-    });
-  }
-  if (functionsPct < THRESHOLDS.functions) {
-    violations.push({
-      metric: 'functions',
-      pct: functionsPct,
-      threshold: THRESHOLDS.functions,
-    });
-  }
-  if (statementsPct < THRESHOLDS.statements) {
-    violations.push({
-      metric: 'statements',
-      pct: statementsPct,
-      threshold: THRESHOLDS.statements,
-    });
-  }
-
-  // Per-package breakdown: group file entries by package prefix
-  const packagePrefixes = ['packages/core/', 'packages/cli/', 'packages/web/'];
-  const packageNames = {
-    'packages/core/': 'dbt-tools/core',
-    'packages/cli/': 'dbt-tools/cli',
-    'packages/web/': 'dbt-tools/web',
-  };
+  const packagePrefixes = Object.keys(PACKAGE_LABELS);
   const byPackage = {};
   for (const [filePath, data] of Object.entries(summary)) {
     if (filePath === 'total' || !data || typeof data !== 'object') continue;
@@ -131,7 +101,7 @@ function run() {
     let pkg = null;
     for (const prefix of packagePrefixes) {
       if (normalizedPath.includes(prefix)) {
-        pkg = packageNames[prefix];
+        pkg = PACKAGE_LABELS[prefix];
         break;
       }
     }
@@ -157,8 +127,8 @@ function run() {
   for (const [pkg, agg] of Object.entries(byPackage)) {
     byPackageFormatted[pkg] = {};
     for (const metric of ['lines', 'branches', 'functions', 'statements']) {
-      const { total, covered } = agg[metric];
-      const pct = total > 0 ? (covered / total) * 100 : 0;
+      const { total: metricTotal, covered } = agg[metric];
+      const pct = metricTotal > 0 ? (covered / metricTotal) * 100 : 0;
       byPackageFormatted[pkg][metric] = pct;
     }
   }

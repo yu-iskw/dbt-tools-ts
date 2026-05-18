@@ -19,7 +19,7 @@ Before considering a task complete, run both report scripts from the repository 
 
 The **verifier** subagent ([`.claude/agents/verifier.md`](mdc:.claude/agents/verifier.md)) finishes with `pnpm format` and `pnpm lint` (`pnpm verify:normalize`) and may re-run `lint:report`, tests, and `coverage:report` when normalization dirties the tree.
 
-If `coverage-report.json` shows `belowThreshold: true`, add or improve unit tests until coverage meets thresholds (lines 60%, branches 50%, functions 60%, statements 60%).
+If `coverage-report.json` shows `belowThreshold: true`, add or improve unit tests until coverage meets thresholds. Global mins: [`coverage-thresholds.mjs`](mdc:coverage-thresholds.mjs). Workspace mins: [`packages/*/coverage.policy.ts`](mdc:packages/core/coverage.policy.ts). Vitest enforces both via root [`vitest.config.ts`](mdc:vitest.config.ts).
 
 Both scripts exit with code 1 on failure; the agent must fix violations before proceeding.
 

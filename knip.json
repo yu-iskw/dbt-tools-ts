@@ -7,7 +7,7 @@
       "entry": ["scripts/**/*.mjs", "stylelint.config.mjs"],
       "project": ["scripts/**/*.mjs"],
       "vitest": {
-        "config": ["vitest.config.mjs", "vitest.coverage.mjs"],
+        "config": ["vitest.config.ts", "vitest.coverage.ts", "vitest.shared.ts"],
         "entry": ["packages/**/*.test.ts", "packages/**/*.test.tsx"]
       }
     },

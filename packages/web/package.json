@@ -39,6 +39,8 @@
     "dev:debug": "DBT_TOOLS_DEBUG=1 vite",
     "dev:target": "DBT_TOOLS_TARGET_DIR=./target vite",
     "preview": "vite preview",
+    "test": "vitest run --project @dbt-tools/web",
+    "test:watch": "vitest --project @dbt-tools/web",
     "test:e2e": "pnpm build && playwright test",
     "demo:reel": "pnpm build && playwright test --config=playwright.demo.config.ts",
     "lint": "pnpm lint:eslint && pnpm lint:stylelint",
