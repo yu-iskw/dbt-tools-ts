@@ -4,21 +4,21 @@
  */
 
 export type WarehouseAdapterType =
-  | 'bigquery'
-  | 'snowflake'
   | 'athena'
+  | 'bigquery'
   | 'postgres'
   | 'redshift'
+  | 'snowflake'
   | 'spark';
 
-export type CommonExecutionSort = 'execution_time_desc' | 'execution_time_asc' | 'unique_id';
+export type CommonExecutionSort = 'execution_time_asc' | 'execution_time_desc' | 'unique_id';
 
 /** Execution-level filters only (no warehouse-specific adapter mins or sorts). */
 export interface RunResultsSearchCriteria {
   min_execution_time?: number;
   max_execution_time?: number;
-  status?: string | string[];
-  unique_id_pattern?: string | RegExp;
+  status?: string[] | string;
+  unique_id_pattern?: RegExp | string;
   limit?: number;
   sort?: CommonExecutionSort;
   has_adapter_key?: string;
@@ -26,31 +26,31 @@ export interface RunResultsSearchCriteria {
 }
 
 export type WarehouseAdapterSort =
-  | 'bytes_processed_desc'
   | 'bytes_billed_desc'
-  | 'slot_ms_desc'
+  | 'bytes_processed_desc'
   | 'rows_affected_desc'
+  | 'rows_deleted_desc'
+  | 'rows_duplicated_desc'
   | 'rows_inserted_desc'
   | 'rows_updated_desc'
-  | 'rows_deleted_desc'
-  | 'rows_duplicated_desc';
+  | 'slot_ms_desc';
 
 export type ExecutionSortKey = CommonExecutionSort | WarehouseAdapterSort;
 
 export type AdapterHeavyMetric =
-  | 'bytes_processed'
   | 'bytes_billed'
-  | 'slot_ms'
+  | 'bytes_processed'
   | 'rows_affected'
+  | 'rows_deleted'
+  | 'rows_duplicated'
   | 'rows_inserted'
   | 'rows_updated'
-  | 'rows_deleted'
-  | 'rows_duplicated';
+  | 'slot_ms';
 
 export interface BigQuerySearchCriteria {
   sort?: Extract<
     WarehouseAdapterSort,
-    'slot_ms_desc' | 'bytes_processed_desc' | 'bytes_billed_desc' | 'rows_affected_desc'
+    'bytes_billed_desc' | 'bytes_processed_desc' | 'rows_affected_desc' | 'slot_ms_desc'
   >;
   minSlotMs?: number;
   minBytesProcessed?: number;
@@ -63,10 +63,10 @@ export interface SnowflakeSearchCriteria {
     WarehouseAdapterSort,
     | 'bytes_processed_desc'
     | 'rows_affected_desc'
-    | 'rows_inserted_desc'
-    | 'rows_updated_desc'
     | 'rows_deleted_desc'
     | 'rows_duplicated_desc'
+    | 'rows_inserted_desc'
+    | 'rows_updated_desc'
   >;
   minBytesProcessed?: number;
   minRowsAffected?: number;
@@ -85,16 +85,16 @@ export interface BaseAdapterSearchCriteria {
 }
 
 export type WarehouseSearchBlock =
-  | { adapter: 'bigquery'; criteria: BigQuerySearchCriteria }
-  | { adapter: 'snowflake'; criteria: SnowflakeSearchCriteria }
   | { adapter: 'athena'; criteria: AthenaSearchCriteria }
+  | { adapter: 'bigquery'; criteria: BigQuerySearchCriteria }
   | { adapter: 'postgres'; criteria: BaseAdapterSearchCriteria }
   | { adapter: 'redshift'; criteria: BaseAdapterSearchCriteria }
+  | { adapter: 'snowflake'; criteria: SnowflakeSearchCriteria }
   | { adapter: 'spark'; criteria: BaseAdapterSearchCriteria };
 
 export interface QueryExecutionsCommon {
   resourceTypes?: string[];
-  status?: string | string[];
+  status?: string[] | string;
   limit?: number;
   offset?: number;
   uniqueIdPattern?: string;
@@ -137,5 +137,5 @@ export interface BottleneckNode {
 export interface BottleneckResult {
   nodes: BottleneckNode[];
   total_execution_time: number;
-  criteria_used: 'top_n' | 'threshold';
+  criteria_used: 'threshold' | 'top_n';
 }

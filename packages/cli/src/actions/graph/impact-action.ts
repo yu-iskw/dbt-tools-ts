@@ -16,17 +16,18 @@ import {
   type GraphNodeAttributes,
   type InvestigationTranscript,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type ImpactCliOptions = {
+export type ImpactCliOptions = ArtifactRootCliOptions & {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
   trace?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type ImpactOutput = {
   intent: 'impact';
@@ -41,7 +42,7 @@ export type ImpactOutput = {
     critical_dependents: string[];
   };
   why_it_matters: string[];
-  provenance: { steps: Array<{ op: string; status: 'ok' | 'error' }> };
+  provenance: { steps: Array<{ op: string; status: 'error' | 'ok' }> };
   next_actions: string[];
   primitive_commands: string[];
   web_url?: string;

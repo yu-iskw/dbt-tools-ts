@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { loadTestManifest, loadTestRunResults } from 'dbt-artifacts-parser/test-utils';
+import { describe, it, expect } from 'vitest';
+
 import { analyzeArtifacts } from './services/analyze';
 
 type FixtureMap = Record<string, unknown>;

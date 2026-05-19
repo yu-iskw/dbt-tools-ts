@@ -2,6 +2,7 @@ import {
   ADAPTER_METRIC_DESCRIPTORS,
   formatAdapterMetricValue,
 } from '../analysis/adapter/descriptors';
+
 import type { AdapterTotalsSnapshot } from '../analysis/adapter/metrics';
 import type { NodeExecution } from '../analysis/execution/analyzer';
 import type { AdapterHeavyResult } from '../analysis/search/run-results';
@@ -30,7 +31,7 @@ function formatDepsTreeNode(node: DepNode, prefix: string, isLast: boolean, line
 
 function formatDepsTree(result: {
   resource_id: string;
-  direction: 'upstream' | 'downstream';
+  direction: 'downstream' | 'upstream';
   dependencies: Array<DepNode & { [key: string]: unknown }>;
   count: number;
 }): string {
@@ -108,7 +109,7 @@ export function formatSummary(summary: {
 export function formatDeps(
   result: {
     resource_id: string;
-    direction: 'upstream' | 'downstream';
+    direction: 'downstream' | 'upstream';
     dependencies: Array<{
       unique_id: string;
       resource_type: string;
@@ -163,7 +164,7 @@ export function formatBottlenecks(
   bottlenecks: {
     nodes: BottleneckNodeForFormat[];
     total_execution_time: number;
-    criteria_used: 'top_n' | 'threshold';
+    criteria_used: 'threshold' | 'top_n';
   },
   topLabel?: string,
 ): string {
@@ -297,7 +298,7 @@ export function formatRunReport(
   bottlenecks?: {
     nodes: BottleneckNodeForFormat[];
     total_execution_time: number;
-    criteria_used: 'top_n' | 'threshold';
+    criteria_used: 'threshold' | 'top_n';
   },
   bottlenecksTopLabel?: string,
   adapterAppend?: string,
@@ -334,7 +335,7 @@ export function formatRunReport(
  */
 export function formatHumanReadable(
   data: unknown,
-  format: 'summary' | 'deps' | 'run-report',
+  format: 'deps' | 'run-report' | 'summary',
 ): string {
   switch (format) {
     case 'summary':

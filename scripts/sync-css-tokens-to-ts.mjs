@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Parses tokens.css and generates themeColors.generated.ts so canvas/SVG/chart
+ * Parses tokens.css and generates theme-colors.generated.ts so canvas/SVG/chart
  * code can access design tokens as typed hex constants without manual sync.
  *
  * Run:  pnpm tokens:sync
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const TOKENS_CSS = resolve(__dirname, '../packages/web/src/styles/tokens.css');
-const OUTPUT_TS = resolve(__dirname, '../packages/web/src/constants/themeColors.generated.ts');
+const OUTPUT_TS = resolve(__dirname, '../packages/web/src/constants/theme-colors.generated.ts');
 
 /** Extract all `--name: value;` definitions from a CSS block string. */
 function parseVarDefinitions(block) {

@@ -1,5 +1,5 @@
-import type { Command } from 'commander';
 import type { QueryExecutionsOptions } from '../actions/reporting/query-executions-action';
+import type { Command } from 'commander';
 
 type RegisterOpts = {
   OPT_DBT_TARGET: string;

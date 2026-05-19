@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+
 import { loadWorkspace } from './helpers/preload';
 
 test.describe('health view', () => {

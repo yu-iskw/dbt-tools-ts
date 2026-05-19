@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+
 import { CATALOG_PATH, SOURCES_PATH, loadWorkspace } from './helpers/preload';
 
 test.describe('optional artifacts', () => {

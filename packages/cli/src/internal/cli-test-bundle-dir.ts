@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
 import { getTestResourcePath } from 'dbt-artifacts-parser/test-utils';
 
 const JAFFLE_MANIFEST_RESOURCE = [

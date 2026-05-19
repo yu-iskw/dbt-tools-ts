@@ -6,8 +6,9 @@
  * no regression in metadata capture while adding adapter-specific extraction.
  */
 
-import type { AdapterResponseMetrics } from '../../metrics';
 import { readFiniteNumber, readNonEmptyString, isPlainObject } from '../../metrics';
+
+import type { AdapterResponseMetrics } from '../../metrics';
 
 /**
  * Extracts generic/base fields from adapter response input.

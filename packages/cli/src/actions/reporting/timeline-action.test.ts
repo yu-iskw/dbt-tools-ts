@@ -1,11 +1,14 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   createJaffleArtifactBundleDir,
   createJaffleRunResultsOnlyDir,
 } from '../../internal/cli-test-bundle-dir';
+
 import { timelineAction, formatTimeline, formatTimelineCsv } from './timeline-action';
 
 describe('timelineAction', () => {

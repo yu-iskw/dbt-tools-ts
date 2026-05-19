@@ -1,11 +1,15 @@
-import type { ExecutionRow } from '@web/types';
 import { getAdapterResponseFieldsBeyondNormalized } from '@dbt-tools/core/browser';
+
 import {
   getRunsAdapterField,
   type RunsAdapterColumn,
-} from '@web/lib/analysis-workspace/runsAdapterColumns';
-import { EntityInspector, formatResourceTypeLabel } from '../../shared';
+} from '@web/lib/analysis-workspace/runs-adapter-columns';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
+
+import { EntityInspector, formatResourceTypeLabel } from '../../shared';
+
+import type { ExecutionRow } from '@web/types';
+import type { ReactElement } from 'react';
 
 function formatInspectorFields(row: ExecutionRow, columns: RunsAdapterColumn[]): string {
   const lines = columns.map((column) => {
@@ -32,11 +36,11 @@ export function RunsAdapterInspector({
     options?: {
       resourceId?: string;
       executionId?: string;
-      assetTab?: 'summary' | 'lineage';
+      assetTab?: 'lineage' | 'summary';
       rootResourceId?: string;
     },
   ) => void;
-}) {
+}): ReactElement | null {
   if (!row) return null;
 
   const adapterFieldCount = row.adapterResponseFields?.length ?? 0;

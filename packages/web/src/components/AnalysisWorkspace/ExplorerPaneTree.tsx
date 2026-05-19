@@ -1,17 +1,22 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { type ReactNode, useRef } from 'react';
-import { EmptyState } from '../EmptyState';
-import type { ResourceNode } from '@web/types';
-import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
+
 import {
   getResourceOriginLabel,
   testStatsHasAttention,
   type ExplorerTreeRow,
   type TestStats,
-} from '@web/lib/analysis-workspace/explorerTree';
-import { ExplorerBranchIcon, ResourceTypeIcon, formatResourceTypeLabel } from './shared';
-import { EXPLORER_UI_COPY } from './explorerPaneCopy';
+} from '@web/lib/analysis-workspace/explorer-tree';
+
+import { EmptyState } from '../EmptyState';
+
+import { EXPLORER_UI_COPY } from './explorer-pane-copy';
 import { MaterializationSemanticsBadge } from './MaterializationSemanticsBadge';
+import { ExplorerBranchIcon, ResourceTypeIcon, formatResourceTypeLabel } from './shared';
+
+import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
+import type { ResourceNode } from '@web/types';
+import type { ReactElement } from 'react';
 
 function explorerLeafAriaLabel(resource: ResourceNode): string {
   const typeLabel = formatResourceTypeLabel(resource.resourceType);
@@ -27,7 +32,7 @@ export function ExplorerTreeTestStatsGroup({
 }: {
   testStats: TestStats;
   variant: 'branch' | 'leaf';
-}) {
+}): ReactElement | null {
   if (!testStatsHasAttention(testStats)) return null;
   const ariaLabel =
     variant === 'branch'
@@ -117,7 +122,7 @@ export function ExplorerTreeList({
   setSelectedResourceId: (id: string | null) => void;
   /** When the tree has no rows, shown instead of the generic search-only message. */
   treeEmptyDisplay?: { headline: string; subtext: string };
-}) {
+}): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   /** Initial row height guess before `measureElement` runs (see `.explorer-tree__row` in workspace.css). */

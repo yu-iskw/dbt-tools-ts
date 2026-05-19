@@ -1,13 +1,17 @@
 import { type Dispatch, type SetStateAction } from 'react';
-import type { RunsViewState } from '@web/lib/analysis-workspace/types';
-import { defaultRunsSortDirection } from '@web/lib/analysis-workspace/runsSort';
-import type { RunsResultsSourceState } from '@web/hooks/useRunsResultsSource';
+
 import {
   isRunsAdapterSortBy,
   type RunsAdapterColumnLayout,
-} from '@web/lib/analysis-workspace/runsAdapterColumns';
-import type { MaterializationKind } from '@web/types';
+} from '@web/lib/analysis-workspace/runs-adapter-columns';
+import { defaultRunsSortDirection } from '@web/lib/analysis-workspace/runs-sort';
+
 import { MaterializationKindPillRow } from '../../MaterializationKindPillRow';
+
+import type { RunsResultsSourceState } from '@web/hooks/use-runs-results-source';
+import type { RunsViewState } from '@web/lib/analysis-workspace/types';
+import type { MaterializationKind } from '@web/types';
+import type { ReactElement } from 'react';
 
 type RunsResultsState = RunsResultsSourceState;
 
@@ -47,7 +51,7 @@ export function RunsToolbar({
   adapterMetricsAvailable: boolean;
   availableMaterializationKinds: MaterializationKind[];
   onRunsViewStateChange: Dispatch<SetStateAction<RunsViewState>>;
-}) {
+}): ReactElement {
   const visibleSortableColumns = adapterColumnLayout.visibleColumns.filter(
     (column) => column.isScalar,
   );

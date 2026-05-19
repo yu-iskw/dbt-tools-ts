@@ -1,6 +1,3 @@
-import type { NodeExecution } from '../execution/analyzer';
-import type { ExecutionRow } from '../snapshot/types';
-import type { ManifestGraph } from '../manifest/graph';
 import type {
   BaseAdapterSearchCriteria,
   BigQuerySearchCriteria,
@@ -13,8 +10,9 @@ import type {
   WarehouseExecutionProfile,
   WarehouseSearchBlock,
 } from './types';
-
-export type { WarehouseSearchBlock } from './types';
+import type { NodeExecution } from '../execution/analyzer';
+import type { ManifestGraph } from '../manifest/graph';
+import type { ExecutionRow } from '../snapshot/types';
 
 export const COMMON_EXECUTION_SORTS: readonly CommonExecutionSort[] = [
   'execution_time_desc',
@@ -144,7 +142,7 @@ function countWarehouseBlocks(request: QueryExecutionsRequest): {
   return { keys, blocks };
 }
 
-function parseStatusFilter(status: string | string[] | undefined): string[] | undefined {
+function parseStatusFilter(status: string[] | string | undefined): string[] | undefined {
   if (status == null) return undefined;
   if (typeof status === 'string') {
     const parts = status

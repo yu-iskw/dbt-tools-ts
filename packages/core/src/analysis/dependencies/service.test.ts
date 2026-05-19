@@ -1,11 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { loadTestManifest } from 'dbt-artifacts-parser/test-utils';
-import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
+import { describe, it, expect, beforeEach } from 'vitest';
+
 import { ManifestGraph } from '../manifest/graph';
+
 import { DependencyService } from './service';
+
+import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
 
 describe('DependencyService', () => {
   let graph: ManifestGraph;

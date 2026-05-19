@@ -1,6 +1,7 @@
-import { expect, type BrowserContext, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import { expect, type BrowserContext, type Page } from '@playwright/test';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -176,7 +177,7 @@ export async function registerSingleCandidateArtifactSourceMocks(
     catalogPath?: string;
     sourcesPath?: string;
   },
-) {
+): Promise<void> {
   await page.route(ARTIFACT_SOURCE_DISCOVER_GLOB, async (route) => {
     if (route.request().method() !== 'POST') {
       await route.fulfill({ status: 405 });
@@ -267,7 +268,7 @@ export async function registerGcsSingleCandidateWithImpersonationMocks(
     catalogPath?: string;
     sourcesPath?: string;
   },
-) {
+): Promise<void> {
   await page.route(ARTIFACT_SOURCE_DISCOVER_GLOB, async (route) => {
     if (route.request().method() !== 'POST') {
       await route.fulfill({ status: 405 });
@@ -316,7 +317,7 @@ async function registerApiMocksOnPage(
  * Attach mocks to every {@link Page} already attached to the context.
  * New pages created later still need {@link mockPreload} before their first app navigation.
  */
-export async function mockPreloadContext(context: BrowserContext) {
+export async function mockPreloadContext(context: BrowserContext): Promise<void> {
   await Promise.all(context.pages().map((p) => registerApiMocksOnPage(p)));
 }
 
@@ -326,7 +327,7 @@ export async function mockPreload(
     catalogPath?: string;
     sourcesPath?: string;
   },
-) {
+): Promise<void> {
   await registerApiMocksOnPage(page, options);
 }
 
@@ -340,7 +341,7 @@ export async function loadWorkspace(
     catalogPath?: string;
     sourcesPath?: string;
   },
-) {
+): Promise<void> {
   await registerApiMocksOnPage(page, options);
   await page.goto('/');
   const workspaceNav = page.getByRole('navigation', {

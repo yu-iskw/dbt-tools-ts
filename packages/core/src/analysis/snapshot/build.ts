@@ -1,19 +1,17 @@
-import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
-import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
-import type { ParsedRunResults } from 'dbt-artifacts-parser/run_results';
-import type { ParsedSources } from 'dbt-artifacts-parser/sources';
 import { buildAdapterTotals } from '../adapter/metrics';
-import { detectBottlenecks } from '../search/run-results';
-import type { ExecutionSummary } from '../execution/analyzer';
 import { ExecutionAnalyzer } from '../execution/analyzer';
 import { ManifestGraph } from '../manifest/graph';
-import type {
-  AnalysisArtifactInputs,
-  AnalysisSnapshot,
-  AnalysisSnapshotBuildTimings,
-  ParsedAnalysisArtifactInputs,
-} from './types';
-import type { GraphLike, GraphologyAttrsGraph, NeighborGraph } from './internal';
+import { detectBottlenecks } from '../search/run-results';
+
+import { buildStatusBreakdown, buildThreadStats, buildTimelineAdjacency } from './executions';
+import {
+  buildManifestEntryLookup,
+  buildSyntheticSourceRows,
+  buildSyntheticSourceRowsFromExecutedDependents,
+  compareGanttItems,
+  enrichGanttItemRow,
+} from './gantt';
+import { buildResourcesAndDependencyIndex } from './resources';
 import {
   buildInvocationId,
   buildResourceGroups,
@@ -25,15 +23,19 @@ import {
   statusLabel,
   statusTone,
 } from './shared';
-import { buildResourcesAndDependencyIndex } from './resources';
-import {
-  buildManifestEntryLookup,
-  buildSyntheticSourceRows,
-  buildSyntheticSourceRowsFromExecutedDependents,
-  compareGanttItems,
-  enrichGanttItemRow,
-} from './gantt';
-import { buildStatusBreakdown, buildThreadStats, buildTimelineAdjacency } from './executions';
+
+import type { GraphLike, GraphologyAttrsGraph, NeighborGraph } from './internal';
+import type {
+  AnalysisArtifactInputs,
+  AnalysisSnapshot,
+  AnalysisSnapshotBuildTimings,
+  ParsedAnalysisArtifactInputs,
+} from './types';
+import type { ExecutionSummary } from '../execution/analyzer';
+import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
+import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
+import type { ParsedRunResults } from 'dbt-artifacts-parser/run_results';
+import type { ParsedSources } from 'dbt-artifacts-parser/sources';
 
 function buildEmptyExecutionSummary(): ExecutionSummary {
   return {
@@ -254,7 +256,7 @@ export async function buildAnalysisSnapshotFromArtifactBundle(
     }>,
   ]);
   const manifest = parseManifest(manifestJson);
-  const parsedPromises: Array<Promise<ParsedRunResults | ParsedCatalog | ParsedSources>> = [];
+  const parsedPromises: Array<Promise<ParsedCatalog | ParsedRunResults | ParsedSources>> = [];
 
   if (runResultsJson != null) {
     parsedPromises.push(

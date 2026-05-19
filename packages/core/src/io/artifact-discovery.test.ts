@@ -1,4 +1,9 @@
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
+
 import {
   ARTIFACT_RUN_ID_CURRENT,
   discoverArtifactCandidates,
@@ -7,9 +12,6 @@ import {
   remoteKeysToListedArtifacts,
 } from './artifact-discovery';
 import { DBT_CATALOG_JSON, DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from './artifact-filenames';
-import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
-import * as path from 'node:path';
 
 describe('isAllowedArtifactRelativePath', () => {
   it('allows root-level artifact basenames only', () => {

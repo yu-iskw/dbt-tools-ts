@@ -3,10 +3,12 @@
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BundleRow } from '@web/lib/analysis-workspace/bundleLayout';
+
+import { GanttTimeBrush, hasIssueSignal } from './GanttTimeBrush';
+
+import type { BundleRow } from '@web/lib/analysis-workspace/bundle-layout';
 import type { TimeWindow } from '@web/lib/analysis-workspace/types';
 import type { GanttItem, ResourceTestStats } from '@web/types';
-import { GanttTimeBrush, hasIssueSignal } from './GanttTimeBrush';
 
 function parent(id: string, overrides: Partial<GanttItem> = {}): GanttItem {
   return {

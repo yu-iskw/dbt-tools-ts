@@ -1,6 +1,7 @@
-import { type ThemeMode, getThemeHex } from '@web/constants/themeColors';
-import type { StatusTone } from '@web/types';
+import { type ThemeMode, getThemeHex } from '@web/constants/theme-colors';
+
 import type { AssetExplorerMode } from './types';
+import type { StatusTone } from '@web/types';
 
 export function getStatusTonePalette(theme: ThemeMode): Record<StatusTone, string> {
   const t = getThemeHex(theme);

@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ArtifactSourceService } from '../artifact-source/sourceService.js';
-import { tryHandleArtifactSourceViteRequest } from '../artifact-source/viteArtifactRoutes.js';
+
+import { ArtifactSourceService } from '../artifact-source/source-service.js';
+import { tryHandleArtifactSourceViteRequest } from '../artifact-source/vite-artifact-routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.resolve(__dirname, '../../dist');

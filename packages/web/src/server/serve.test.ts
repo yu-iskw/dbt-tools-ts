@@ -3,14 +3,16 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type {
   ArtifactSourceDiscoveryResult,
   ArtifactSourceStatus,
-} from '../services/artifactSourceApi';
+} from '../services/artifact-source-api';
 
 // Hoist the mock so it applies before module imports.
-vi.mock('../artifact-source/sourceService', () => {
+vi.mock('../artifact-source/source-service', () => {
   class ArtifactSourceService {
     async getStatus(): Promise<ArtifactSourceStatus> {
       return {
@@ -197,7 +199,7 @@ describe('startServer', () => {
     const distRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../dist');
     const distRootResolved = path.resolve(distRoot);
 
-    function mapDistToTmp(p: string | Buffer | URL): string {
+    function mapDistToTmp(p: Buffer | URL | string): string {
       const resolved = path.resolve(String(p));
       if (resolved === distRootResolved) {
         return tmpDir;

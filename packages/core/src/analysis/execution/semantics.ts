@@ -4,18 +4,18 @@
  */
 
 export type MaterializationKind =
-  | 'table'
-  | 'view'
-  | 'incremental'
   | 'ephemeral'
+  | 'incremental'
   | 'materialized_view'
+  | 'operation'
   | 'seed'
   | 'snapshot'
-  | 'operation'
+  | 'table'
   | 'test'
-  | 'unknown';
+  | 'unknown'
+  | 'view';
 
-export type MaterializationProvenance = 'manifest' | 'run_result' | 'derived' | 'unknown';
+export type MaterializationProvenance = 'derived' | 'manifest' | 'run_result' | 'unknown';
 
 export interface NodeExecutionSemantics {
   resourceType: string;
@@ -26,7 +26,7 @@ export interface NodeExecutionSemantics {
   relationName?: string;
   adapterType?: string;
   incrementalStrategy?: string;
-  uniqueKey?: string | string[];
+  uniqueKey?: string[] | string;
   onSchemaChange?: string;
   fullRefreshCapable?: boolean;
   materializationSource: MaterializationProvenance;
@@ -48,7 +48,7 @@ export function normalizeDbtResourceTypeKey(resourceType: string): string {
   return resourceType.trim().toLowerCase() || 'unknown';
 }
 
-function normalizeMaterializedToken(raw: string | undefined | null): string | null {
+function normalizeMaterializedToken(raw: string | null | undefined): string | null {
   if (raw == null || typeof raw !== 'string') return null;
   const t = raw.trim().toLowerCase();
   return t === '' ? null : t.replace(/[\s-]+/g, '_');
@@ -59,7 +59,7 @@ function normalizeMaterializedToken(raw: string | undefined | null): string | nu
  */
 export function normalizeMaterializationKind(
   resourceType: string,
-  materializedRaw: string | undefined | null,
+  materializedRaw: string | null | undefined,
 ): { kind: MaterializationKind; raw?: string } {
   const rt = normalizeDbtResourceTypeKey(resourceType);
   const token = normalizeMaterializedToken(materializedRaw);
@@ -88,7 +88,7 @@ export function normalizeMaterializationKind(
 export function deriveSemanticsFlags(
   kind: MaterializationKind,
   resourceType: string,
-): Pick<NodeExecutionSemantics, 'persisted' | 'createsRelation' | 'compiledIntoParent'> {
+): Pick<NodeExecutionSemantics, 'compiledIntoParent' | 'createsRelation' | 'persisted'> {
   const rt = normalizeDbtResourceTypeKey(resourceType);
 
   if (rt === 'source') {
@@ -139,7 +139,7 @@ export function deriveSemanticsFlags(
 }
 
 function readConfig(
-  manifestEntry: Record<string, unknown> | undefined | null,
+  manifestEntry: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> | undefined {
   if (manifestEntry == null) return undefined;
   const c = manifestEntry.config;
@@ -147,7 +147,7 @@ function readConfig(
 }
 
 function provenanceFromEntry(
-  manifestEntry: Record<string, unknown> | undefined | null,
+  manifestEntry: Record<string, unknown> | null | undefined,
   hadMaterializedConfig: boolean,
   hadIncrementalHints: boolean,
 ): MaterializationProvenance {
@@ -169,7 +169,7 @@ export type BuildNodeExecutionSemanticsInput = {
 };
 
 function parseUniqueKey(config: Record<string, unknown> | undefined): {
-  uniqueKey: string | string[] | undefined;
+  uniqueKey: string[] | string | undefined;
   hasUniqueKeyField: boolean;
 } {
   const uk = config?.unique_key;
@@ -221,19 +221,19 @@ export function buildNodeExecutionSemantics(
   const buildOptionalSemanticsFields = (
     relationName: string | undefined,
     adapterType: string | null | undefined,
-    uniqueKey: string | string[] | undefined,
+    uniqueKey: string[] | string | undefined,
     rawMaterialization: string | undefined,
     inc: ReturnType<typeof incrementalHintsFromConfig>,
   ): Partial<
     Pick<
       NodeExecutionSemantics,
-      | 'relationName'
       | 'adapterType'
-      | 'incrementalStrategy'
-      | 'uniqueKey'
-      | 'onSchemaChange'
       | 'fullRefreshCapable'
+      | 'incrementalStrategy'
+      | 'onSchemaChange'
       | 'rawMaterialization'
+      | 'relationName'
+      | 'uniqueKey'
     >
   > => ({
     ...(relationName != null ? { relationName } : {}),

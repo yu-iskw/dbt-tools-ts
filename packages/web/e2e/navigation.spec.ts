@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+
 import { loadWorkspace } from './helpers/preload';
 
 const APP_SIDEBAR = '#app-sidebar';

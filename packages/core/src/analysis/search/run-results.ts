@@ -1,8 +1,10 @@
-import type { AdapterResponseMetrics } from '../adapter/metrics';
-import type { AdapterMetricSortKey } from '../adapter/descriptors';
-import type { NodeExecution } from '../execution/analyzer';
-import type { ManifestGraph } from '../manifest/graph';
-import type { ExecutionRow } from '../snapshot/types';
+import {
+  COMMON_EXECUTION_SORTS,
+  executionRowToNodeExecution,
+  filterExecutionRowsByResourceTypes,
+  resolveWarehouseSearchPlan,
+} from './warehouse';
+
 import type {
   AdapterHeavyMetric,
   BottleneckNode,
@@ -14,14 +16,11 @@ import type {
   WarehouseAdapterType,
   WarehouseSearchBlock,
 } from './types';
-
-export type { AdapterHeavyMetric } from './types';
-import {
-  COMMON_EXECUTION_SORTS,
-  executionRowToNodeExecution,
-  filterExecutionRowsByResourceTypes,
-  resolveWarehouseSearchPlan,
-} from './warehouse';
+import type { AdapterMetricSortKey } from '../adapter/descriptors';
+import type { AdapterResponseMetrics } from '../adapter/metrics';
+import type { NodeExecution } from '../execution/analyzer';
+import type { ManifestGraph } from '../manifest/graph';
+import type { ExecutionRow } from '../snapshot/types';
 
 /**
  * Simple glob match: * matches any chars. Avoids ReDoS from dynamic RegExp.
@@ -40,7 +39,7 @@ function matchesGlob(text: string, pattern: string): boolean {
   return parts[parts.length - 1] === '' || text.endsWith(parts[parts.length - 1]);
 }
 
-function matchesUniqueId(uniqueId: string, pattern: string | RegExp): boolean {
+function matchesUniqueId(uniqueId: string, pattern: RegExp | string): boolean {
   if (pattern instanceof RegExp) {
     return pattern.test(uniqueId);
   }
@@ -95,14 +94,14 @@ const NUMERIC_SORT_ACCESSORS = Object.fromEntries(
     (e: NodeExecution) => adapterNumericHeavyOrZero(e, m),
   ]),
 ) as Record<
-  | 'bytes_processed_desc'
   | 'bytes_billed_desc'
-  | 'slot_ms_desc'
+  | 'bytes_processed_desc'
   | 'rows_affected_desc'
+  | 'rows_deleted_desc'
+  | 'rows_duplicated_desc'
   | 'rows_inserted_desc'
   | 'rows_updated_desc'
-  | 'rows_deleted_desc'
-  | 'rows_duplicated_desc',
+  | 'slot_ms_desc',
   (execution: NodeExecution) => number
 >;
 
@@ -267,13 +266,13 @@ export function detectBottlenecks(
   executions: NodeExecution[],
   options:
     | {
-        mode: 'top_n';
-        top: number;
+        mode: 'threshold';
+        min_seconds: number;
         graph?: ManifestGraph;
       }
     | {
-        mode: 'threshold';
-        min_seconds: number;
+        mode: 'top_n';
+        top: number;
         graph?: ManifestGraph;
       },
 ): BottleneckResult {

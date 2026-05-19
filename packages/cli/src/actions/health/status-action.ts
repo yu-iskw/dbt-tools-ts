@@ -4,6 +4,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+
 import {
   DBT_CATALOG_JSON,
   DBT_MANIFEST_JSON,
@@ -14,16 +15,17 @@ import {
   shouldOutputJSON,
   validateSafePath,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   resolveEffectiveDbtTarget,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type StatusOptions = {
+export type StatusOptions = ArtifactRootCliOptions & {
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type ArtifactFileStatus = {
   path: string;
@@ -38,7 +40,7 @@ export type StatusResult = {
   run_results: ArtifactFileStatus;
   catalog: ArtifactFileStatus;
   sources: ArtifactFileStatus;
-  readiness: 'manifest-only' | 'full' | 'unavailable';
+  readiness: 'full' | 'manifest-only' | 'unavailable';
   latest_modified_at?: string;
   age_seconds?: number;
   summary: string;

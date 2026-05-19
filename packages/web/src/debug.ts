@@ -7,16 +7,16 @@ const DEBUG =
     ? new URLSearchParams(window.location.search).get('debug') === '1'
     : false;
 
-export function debug(...args: unknown[]) {
+export function debug(...args: unknown[]): void {
   if (DEBUG) console.log('[dbt-tools]', ...args);
 }
 
-export function markDebug(name: string) {
+export function markDebug(name: string): void {
   if (!DEBUG || typeof performance === 'undefined') return;
   performance.mark(name);
 }
 
-export function measureDebug(name: string, startMark: string, endMark: string) {
+export function measureDebug(name: string, startMark: string, endMark: string): void {
   if (!DEBUG || typeof performance === 'undefined') return;
   performance.measure(name, startMark, endMark);
   const entries = performance.getEntriesByName(name, 'measure');

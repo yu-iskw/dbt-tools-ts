@@ -2,6 +2,7 @@
  * Export intent — normalized envelope over graph export primitives.
  */
 import * as fs from 'node:fs';
+
 import {
   ManifestGraph,
   loadManifest,
@@ -14,12 +15,13 @@ import {
   exportGraphToFormat,
   writeGraphOutput,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type ExportCliOptions = {
+export type ExportCliOptions = ArtifactRootCliOptions & {
   format?: string;
   output?: string;
   focus?: string;
@@ -28,7 +30,7 @@ export type ExportCliOptions = {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type ExportOutput = {
   intent: 'export';
@@ -81,7 +83,7 @@ export async function exportAction(
       validateResourceId(options.focus);
       targetGraph = graph.buildSubgraph(
         options.focus,
-        focusDirection as 'upstream' | 'downstream' | 'both',
+        focusDirection as 'both' | 'downstream' | 'upstream',
         options.focusDepth,
         undefined,
       );

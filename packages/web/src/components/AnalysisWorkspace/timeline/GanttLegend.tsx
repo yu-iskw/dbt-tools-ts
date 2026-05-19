@@ -1,13 +1,14 @@
-import type { CSSProperties } from 'react';
 import { STATUS_COLORS, getResourceTypeColor, getStatusColor } from '@web/constants/colors';
-import { getResourceTypeSoftFill, getThemeHex } from '@web/constants/themeColors';
-import { useSyncedDocumentTheme } from '@web/hooks/useTheme';
+import { getResourceTypeSoftFill, getThemeHex } from '@web/constants/theme-colors';
+import { useSyncedDocumentTheme } from '@web/hooks/use-theme';
 import { GANTT_LEGEND_PRIMARY_TYPES } from '@web/lib/analysis-workspace/constants';
 import {
   MATERIALIZATION_KIND_ORDER,
   materializationKindShortLabel,
-} from '@web/lib/analysis-workspace/materializationSemanticsUi';
+} from '@web/lib/analysis-workspace/materialization-semantics-ui';
+
 import type { MaterializationKind } from '@web/types';
+import type { ReactElement, CSSProperties } from 'react';
 
 interface GanttLegendProps {
   /** Count per status key (lowercase). Only entries with count > 0 are shown. */
@@ -65,7 +66,7 @@ function GanttBarEncodingKey({
   themeHex,
   showCompileExecuteLegend,
 }: {
-  theme: 'light' | 'dark';
+  theme: 'dark' | 'light';
   themeHex: ThemeHex;
   showCompileExecuteLegend?: boolean;
 }) {
@@ -141,7 +142,7 @@ function StatusLegendGroup({
   onToggleStatus?: (status: string) => void;
   failuresOnly?: boolean;
   onToggleFailuresOnly?: () => void;
-  theme: 'light' | 'dark';
+  theme: 'dark' | 'light';
 }) {
   if (visibleStatuses.length === 0 && onToggleFailuresOnly == null) {
     return null;
@@ -210,7 +211,7 @@ function TypeLegendGroup({
   showTests?: boolean;
   onToggleShowTests?: () => void;
   testsLegendCount: number;
-  theme: 'light' | 'dark';
+  theme: 'dark' | 'light';
   themeHex: ThemeHex;
 }) {
   if (visibleTypes.length === 0 && onToggleShowTests == null) {
@@ -319,7 +320,7 @@ export function GanttLegend({
   showBarEncodingKey = true,
   showCompileExecuteLegend = false,
   materializationCounts,
-}: GanttLegendProps) {
+}: GanttLegendProps): ReactElement | null {
   const theme = useSyncedDocumentTheme();
   const themeHex = getThemeHex(theme);
   const visibleStatuses = Object.keys(STATUS_COLORS).filter((s) => (statusCounts[s] ?? 0) > 0);

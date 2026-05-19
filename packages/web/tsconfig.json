@@ -24,8 +24,14 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "exclude": ["src/dbt-target-plugin.ts", "src/**/*.test.ts"],
+  "include": [
+    "src",
+    "e2e",
+    "coverage.policy.ts",
+    "playwright.config.ts",
+    "playwright.demo.config.ts"
+  ],
+  "exclude": ["src/dbt-target-plugin.ts"],
   "references": [
     {
       "path": "./tsconfig.node.json"

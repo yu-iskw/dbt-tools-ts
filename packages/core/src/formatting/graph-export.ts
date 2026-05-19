@@ -3,9 +3,11 @@
  * Used by the CLI graph command and other graph export consumers.
  */
 import * as fs from 'fs';
-import type { DirectedGraph } from 'graphology';
-import type { GraphNodeAttributes, GraphEdgeAttributes } from '../types';
+
 import { FieldFilter } from './field-filter';
+
+import type { GraphNodeAttributes, GraphEdgeAttributes } from '../types';
+import type { DirectedGraph } from 'graphology';
 
 export interface GraphExportOptions {
   format?: string;

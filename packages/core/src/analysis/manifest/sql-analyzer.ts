@@ -1,5 +1,6 @@
-import type { Select } from 'node-sql-parser';
 import { Parser } from 'node-sql-parser';
+
+import type { Select } from 'node-sql-parser';
 
 /** AST node shapes from node-sql-parser (loosely typed for runtime objects) */
 interface AstColumnRef {
@@ -30,12 +31,12 @@ interface AstCast {
   expr?: unknown;
 }
 type AstNode =
-  | AstColumnRef
-  | AstBinaryExpr
-  | AstFunction
   | AstAggrFunc
+  | AstBinaryExpr
   | AstCase
   | AstCast
+  | AstColumnRef
+  | AstFunction
   | Record<string, unknown>;
 
 interface SelectColumn {

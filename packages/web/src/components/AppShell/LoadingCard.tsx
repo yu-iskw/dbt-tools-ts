@@ -1,6 +1,8 @@
 import { Skeleton } from '../ui/Skeleton';
 
-export function LoadingCard() {
+import type { ReactElement } from 'react';
+
+export function LoadingCard(): ReactElement {
   return (
     <div className="loading-card">
       <Skeleton className="loading-card__skeleton-icon" />

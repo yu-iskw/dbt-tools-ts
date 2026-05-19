@@ -3,6 +3,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { ToastProvider, useToast } from './Toast';
 
 const actEnvironment = globalThis as typeof globalThis & {

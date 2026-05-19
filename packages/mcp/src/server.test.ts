@@ -1,19 +1,22 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+
 import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '@dbt-tools/core';
-import type { DbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
-import { registerDbtToolsTools } from './tools/registerTools.js';
+import { createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   createDbtToolsMcpServer,
   createDbtToolsMcpStack,
   runDbtToolsMcpCli,
   startRefreshPolling,
 } from './server.js';
-import { createDbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
-import { createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
+import { registerDbtToolsTools } from './tools/register-tools.js';
+import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
+
+import type { DbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 class RecordingMcpServer {
   readonly tools: Array<{ name: string; config: unknown; handler: unknown }> = [];
@@ -113,7 +116,7 @@ describe('dbt-tools MCP server wiring', () => {
     process.env.DBT_TOOLS_DEBUG = '1';
     let stderr = '';
     const originalWrite = process.stderr.write.bind(process.stderr);
-    process.stderr.write = ((chunk: string | Uint8Array) => {
+    process.stderr.write = ((chunk: Uint8Array | string) => {
       stderr += String(chunk);
       return originalWrite(chunk);
     }) as typeof process.stderr.write;

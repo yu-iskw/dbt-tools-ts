@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type AnchorHTMLAttributes } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import type { ReactElement } from 'react';
+
 function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) {
   const openInNewTab =
     typeof href === 'string' && (href.startsWith('http://') || href.startsWith('https://'));
@@ -29,7 +31,7 @@ export function ResourceMarkdownDescription({
   className?: string;
   /** Accessible name for the surrounding region (e.g. for tests or reuse). */
   regionLabel?: string;
-}) {
+}): ReactElement {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);

@@ -1,6 +1,9 @@
 import { type ReactNode } from 'react';
-import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
+
 import { formatResourceTypeLabel } from '@web/lib/analysis-workspace/utils';
+
+import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
+import type { ReactElement } from 'react';
 
 export { formatResourceTypeLabel };
 
@@ -14,7 +17,7 @@ export function SectionCard({
   subtitle?: ReactNode;
   headerRight?: ReactNode;
   children: ReactNode;
-}) {
+}): ReactElement {
   return (
     <section className="workspace-card">
       <div className="workspace-card__header">
@@ -29,7 +32,7 @@ export function SectionCard({
   );
 }
 
-export function ResourceTypeBadge({ resourceType }: { resourceType: string }) {
+export function ResourceTypeBadge({ resourceType }: { resourceType: string }): ReactElement {
   return (
     <span className="resource-type-badge">
       <ResourceTypeIcon resourceType={resourceType} />
@@ -38,7 +41,7 @@ export function ResourceTypeBadge({ resourceType }: { resourceType: string }) {
   );
 }
 
-export function ResourceTypeIcon({ resourceType }: { resourceType: string }) {
+export function ResourceTypeIcon({ resourceType }: { resourceType: string }): ReactElement {
   switch (resourceType) {
     case 'model':
       return (
@@ -104,7 +107,13 @@ export function ResourceTypeIcon({ resourceType }: { resourceType: string }) {
   }
 }
 
-export function ExplorerBranchIcon({ mode, depth }: { mode: AssetExplorerMode; depth: number }) {
+export function ExplorerBranchIcon({
+  mode,
+  depth,
+}: {
+  mode: AssetExplorerMode;
+  depth: number;
+}): ReactElement {
   if (mode === 'database' && depth === 0) {
     return (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
@@ -139,7 +148,7 @@ export function WorkspaceScaffold({
   inspector?: ReactNode;
   className?: string;
   suppressHeader?: boolean;
-}) {
+}): ReactElement {
   return (
     <div className={`workspace-view workspace-scaffold ${className}`.trim()}>
       {!suppressHeader ? (
@@ -167,7 +176,7 @@ export function QuickJumpActions({
   actions,
 }: {
   actions: { label: string; onClick: () => void; disabled?: boolean }[];
-}) {
+}): ReactElement {
   return (
     <div className="entity-inspector__actions">
       {actions.map((action) => (
@@ -203,7 +212,7 @@ export function EntityInspector({
   sections?: { label: string; value: ReactNode }[];
   actions?: { label: string; onClick: () => void; disabled?: boolean }[];
   emptyMessage?: string;
-}) {
+}): ReactElement {
   if (!title) {
     return (
       <aside className="entity-inspector entity-inspector--empty">

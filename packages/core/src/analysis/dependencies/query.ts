@@ -1,7 +1,8 @@
 import { DependencyService, type DependencyResult } from './service';
+
 import type { ManifestGraph } from '../manifest/graph';
 
-export type QueryDependenciesDirection = 'upstream' | 'downstream';
+export type QueryDependenciesDirection = 'downstream' | 'upstream';
 
 export interface QueryDependenciesInput {
   uniqueId: string;

@@ -491,7 +491,7 @@ function getDiagnoseRunSchema(): CommandSchema {
   return {
     command: 'diagnose run',
     description:
-      'Intent: run-level diagnosis facade (primitive commands: run-summary, query-executions, timeline)',
+      'Intent: run-level diagnosis facade (primitive commands: runSummary, query-executions, timeline)',
     arguments: [],
     options: [
       {
@@ -512,7 +512,7 @@ function getDiagnoseNodeSchema(): CommandSchema {
   return {
     command: 'diagnose node',
     description:
-      'Intent: resource-level diagnosis facade (primitive commands: run-summary, query-executions, deps, explain)',
+      'Intent: resource-level diagnosis facade (primitive commands: runSummary, query-executions, deps, explain)',
     arguments: [
       {
         name: 'resource',

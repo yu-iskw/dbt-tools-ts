@@ -1,13 +1,17 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-// @ts-expect-error - workspace package, TypeScript resolves via package.json
+
 import { loadTestManifest, loadTestRunResults } from 'dbt-artifacts-parser/test-utils';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+// @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '../io/artifact-filenames';
+
+import { ArtifactWorkspace, createDbtToolsUseCases } from './index';
+
 import type { RemoteObjectMetadata } from '../io/artifact-discovery';
 import type { RemoteObjectStoreClient } from '../io/remote-object-store';
-import { ArtifactWorkspace, createDbtToolsUseCases } from './index';
 
 class FakeRemoteObjectStoreClient implements RemoteObjectStoreClient {
   readonly reads: string[] = [];

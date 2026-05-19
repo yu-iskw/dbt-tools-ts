@@ -1,27 +1,31 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { useMemo } from 'react';
-import type { AnalysisState } from '@web/types';
+
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
-import type { WorkspaceArtifactSource } from '@web/services/artifactSourceApi';
-import type { OverviewFilterState, WorkspaceSignal } from '@web/lib/analysis-workspace/types';
-import { buildOverviewDerivedState } from '@web/lib/analysis-workspace/overviewState';
+import { buildOverviewDerivedState } from '@web/lib/analysis-workspace/overview-state';
+
 import { EmptyState } from '../../../EmptyState';
+import { InvocationResourceStats } from '../../InvocationResourceStatsTable';
+import { GraphCompositionCard } from '../overview/GraphCompositionCard';
 import {
   OverviewActionListCard,
   OverviewCoverageCard,
   OverviewCriticalPathCard,
 } from '../overview/OverviewCards';
 import { StatusDonutWithData } from '../overview/OverviewDonuts';
-import { GraphCompositionCard } from '../overview/GraphCompositionCard';
 import {
   HealthFootprintPanel,
   HealthThreadDistribution,
 } from '../overview/OverviewExecutionContextBand';
-import { InvocationResourceStats } from '../../InvocationResourceStatsTable';
-import { HealthPostureBlock } from './overview/HealthPostureBlock';
-import { HealthMetricRow } from './overview/HealthMetricRow';
+
 import { HealthExecutionStatusPills } from './overview/HealthExecutionStatusPills';
 import { HealthMaterializationCard } from './overview/HealthMaterializationCard';
+import { HealthMetricRow } from './overview/HealthMetricRow';
+import { HealthPostureBlock } from './overview/HealthPostureBlock';
+
+import type { OverviewFilterState, WorkspaceSignal } from '@web/lib/analysis-workspace/types';
+import type { WorkspaceArtifactSource } from '@web/services/artifact-source-api';
+import type { AnalysisState } from '@web/types';
+import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
 /**
  * Health — "what needs attention now?" with an above-the-fold triage strip
@@ -42,7 +46,7 @@ export function HealthView({
   filters: OverviewFilterState;
   setFilters: Dispatch<SetStateAction<OverviewFilterState>>;
   workspaceSignals: WorkspaceSignal[];
-}) {
+}): ReactElement {
   const healthExecutionFilters = useMemo(
     () => ({
       status: filters.status,

@@ -8,9 +8,10 @@
  * - May also include other generic fields like query_id.
  */
 
+import { mergeWithBaseFields } from './base';
+
 import type { AdapterResponseMetrics } from '../../metrics';
 import type { AdapterResponseParser } from '../types';
-import { mergeWithBaseFields } from './base';
 
 export const postgresAdapterResponseParser: AdapterResponseParser = {
   name: 'postgres',

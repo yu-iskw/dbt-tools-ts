@@ -19,11 +19,11 @@ compatibility: dbt-tools on PATH; manifest.json and run_results.json under --dbt
 
 ## Workflow
 
-1. When readiness is unknown, run [`dbt-artifacts-status`](../dbt-artifacts-status/SKILL.md) first.
+1. When readiness is unknown, run [`status`](../status/SKILL.md) (readiness gate section) first.
 2. Read `warehouse_type` from `dbt-tools status --json` when tuning adapter metrics.
 3. Run ranked queries (see [references/commands.md](references/commands.md)).
 4. Optional totals: `dbt-tools run-summary --dbt-target ./target --json`.
-5. Drill down with [`discover`](../discover/SKILL.md), [`deps`](../deps/SKILL.md), or [`explain-deps`](../explain-deps/SKILL.md).
+5. Drill down with [`discover`](../discover/SKILL.md), [`deps`](../deps/SKILL.md), or [`explain`](../explain/SKILL.md).
 
 ## Related documentation
 

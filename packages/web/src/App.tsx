@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
-import type { WorkspaceSignal } from './components/AnalysisWorkspace';
+
 import { AppWorkspaceChrome } from './components/AppShell/AppWorkspaceChrome';
-import { buildWorkspaceSignals } from './components/AppShell/workspaceSignals';
+import { buildWorkspaceSignals } from './components/AppShell/workspace-signals';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ArtifactCapabilityContext } from './contexts/ArtifactCapabilityContext';
-import { useAnalysisPage } from './hooks/useAnalysisPage';
-import { useTheme } from './hooks/useTheme';
-import { useWorkspacePreferences } from './hooks/useWorkspacePreferences';
-import { useWorkspaceUrlState } from './hooks/useWorkspaceUrlState';
+import { useAnalysisPage } from './hooks/use-analysis-page';
+import { useTheme } from './hooks/use-theme';
+import { useWorkspacePreferences } from './hooks/use-workspace-preferences';
+import { useWorkspaceUrlState } from './hooks/use-workspace-url-state';
+
+import type { WorkspaceSignal } from './components/AnalysisWorkspace';
 import type { AnalysisState } from '@web/types';
+import type { ReactElement } from 'react';
 
 function AppContent() {
   const { toast } = useToast();
@@ -85,7 +88,7 @@ function AppContent() {
   );
 }
 
-export default function App() {
+export default function App(): ReactElement {
   return (
     <ToastProvider>
       <AppContent />

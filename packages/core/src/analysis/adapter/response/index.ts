@@ -8,10 +8,12 @@
 
 export type { AdapterResponseContext, AdapterResponseParser } from './types';
 
+import { coerceAdapterResponseInput, isAdapterResponseObject } from '../metrics';
+
+import { adapterResponseParserRegistry } from './dispatch';
+
 import type { AdapterResponseContext } from './types';
 import type { AdapterResponseMetrics } from '../metrics';
-import { coerceAdapterResponseInput, isAdapterResponseObject } from '../metrics';
-import { adapterResponseParserRegistry } from './dispatch';
 
 /**
  * Normalize adapter_response with optional adapter type context.

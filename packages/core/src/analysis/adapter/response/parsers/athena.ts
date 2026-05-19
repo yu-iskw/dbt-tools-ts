@@ -6,10 +6,12 @@
  * - Generic fields via base field extraction
  */
 
+import { readFiniteNumber, isPlainObject } from '../../metrics';
+
+import { mergeWithBaseFields } from './base';
+
 import type { AdapterResponseMetrics } from '../../metrics';
 import type { AdapterResponseParser } from '../types';
-import { readFiniteNumber, isPlainObject } from '../../metrics';
-import { mergeWithBaseFields } from './base';
 
 export const athenaAdapterResponseParser: AdapterResponseParser = {
   name: 'athena',

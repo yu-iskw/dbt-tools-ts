@@ -11,12 +11,13 @@ import {
   shouldOutputJSON,
   searchResourcesInGraph,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type SearchOptions = {
+export type SearchOptions = ArtifactRootCliOptions & {
   type?: string;
   package?: string;
   tag?: string;
@@ -26,7 +27,7 @@ export type SearchOptions = {
   offset?: number;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type SearchResult = {
   unique_id: string;

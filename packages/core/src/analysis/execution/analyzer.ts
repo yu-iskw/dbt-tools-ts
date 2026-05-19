@@ -1,6 +1,3 @@
-import type { ParsedRunResults } from 'dbt-artifacts-parser/run_results';
-import type { ManifestGraph } from '../manifest/graph';
-import type { AdapterResponseField, AdapterResponseMetrics } from '../adapter/metrics';
 import {
   adapterMetricsHasData,
   coerceAdapterResponseInput,
@@ -8,6 +5,10 @@ import {
   isAdapterResponseObject,
 } from '../adapter/metrics';
 import { normalizeAdapterResponseWithContext } from '../adapter/response';
+
+import type { AdapterResponseField, AdapterResponseMetrics } from '../adapter/metrics';
+import type { ManifestGraph } from '../manifest/graph';
+import type { ParsedRunResults } from 'dbt-artifacts-parser/run_results';
 
 type RunResultLike = {
   unique_id: string;

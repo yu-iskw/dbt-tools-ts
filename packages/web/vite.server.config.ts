@@ -1,4 +1,5 @@
 import path from 'path';
+
 import { defineConfig } from 'vite';
 
 const serverEntry = path.resolve(__dirname, 'src/server/cli.ts');

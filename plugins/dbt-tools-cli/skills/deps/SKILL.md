@@ -109,4 +109,4 @@ dbt-tools deps model.my_project.orders --dbt-target ./target \
 - Full CLI reference: [packages/cli/README.md](../../../../packages/cli/README.md)
   (`deps` section)
 - Resolving `unique_id`: [`discover`](../discover/SKILL.md) skill
-- Explaining the resource once found: [`explain-deps`](../explain-deps/SKILL.md) skill
+- Explaining the resource once found: [`explain`](../explain/SKILL.md) skill

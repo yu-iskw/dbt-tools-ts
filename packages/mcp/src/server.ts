@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import { dbtToolsDebugLog } from '@dbt-tools/core';
+import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+
 import { isCliEntrypoint } from './entrypoint.js';
 import { McpHelpRequested, helpText, parseMcpServerOptions } from './options.js';
 import { readMcpPackageVersion } from './package-version.js';
-import { createDbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
-import { registerDbtToolsTools } from './tools/registerTools.js';
+import { registerDbtToolsTools } from './tools/register-tools.js';
+import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
 
 type RefreshTimer = ReturnType<typeof setInterval>;
 
@@ -74,7 +75,9 @@ export async function createDbtToolsMcpStack(
   return { server, workspace };
 }
 
-export async function createDbtToolsMcpServer(argv: string[] = process.argv.slice(2)) {
+export async function createDbtToolsMcpServer(
+  argv: string[] = process.argv.slice(2),
+): Promise<McpServer> {
   const { server } = await createDbtToolsMcpStack(argv);
   return server;
 }

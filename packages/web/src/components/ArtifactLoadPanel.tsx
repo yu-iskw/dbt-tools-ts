@@ -1,5 +1,9 @@
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
-import { useToast } from './ui/Toast';
+
+import {
+  getArtifactLoadWorkspaceHint,
+  getArtifactReadinessLabel,
+} from '../lib/artifact-load-panel-copy';
 import {
   configureArtifactSourceFromApi,
   discoverArtifactSourceFromApi,
@@ -7,14 +11,14 @@ import {
   type GcsArtifactSourceClientOptions,
   type MissingOptionalArtifactsState,
   type UserArtifactSourceKind,
-} from '../services/artifactSourceApi';
-import type { AnalysisLoadResult } from '../services/analysisLoader';
-import {
-  getArtifactLoadWorkspaceHint,
-  getArtifactReadinessLabel,
-} from '../lib/artifactLoadPanelCopy';
+} from '../services/artifact-source-api';
+
 import { ArtifactLoadPanelForm } from './ArtifactLoadPanelForm';
 import { ArtifactLoadPanelHero } from './ArtifactLoadPanelHero';
+import { useToast } from './ui/Toast';
+
+import type { AnalysisLoadResult } from '../services/analysis-loader';
+import type { ReactElement } from 'react';
 
 function buildArtifactScanKey(
   kind: UserArtifactSourceKind,
@@ -72,7 +76,10 @@ export interface ArtifactLoadPanelProps {
   onError: (message: string | null) => void;
 }
 
-export function ArtifactLoadPanel({ onManagedLoad, onError }: ArtifactLoadPanelProps) {
+export function ArtifactLoadPanel({
+  onManagedLoad,
+  onError,
+}: ArtifactLoadPanelProps): ReactElement {
   const { toast } = useToast();
   const readinessRegionId = useId();
   const [sourceKind, setSourceKind] = useState<UserArtifactSourceKind>('local');

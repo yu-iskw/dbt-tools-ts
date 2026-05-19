@@ -1,13 +1,16 @@
 import { PILL_ACTIVE, PILL_BASE } from '@web/lib/analysis-workspace/constants';
-import type { DashboardStatusFilter } from '@web/lib/analysis-workspace/types';
-import { formatResourceTypeLabel } from './shared';
-import type { MaterializationKind } from '@web/types';
-import { MaterializationKindPillRow } from './MaterializationKindPillRow';
+
 import {
   EXPLORER_UI_COPY,
   executionStatusFilterButtonTitle,
   executionStatusPillLabel,
-} from './explorerPaneCopy';
+} from './explorer-pane-copy';
+import { MaterializationKindPillRow } from './MaterializationKindPillRow';
+import { formatResourceTypeLabel } from './shared';
+
+import type { DashboardStatusFilter } from '@web/lib/analysis-workspace/types';
+import type { MaterializationKind } from '@web/types';
+import type { ReactElement } from 'react';
 
 export const EXPLORER_FILTERS_STORAGE_KEY = 'dbt-tools.explorerFiltersExpanded';
 
@@ -51,7 +54,7 @@ export function ExplorerPaneFilters({
   availableMaterializationKinds: MaterializationKind[];
   activeMaterializationKinds: Set<MaterializationKind>;
   toggleMaterializationKind: (value: MaterializationKind) => void;
-}) {
+}): ReactElement {
   return (
     <section className="explorer-filters" aria-label="Explorer filters">
       <button

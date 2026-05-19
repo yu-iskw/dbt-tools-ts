@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+
 import { loadWorkspace } from './helpers/preload';
 
 const OPEN_IN_TIMELINE_LABEL = 'Open in Timeline';

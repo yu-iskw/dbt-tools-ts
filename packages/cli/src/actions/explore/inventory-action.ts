@@ -10,13 +10,14 @@ import {
   shouldOutputJSON,
   type GraphNodeAttributes,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 import { applyListPaging } from '../../internal/cli-pagination';
 
-export type InventoryOptions = {
+export type InventoryOptions = ArtifactRootCliOptions & {
   type?: string;
   package?: string;
   tag?: string;
@@ -26,7 +27,7 @@ export type InventoryOptions = {
   offset?: number;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type InventoryEntry = {
   unique_id: string;

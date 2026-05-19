@@ -10,7 +10,6 @@
  * we still parse correctly via heuristics or fallback.
  */
 
-import type { AdapterResponseParser, AdapterResponseParserRegistry } from './types';
 import { genericAdapterResponseParser } from './generic';
 import { athenaAdapterResponseParser } from './parsers/athena';
 import { bigqueryAdapterResponseParser } from './parsers/bigquery';
@@ -18,6 +17,8 @@ import { postgresAdapterResponseParser } from './parsers/postgres';
 import { redshiftAdapterResponseParser } from './parsers/redshift';
 import { snowflakeAdapterResponseParser } from './parsers/snowflake';
 import { sparkAdapterResponseParser } from './parsers/spark';
+
+import type { AdapterResponseParser, AdapterResponseParserRegistry } from './types';
 
 /**
  * Registry of adapter-specific parsers keyed by adapter type.

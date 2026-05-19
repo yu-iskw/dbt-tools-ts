@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 // ---------------------------------------------------------------------------
 // SQL syntax highlighting — zero-dependency tokenizer
 // ---------------------------------------------------------------------------
@@ -118,7 +119,7 @@ function tokenizeSQL(sql: string): SqlToken[] {
   return tokens;
 }
 
-export function SqlPanel({ sql }: { sql: string }) {
+export function SqlPanel({ sql }: { sql: string }): ReactElement {
   const tokens = tokenizeSQL(sql);
   return (
     <pre className="sql-panel">

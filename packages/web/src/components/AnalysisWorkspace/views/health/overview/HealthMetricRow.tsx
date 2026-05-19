@@ -1,14 +1,17 @@
-import { useMemo } from 'react';
 import {
   ADAPTER_METRIC_DESCRIPTORS,
   getPresentAdapterTotalDescriptors,
 } from '@dbt-tools/core/browser';
-import type { AnalysisState } from '@web/types';
+import { useMemo } from 'react';
+
 import {
   PRIMARY_PROJECT_SUMMARY_GROUPS,
   TEST_RESOURCE_TYPES,
 } from '@web/lib/analysis-workspace/constants';
 import { isMainProjectResource } from '@web/lib/analysis-workspace/utils';
+
+import type { AnalysisState } from '@web/types';
+import type { ReactElement } from 'react';
 
 function groupKeyForResourceType(resourceType: string): string {
   return TEST_RESOURCE_TYPES.has(resourceType) ? 'tests' : resourceType;
@@ -20,7 +23,7 @@ export function HealthMetricRow({
 }: {
   analysis: AnalysisState;
   projectName: string | null;
-}) {
+}): ReactElement | null {
   const items = useMemo(() => {
     const mainResources = analysis.resources.filter((r) => isMainProjectResource(r, projectName));
     const grouped = new Map<string, number>();

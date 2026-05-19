@@ -3,6 +3,7 @@
  */
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+
 import {
   ManifestGraph,
   loadManifest,
@@ -15,14 +16,16 @@ import {
   searchRunResults,
   type NodeExecution,
 } from '@dbt-tools/core';
-import type { GraphNodeAttributes } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 import { parseListOffset, resolveFailuresLimit } from '../../internal/cli-pagination';
 
-export type FailuresOptions = {
+import type { GraphNodeAttributes } from '@dbt-tools/core';
+
+export type FailuresOptions = ArtifactRootCliOptions & {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
@@ -33,7 +36,7 @@ export type FailuresOptions = {
   includePath?: boolean;
   includeCompiled?: boolean;
   compiledMaxChars?: number;
-} & ArtifactRootCliOptions;
+};
 
 type ManifestNodeGraph = ReturnType<ManifestGraph['getGraph']>;
 

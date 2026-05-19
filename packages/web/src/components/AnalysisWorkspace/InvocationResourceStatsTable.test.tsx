@@ -3,8 +3,10 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { AnalysisState } from '@web/types';
+
 import { InvocationResourceStats } from './InvocationResourceStatsTable';
+
+import type { AnalysisState } from '@web/types';
 
 const minimalAnalysis = {
   projectName: 'my_project',

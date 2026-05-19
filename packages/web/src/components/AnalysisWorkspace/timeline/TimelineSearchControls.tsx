@@ -1,6 +1,9 @@
 import { type Dispatch, type SetStateAction } from 'react';
+
 import { PILL_BASE } from '@web/lib/analysis-workspace/constants';
+
 import type { TimelineFilterState } from '@web/lib/analysis-workspace/types';
+import type { ReactElement } from 'react';
 
 export type TimelineTypeFilterHint = {
   shown: string[];
@@ -19,7 +22,7 @@ export function TimelineSearchControls({
   hasActiveFilters,
   typeFilterHint,
   setFilters,
-}: TimelineSearchControlsProps) {
+}: TimelineSearchControlsProps): ReactElement {
   return (
     <div className="timeline-toolbar">
       <label className="workspace-search workspace-search--compact timeline-toolbar__search">

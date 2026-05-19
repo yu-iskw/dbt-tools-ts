@@ -7,9 +7,10 @@
  * - May also include generic fields like query_id, code, etc.
  */
 
+import { mergeWithBaseFields } from './base';
+
 import type { AdapterResponseMetrics } from '../../metrics';
 import type { AdapterResponseParser } from '../types';
-import { mergeWithBaseFields } from './base';
 
 export const redshiftAdapterResponseParser: AdapterResponseParser = {
   name: 'redshift',

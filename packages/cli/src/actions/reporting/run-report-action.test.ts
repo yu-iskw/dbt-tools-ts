@@ -1,12 +1,15 @@
 /**
- * Tests for run-report-action.
+ * Tests for runReportAction.
  */
 import * as fs from 'node:fs/promises';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   createJaffleArtifactBundleDir,
   createJaffleRunResultsOnlyDir,
 } from '../../internal/cli-test-bundle-dir';
+
 import { runReportAction } from './run-report-action';
 
 describe('runReportAction', () => {

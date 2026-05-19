@@ -32,7 +32,7 @@
     "REFERENCE.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
     "test": "vitest run --project @dbt-tools/mcp",
     "test:watch": "vitest --project @dbt-tools/mcp"

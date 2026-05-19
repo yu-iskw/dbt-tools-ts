@@ -4,9 +4,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { normalizeAdapterResponseWithContext } from './index';
-import { adapterResponseParserRegistry } from './dispatch';
+
 import { isAdapterResponseObject, coerceAdapterResponseInput } from '../metrics';
+
+import { adapterResponseParserRegistry } from './dispatch';
+
+import { normalizeAdapterResponseWithContext } from './index';
 
 describe('Adapter Response Parsers', () => {
   describe('Generic / Fallback behavior', () => {

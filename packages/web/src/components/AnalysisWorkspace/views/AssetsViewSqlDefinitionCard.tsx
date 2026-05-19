@@ -1,10 +1,13 @@
-import type { ReactNode } from 'react';
+import { NOT_CAPTURED } from '@web/lib/analysis-workspace/catalog-copy';
+
 import { EmptyState } from '../../EmptyState';
-import type { MetricDefinition, ResourceNode, SemanticModelDefinition } from '@web/types';
-import { NOT_CAPTURED } from '@web/lib/analysis-workspace/catalogCopy';
-import { SectionCard } from '../shared';
-import { SqlPanel } from './AssetsViewSqlPanel';
 import { Spinner } from '../../ui/Spinner';
+import { SectionCard } from '../shared';
+
+import { SqlPanel } from './AssetsViewSqlPanel';
+
+import type { MetricDefinition, ResourceNode, SemanticModelDefinition } from '@web/types';
+import type { ReactElement, ReactNode } from 'react';
 
 function DefinitionList({ label, values }: { label: string; values: string[] }) {
   if (values.length === 0) return null;
@@ -151,7 +154,7 @@ export function AssetSqlOrDefinitionCard({
   codeLoading: boolean;
   codeError: string | null;
   hasCompiledSql: boolean;
-}) {
+}): ReactElement {
   return (
     <SectionCard
       title={showsDefinition ? 'Definition' : 'SQL'}

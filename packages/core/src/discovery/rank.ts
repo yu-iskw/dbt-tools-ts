@@ -1,7 +1,8 @@
-import type { DirectedGraph } from 'graphology';
+import { applyDiscoveryNodeFilters, parseDiscoveryQueryTokens } from './query-parse';
+import { DISCOVER_SCHEMA_VERSION } from './types';
+
 import type { ManifestGraph } from '../analysis/manifest/graph';
 import type { GraphEdgeAttributes, GraphNodeAttributes } from '../types';
-import { applyDiscoveryNodeFilters, parseDiscoveryQueryTokens } from './query-parse';
 import type {
   DiscoverConfidence,
   DiscoverDisambiguationEntry,
@@ -12,7 +13,7 @@ import type {
   DiscoverReason,
   DiscoverRelatedEntry,
 } from './types';
-import { DISCOVER_SCHEMA_VERSION } from './types';
+import type { DirectedGraph } from 'graphology';
 
 const DEFAULT_LIMIT = 50;
 

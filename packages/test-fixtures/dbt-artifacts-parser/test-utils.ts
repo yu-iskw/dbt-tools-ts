@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export type ArtifactType = 'manifest' | 'run_results' | 'sources' | 'catalog';
-export type ResourceLocation = 'tests' | 'resources';
+export type ArtifactType = 'catalog' | 'manifest' | 'run_results' | 'sources';
+export type ResourceLocation = 'resources' | 'tests';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const resourcesDir = path.resolve(__dirname, 'resources');

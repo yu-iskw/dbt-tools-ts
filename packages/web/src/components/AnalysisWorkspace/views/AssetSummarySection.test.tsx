@@ -3,7 +3,9 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { AssetSummarySection } from './AssetSummarySection';
+
 import type { ResourceNode } from '@web/types';
 
 function makeResource(overrides: Partial<ResourceNode> = {}): ResourceNode {

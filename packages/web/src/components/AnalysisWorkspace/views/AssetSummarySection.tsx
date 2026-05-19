@@ -1,19 +1,23 @@
-import type { ExecutionRow, ResourceNode } from '@web/types';
 import {
   formatAdapterMetricValue,
   getAdapterMetricValue,
   getAdapterResponseFieldsBeyondNormalized,
   getPresentAdapterMetricDescriptors,
 } from '@dbt-tools/core/browser';
-import { NOT_EXECUTED } from '@web/lib/analysis-workspace/catalogCopy';
+
+import { useArtifactCapability } from '@web/contexts/ArtifactCapabilityContext';
+import { NOT_EXECUTED } from '@web/lib/analysis-workspace/catalog-copy';
 import {
   displayResourcePath,
   formatRelationNameForDisplay,
   formatSeconds,
 } from '@web/lib/analysis-workspace/utils';
+
 import { ResourceMarkdownDescription } from '../ResourceMarkdownDescription';
 import { SectionCard } from '../shared';
-import { useArtifactCapability } from '@web/contexts/ArtifactCapabilityContext';
+
+import type { ExecutionRow, ResourceNode } from '@web/types';
+import type { ReactElement } from 'react';
 
 function warehouseRelationLabel(resource: ResourceNode): string {
   const rel = resource.semantics?.relationName?.trim();
@@ -122,7 +126,7 @@ export function AssetSummarySection({
   resource: ResourceNode;
   /** When set, adapter fields fall back from the run row if missing on `resource`. */
   executionRow?: ExecutionRow | null;
-}) {
+}): ReactElement {
   const artifactCapability = useArtifactCapability();
   const adapterMetrics = resource.adapterMetrics ?? executionRow?.adapterMetrics;
   const adapterResponseFields =

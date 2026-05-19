@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react';
-import type { BundleRow } from '@web/lib/analysis-workspace/bundleLayout';
-import type { TimeWindow } from '@web/lib/analysis-workspace/types';
-import type { ResourceTestStats } from '@web/types';
+
 import { isIssueStatus } from './formatting';
 
+import type { BundleRow } from '@web/lib/analysis-workspace/bundle-layout';
+import type { TimeWindow } from '@web/lib/analysis-workspace/types';
+import type { ResourceTestStats } from '@web/types';
+import type { ReactElement } from 'react';
+
 const MIN_BRUSH_WINDOW_MS = 1_000;
-type BrushDragMode = 'create' | 'pan' | 'start' | 'end';
+type BrushDragMode = 'create' | 'end' | 'pan' | 'start';
 
 export function hasIssueSignal(
   bundle: BundleRow,
@@ -39,7 +42,7 @@ export function GanttTimeBrush({
   timeWindow: TimeWindow | null;
   testStatsById?: Map<string, ResourceTestStats>;
   onChange: (nextTimeWindow: TimeWindow | null) => void;
-}) {
+}): ReactElement {
   const brushRef = useRef<HTMLDivElement>(null);
   const [previewWindow, setPreviewWindow] = useState<TimeWindow | null>(null);
   const dragRef = useRef<{

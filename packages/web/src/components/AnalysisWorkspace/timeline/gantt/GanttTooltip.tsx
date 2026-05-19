@@ -1,4 +1,3 @@
-import { useLayoutEffect, useRef, useState } from 'react';
 import {
   formatAdapterMetricValue,
   getAdapterMetricValue,
@@ -6,11 +5,16 @@ import {
   getPresentAdapterMetricDescriptors,
   type AdapterResponseMetrics,
 } from '@dbt-tools/core/browser';
-import type { ResourceNode, ResourceTestStats } from '@web/types';
+import { useLayoutEffect, useRef, useState } from 'react';
+
+import { buildMaterializationTooltipText } from '@web/lib/analysis-workspace/materialization-semantics-ui';
+
 import { TOOLTIP_LABEL_STYLE } from './constants';
 import { formatMs, formatTimestamp } from './formatting';
-import type { HoverState } from './hitTest';
-import { buildMaterializationTooltipText } from '@web/lib/analysis-workspace/materializationSemanticsUi';
+
+import type { HoverState } from './hit-test';
+import type { ResourceNode, ResourceTestStats } from '@web/types';
+import type { ReactElement } from 'react';
 
 const TOOLTIP_OFFSET_X = 16;
 const TOOLTIP_OFFSET_Y = 0;
@@ -44,7 +48,7 @@ export function computeTooltipPlacement({
   offsetX?: number;
   offsetY?: number;
   margin?: number;
-}) {
+}): { left: number; top: number } {
   const usableFrameWidth = Math.max(frameWidth, tooltipWidth + margin * 2);
   const usableFrameHeight = Math.max(frameHeight, tooltipHeight + margin * 2);
 
@@ -251,7 +255,7 @@ export function GanttTooltip({
   testStats?: ResourceTestStats;
   /** Snapshot resources — used to show adapter_response on hover without duplicating fields on `GanttItem`. */
   resourceByUniqueId?: ReadonlyMap<string, ResourceNode>;
-}) {
+}): ReactElement {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(() =>
     computeTooltipPlacement({

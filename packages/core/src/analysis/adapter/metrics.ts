@@ -6,12 +6,12 @@
  */
 
 export type AdapterResponseFieldKind =
-  | 'number'
-  | 'string'
+  | 'array'
   | 'boolean'
   | 'null'
+  | 'number'
   | 'object'
-  | 'array';
+  | 'string';
 
 export interface AdapterResponseField {
   key: string;

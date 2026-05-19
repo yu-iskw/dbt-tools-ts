@@ -1,11 +1,14 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   createJaffleArtifactBundleDir,
   createJaffleManifestOnlyDir,
 } from '../../internal/cli-test-bundle-dir';
+
 import { inventoryAction, formatInventory } from './inventory-action';
 
 describe('inventoryAction', () => {

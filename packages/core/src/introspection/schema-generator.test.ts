@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { getCommandSchema, getAllSchemas } from './schema-generator';
 
 describe('SchemaGenerator', () => {

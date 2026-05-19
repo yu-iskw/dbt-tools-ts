@@ -3,6 +3,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { Skeleton } from './Skeleton';
 
 const actEnvironment = globalThis as typeof globalThis & {

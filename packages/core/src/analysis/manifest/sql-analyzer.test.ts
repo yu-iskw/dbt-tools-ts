@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { SQLAnalyzer, sqlDialectFromDbtAdapterType } from './sql-analyzer';
 
 describe('SQLAnalyzer', () => {

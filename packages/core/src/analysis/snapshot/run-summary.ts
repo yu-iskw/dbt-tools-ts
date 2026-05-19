@@ -1,7 +1,8 @@
+import { normalizeWarehouseAdapterType } from '../search/warehouse';
+
 import type { AnalysisSnapshot } from './types';
 import type { AdapterTotalsSnapshot } from '../adapter/metrics';
 import type { WarehouseAdapterType } from '../search/types';
-import { normalizeWarehouseAdapterType } from '../search/warehouse';
 
 export interface RunSummaryOutput {
   summary: AnalysisSnapshot['summary'];

@@ -1,5 +1,8 @@
-import type { NodeExecution } from '../execution/analyzer';
 import { buildNodeExecutionSemantics } from '../execution/semantics';
+
+import { buildResourceDefinition, sortResources, statusLabel, statusTone } from './shared';
+import { buildTestAttachedTargetDisplay } from './test-target';
+
 import type { GraphLike, ManifestEntryLookup } from './internal';
 import type {
   AnalysisArtifactInputs,
@@ -8,8 +11,7 @@ import type {
   ResourceNode,
   SourceFreshnessDetails,
 } from './types';
-import { buildResourceDefinition, sortResources, statusLabel, statusTone } from './shared';
-import { buildTestAttachedTargetDisplay } from './test-target';
+import type { NodeExecution } from '../execution/analyzer';
 
 function optionalStringField(obj: Record<string, unknown>, key: string): string | null {
   const v = obj[key];
@@ -199,7 +201,7 @@ function buildResourceNode(
     condition: boolean,
     key: K,
     value: V,
-  ): T | Record<string, V> => (condition ? { [key]: value } : {});
+  ): Record<string, V> | T => (condition ? { [key]: value } : {});
 
   const core = readGraphResourceCore(uniqueId, attributes);
   const { resourceType } = core;

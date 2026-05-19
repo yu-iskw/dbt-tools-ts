@@ -1,18 +1,23 @@
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
+
+import { useResourceCode } from '@web/hooks/use-resource-code';
+
 import { EmptyState } from '../../EmptyState';
-import type { AnalysisState, ExecutionRow, ResourceNode } from '@web/types';
+import { LineagePanel } from '../lineage/LineagePanel';
+import { MaterializationSemanticsBadge } from '../MaterializationSemanticsBadge';
+import { ResourceTypeBadge } from '../shared';
+
+import { AssetSummarySection } from './AssetSummarySection';
+import { AssetSqlOrDefinitionCard } from './AssetsViewSqlDefinitionCard';
+import { AssetTestsSection } from './AssetTestsSection';
+
 import type {
   AssetViewState,
   LineageViewState,
   WorkspaceView,
 } from '@web/lib/analysis-workspace/types';
-import { ResourceTypeBadge } from '../shared';
-import { MaterializationSemanticsBadge } from '../MaterializationSemanticsBadge';
-import { LineagePanel } from '../lineage/LineagePanel';
-import { AssetTestsSection } from './AssetTestsSection';
-import { useResourceCode } from '@web/hooks/useResourceCode';
-import { AssetSummarySection } from './AssetSummarySection';
-import { AssetSqlOrDefinitionCard } from './AssetsViewSqlDefinitionCard';
+import type { AnalysisState, ExecutionRow, ResourceNode } from '@web/types';
+import type { ReactElement } from 'react';
 
 type AssetSectionId = Exclude<AssetViewState['activeTab'], 'runtime'>;
 
@@ -46,7 +51,7 @@ export function AssetsView({
       rootResourceId?: string;
     },
   ) => void;
-}) {
+}): ReactElement {
   const resourceById = useMemo(
     () => new Map(analysis.resources.map((entry) => [entry.uniqueId, entry])),
     [analysis.resources],

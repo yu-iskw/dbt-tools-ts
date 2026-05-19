@@ -1,19 +1,7 @@
 import { type Dispatch, type SetStateAction, useDeferredValue, useMemo } from 'react';
-import { GanttChart } from './GanttChart';
-import { GanttLegend } from './GanttLegend';
-import { TimelineDependencyControls } from './TimelineDependencyControls';
-import { TIMELINE_BUNDLE_COUNT_WARNING } from './gantt/constants';
-import { formatMs, isPositiveStatus } from './gantt/formatting';
-import {
-  type TimelineNeighborhoodUi,
-  useTimelineNeighborhoodRows,
-} from './useTimelineNeighborhoodRows';
-import type { AnalysisState, GanttItem, ResourceNode } from '@web/types';
-import type {
-  InvestigationSelectionState,
-  TimelineFilterState,
-} from '@web/lib/analysis-workspace/types';
+
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
+import { buildResourceTestStats } from '@web/lib/analysis-workspace/explorer-tree';
 import {
   countTimelineTestResources,
   deriveProjectName,
@@ -21,9 +9,26 @@ import {
   isDefaultTimelineResource,
   timelineGanttHasCompileExecutePhases,
 } from '@web/lib/analysis-workspace/utils';
-import { buildResourceTestStats } from '@web/lib/analysis-workspace/explorerTree';
+
 import { SectionCard, WorkspaceScaffold } from '../shared';
+
+import { TIMELINE_BUNDLE_COUNT_WARNING } from './gantt/constants';
+import { formatMs, isPositiveStatus } from './gantt/formatting';
+import { GanttChart } from './GanttChart';
+import { GanttLegend } from './GanttLegend';
+import { TimelineDependencyControls } from './TimelineDependencyControls';
 import { TimelineSearchControls, type TimelineTypeFilterHint } from './TimelineSearchControls';
+import {
+  type TimelineNeighborhoodUi,
+  useTimelineNeighborhoodRows,
+} from './use-timeline-neighborhood-rows';
+
+import type {
+  InvestigationSelectionState,
+  TimelineFilterState,
+} from '@web/lib/analysis-workspace/types';
+import type { AnalysisState, GanttItem, ResourceNode } from '@web/types';
+import type { ReactElement } from 'react';
 
 function TimelineNeighborhoodBanner({
   ui,
@@ -239,7 +244,7 @@ export function TimelineView({
   filters: TimelineFilterState;
   setFilters: Dispatch<SetStateAction<TimelineFilterState>>;
   onInvestigationSelectionChange: Dispatch<SetStateAction<InvestigationSelectionState>>;
-}) {
+}): ReactElement {
   const deferredQuery = useDeferredValue(filters.query);
   const projectName = analysis.projectName ?? deriveProjectName(analysis.executions);
 

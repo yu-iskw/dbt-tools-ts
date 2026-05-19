@@ -12,10 +12,12 @@
  * Also preserves generic fields via base field extraction.
  */
 
+import { readFiniteNumber, readNonEmptyString, isPlainObject } from '../../metrics';
+
+import { mergeWithBaseFields } from './base';
+
 import type { AdapterResponseMetrics } from '../../metrics';
 import type { AdapterResponseParser } from '../types';
-import { readFiniteNumber, readNonEmptyString, isPlainObject } from '../../metrics';
-import { mergeWithBaseFields } from './base';
 
 export const bigqueryAdapterResponseParser: AdapterResponseParser = {
   name: 'bigquery',

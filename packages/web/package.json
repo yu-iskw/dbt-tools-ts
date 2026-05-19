@@ -33,7 +33,7 @@
   ],
   "scripts": {
     "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
-    "build": "pnpm --filter @dbt-tools/core build && tsc && vite build && pnpm run build:serve",
+    "build": "pnpm --filter @dbt-tools/core build && tsc -p tsconfig.build.json && vite build && pnpm run build:serve",
     "build:serve": "vite build --config vite.server.config.ts",
     "dev": "vite",
     "dev:debug": "DBT_TOOLS_DEBUG=1 vite",

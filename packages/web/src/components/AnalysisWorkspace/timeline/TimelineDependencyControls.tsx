@@ -1,10 +1,11 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { TIMELINE_EXTENDED_MAX_HOPS } from './gantt/constants';
+import { clampTimelineDependencyDepth } from './gantt/dependency-controls';
+
 import type {
   TimelineDependencyDirection,
   TimelineFilterState,
 } from '@web/lib/analysis-workspace/types';
-import { TIMELINE_EXTENDED_MAX_HOPS } from './gantt/constants';
-import { clampTimelineDependencyDepth } from './gantt/dependencyControls';
+import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
 const DIRECTION_OPTIONS: Array<{
   value: TimelineDependencyDirection;
@@ -22,7 +23,7 @@ export function TimelineDependencyControls({
 }: {
   filters: TimelineFilterState;
   setFilters: Dispatch<SetStateAction<TimelineFilterState>>;
-}) {
+}): ReactElement {
   const depth = clampTimelineDependencyDepth(filters.dependencyDepthHops);
 
   const setDepth = (nextDepth: number) =>

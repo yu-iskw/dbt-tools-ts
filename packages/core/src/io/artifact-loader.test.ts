@@ -1,7 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+
+// @ts-expect-error - workspace package, TypeScript resolves via package.json
+import {
+  loadTestCatalog,
+  loadTestManifest,
+  loadTestRunResults,
+} from 'dbt-artifacts-parser/test-utils';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { resetDbtToolsEnvDeprecationWarningsForTests } from '../config/dbt-tools-env';
+
 import {
   resolveArtifactPaths,
   loadCatalog,
@@ -9,13 +19,6 @@ import {
   loadRunResults,
   loadSources,
 } from './artifact-loader';
-import { resetDbtToolsEnvDeprecationWarningsForTests } from '../config/dbt-tools-env';
-// @ts-expect-error - workspace package, TypeScript resolves via package.json
-import {
-  loadTestCatalog,
-  loadTestManifest,
-  loadTestRunResults,
-} from 'dbt-artifacts-parser/test-utils';
 
 const TARGET_ENV_KEYS = ['DBT_TOOLS_TARGET_DIR', 'DBT_TARGET_DIR', 'DBT_TARGET'] as const;
 

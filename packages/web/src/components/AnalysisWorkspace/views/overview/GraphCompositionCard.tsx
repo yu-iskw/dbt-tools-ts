@@ -1,6 +1,11 @@
 import type { GraphSnapshot } from '@web/types';
+import type { ReactElement } from 'react';
 
-export function GraphCompositionCard({ graphSummary }: { graphSummary: GraphSnapshot }) {
+export function GraphCompositionCard({
+  graphSummary,
+}: {
+  graphSummary: GraphSnapshot;
+}): ReactElement {
   const entries = Object.entries(graphSummary.nodesByType).sort((a, b) => b[1] - a[1]);
   if (entries.length === 0) {
     return <div className="empty-state">No node-type breakdown available.</div>;

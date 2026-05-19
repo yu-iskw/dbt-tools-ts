@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { AnalysisState, ThreadStat } from '@web/types';
+
 import { PILL_ACTIVE, PILL_BASE } from '@web/lib/analysis-workspace/constants';
-import type { OverviewDerivedState } from '@web/lib/analysis-workspace/overviewState';
 import {
   THREAD_DISTRIBUTION_METRIC_OPTIONS,
   capSortedThreadStats,
@@ -10,9 +9,14 @@ import {
   maxThreadStatMetricValue,
   sortThreadStatsByMetric,
   type ThreadDistributionMetric,
-} from '@web/lib/analysis-workspace/threadDistributionMetrics';
+} from '@web/lib/analysis-workspace/thread-distribution-metrics';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
+
 import { EmptyState } from '../../../EmptyState';
+
+import type { OverviewDerivedState } from '@web/lib/analysis-workspace/overview-state';
+import type { AnalysisState, ThreadStat } from '@web/types';
+import type { ReactElement } from 'react';
 
 function threadDistributionRowDetail(
   entry: ThreadStat,
@@ -29,7 +33,11 @@ function threadDistributionRowDetail(
   return `${entry.threadId}: ${valueText}`;
 }
 
-export function HealthThreadDistribution({ derived }: { derived: OverviewDerivedState }) {
+export function HealthThreadDistribution({
+  derived,
+}: {
+  derived: OverviewDerivedState;
+}): ReactElement {
   const [metric, setMetric] = useState<ThreadDistributionMetric>('totalTime');
 
   const executionRowTotal = useMemo(
@@ -130,7 +138,7 @@ export function HealthFootprintPanel({
   workerThreadCount: number;
   modelsCount: number;
   testsCount: number;
-}) {
+}): ReactElement {
   const criticalPathLength = analysis.summary.critical_path?.path.length ?? 0;
 
   return (

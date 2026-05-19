@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 import {
@@ -6,6 +5,8 @@ import {
   loadTestManifest,
   loadTestRunResults,
 } from 'dbt-artifacts-parser/test-utils';
+import { describe, expect, it } from 'vitest';
+
 import {
   buildAnalysisSnapshotFromArtifactBundle,
   buildAnalysisSnapshotFromArtifacts,

@@ -6,9 +6,10 @@
  * - May also include generic fields like code, rows_affected, query_id, etc.
  */
 
+import { mergeWithBaseFields } from './base';
+
 import type { AdapterResponseMetrics } from '../../metrics';
 import type { AdapterResponseParser } from '../types';
-import { mergeWithBaseFields } from './base';
 
 export const sparkAdapterResponseParser: AdapterResponseParser = {
   name: 'spark',

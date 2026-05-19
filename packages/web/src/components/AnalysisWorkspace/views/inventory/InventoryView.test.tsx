@@ -3,14 +3,16 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AnalysisState, ResourceNode } from '@web/types';
+
 import { InventoryView } from './InventoryView';
+
+import type { AnalysisState, ResourceNode } from '@web/types';
 
 const { searchResourcesFromWorker } = vi.hoisted(() => ({
   searchResourcesFromWorker: vi.fn(),
 }));
 
-vi.mock('@web/services/analysisLoader', () => ({
+vi.mock('@web/services/analysis-loader', () => ({
   searchResourcesFromWorker,
 }));
 

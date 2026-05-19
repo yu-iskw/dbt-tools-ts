@@ -4,7 +4,7 @@ import {
   STATUS_HEX_LIGHT,
   getResourceTypeHexMap,
   getThemeHex,
-} from '@web/constants/themeColors';
+} from '@web/constants/theme-colors';
 
 /** Execution status → bar fill color (light theme; use {@link getStatusColor} with theme in canvas). */
 export const STATUS_COLORS: Record<string, string> = { ...STATUS_HEX_LIGHT };

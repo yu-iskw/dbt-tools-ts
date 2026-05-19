@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
-import type { MissingOptionalArtifactsState } from '@web/services/artifactSourceApi';
+
+import type { MissingOptionalArtifactsState } from '@web/services/artifact-source-api';
 
 const defaultCaps: MissingOptionalArtifactsState = {
   missingCatalog: false,

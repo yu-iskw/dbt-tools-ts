@@ -1,5 +1,7 @@
-import { expect, type Page } from '@playwright/test';
 import fs from 'node:fs';
+
+import { expect, type Page } from '@playwright/test';
+
 import { MANIFEST_PATH, RUN_RESULTS_PATH } from './preload';
 
 const PRODUCTS_UNIQUE_ID = 'model.jaffle_shop.products';

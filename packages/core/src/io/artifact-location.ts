@@ -1,8 +1,10 @@
 import * as path from 'node:path';
-import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
+
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
 
-export type ArtifactSourceKind = 'local' | 's3' | 'gcs';
+import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
+
+export type ArtifactSourceKind = 'gcs' | 'local' | 's3';
 
 /** Trim leading/trailing slashes for object-store key prefix handling. */
 export function normalizeArtifactPrefix(prefix: string): string {
@@ -26,7 +28,7 @@ export interface ParsedLocalArtifactLocation {
 
 export interface ParsedRemoteArtifactLocation {
   readonly kind: 'remote';
-  readonly provider: 's3' | 'gcs';
+  readonly provider: 'gcs' | 's3';
   readonly bucket: string;
   readonly prefix: string;
 }
@@ -131,7 +133,7 @@ function parseGcsLocation(raw: string): { bucket: string; prefix: string } {
 
 const DEFAULT_REMOTE_POLL_MS = 30_000;
 
-/** Request-time GCS-only options (web artifact-source); not part of env JSON. */
+/** Request-time GCS-only options (web artifactSource); not part of env JSON. */
 export interface GcsArtifactSourceRequestOptions {
   impersonatedServiceAccount?: string;
 }

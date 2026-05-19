@@ -1,16 +1,17 @@
-import type { RemoteArtifactRun } from '@web/services/artifactSourceApi';
+import type { RemoteArtifactRun } from '@web/services/artifact-source-api';
+import type { ReactElement } from 'react';
 
 export interface RemoteUpdateBannerProps {
   pendingRemoteRun: RemoteArtifactRun | null;
   acceptingRemoteRun: boolean;
-  onAcceptPendingRemoteRun: () => void | Promise<void>;
+  onAcceptPendingRemoteRun: () => Promise<void> | void;
 }
 
 export function RemoteUpdateBanner({
   pendingRemoteRun,
   acceptingRemoteRun,
   onAcceptPendingRemoteRun,
-}: RemoteUpdateBannerProps) {
+}: RemoteUpdateBannerProps): ReactElement | null {
   if (pendingRemoteRun == null) return null;
 
   return (

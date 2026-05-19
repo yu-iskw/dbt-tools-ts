@@ -1,13 +1,16 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
+
 import { ArtifactBundleResolutionError } from '../errors/artifact-bundle-resolution-error';
+
+import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from './artifact-filenames';
 import {
   parseDbtToolsArtifactTarget,
   resolveDbtToolsArtifactBundlePaths,
 } from './dbt-artifact-bundle';
-import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from './artifact-filenames';
 
 describe('parseDbtToolsArtifactTarget', () => {
   it('parses s3:// strictly', () => {

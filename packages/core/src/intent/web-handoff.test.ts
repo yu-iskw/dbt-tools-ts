@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { buildDiscoverWebUrl, buildExplainWebUrl, buildImpactWebUrl } from './web-handoff';
 
 describe('web-handoff', () => {

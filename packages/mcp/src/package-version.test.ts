@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
+
 import { readMcpPackageVersion } from './package-version.js';
 
 describe('readMcpPackageVersion', () => {

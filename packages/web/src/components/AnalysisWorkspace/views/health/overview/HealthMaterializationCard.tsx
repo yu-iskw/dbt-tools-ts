@@ -1,14 +1,20 @@
-import { useMemo } from 'react';
-import type { ExecutionRow, MaterializationKind } from '@web/types';
+import { useMemo, type ReactElement } from 'react';
+
 import {
   MATERIALIZATION_KIND_ORDER,
   materializationKindShortLabel,
-} from '@web/lib/analysis-workspace/materializationSemanticsUi';
+} from '@web/lib/analysis-workspace/materialization-semantics-ui';
+
+import type { ExecutionRow, MaterializationKind } from '@web/types';
 
 /**
  * Distribution of normalized materializations among **model** executions in scope.
  */
-export function HealthMaterializationCard({ executions }: { executions: ExecutionRow[] }) {
+export function HealthMaterializationCard({
+  executions,
+}: {
+  executions: ExecutionRow[];
+}): ReactElement {
   const { rows, total } = useMemo(() => {
     const models = executions.filter((e) => e.resourceType === 'model');
     const counts = new Map<MaterializationKind, number>();

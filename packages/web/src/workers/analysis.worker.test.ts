@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
 import { loadTestManifest, loadTestRunResults } from 'dbt-artifacts-parser/test-utils';
+import { describe, expect, it } from 'vitest';
+
+import { ANALYSIS_WORKER_PROTOCOL_VERSION } from './analysis-protocol';
 import { handleAnalysisWorkerRequest } from './analysis.worker';
-import { ANALYSIS_WORKER_PROTOCOL_VERSION } from './analysisProtocol';
 
 function encodeJson(value: Record<string, unknown>) {
   return new TextEncoder().encode(JSON.stringify(value)).buffer;

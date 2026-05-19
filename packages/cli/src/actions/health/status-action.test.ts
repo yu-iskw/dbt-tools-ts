@@ -1,8 +1,11 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { statusAction, formatStatus } from './status-action';
+
 import type { StatusResult } from './status-action';
 
 describe('statusAction', () => {

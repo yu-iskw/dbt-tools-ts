@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
-import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
+
+import { DependencyService } from '../dependencies/service';
+
 import { ManifestGraph } from './graph';
 import { SQLAnalyzer } from './sql-analyzer';
-import { DependencyService } from '../dependencies/service';
+
+import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
+import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 
 describe('Field-level lineage integration', () => {
   it('should trace lineage from child field back to source field', () => {

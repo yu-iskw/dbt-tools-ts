@@ -1,6 +1,5 @@
 import * as fs from 'node:fs/promises';
-import { parseManifest } from 'dbt-artifacts-parser/manifest';
-import { parseRunResults } from 'dbt-artifacts-parser/run_results';
+
 import {
   buildAnalysisSnapshotFromParsedArtifacts,
   formatOutput,
@@ -12,13 +11,16 @@ import {
   type QueryExecutionsRequest,
   type WarehouseAdapterType,
 } from '@dbt-tools/core';
+import { parseManifest } from 'dbt-artifacts-parser/manifest';
+import { parseRunResults } from 'dbt-artifacts-parser/run_results';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination';
 
-export type QueryExecutionsOptions = {
+export type QueryExecutionsOptions = ArtifactRootCliOptions & {
   warehouse?: WarehouseAdapterType;
   sort?: string;
   status?: string;
@@ -39,7 +41,7 @@ export type QueryExecutionsOptions = {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 async function readArtifactJson(path: string): Promise<Record<string, unknown>> {
   const text = await fs.readFile(path, 'utf8');

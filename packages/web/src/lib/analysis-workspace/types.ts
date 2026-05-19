@@ -1,6 +1,6 @@
-import type { Dispatch, SetStateAction } from 'react';
+import type { WorkspaceArtifactSource } from '@web/services/artifact-source-api';
 import type { AnalysisState, MaterializationKind, StatusTone } from '@web/types';
-import type { WorkspaceArtifactSource } from '@web/services/artifactSourceApi';
+import type { Dispatch, SetStateAction } from 'react';
 
 /**
  * New top-level workspace views.
@@ -8,41 +8,40 @@ import type { WorkspaceArtifactSource } from '@web/services/artifactSourceApi';
  * redirects and will be removed after all references are migrated.
  */
 export type WorkspaceView =
+  | 'catalog'
+  | 'dependencies'
+  | 'execution'
   | 'health'
   | 'inventory'
-  | 'runs'
-  | 'timeline'
-  | 'settings'
-  // legacy — redirect targets below
   | 'overview'
-  | 'catalog'
-  | 'execution'
   | 'quality'
-  | 'dependencies'
-  | 'search';
+  | 'runs'
+  | 'search'
+  | 'settings'
+  | 'timeline';
 
-export type AssetTab = 'summary' | 'lineage' | 'sql' | 'runtime' | 'tests';
-export type RunsKind = 'all' | 'models' | 'tests' | 'seeds' | 'snapshots' | 'operations';
+export type AssetTab = 'lineage' | 'runtime' | 'sql' | 'summary' | 'tests';
+export type RunsKind = 'all' | 'models' | 'operations' | 'seeds' | 'snapshots' | 'tests';
 export type RunsBaseSortBy =
   | 'attention'
   | 'duration'
-  | 'name'
-  | 'status'
-  | 'start'
   | 'materialization'
+  | 'name'
   | 'resourceType'
+  | 'start'
+  | 'status'
   | 'thread';
 export type RunsAdapterColumnId = `adapter:${string}`;
-export type RunsSortBy = RunsBaseSortBy | RunsAdapterColumnId;
+export type RunsSortBy = RunsAdapterColumnId | RunsBaseSortBy;
 export type RunsSortDirection = 'asc' | 'desc';
-export type RunsGroupBy = 'none' | 'type' | 'status' | 'thread';
+export type RunsGroupBy = 'none' | 'status' | 'thread' | 'type';
 
 /** `issues` = failed execution on the asset or dbt test attention rollup (explorer); runs table uses danger+warning rows. */
-export type DashboardStatusFilter = 'all' | 'issues' | StatusTone;
-export type AssetExplorerMode = 'project' | 'database';
-export type LensMode = 'status' | 'type' | 'coverage';
-export type TimelineDependencyDirection = 'upstream' | 'both' | 'downstream';
-export type ThemePreference = 'light' | 'dark' | 'system';
+export type DashboardStatusFilter = StatusTone | 'all' | 'issues';
+export type AssetExplorerMode = 'database' | 'project';
+export type LensMode = 'coverage' | 'status' | 'type';
+export type TimelineDependencyDirection = 'both' | 'downstream' | 'upstream';
+export type ThemePreference = 'dark' | 'light' | 'system';
 
 export interface OverviewFilterState {
   status: DashboardStatusFilter;

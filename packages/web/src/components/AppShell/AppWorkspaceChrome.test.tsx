@@ -3,9 +3,11 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ArtifactLocationSnapshot } from '@web/lib/artifactSource';
-import type { AnalysisState } from '@web/types';
+
 import { AppWorkspaceChrome } from './AppWorkspaceChrome';
+
+import type { ArtifactLocationSnapshot } from '@web/lib/artifact-source';
+import type { AnalysisState } from '@web/types';
 
 const mockOmniboxResults = vi.fn(() => ({ results: [], loading: false }));
 
@@ -17,7 +19,7 @@ vi.mock('./AppSidebar', () => ({
   AppSidebar: () => <aside data-testid="app-sidebar" />,
 }));
 
-vi.mock('@web/hooks/useOmniboxResults', () => ({
+vi.mock('@web/hooks/use-omnibox-results', () => ({
   useOmniboxResults: () => mockOmniboxResults(),
 }));
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphLike } from './internal';
+
 import { buildTestAttachedTargetDisplay } from './test-target';
+
+import type { GraphLike } from './internal';
 
 function stubGraph(attrsById: Record<string, Record<string, unknown>>): GraphLike {
   return {

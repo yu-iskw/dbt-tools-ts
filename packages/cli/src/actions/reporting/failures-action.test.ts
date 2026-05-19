@@ -1,12 +1,15 @@
 /**
- * Tests for failures-action.
+ * Tests for failuresAction.
  */
 import * as fs from 'node:fs/promises';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   createJaffleArtifactBundleDir,
   createJaffleRunResultsOnlyDir,
 } from '../../internal/cli-test-bundle-dir';
+
 import { failuresAction } from './failures-action';
 
 describe('failuresAction', () => {

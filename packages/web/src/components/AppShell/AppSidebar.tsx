@@ -1,14 +1,17 @@
-import type { AnalysisState } from '@web/types';
-import { sourceLabel } from '@web/lib/artifactSource';
-import type { WorkspaceArtifactSource } from '@web/services/artifactSourceApi';
-import type { WorkspaceView } from '../AnalysisWorkspace';
-import { AppLogo } from './AppLogo';
+import { sourceLabel } from '@web/lib/artifact-source';
+
 import {
   type NavigationSelectionTarget,
   isNavigationTargetActive,
   navigationItems,
-} from './appNavigation';
+} from './app-navigation';
+import { AppLogo } from './AppLogo';
 import { NavIcon } from './NavIcon';
+
+import type { WorkspaceView } from '../AnalysisWorkspace';
+import type { WorkspaceArtifactSource } from '@web/services/artifact-source-api';
+import type { AnalysisState } from '@web/types';
+import type { ReactElement } from 'react';
 
 const WAITING_FOR_ARTIFACTS = 'Waiting for artifacts';
 
@@ -28,7 +31,7 @@ export function AppSidebar({
   onNavigate: () => void;
   analysis: AnalysisState | null;
   analysisSource: WorkspaceArtifactSource | null;
-}) {
+}): ReactElement {
   const sourceText = sourceLabel(analysisSource);
 
   return (

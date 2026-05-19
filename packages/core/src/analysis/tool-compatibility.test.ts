@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
@@ -11,10 +11,13 @@ import {
   loadTestManifest,
   loadTestRunResults,
 } from 'dbt-artifacts-parser/test-utils';
-import { ManifestGraph } from './manifest/graph';
+import { describe, it, expect } from 'vitest';
+
+import { getManifestSchemaVersion } from '../version';
+
 import { DependencyService } from './dependencies/service';
 import { ExecutionAnalyzer } from './execution/analyzer';
-import { getManifestSchemaVersion } from '../version';
+import { ManifestGraph } from './manifest/graph';
 
 const MIN_SUPPORTED_SCHEMA_VERSION = 10;
 

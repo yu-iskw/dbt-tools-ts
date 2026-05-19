@@ -1,15 +1,18 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import type { AnalysisState, ResourceNode } from '@web/types';
+
+import { searchResourcesFromWorker } from '@web/services/analysis-loader';
+
+import { EmptyState } from '../../../EmptyState';
+import { WorkspaceScaffold } from '../../shared';
+import { AssetsView } from '../AssetsView';
+
 import type {
   AssetViewState,
   LineageViewState,
   WorkspaceView,
 } from '@web/lib/analysis-workspace/types';
-import { searchResourcesFromWorker } from '@web/services/analysisLoader';
-import { AssetsView } from '../AssetsView';
-import { EmptyState } from '../../../EmptyState';
-import { WorkspaceScaffold } from '../../shared';
+import type { AnalysisState, ResourceNode } from '@web/types';
+import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
 const LINEAGE_SEARCH_DEBOUNCE_MS = 200;
 
@@ -47,7 +50,7 @@ export function InventoryView({
       rootResourceId?: string;
     },
   ) => void;
-}) {
+}): ReactElement {
   const [lineageSearchQuery, setLineageSearchQuery] = useState('');
   const [lineageSuggestions, setLineageSuggestions] = useState<ResourceNode[]>([]);
   const [lineageSearchLoading, setLineageSearchLoading] = useState(false);

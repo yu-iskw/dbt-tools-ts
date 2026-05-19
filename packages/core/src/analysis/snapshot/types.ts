@@ -1,11 +1,11 @@
-import type { BottleneckResult } from '../search/types';
-import type { ExecutionSummary } from '../execution/analyzer';
-import type { NodeExecutionSemantics } from '../execution/semantics';
 import type {
   AdapterResponseField,
   AdapterResponseMetrics,
   AdapterTotalsSnapshot,
 } from '../adapter/metrics';
+import type { ExecutionSummary } from '../execution/analyzer';
+import type { NodeExecutionSemantics } from '../execution/semantics';
+import type { BottleneckResult } from '../search/types';
 import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
 import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 import type { ParsedRunResults } from 'dbt-artifacts-parser/run_results';
@@ -30,7 +30,7 @@ export interface GanttItem {
   semantics?: NodeExecutionSemantics;
 }
 
-export type StatusTone = 'positive' | 'warning' | 'danger' | 'neutral' | 'skipped';
+export type StatusTone = 'danger' | 'neutral' | 'positive' | 'skipped' | 'warning';
 
 export interface MetricDefinition {
   kind: 'metric';

@@ -1,13 +1,15 @@
-import type { GanttItem } from './types';
+import { buildNodeExecutionSemantics } from '../execution/semantics';
+
+import { inferPackageNameFromUniqueId, inferResourceTypeFromId } from './shared';
+
 import type {
   GraphLike,
   GraphologyAttrsGraph,
   ManifestEntryLookup,
   NeighborGraph,
 } from './internal';
+import type { GanttItem } from './types';
 import type { NodeExecutionSemantics } from '../execution/semantics';
-import { buildNodeExecutionSemantics } from '../execution/semantics';
-import { inferPackageNameFromUniqueId, inferResourceTypeFromId } from './shared';
 
 /** Graphology view needed to walk sources and outbound dependency edges. */
 type GraphologySourceDependentsGraph = GraphologyAttrsGraph &

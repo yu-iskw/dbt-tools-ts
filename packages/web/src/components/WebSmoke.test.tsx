@@ -3,8 +3,9 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ErrorBanner } from './ErrorBanner';
+
 import { LoadingCard } from './AppShell/LoadingCard';
+import { ErrorBanner } from './ErrorBanner';
 import { Spinner } from './ui/Spinner';
 
 describe('lightweight UI components', () => {

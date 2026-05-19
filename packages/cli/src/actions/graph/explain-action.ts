@@ -15,21 +15,22 @@ import {
   type GraphNodeAttributes,
   type InvestigationTranscript,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type ExplainCliOptions = {
+export type ExplainCliOptions = ArtifactRootCliOptions & {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
   trace?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type ExplainProvenanceStep = {
   op: string;
-  status: 'ok' | 'error';
+  status: 'error' | 'ok';
   detail?: string;
 };
 

@@ -21,12 +21,13 @@ import {
   type ArtifactPaths,
   type ExecutionSortKey,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type TimelineOptions = {
+export type TimelineOptions = ArtifactRootCliOptions & {
   sort?: string;
   top?: number;
   failedOnly?: boolean;
@@ -35,7 +36,7 @@ export type TimelineOptions = {
   format?: string;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type TimelineEntry = {
   unique_id: string;

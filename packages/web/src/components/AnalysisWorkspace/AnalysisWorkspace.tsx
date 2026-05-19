@@ -1,10 +1,13 @@
-import type { AnalysisWorkspaceProps } from '@web/lib/analysis-workspace/types';
 import { deriveProjectName } from '@web/lib/analysis-workspace/utils';
+
+import { TimelineView } from './timeline/TimelineView';
+import { useAnalysisWorkspaceExplorerPane } from './use-analysis-workspace-explorer-pane';
 import { HealthView } from './views/health/HealthView';
 import { InventoryView } from './views/inventory/InventoryView';
-import { TimelineView } from './timeline/TimelineView';
 import { RunsView } from './views/runs/RunsView';
-import { useAnalysisWorkspaceExplorerPane } from './useAnalysisWorkspaceExplorerPane';
+
+import type { AnalysisWorkspaceProps } from '@web/lib/analysis-workspace/types';
+import type { ReactElement } from 'react';
 
 export function AnalysisWorkspace({
   analysis,
@@ -23,7 +26,7 @@ export function AnalysisWorkspace({
   onInvestigationSelectionChange,
   onNavigateTo,
   workspaceSignals,
-}: AnalysisWorkspaceProps) {
+}: AnalysisWorkspaceProps): ReactElement {
   const projectName = analysis.projectName ?? deriveProjectName(analysis.executions);
 
   const { explorerPane } = useAnalysisWorkspaceExplorerPane({

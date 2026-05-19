@@ -2,19 +2,19 @@
  * Resource types in dbt manifests
  */
 export type DbtResourceType =
-  | 'model'
-  | 'source'
-  | 'seed'
-  | 'snapshot'
-  | 'test'
   | 'analysis'
-  | 'macro'
   | 'exposure'
-  | 'metric'
-  | 'semantic_model'
-  | 'unit_test'
   | 'field'
-  | 'function';
+  | 'function'
+  | 'macro'
+  | 'metric'
+  | 'model'
+  | 'seed'
+  | 'semantic_model'
+  | 'snapshot'
+  | 'source'
+  | 'test'
+  | 'unit_test';
 
 /**
  * Node attributes stored in the graph
@@ -36,7 +36,7 @@ export interface GraphNodeAttributes {
  * Edge attributes stored in the graph
  */
 export interface GraphEdgeAttributes {
-  dependency_type: 'node' | 'macro' | 'source' | 'field' | 'internal';
+  dependency_type: 'field' | 'internal' | 'macro' | 'node' | 'source';
   [key: string]: unknown;
 }
 

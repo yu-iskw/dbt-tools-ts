@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   validateResourceId,
   validateSafePath,
@@ -13,6 +13,7 @@ import {
   getCommandSchema,
   getAllSchemas,
 } from '@dbt-tools/core';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 describe('CLI Integration', () => {
   describe('Core service integration', () => {

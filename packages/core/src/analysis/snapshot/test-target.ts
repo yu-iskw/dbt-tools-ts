@@ -1,5 +1,6 @@
-import type { GraphLike } from './internal';
 import { inferResourceTypeFromId } from './shared';
+
+import type { GraphLike } from './internal';
 
 function readColumnPart(manifestEntry: Record<string, unknown>): string | null {
   const raw = manifestEntry.column_name;

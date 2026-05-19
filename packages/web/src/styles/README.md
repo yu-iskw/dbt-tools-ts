@@ -15,11 +15,11 @@ Do not change `@import` order without checking for specificity/cascade regressio
 
 ## CSS ↔ TypeScript colors
 
-`src/constants/themeColors.generated.ts` is **auto-generated** from `tokens.css` by `pnpm tokens:sync` (script: `scripts/sync-css-tokens-to-ts.mjs`). When you change any token in `tokens.css`, run `pnpm tokens:sync` and commit the generated file. CI verifies freshness via `pnpm tokens:check`.
+`src/constants/theme-colors.generated.ts` is **auto-generated** from `tokens.css` by `pnpm tokens:sync` (script: `scripts/sync-css-tokens-to-ts.mjs`). When you change any token in `tokens.css`, run `pnpm tokens:sync` and commit the generated file. CI verifies freshness via `pnpm tokens:check`.
 
-Canvas, SVG, and chart code that cannot use CSS `var()` should import from `themeColors.generated.ts`.
+Canvas, SVG, and chart code that cannot use CSS `var()` should import from `theme-colors.generated.ts`.
 
-The **legacy** manual mirror `src/constants/themeColors.ts` remains for existing consumers (status hex maps, canvas colors, resource-type fills) that have not yet been migrated to the generated file.
+The **legacy** manual mirror `src/constants/theme-colors.ts` remains for existing consumers (status hex maps, canvas colors, resource-type fills) that have not yet been migrated to the generated file.
 
 ## Status colors in TypeScript
 

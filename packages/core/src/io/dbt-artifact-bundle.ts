@@ -1,16 +1,17 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
 import { getDbtToolsRemoteSourceConfigFromEnv } from '../config/dbt-tools-env';
 import { ArtifactBundleResolutionError } from '../errors/artifact-bundle-resolution-error';
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
+
 import {
   DBT_CATALOG_JSON,
   DBT_MANIFEST_JSON,
   DBT_RUN_RESULTS_JSON,
   DBT_SOURCES_JSON,
 } from './artifact-filenames';
-import type { ArtifactPaths } from './artifact-loader';
 import {
   joinObjectStorageKey,
   mergeRemoteSourceConfigWithParsedLocation,
@@ -18,6 +19,8 @@ import {
   type ParsedArtifactLocation,
 } from './artifact-location';
 import { createRemoteObjectStoreClient, type RemoteObjectStoreClient } from './remote-object-store';
+
+import type { ArtifactPaths } from './artifact-loader';
 
 export type DbtArtifactBundleRequirements = {
   manifest?: boolean;
@@ -165,7 +168,7 @@ async function writeRemoteBytesToTemp(args: {
   client: RemoteObjectStoreClient;
   prefixNorm: string;
   displayTarget: string;
-  provider: 's3' | 'gcs';
+  provider: 'gcs' | 's3';
   requirements: Required<DbtArtifactBundleRequirements>;
 }): Promise<ArtifactPaths> {
   const { bucket, client, prefixNorm, displayTarget, provider, requirements } = args;

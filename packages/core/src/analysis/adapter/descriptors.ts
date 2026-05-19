@@ -5,19 +5,19 @@ import type {
 } from './metrics';
 
 export type AdapterMetricKey =
-  | 'queryId'
   | 'adapterCode'
   | 'adapterMessage'
-  | 'bytesProcessed'
   | 'bytesBilled'
-  | 'slotMs'
-  | 'rowsAffected'
-  | 'projectId'
+  | 'bytesProcessed'
   | 'location'
+  | 'projectId'
+  | 'queryId'
+  | 'rowsAffected'
+  | 'rowsDeleted'
+  | 'rowsDuplicated'
   | 'rowsInserted'
   | 'rowsUpdated'
-  | 'rowsDeleted'
-  | 'rowsDuplicated';
+  | 'slotMs';
 
 export type AdapterMetricValue = number | string | undefined;
 
@@ -31,19 +31,19 @@ export interface AdapterMetricDescriptor {
 }
 
 export type AdapterMetricSortKey =
-  | 'query_id'
   | 'adapter_code'
   | 'adapter_message'
-  | 'bytes_processed'
   | 'bytes_billed'
-  | 'slot_ms'
-  | 'rows_affected'
-  | 'project_id'
+  | 'bytes_processed'
   | 'location'
+  | 'project_id'
+  | 'query_id'
+  | 'rows_affected'
+  | 'rows_deleted'
+  | 'rows_duplicated'
   | 'rows_inserted'
   | 'rows_updated'
-  | 'rows_deleted'
-  | 'rows_duplicated';
+  | 'slot_ms';
 
 export const ADAPTER_METRIC_DESCRIPTORS: AdapterMetricDescriptor[] = [
   {

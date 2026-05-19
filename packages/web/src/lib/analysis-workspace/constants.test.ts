@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { getStatusTonePalette } from '@web/lib/analysis-workspace/constants';
 
 describe('getStatusTonePalette', () => {

@@ -33,15 +33,12 @@ export {
 } from './analysis/snapshot';
 export type { NodeExecution, ExecutionSummary, CriticalPath } from './analysis/execution/analyzer';
 export type {
+  AdapterHeavyMetric,
   BottleneckNode,
   BottleneckResult,
   RunResultsSearchCriteria,
 } from './analysis/search/types';
-export type {
-  AdapterHeavyMetric,
-  AdapterHeavyNode,
-  AdapterHeavyResult,
-} from './analysis/search/run-results';
+export type { AdapterHeavyNode, AdapterHeavyResult } from './analysis/search/run-results';
 export type {
   AdapterResponseField,
   AdapterResponseFieldKind,

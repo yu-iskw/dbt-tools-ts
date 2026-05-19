@@ -321,7 +321,9 @@ export function buildWarehouseType(manifestJson: Record<string, unknown>): strin
   return null;
 }
 
-export function buildResourceGroups(resources: AnalysisSnapshot['resources']) {
+export function buildResourceGroups(
+  resources: AnalysisSnapshot['resources'],
+): AnalysisSnapshot['resourceGroups'] {
   const groupedResources = new Map<string, AnalysisSnapshot['resources']>();
   for (const resource of resources) {
     const current = groupedResources.get(resource.resourceType) ?? [];

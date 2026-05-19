@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 interface SpinnerProps {
   /** Diameter in pixels. Default: 24. */
   size?: number;
@@ -16,7 +17,7 @@ interface SpinnerProps {
  * // As a standalone loader:
  * <Spinner size={48} label="Loading workspace" />
  */
-export function Spinner({ size = 24, label }: SpinnerProps) {
+export function Spinner({ size = 24, label }: SpinnerProps): ReactElement {
   return (
     <svg
       className="spinner"

@@ -3,9 +3,11 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ResourceTestStats } from '@web/types';
+
 import { GanttChartFrame } from './GanttChartFrame';
-import type { HoverState } from './hitTest';
+
+import type { HoverState } from './hit-test';
+import type { ResourceTestStats } from '@web/types';
 
 vi.mock('./GanttEdgeLayer', () => ({
   GanttEdgeLayer: () => null,

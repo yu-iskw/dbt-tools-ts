@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { AdapterResponseField, AdapterResponseMetrics } from './metrics';
+
 import { getAdapterResponseFieldsBeyondNormalized } from './descriptors';
+
+import type { AdapterResponseField, AdapterResponseMetrics } from './metrics';
 
 function field(
   key: string,

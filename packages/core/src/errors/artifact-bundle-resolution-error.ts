@@ -1,4 +1,4 @@
-export type DbtArtifactBundleProvider = 'local' | 's3' | 'gcs';
+export type DbtArtifactBundleProvider = 'gcs' | 'local' | 's3';
 
 const REMOTE_HINT =
   'Remote: use s3://bucket/prefix or gs://bucket/prefix; ensure cloud credentials and optional DBT_TOOLS_REMOTE_SOURCE JSON (region, endpoint, projectId) are set.';

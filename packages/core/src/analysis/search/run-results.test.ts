@@ -1,12 +1,14 @@
-import { describe, it, expect } from 'vitest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { loadTestManifest, loadTestRunResults } from 'dbt-artifacts-parser/test-utils';
-import { ManifestGraph } from '../manifest/graph';
+import { describe, it, expect } from 'vitest';
+
 import { ExecutionAnalyzer } from '../execution/analyzer';
+import { ManifestGraph } from '../manifest/graph';
+
 import {
   applyWarehouseSearchBlock,
   detectAdapterHeavyNodes,
@@ -14,6 +16,7 @@ import {
   searchRunResults,
   sortByExecutionSortKey,
 } from './run-results';
+
 import type { NodeExecution } from '../execution/analyzer';
 
 function makeExecution(overrides: Partial<NodeExecution> & { unique_id: string }): NodeExecution {

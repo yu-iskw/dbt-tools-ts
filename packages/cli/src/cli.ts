@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
 import {
   ManifestGraph,
   loadManifest,
@@ -19,6 +18,8 @@ import {
   exportGraphToFormat,
   writeGraphOutput,
 } from '@dbt-tools/core';
+import { Command } from 'commander';
+
 import {
   depsAction,
   inventoryAction,
@@ -143,11 +144,11 @@ program
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         fields?: string;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       try {
         const paths = await resolveCliArtifactPaths(
@@ -214,7 +215,7 @@ program
   )
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         format?: string;
         output?: string;
         fields?: string;
@@ -223,7 +224,7 @@ program
         focusDepth?: number;
         focusDirection?: string;
         resourceTypes?: string;
-      } & ArtifactRootFlags,
+      },
     ) => {
       try {
         // Resolve artifact paths
@@ -273,7 +274,7 @@ program
             : undefined;
           targetGraph = graph.buildSubgraph(
             options.focus,
-            focusDirection as 'upstream' | 'downstream' | 'both',
+            focusDirection as 'both' | 'downstream' | 'upstream',
             options.focusDepth,
             allowedTypes,
           );
@@ -319,11 +320,11 @@ program
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         fields?: string;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await runSummaryAction(options, handleCliError);
     },
@@ -355,7 +356,7 @@ program
   .action(
     async (
       resourceId: string,
-      options: {
+      options: ArtifactRootFlags & {
         direction?: string;
         fields?: string;
         field?: string;
@@ -364,7 +365,7 @@ program
         buildOrder?: boolean;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await depsAction(resourceId, options, handleCliError);
     },
@@ -388,7 +389,7 @@ program
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         type?: string;
         package?: string;
         tag?: string;
@@ -398,7 +399,7 @@ program
         offset?: number;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await inventoryAction(options, handleCliError);
     },
@@ -430,7 +431,7 @@ program
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         sort?: string;
         top?: number;
         failedOnly?: boolean;
@@ -439,7 +440,7 @@ program
         format?: string;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await timelineAction(options, handleCliError);
     },
@@ -465,7 +466,7 @@ program
   .action(
     async (
       query: string | undefined,
-      options: {
+      options: ArtifactRootFlags & {
         type?: string;
         package?: string;
         tag?: string;
@@ -475,7 +476,7 @@ program
         offset?: number;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await searchAction(query, options, handleCliError);
     },
@@ -506,7 +507,7 @@ program
   .action(
     async (
       query: string | undefined,
-      options: {
+      options: ArtifactRootFlags & {
         type?: string;
         package?: string;
         tag?: string;
@@ -516,7 +517,7 @@ program
         json?: boolean;
         noJson?: boolean;
         trace?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await discoverAction(query, options, handleCliError);
     },
@@ -537,12 +538,12 @@ program
   .action(
     async (
       resource: string,
-      options: {
+      options: ArtifactRootFlags & {
         fields?: string;
         json?: boolean;
         noJson?: boolean;
         trace?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await explainAction(resource, options, handleCliError);
     },
@@ -551,7 +552,7 @@ program
 const diagnoseCmd = program
   .command('diagnose')
   .description(
-    'Operational diagnosis facade (points to run-summary, query-executions, timeline, deps primitives)',
+    'Operational diagnosis facade (points to runSummary, query-executions, timeline, deps primitives)',
   );
 
 diagnoseCmd
@@ -563,11 +564,11 @@ diagnoseCmd
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         fields?: string;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await diagnoseRunAction(options, handleCliError);
     },
@@ -584,11 +585,11 @@ diagnoseCmd
   .action(
     async (
       resource: string,
-      options: {
+      options: ArtifactRootFlags & {
         fields?: string;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await diagnoseNodeAction(resource, options, handleCliError);
     },
@@ -611,7 +612,7 @@ program
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         format?: string;
         output?: string;
         fields?: string;
@@ -620,7 +621,7 @@ program
         focusDirection?: string;
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await exportAction(options, handleCliError);
     },
@@ -637,10 +638,10 @@ program
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await statusAction(options, handleCliError);
     },
@@ -657,10 +658,10 @@ program
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
-      options: {
+      options: ArtifactRootFlags & {
         json?: boolean;
         noJson?: boolean;
-      } & ArtifactRootFlags,
+      },
     ) => {
       await statusAction(options, handleCliError);
     },

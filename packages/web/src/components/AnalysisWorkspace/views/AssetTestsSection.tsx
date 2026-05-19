@@ -1,19 +1,23 @@
 import { useMemo, useState } from 'react';
-import type { AnalysisState, ResourceNode } from '@web/types';
-import type { AssetViewState, WorkspaceView } from '@web/lib/analysis-workspace/types';
-import { NOT_EXECUTED } from '@web/lib/analysis-workspace/catalogCopy';
-import { formatSeconds, badgeClassName } from '@web/lib/analysis-workspace/utils';
-import { buildSelectedAssetTestEvidence } from '@web/lib/analysis-workspace/explorerTree';
+
+import { NOT_EXECUTED } from '@web/lib/analysis-workspace/catalog-copy';
+import { buildSelectedAssetTestEvidence } from '@web/lib/analysis-workspace/explorer-tree';
 import {
   sortSelectedAssetTests,
   type AssetTestsSortDirection,
   type AssetTestsSortKey,
-} from '@web/lib/analysis-workspace/selectedAssetTestsSort';
+} from '@web/lib/analysis-workspace/selected-asset-tests-sort';
+import { formatSeconds, badgeClassName } from '@web/lib/analysis-workspace/utils';
+
 import { SectionCard, ResourceTypeBadge } from '../shared';
+
+import type { AssetViewState, WorkspaceView } from '@web/lib/analysis-workspace/types';
+import type { AnalysisState, ResourceNode } from '@web/types';
+import type { ReactElement } from 'react';
 
 function selectedAssetQualityPosture(evidence: ReturnType<typeof buildSelectedAssetTestEvidence>): {
   label: string;
-  tone: 'positive' | 'warning' | 'neutral';
+  tone: 'neutral' | 'positive' | 'warning';
   detail: string;
 } {
   if (evidence.total === 0) {
@@ -43,7 +47,7 @@ function columnHeaderSortUi(
   direction: AssetTestsSortDirection,
 ): {
   indicator: string;
-  ariaSort: 'none' | 'ascending' | 'descending';
+  ariaSort: 'ascending' | 'descending' | 'none';
 } {
   if (sortedBy !== columnKey) {
     return { indicator: ' ', ariaSort: 'none' };
@@ -93,7 +97,7 @@ export function AssetTestsSection({
       rootResourceId?: string;
     },
   ) => void;
-}) {
+}): ReactElement {
   const [sortKey, setSortKey] = useState<AssetTestsSortKey>('status');
   const [sortDirection, setSortDirection] = useState<AssetTestsSortDirection>('desc');
   const evidence = useMemo(

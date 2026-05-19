@@ -1,6 +1,9 @@
 import * as fs from 'node:fs/promises';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createJaffleArtifactBundleDir } from '../../internal/cli-test-bundle-dir';
+
 import { impactAction } from './impact-action';
 
 describe('impactAction', () => {

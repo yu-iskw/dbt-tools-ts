@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 
 interface SkeletonProps {
   /** Additional class names. */
@@ -11,7 +11,7 @@ interface SkeletonProps {
  * A shimmer placeholder used while content is loading. Style it by passing
  * `style` props for width and height, or apply classes via `className`.
  */
-export function Skeleton({ className, style }: SkeletonProps) {
+export function Skeleton({ className, style }: SkeletonProps): ReactElement {
   return (
     <div
       className={['skeleton', className].filter(Boolean).join(' ')}

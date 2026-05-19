@@ -1,8 +1,10 @@
-import { test, expect, type Page } from '@playwright/test';
-import { loadWorkspace, mockPreload } from './helpers/preload';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import { test, expect, type Page } from '@playwright/test';
+
+import { loadWorkspace, mockPreload } from './helpers/preload';
 
 const SEARCH_TIMELINE_LABEL = 'Search timeline nodes';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

@@ -1,9 +1,12 @@
 import * as fs from 'node:fs/promises';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   createJaffleArtifactBundleDir,
   createJaffleManifestOnlyDir,
 } from '../../internal/cli-test-bundle-dir';
+
 import { discoverAction, formatDiscoverHuman } from './discover-action';
 
 describe('discoverAction', () => {

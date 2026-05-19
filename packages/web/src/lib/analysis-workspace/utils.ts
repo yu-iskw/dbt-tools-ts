@@ -1,3 +1,9 @@
+import { applyDiscoveryNodeFilters, parseDiscoveryQueryTokens } from '@dbt-tools/core/browser';
+
+import { TEST_RESOURCE_TYPES, PRIMARY_TIMELINE_TYPES } from './constants';
+import { rollupCountsHaveAttention, type ResourceTestRollupCounts } from './test-rollup-types';
+
+import type { DashboardStatusFilter } from './types';
 import type {
   AnalysisState,
   ExecutionRow,
@@ -6,10 +12,6 @@ import type {
   ResourceNode,
   StatusTone,
 } from '@web/types';
-import { applyDiscoveryNodeFilters, parseDiscoveryQueryTokens } from '@dbt-tools/core/browser';
-import type { DashboardStatusFilter } from './types';
-import { rollupCountsHaveAttention, type ResourceTestRollupCounts } from './testRollupTypes';
-import { TEST_RESOURCE_TYPES, PRIMARY_TIMELINE_TYPES } from './constants';
 
 export function isFailedModelExecution(row: ExecutionRow): boolean {
   return (
@@ -297,7 +299,7 @@ export function getDefaultTimelineActiveTypes(presentTypes: string[]): Set<strin
 }
 
 export function isDefaultTimelineResource(
-  item: Pick<GanttItem, 'resourceType' | 'packageName' | 'name' | 'path'>,
+  item: Pick<GanttItem, 'name' | 'packageName' | 'path' | 'resourceType'>,
   projectName?: string | null,
 ): boolean {
   if (
@@ -313,7 +315,7 @@ export function isDefaultTimelineResource(
 
 /** True when any row has compile and execute intervals with positive duration (legend + bar shading). */
 export function timelineGanttHasCompileExecutePhases(
-  items: readonly Pick<GanttItem, 'compileStart' | 'compileEnd' | 'executeStart' | 'executeEnd'>[],
+  items: readonly Pick<GanttItem, 'compileEnd' | 'compileStart' | 'executeEnd' | 'executeStart'>[],
 ): boolean {
   return items.some(
     (g) =>
@@ -331,7 +333,7 @@ export function timelineGanttHasCompileExecutePhases(
  * These are omitted from {@link isDefaultTimelineResource} (and thus from type-count aggregates).
  */
 export function countTimelineTestResources(
-  items: readonly Pick<GanttItem, 'resourceType' | 'packageName' | 'name' | 'path'>[],
+  items: readonly Pick<GanttItem, 'name' | 'packageName' | 'path' | 'resourceType'>[],
   projectName?: string | null,
 ): number {
   let n = 0;

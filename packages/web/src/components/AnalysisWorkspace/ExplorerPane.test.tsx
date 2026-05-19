@@ -3,8 +3,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ResourceNode, StatusTone } from '@web/types';
-import type { DashboardStatusFilter } from '@web/lib/analysis-workspace/types';
+
 import {
   buildExplorerTreeEmptySubtext,
   EXPLORER_UI_COPY,
@@ -13,6 +12,9 @@ import {
   ExplorerTreeTestStatsGroup,
   ResourceTypeSummaryBar,
 } from './ExplorerPane';
+
+import type { DashboardStatusFilter } from '@web/lib/analysis-workspace/types';
+import type { ResourceNode, StatusTone } from '@web/types';
 
 function makeModel(uniqueId: string, statusTone: StatusTone): ResourceNode {
   return {

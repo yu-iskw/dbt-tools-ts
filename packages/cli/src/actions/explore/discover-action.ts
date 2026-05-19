@@ -14,12 +14,13 @@ import {
   getDbtToolsWebBaseUrlFromEnv,
   type DiscoverOutput,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type DiscoverCliOptions = {
+export type DiscoverCliOptions = ArtifactRootCliOptions & {
   type?: string;
   package?: string;
   tag?: string;
@@ -29,11 +30,11 @@ export type DiscoverCliOptions = {
   noJson?: boolean;
   limit?: number;
   trace?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 function buildDiscoverQueryForWeb(
   output: DiscoverOutput,
-  options: Pick<DiscoverCliOptions, 'path' | 'package' | 'tag' | 'type'>,
+  options: Pick<DiscoverCliOptions, 'package' | 'path' | 'tag' | 'type'>,
 ): string {
   const query = output.query.trim();
   const filters = [
@@ -48,7 +49,7 @@ function buildDiscoverQueryForWeb(
 
 function enrichDiscoverJson(
   output: DiscoverOutput,
-  options: Pick<DiscoverCliOptions, 'path' | 'package' | 'tag' | 'trace' | 'type'>,
+  options: Pick<DiscoverCliOptions, 'package' | 'path' | 'tag' | 'trace' | 'type'>,
 ): DiscoverOutput {
   const base = getDbtToolsWebBaseUrlFromEnv();
   const next: DiscoverOutput = { ...output };

@@ -2,6 +2,7 @@
  * Run-report CLI action handler and helpers.
  */
 import * as fs from 'node:fs/promises';
+
 import {
   ManifestGraph,
   ExecutionAnalyzer,
@@ -24,6 +25,7 @@ import {
   type NodeExecution,
   type AdapterHeavyMetric,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
@@ -34,7 +36,7 @@ import {
   parseOptionalListLimit,
 } from '../../internal/cli-pagination';
 
-type RunReportOptions = {
+type RunReportOptions = ArtifactRootCliOptions & {
   fields?: string;
   bottlenecks?: boolean;
   bottlenecksTop?: number;
@@ -50,7 +52,7 @@ type RunReportOptions = {
   /** When set with JSON output, slice `node_executions` after computing summaries. */
   nodeExecutionsLimit?: number;
   nodeExecutionsOffset?: number;
-} & ArtifactRootCliOptions;
+};
 
 function sortNodeExecutionsForSlice(executions: NodeExecution[]): NodeExecution[] {
   return [...executions].sort((a, b) => {
@@ -94,7 +96,7 @@ function computeBottlenecksSection(
           status: string;
         }>;
         total_execution_time: number;
-        criteria_used: 'top_n' | 'threshold';
+        criteria_used: 'threshold' | 'top_n';
       }
     | undefined;
   bottlenecksTopLabel: string | undefined;

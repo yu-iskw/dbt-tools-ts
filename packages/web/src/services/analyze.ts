@@ -1,4 +1,5 @@
 import { buildAnalysisSnapshotFromArtifacts } from '@dbt-tools/core/browser';
+
 import type { AnalysisState } from '@web/types';
 
 export async function analyzeArtifacts(

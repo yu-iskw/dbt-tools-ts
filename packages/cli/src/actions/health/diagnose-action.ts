@@ -1,5 +1,5 @@
 /**
- * Diagnose intent — structured facade over run-summary, query-executions, timeline, and deps.
+ * Diagnose intent — structured facade over runSummary, query-executions, timeline, and deps.
  */
 import {
   ManifestGraph,
@@ -11,21 +11,22 @@ import {
   shouldOutputJSON,
   resolveIntentTarget,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type DiagnoseCliOptions = {
+export type DiagnoseCliOptions = ArtifactRootCliOptions & {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type DiagnoseOutput = {
   intent: 'diagnose';
   contract_version: number;
-  mode: 'run' | 'node';
+  mode: 'node' | 'run';
   target?: { input: string; resolved_unique_id: string };
   provenance: { steps: Array<{ op: string; status: 'ok' }> };
   next_actions: string[];

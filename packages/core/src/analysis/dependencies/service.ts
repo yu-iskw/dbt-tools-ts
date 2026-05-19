@@ -1,13 +1,14 @@
-import type { ManifestGraph } from '../manifest/graph';
 import { FieldFilter } from '../../formatting/field-filter';
+
 import type { GraphNodeAttributes } from '../../types';
+import type { ManifestGraph } from '../manifest/graph';
 
 /**
  * Dependency analysis result (flat format)
  */
 export interface DependencyResult {
   resource_id: string;
-  direction: 'upstream' | 'downstream';
+  direction: 'downstream' | 'upstream';
   build_order?: boolean;
   dependencies: Array<{
     unique_id: string;
@@ -38,7 +39,7 @@ export interface DependencyTreeNode {
  */
 export interface DependencyResultTree {
   resource_id: string;
-  direction: 'upstream' | 'downstream';
+  direction: 'downstream' | 'upstream';
   dependencies: DependencyTreeNode[];
   count: number;
 }
@@ -57,7 +58,7 @@ export class DependencyService {
   static getDependencies(
     graph: ManifestGraph,
     resourceId: string,
-    direction: 'upstream' | 'downstream',
+    direction: 'downstream' | 'upstream',
     fields?: string,
     depth?: number,
     format?: 'flat' | 'tree',
@@ -115,7 +116,7 @@ export class DependencyService {
   private static getDependenciesTree(
     graph: ManifestGraph,
     resourceId: string,
-    direction: 'upstream' | 'downstream',
+    direction: 'downstream' | 'upstream',
     fields?: string,
     depth?: number,
   ): DependencyResultTree {

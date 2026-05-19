@@ -20,7 +20,7 @@ export class ErrorHandler {
    *   When false, return a {@link StructuredError} object for JSON serialization
    *   (e.g. when the CLI was invoked with `--json`).
    */
-  static formatError(error: Error, preferHumanReadable: boolean): string | StructuredError {
+  static formatError(error: Error, preferHumanReadable: boolean): StructuredError | string {
     const structured: StructuredError = {
       error: error.name || 'Error',
       code: this.getErrorCode(error),

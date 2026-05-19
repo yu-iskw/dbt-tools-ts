@@ -1,5 +1,5 @@
-import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 import type { VersionInfo } from './types';
+import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 
 /**
  * Minimum supported manifest schema version

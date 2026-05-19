@@ -1,15 +1,17 @@
 import { DirectedGraph } from 'graphology';
 import { hasCycle, topologicalSort } from 'graphology-dag';
-import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
-import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
+
+import { isSupportedVersion, getVersionInfo, MIN_SUPPORTED_SCHEMA_VERSION } from '../../version';
+
+import type { ColumnDependencyMap } from './sql-analyzer';
 import type {
   GraphNodeAttributes,
   GraphEdgeAttributes,
   GraphSummary,
   DbtResourceType,
 } from '../../types';
-import { isSupportedVersion, getVersionInfo, MIN_SUPPORTED_SCHEMA_VERSION } from '../../version';
-import type { ColumnDependencyMap } from './sql-analyzer';
+import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
+import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 
 type ManifestEntryMap = Record<string, unknown>;
 type OptionalManifestCollections = ParsedManifest & {
@@ -444,7 +446,7 @@ export class ManifestGraph {
   /**
    * Infer dependency type from node ID
    */
-  private inferDependencyType(nodeId: string): 'node' | 'macro' | 'source' {
+  private inferDependencyType(nodeId: string): 'macro' | 'node' | 'source' {
     if (nodeId.startsWith('macro.')) {
       return 'macro';
     }
@@ -745,7 +747,7 @@ export class ManifestGraph {
    */
   buildSubgraph(
     focusId: string,
-    direction: 'upstream' | 'downstream' | 'both',
+    direction: 'both' | 'downstream' | 'upstream',
     depth?: number,
     resourceTypes?: Set<string>,
   ): DirectedGraph<GraphNodeAttributes, GraphEdgeAttributes> {

@@ -1,11 +1,12 @@
-import type { AnalysisSnapshot } from './types';
-import type { NeighborGraph } from './internal';
 import { statusLabel, statusTone } from './shared';
+
+import type { NeighborGraph } from './internal';
+import type { AnalysisSnapshot, StatusTone } from './types';
 
 export function buildStatusBreakdown(
   summary: { nodes_by_status: Record<string, number>; total_nodes: number },
   nodeExecutions: Array<{ status?: string; execution_time?: number }>,
-) {
+): { status: string; count: number; duration: number; share: number; tone: StatusTone }[] {
   const durationByStatus = new Map<string, number>();
   for (const execution of nodeExecutions) {
     const status = statusLabel(execution.status);
@@ -43,7 +44,7 @@ export function buildTimelineAdjacency(
 
 export function buildThreadStats(
   executions: Array<{ threadId: string | null; executionTime: number }>,
-) {
+): { threadId: string; count: number; totalExecutionTime: number }[] {
   const threadAggregation = new Map<string, { count: number; totalExecutionTime: number }>();
   for (const execution of executions) {
     const threadId = execution.threadId ?? 'unknown';

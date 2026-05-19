@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { ArtifactBundleResolutionError } from './artifact-bundle-resolution-error';
 import { ErrorHandler } from './error-handler';
 
