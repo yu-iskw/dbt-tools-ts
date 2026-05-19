@@ -2,7 +2,9 @@
 
 **Structured interface** for dbt artifact analysis: machine-readable JSON by default in non-interactive environments, runtime **`schema`** introspection, **`--fields`** to shrink payloads, and validated inputs with stable error codes—suited to **operators**, **CI**, **scripts**, and **coding agents** (skills, multi-step automation) without treating AI as the only consumer.
 
-For interactive agent sessions over large artifacts, prefer [`@dbt-tools/mcp`](../mcp/README.md). The MCP server keeps parsed artifacts resident in memory; the CLI remains optimized for one-shot shell and CI commands.
+## When to use this CLI
+
+Use **`dbt-tools`** for **one-shot** analysis from the shell or CI: pipe-friendly JSON, runtime **`schema`** discovery, **`--fields`** to cap context size, and stable exit codes for scripts and automation. Each invocation loads (or re-downloads) artifacts for that command unless you point many commands at the same local target.
 
 **Quick start:** install Node.js **20+** (see the repo [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) for the version used in development; Node 18 is EOL — [releases](https://nodejs.org/en/about/previous-releases)), then `npm install -g @dbt-tools/cli` and run `dbt-tools summary --dbt-target ./target` (or set **`DBT_TOOLS_DBT_TARGET`** so you can omit the flag). Extended topics (errors, validation, `schema` introspection, agent-oriented patterns) are in this README: [Field Filtering](#field-filtering), [Input Validation](#input-validation), [Error handling](#error-handling), [Automation and agent workflows](#automation-and-agent-workflows), and [Environment variables](#environment-variables). Positioning: [ADR-0008](../../docs/adr/0008-dbt-tools-operational-intelligence-and-positioning-boundaries.md).
 
