@@ -2,6 +2,10 @@
 
 **Artifact-driven investigation UI** for dbt: dependency and lineage graphs, execution timelines (critical path, bottlenecks), inventory and search, and health-oriented summaries—**deterministic views from `manifest.json` / `run_results.json` (and related artifacts). No LLM or chat surface is required**; the app is designed to answer operational questions (what failed, what was slow, what sits on the critical path, what depends on a node, what to inspect next) from structured analysis alone. Optional **S3/GCS** artifact sources are configured infrastructure, not a multi-tenant SaaS model—see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md) and [ADR-0008](../../docs/adr/0008-dbt-tools-operational-intelligence-and-positioning-boundaries.md).
 
+## When to use this app
+
+Use **`dbt-tools-web`** when you want a **browser UI** to explore dbt artifacts: lineage graphs, execution timelines, inventory search, and run health views over a local `target/` directory or optional **S3/GCS** sources. Credentials and artifact I/O stay on the **Node server** (or Vite dev middleware); the browser only talks to same-origin `/api/...` routes.
+
 **End users:** install from npm and run **`dbt-tools-web`** (see below). **Contributors:** clone the monorepo and use Vite — see [Developing from source](#developing-from-source) and [AGENTS.md](../../AGENTS.md).
 
 Operator topics (**remote sources**, **Docker / GHCR**, **Vite-only env and file watch**) are covered in this README (the **Configuration** section below, [Docker and container images](#docker-and-container-images), and [Vite dev server (monorepo)](#vite-dev-server-monorepo)). Remote semantics: [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
@@ -77,14 +81,14 @@ graph TD
 
   APP[React_app_static_dist]
   WW[Web_Worker]
-  CORE["@dbt-tools/core/browser"]
+  CORE[Analysis_in_web_worker]
 
   HTTP -->|static_files| APP
   APP -->|postMessage| WW
   WW --> CORE
 ```
 
-Heavy analysis runs in a **web worker** using `@dbt-tools/core/browser`. The same artifact HTTP surface is used in **Vite dev** (monorepo) with extra file-watching behavior — see [Vite dev server (monorepo)](#vite-dev-server-monorepo).
+Heavy analysis runs in a **web worker** (browser-safe shared library). The same artifact HTTP surface is used in **Vite dev** (monorepo) with extra file-watching behavior — see [Vite dev server (monorepo)](#vite-dev-server-monorepo).
 
 ---
 
@@ -189,15 +193,15 @@ For **clone, pnpm install, build order, lint, and tests**, use [AGENTS.md](../..
 
 ### Tech stack
 
-| Layer          | Technology                                                    |
-| -------------- | ------------------------------------------------------------- |
-| UI             | [React](https://react.dev/)                                   |
-| Build          | [Vite](https://vitejs.dev/)                                   |
-| Charts         | [Recharts](https://recharts.org/)                             |
-| Virtualization | [@tanstack/react-virtual](https://tanstack.com/virtual)       |
-| Analysis       | `@dbt-tools/core` / `@dbt-tools/core/browser` in a web worker |
-| E2E            | [Playwright](https://playwright.dev/)                         |
-| Language       | TypeScript                                                    |
+| Layer          | Technology                                              |
+| -------------- | ------------------------------------------------------- |
+| UI             | [React](https://react.dev/)                             |
+| Build          | [Vite](https://vitejs.dev/)                             |
+| Charts         | [Recharts](https://recharts.org/)                       |
+| Virtualization | [@tanstack/react-virtual](https://tanstack.com/virtual) |
+| Analysis       | Shared analysis library (browser build) in a web worker |
+| E2E            | [Playwright](https://playwright.dev/)                   |
+| Language       | TypeScript                                              |
 
 ### Monorepo commands
 
@@ -301,16 +305,6 @@ pnpm test:e2e
 ```
 
 (from repo root: `pnpm test:e2e` as documented in CONTRIBUTING)
-
----
-
-## Related packages
-
-| Package                                | Role                                 |
-| -------------------------------------- | ------------------------------------ |
-| [`@dbt-tools/core`](../core/README.md) | Analysis engine                      |
-| [`@dbt-tools/cli`](../cli/README.md)   | CLI (`dbt-tools`)                    |
-| `dbt-artifacts-parser`                 | External artifact parsing dependency |
 
 ---
 

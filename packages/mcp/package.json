@@ -28,7 +28,8 @@
   "files": [
     "dist",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "REFERENCE.md"
   ],
   "scripts": {
     "build": "tsc",
