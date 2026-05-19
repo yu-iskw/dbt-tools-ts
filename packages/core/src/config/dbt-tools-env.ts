@@ -72,6 +72,48 @@ export function getDbtToolsDbtTargetFromEnv(): string | undefined {
   return trimEnv(process.env.DBT_TOOLS_DBT_TARGET);
 }
 
+/** Granular remote client settings from `DBT_TOOLS_GCS_*` / `DBT_TOOLS_S3_*` (MCP, CLI). */
+export interface DbtToolsRemoteClientEnv {
+  gcsRequestOptions?: { impersonatedServiceAccount?: string };
+  remoteClientOverrides?: {
+    projectId?: string;
+    region?: string;
+    endpoint?: string;
+    forcePathStyle?: boolean;
+  };
+}
+
+/**
+ * Optional per-field remote client env (preferred over `DBT_TOOLS_REMOTE_SOURCE` JSON for MCP).
+ * CLI flags passed into {@link ArtifactWorkspace} override these when both are set.
+ */
+export function getDbtToolsRemoteClientEnvFromEnv(): DbtToolsRemoteClientEnv {
+  const projectId = trimEnv(process.env.DBT_TOOLS_GCS_PROJECT_ID);
+  const impersonate = trimEnv(process.env.DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT);
+  const region = trimEnv(process.env.DBT_TOOLS_S3_REGION);
+  const endpoint = trimEnv(process.env.DBT_TOOLS_S3_ENDPOINT);
+
+  const remoteClientOverrides =
+    projectId != null || region != null || endpoint != null
+      ? {
+          ...(projectId != null ? { projectId } : {}),
+          ...(region != null ? { region } : {}),
+          ...(endpoint != null ? { endpoint } : {}),
+        }
+      : undefined;
+
+  const gcsRequestOptions =
+    impersonate != null ? { impersonatedServiceAccount: impersonate } : undefined;
+
+  if (remoteClientOverrides == null && gcsRequestOptions == null) {
+    return {};
+  }
+  return {
+    ...(gcsRequestOptions != null ? { gcsRequestOptions } : {}),
+    ...(remoteClientOverrides != null ? { remoteClientOverrides } : {}),
+  };
+}
+
 /** Server-side debug logging when value is exactly `"1"`. */
 export function isDbtToolsDebugEnabled(): boolean {
   const canon = process.env.DBT_TOOLS_DEBUG;
@@ -175,6 +217,7 @@ export function parseDbtToolsRemoteSourceConfigJson(
       endpoint: trimEnv(parsed.endpoint),
       forcePathStyle: parsed.forcePathStyle === true,
       projectId: trimEnv(parsed.projectId),
+      impersonatedServiceAccount: trimEnv(parsed.impersonatedServiceAccount),
     };
   } catch (error) {
     console.warn('[dbt-tools] Failed to parse DBT_TOOLS_REMOTE_SOURCE as JSON.', error);

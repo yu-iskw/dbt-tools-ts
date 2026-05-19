@@ -2,6 +2,7 @@
 import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { isCliEntrypoint } from './entrypoint.js';
 import { McpHelpRequested, helpText, parseMcpServerOptions } from './options.js';
 import { readMcpPackageVersion } from './package-version.js';
 import { createDbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
@@ -31,9 +32,28 @@ export function startRefreshPolling(
   return timer;
 }
 
+function remoteClientOverridesFromOptions(options: ReturnType<typeof parseMcpServerOptions>) {
+  const { gcsProjectId, s3Region, s3Endpoint } = options;
+  if (gcsProjectId == null && s3Region == null && s3Endpoint == null) {
+    return undefined;
+  }
+  return {
+    ...(gcsProjectId != null ? { projectId: gcsProjectId } : {}),
+    ...(s3Region != null ? { region: s3Region } : {}),
+    ...(s3Endpoint != null ? { endpoint: s3Endpoint } : {}),
+  };
+}
+
 export async function createDbtToolsMcpServer(argv: string[] = process.argv.slice(2)) {
   const options = parseMcpServerOptions(argv);
-  const workspace = new ArtifactWorkspace({ dbtTarget: options.dbtTarget });
+  const remoteClientOverrides = remoteClientOverridesFromOptions(options);
+  const workspace = new ArtifactWorkspace({
+    dbtTarget: options.dbtTarget,
+    ...(options.gcsImpersonateServiceAccount != null
+      ? { gcsRequestOptions: { impersonatedServiceAccount: options.gcsImpersonateServiceAccount } }
+      : {}),
+    ...(remoteClientOverrides != null ? { remoteClientOverrides } : {}),
+  });
   await workspace.initialize();
   startRefreshPolling(workspace, options.pollIntervalMs);
   const useCases = createDbtToolsUseCases(workspace);
@@ -64,7 +84,7 @@ export async function runDbtToolsMcpCli(
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isCliEntrypoint(import.meta.url)) {
   runDbtToolsMcpCli()
     .then((exitCode) => {
       process.exitCode = exitCode;

@@ -16,6 +16,7 @@ export {
   getDbtToolsGcsImpersonationAllowlistFromEnv,
   getDbtToolsGcsImpersonationAllowedSuffixesFromEnv,
   getDbtToolsReloadDebounceMs,
+  getDbtToolsRemoteClientEnvFromEnv,
   getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsWebBaseUrlFromEnv,
   parseDbtToolsRemoteSourceConfigJson,
@@ -23,6 +24,7 @@ export {
   isDbtToolsWatchEnabled,
 } from './config/dbt-tools-env';
 export type {
+  DbtToolsRemoteClientEnv,
   DbtToolsRemoteSourceConfig,
   DbtToolsRemoteSourceProvider,
 } from './config/dbt-tools-env';

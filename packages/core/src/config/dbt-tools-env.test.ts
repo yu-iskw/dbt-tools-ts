@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   assertGcsImpersonationPrincipalAllowed,
   getDbtToolsReloadDebounceMs,
+  getDbtToolsRemoteClientEnvFromEnv,
   getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsTargetDirFromEnv,
   isDbtToolsDebugEnabled,
@@ -180,6 +181,43 @@ describe('dbt-tools-env', () => {
     });
   });
 
+  describe('getDbtToolsRemoteClientEnvFromEnv', () => {
+    let prev: Record<string, string | undefined>;
+
+    beforeEach(() => {
+      prev = clearKeys([
+        'DBT_TOOLS_GCS_PROJECT_ID',
+        'DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT',
+        'DBT_TOOLS_S3_REGION',
+        'DBT_TOOLS_S3_ENDPOINT',
+      ] as const);
+    });
+
+    afterEach(() => {
+      restoreKeys(prev);
+    });
+
+    it('returns empty when unset', () => {
+      expect(getDbtToolsRemoteClientEnvFromEnv()).toEqual({});
+    });
+
+    it('reads GCS and S3 granular env vars', () => {
+      process.env.DBT_TOOLS_GCS_PROJECT_ID = 'my-proj';
+      process.env.DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT = 'sa@my-proj.iam.gserviceaccount.com';
+      process.env.DBT_TOOLS_S3_REGION = 'ap-northeast-1';
+      process.env.DBT_TOOLS_S3_ENDPOINT = 'https://s3.local';
+
+      expect(getDbtToolsRemoteClientEnvFromEnv()).toEqual({
+        gcsRequestOptions: { impersonatedServiceAccount: 'sa@my-proj.iam.gserviceaccount.com' },
+        remoteClientOverrides: {
+          projectId: 'my-proj',
+          region: 'ap-northeast-1',
+          endpoint: 'https://s3.local',
+        },
+      });
+    });
+  });
+
   describe('parseDbtToolsRemoteSourceConfigJson', () => {
     it('parses the same shape as env-backed happy path', () => {
       const json = JSON.stringify({
@@ -198,7 +236,20 @@ describe('dbt-tools-env', () => {
         endpoint: undefined,
         forcePathStyle: false,
         projectId: undefined,
+        impersonatedServiceAccount: undefined,
       });
+    });
+
+    it('parses GCS impersonatedServiceAccount from JSON', () => {
+      const json = JSON.stringify({
+        provider: 'gcs',
+        bucket: 'b',
+        prefix: 'p',
+        impersonatedServiceAccount: '  reader@proj.iam.gserviceaccount.com  ',
+      });
+      expect(parseDbtToolsRemoteSourceConfigJson(json)?.impersonatedServiceAccount).toBe(
+        'reader@proj.iam.gserviceaccount.com',
+      );
     });
 
     it('normalizes many leading and trailing slashes without regex backtracking risk', () => {
@@ -251,6 +302,7 @@ describe('dbt-tools-env', () => {
         endpoint: undefined,
         forcePathStyle: false,
         projectId: undefined,
+        impersonatedServiceAccount: undefined,
       });
     });
 
