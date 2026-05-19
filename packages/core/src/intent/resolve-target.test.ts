@@ -1,6 +1,6 @@
 import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 import { describe, expect, it } from 'vitest';
-import { ManifestGraph } from '../analysis/manifest-graph';
+import { ManifestGraph } from '../analysis/manifest/graph';
 import { resolveIntentTarget } from './resolve-target';
 
 function meta(): ParsedManifest['metadata'] {

@@ -11,7 +11,7 @@ description: Check local dbt artifact readiness with dbt-tools status before run
 
 Use this workflow whenever you are about to run **`@dbt-tools/cli`** commands that read **`manifest.json`**, **`run_results.json`**, or both—unless the user has already confirmed those artifacts exist at known paths.
 
-Run the gate **before** `deps`, `inventory`, `search`, `summary`, `graph`, `timeline`, `run-report`, or similar analysis. Use it when working in a new workspace, CI, or after errors like missing files.
+Run the gate **before** `deps`, `inventory`, `search`, `summary`, `graph`, `timeline`, `query-executions`, `run-summary`, or similar analysis. Use it when working in a new workspace, CI, or after errors like missing files.
 
 ## Commands
 
@@ -38,7 +38,7 @@ Parse the JSON object printed to stdout. The gate depends on **`readiness`** and
 ## Branching rules
 
 - If **`readiness` is `unavailable`**: do not run manifest-based analysis. Stop and tell the user **`manifest.path`** was not found (or run `dbt` to produce artifacts). Only `status` / `freshness` is meaningful until a manifest exists.
-- If **`readiness` is `manifest-only`**: you may run commands that need only the manifest. Do **not** run **`timeline`** or **`run-report`** (they require `run_results.json`). See the matrix in [references/readiness.md](references/readiness.md).
+- If **`readiness` is `manifest-only`**: you may run commands that need only the manifest. Do **not** run **`timeline`**, **`query-executions`**, or **`run-summary`** (they require `run_results.json`). See the matrix in [references/readiness.md](references/readiness.md).
 - If **`readiness` is `full`**: manifest and run-result based commands are allowed, subject to normal CLI validation and parsing errors.
 
 **Caveat:** for **local** `--dbt-target`, `status` only **stats** files in that directory. For **`s3://`** / **`gs://`** targets it **downloads** the same fixed keys as other commands, then reports stats on the temp files (see CLI README).

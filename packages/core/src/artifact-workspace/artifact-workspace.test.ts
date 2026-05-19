@@ -98,13 +98,13 @@ describe('ArtifactWorkspace', () => {
     expect(resource?.uniqueId).toBe('model.jaffle_shop.customers');
     expect(resource?.name).toBe('customers');
 
-    const lineage = await useCases.getLineage({
+    const deps = await useCases.queryDependencies({
       uniqueId: 'model.jaffle_shop.customers',
       direction: 'upstream',
       depth: 1,
     });
-    expect(lineage.count).toBeGreaterThan(0);
-    expect(lineage.dependencies.some((dependency) => dependency.depth === 1)).toBe(true);
+    expect(deps.count).toBeGreaterThan(0);
+    expect(deps.dependencies.some((dependency) => dependency.depth === 1)).toBe(true);
   });
 
   it('skips remote artifact reads when the version token has not changed', async () => {

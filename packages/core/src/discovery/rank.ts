@@ -1,5 +1,5 @@
 import type { DirectedGraph } from 'graphology';
-import type { ManifestGraph } from '../analysis/manifest-graph';
+import type { ManifestGraph } from '../analysis/manifest/graph';
 import type { GraphEdgeAttributes, GraphNodeAttributes } from '../types';
 import { applyDiscoveryNodeFilters, parseDiscoveryQueryTokens } from './query-parse';
 import type {

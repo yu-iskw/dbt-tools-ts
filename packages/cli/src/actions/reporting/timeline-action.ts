@@ -13,11 +13,13 @@ import {
   getAdapterMetricValue,
   getPresentAdapterMetricDescriptors,
   searchRunResults,
+  sortByExecutionSortKey,
   formatOutput,
   shouldOutputJSON,
   type NodeExecution,
   type AdapterResponseMetrics,
   type ArtifactPaths,
+  type ExecutionSortKey,
 } from '@dbt-tools/core';
 import {
   resolveCliArtifactPaths,
@@ -282,21 +284,9 @@ function sortTimelineExecutions(executions: NodeExecution[], sortKey: string): N
     'rows_deleted',
     'rows_duplicated',
   ]);
-  const searchSortKey = `${sortKey}${descendingSortKeys.has(sortKey) ? '_desc' : ''}` as
-    | 'bytes_processed_desc'
-    | 'bytes_billed_desc'
-    | 'slot_ms_desc'
-    | 'rows_affected_desc'
-    | 'rows_inserted_desc'
-    | 'rows_updated_desc'
-    | 'rows_deleted_desc'
-    | 'rows_duplicated_desc'
-    | 'query_id'
-    | 'adapter_code'
-    | 'adapter_message';
-  return searchRunResults(executions, {
-    sort: searchSortKey,
-  });
+  const searchSortKey =
+    `${sortKey}${descendingSortKeys.has(sortKey) ? '_desc' : ''}` as ExecutionSortKey;
+  return sortByExecutionSortKey(executions, searchSortKey);
 }
 
 function formatTimelineOutput(result: TimelineResult, options: TimelineOptions): string {

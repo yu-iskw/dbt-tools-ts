@@ -11,9 +11,9 @@ import {
   loadTestManifest,
   loadTestRunResults,
 } from 'dbt-artifacts-parser/test-utils';
-import { ManifestGraph } from './manifest-graph';
-import { DependencyService } from './dependency-service';
-import { ExecutionAnalyzer } from './execution-analyzer';
+import { ManifestGraph } from './manifest/graph';
+import { DependencyService } from './dependencies/service';
+import { ExecutionAnalyzer } from './execution/analyzer';
 import { getManifestSchemaVersion } from '../version';
 
 const MIN_SUPPORTED_SCHEMA_VERSION = 10;

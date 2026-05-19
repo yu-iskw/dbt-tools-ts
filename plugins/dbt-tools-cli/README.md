@@ -29,6 +29,11 @@ dbt-tools-cli:<skill-directory>
 | `dbt-tools-cli:status`               | [`status`](skills/status/SKILL.md)                             | **Investigation:** user questions on artifact presence, freshness, and readiness; field-level JSON guidance. Use the gate skill above to block workflows until artifacts are confirmed. |
 | `dbt-tools-cli:discover`             | [`discover`](skills/discover/SKILL.md)                         | Find dbt resources by name, type, tag, or approximate wording; resolve `unique_id` for downstream commands.                                                                             |
 | `dbt-tools-cli:deps`                 | [`deps`](skills/deps/SKILL.md)                                 | Trace upstream and downstream dependencies for a dbt resource with `dbt-tools deps`.                                                                                                    |
-| `dbt-tools-cli:explain-impact`       | [`explain-impact`](skills/explain-impact/SKILL.md)             | Explain a resource and reason about change impact using `dbt-tools explain` and `dbt-tools impact`.                                                                                     |
+| `dbt-tools-cli:query-executions`     | [`query-executions`](skills/query-executions/SKILL.md)         | Rank and filter run executions (time and warehouse adapter metrics).                                                                                                                    |
+| `dbt-tools-cli:explain-deps`         | [`explain-deps`](skills/explain-deps/SKILL.md)                 | Explain a resource and downstream blast radius via `explain` + `deps --direction downstream`.                                                                                           |
+
+### MCP users
+
+For Cursor/Claude hosts using **`dbt-tools-mcp`**, see [`packages/mcp/REFERENCE.md`](../../packages/mcp/REFERENCE.md) (`dbt_tools_query_executions`, `dbt_tools_get_run_summary`, etc.) — same core primitives, different surface.
 
 See [plugins/README.md](../README.md) for marketplace layout and discovery. For verification, CI commands, and per-engine manifest maintenance, see [plugins/CONTRIBUTING.md](../CONTRIBUTING.md).

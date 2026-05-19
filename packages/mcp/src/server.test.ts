@@ -64,14 +64,11 @@ describe('dbt-tools MCP server wiring', () => {
     const handlers = {
       dbt_tools_status: async () => ({ content: [] }),
       dbt_tools_refresh: async () => ({ content: [] }),
-      dbt_tools_list_runs: async () => ({ content: [] }),
-      dbt_tools_select_run: async () => ({ content: [] }),
       dbt_tools_search_resources: async () => ({ content: [] }),
       dbt_tools_get_resource: async () => ({ content: [] }),
-      dbt_tools_lineage: async () => ({ content: [] }),
-      dbt_tools_impact: async () => ({ content: [] }),
-      dbt_tools_failures: async () => ({ content: [] }),
-      dbt_tools_run_report: async () => ({ content: [] }),
+      dbt_tools_query_dependencies: async () => ({ content: [] }),
+      dbt_tools_query_executions: async () => ({ content: [] }),
+      dbt_tools_get_run_summary: async () => ({ content: [] }),
     } satisfies DbtToolsMcpToolHandlers;
 
     registerDbtToolsTools(server as unknown as McpServer, handlers);
@@ -79,14 +76,11 @@ describe('dbt-tools MCP server wiring', () => {
     expect(server.tools.map((tool) => tool.name)).toEqual([
       'dbt_tools_status',
       'dbt_tools_refresh',
-      'dbt_tools_list_runs',
-      'dbt_tools_select_run',
       'dbt_tools_search_resources',
       'dbt_tools_get_resource',
-      'dbt_tools_lineage',
-      'dbt_tools_impact',
-      'dbt_tools_failures',
-      'dbt_tools_run_report',
+      'dbt_tools_query_dependencies',
+      'dbt_tools_query_executions',
+      'dbt_tools_get_run_summary',
     ]);
   });
 

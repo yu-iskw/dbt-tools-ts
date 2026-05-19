@@ -1,10 +1,10 @@
 import {
   ADAPTER_METRIC_DESCRIPTORS,
   formatAdapterMetricValue,
-} from '../analysis/adapter-metric-descriptors';
-import type { AdapterTotalsSnapshot } from '../analysis/adapter-response-metrics';
-import type { NodeExecution } from '../analysis/execution-analyzer';
-import type { AdapterHeavyResult } from '../analysis/run-results-search';
+} from '../analysis/adapter/descriptors';
+import type { AdapterTotalsSnapshot } from '../analysis/adapter/metrics';
+import type { NodeExecution } from '../analysis/execution/analyzer';
+import type { AdapterHeavyResult } from '../analysis/search/run-results';
 
 type DepNode = {
   unique_id: string;

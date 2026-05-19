@@ -1,4 +1,6 @@
 export { runReportAction } from './actions/reporting/run-report-action';
+export { queryExecutionsAction } from './actions/reporting/query-executions-action';
+export { runSummaryAction } from './actions/reporting/run-summary-action';
 export { depsAction } from './actions/graph/deps-action';
 export { inventoryAction } from './actions/explore/inventory-action';
 export { timelineAction } from './actions/reporting/timeline-action';

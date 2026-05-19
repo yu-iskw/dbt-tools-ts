@@ -1,5 +1,5 @@
 /**
- * Diagnose intent — structured facade over run-report / timeline / deps primitives.
+ * Diagnose intent — structured facade over run-summary, query-executions, timeline, and deps.
  */
 import {
   ManifestGraph,
@@ -52,7 +52,8 @@ export async function diagnoseRunAction(
         ? options.dbtTarget.trim()
         : '${DBT_TOOLS_DBT_TARGET}';
     const primitive_commands = [
-      `dbt-tools run-report --dbt-target ${JSON.stringify(targetDir)} --json`,
+      `dbt-tools run-summary --dbt-target ${JSON.stringify(targetDir)} --json`,
+      `dbt-tools query-executions --dbt-target ${JSON.stringify(targetDir)} --status error,fail,skipped --limit 50 --json`,
       `dbt-tools timeline --dbt-target ${JSON.stringify(targetDir)} --format json`,
     ];
 
@@ -63,7 +64,7 @@ export async function diagnoseRunAction(
       provenance: {
         steps: [{ op: 'diagnose.run.facade', status: 'ok' }],
       },
-      next_actions: ['explain', 'impact'],
+      next_actions: ['explain', 'deps'],
       primitive_commands,
     };
 
@@ -115,7 +116,8 @@ export async function diagnoseNodeAction(
         : '${DBT_TOOLS_DBT_TARGET}';
     const uid = JSON.stringify(resolved.unique_id);
     const primitive_commands = [
-      `dbt-tools run-report --dbt-target ${JSON.stringify(targetDir)} --json`,
+      `dbt-tools run-summary --dbt-target ${JSON.stringify(targetDir)} --json`,
+      `dbt-tools query-executions --dbt-target ${JSON.stringify(targetDir)} --status error,fail,skipped --limit 50 --json`,
       `dbt-tools deps ${uid} --direction downstream --format flat`,
       `dbt-tools explain ${uid}`,
     ];
@@ -134,7 +136,7 @@ export async function diagnoseNodeAction(
           { op: 'diagnose.node.facade', status: 'ok' },
         ],
       },
-      next_actions: ['impact', 'explain'],
+      next_actions: ['deps', 'explain'],
       primitive_commands,
     };
 

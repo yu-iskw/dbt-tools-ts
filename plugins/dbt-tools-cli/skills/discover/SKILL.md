@@ -2,7 +2,7 @@
 name: discover
 description: Find dbt resources by name, type, tag, package, path, or approximate user wording
   using dbt-tools discover or dbt-tools search. Use when you need to resolve a unique_id
-  before running deps, explain, or impact commands.
+  before running deps, explain, or query-executions commands.
 compatibility: dbt-tools on PATH; manifest.json required under --dbt-target.
 ---
 
@@ -16,7 +16,7 @@ Use this skill when the user:
 
 - Names a resource approximately ("the orders model", "something with the finance tag")
 - Asks you to find models, sources, tests, or seeds by type, tag, package, or path substring
-- Needs a `unique_id` to pass to `deps`, `explain`, or `impact`
+- Needs a `unique_id` to pass to `deps`, `explain`, or `query-executions`
 - Is uncertain which resources exist in the project
 
 ## Inputs

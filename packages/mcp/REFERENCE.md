@@ -177,7 +177,9 @@ Example shape (fields may be `null` before load):
   "selectedRunId": "current",
   "versionToken": "abc123",
   "loadedAtMs": 1710000000000,
-  "stale": false
+  "stale": false,
+  "runs": [{ "runId": "current", "versionToken": "abc123" }],
+  "warehouse_type": "bigquery"
 }
 ```
 
@@ -189,10 +191,33 @@ Example shape (fields may be `null` before load):
 | `loadedAtMs`       | When the current snapshot was loaded                     |
 | `stale`            | `true` if the last refresh attempt failed                |
 | `lastRefreshError` | Present when `stale` is true                             |
+| `runs`             | Discovered runs (replaces separate `list_runs` tool)     |
+| `warehouse_type`   | Adapter type for warehouse-scoped execution queries      |
+
+## Breaking migration (v2)
+
+| Removed tool           | Replacement                                                    |
+| ---------------------- | -------------------------------------------------------------- |
+| `dbt_tools_list_runs`  | `dbt_tools_status` → `runs[]`                                  |
+| `dbt_tools_select_run` | `dbt_tools_status` / `dbt_tools_refresh` (single-run targets)  |
+| `dbt_tools_lineage`    | `dbt_tools_query_dependencies`                                 |
+| `dbt_tools_impact`     | `dbt_tools_query_dependencies` (`direction: downstream`)       |
+| `dbt_tools_failures`   | `dbt_tools_query_executions` (`status: error,fail,skipped`, …) |
+| `dbt_tools_run_report` | `dbt_tools_get_run_summary` + `dbt_tools_query_executions`     |
+
+## Agent recipes
+
+| Scenario         | Chain                                                       |
+| ---------------- | ----------------------------------------------------------- |
+| Post-run triage  | `status` → `query_executions` (`status`) → `get_resource`   |
+| Slowest nodes    | `status` → `query_executions` (`sort: execution_time_desc`) |
+| Blast radius     | `query_dependencies` (`direction: downstream`)              |
+| BQ slot leaders  | `query_executions` + `bigquery: { sort: slot_ms_desc }`     |
+| New CI artifacts | `refresh` → triage / slowest                                |
 
 ## MCP tools reference
 
-All tools return **one JSON object** as MCP text content (`application/json` serialized to a string).
+Seven tools. Each returns **JSON** in text `content` and **`structuredContent`** (same payload). Validation errors set **`isError: true`** with `hint` and optional `allowed_sorts`.
 
 ### `dbt_tools_status`
 
@@ -209,22 +234,6 @@ Check artifact metadata and reload the selected run if it changed.
 | Input    | Type | Notes                             |
 | -------- | ---- | --------------------------------- |
 | _(none)_ |      | Returns status shape (see above). |
-
-### `dbt_tools_list_runs`
-
-List the discovered artifact run and its version token (0 or 1 entry).
-
-| Input    | Type | Notes                           |
-| -------- | ---- | ------------------------------- |
-| _(none)_ |      | Response: `{ "runs": [ ... ] }` |
-
-### `dbt_tools_select_run`
-
-Select and load the discovered artifact run by run id (typically `"current"`).
-
-| Input   | Type             | Notes                       |
-| ------- | ---------------- | --------------------------- |
-| `runId` | string, required | Must match a discovered run |
 
 ### `dbt_tools_search_resources`
 
@@ -249,43 +258,40 @@ Return details for one dbt resource by `unique_id`.
 | `uniqueId`    | string, required | e.g. `model.my_project.orders`                        |
 | `includeCode` | boolean?         | Default **false** — omits compiled/raw SQL when false |
 
-### `dbt_tools_lineage`
+### `dbt_tools_query_dependencies`
 
-Return upstream or downstream dependencies for a dbt resource.
+Upstream or downstream dependencies (replaces `lineage` and `impact`).
 
-| Input       | Type                       | Default / max          |
-| ----------- | -------------------------- | ---------------------- |
-| `uniqueId`  | string, required           |                        |
-| `direction` | `upstream` \| `downstream` | Default **`upstream`** |
-| `depth`     | int ≥ 1?                   | Optional hop limit     |
+| Input        | Type                       | Notes                      |
+| ------------ | -------------------------- | -------------------------- |
+| `uniqueId`   | string, required           |                            |
+| `direction`  | `upstream` \| `downstream` | Default **`upstream`**     |
+| `depth`      | int ≥ 1?                   | Optional hop limit         |
+| `buildOrder` | boolean?                   | Upstream topological order |
 
-### `dbt_tools_impact`
+### `dbt_tools_query_executions`
 
-Return downstream impact for a dbt resource.
+Filter and sort executed nodes. At most **one** warehouse block: `bigquery`, `snowflake`, `athena`, `postgres`, `redshift`, or `spark`.
 
-| Input      | Type             | Default / max      |
-| ---------- | ---------------- | ------------------ |
-| `uniqueId` | string, required |                    |
-| `depth`    | int ≥ 1?         | Optional hop limit |
+| Input              | Type                | Default / max                     |
+| ------------------ | ------------------- | --------------------------------- |
+| `resourceTypes`    | string[]?           | Default model, test, unit_test    |
+| `status`           | string \| string[]? | Pass explicitly for triage        |
+| `limit`            | int?                | Default **10**, max **50**        |
+| `offset`           | int?                | Requires `limit`                  |
+| `sort`             | enum?               | `execution_time_desc`, …          |
+| `uniqueIdPattern`  | string?             | Glob on `unique_id`               |
+| `minExecutionTime` | number?             | Seconds                           |
+| `maxExecutionTime` | number?             | Seconds                           |
+| `bigquery` / …     | object?             | Warehouse-specific sorts and mins |
 
-### `dbt_tools_failures`
+### `dbt_tools_get_run_summary`
 
-Return a bounded page of non-successful run result rows.
+Summary, status breakdown, bottlenecks, adapter totals — **no** per-node list.
 
-| Input    | Type    | Default / max               |
-| -------- | ------- | --------------------------- |
-| `status` | string? | Filter by status            |
-| `limit`  | int?    | Default **50**, max **200** |
-| `offset` | int?    | Default **0**               |
-
-### `dbt_tools_run_report`
-
-Return a bounded execution summary for the selected artifact run.
-
-| Input                 | Type | Default / max                                     |
-| --------------------- | ---- | ------------------------------------------------- |
-| `nodeExecutionsLimit` | int? | Default **20**, max **200**                       |
-| `offset`              | int? | Default **0** (applies to `node_executions` page) |
+| Input    | Type | Notes |
+| -------- | ---- | ----- |
+| _(none)_ |      |       |
 
 ## Troubleshooting
 

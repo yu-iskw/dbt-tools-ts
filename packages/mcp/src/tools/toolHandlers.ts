@@ -1,30 +1,32 @@
 import {
-  FAILURES_DEFAULT_LIMIT,
-  FAILURES_MAX_LIMIT,
-  RUN_REPORT_DEFAULT_LIMIT,
-  RUN_REPORT_MAX_LIMIT,
+  QUERY_EXECUTIONS_DEFAULT_LIMIT,
+  QUERY_EXECUTIONS_MAX_LIMIT,
+  QueryExecutionsValidationError,
   SEARCH_RESOURCES_DEFAULT_LIMIT,
   SEARCH_RESOURCES_MAX_LIMIT,
+  type AthenaSearchCriteria,
+  type BaseAdapterSearchCriteria,
+  type BigQuerySearchCriteria,
+  type SnowflakeSearchCriteria,
+} from '@dbt-tools/core';
+import {
   type ArtifactWorkspaceStatus,
   type DbtToolsUseCases,
-  type FailuresInput,
   type GetResourceInput,
-  type ImpactInput,
-  type LineageInput,
-  type ResolvedArtifactRun,
-  type RunReportInput,
   type SearchResourcesInput,
 } from '@dbt-tools/core/artifact-workspace';
+import type { QueryDependenciesInput } from '@dbt-tools/core';
+import type { QueryExecutionsRequest } from '@dbt-tools/core';
+
 export interface ArtifactWorkspaceControl {
   getStatus(): Promise<ArtifactWorkspaceStatus>;
   refreshIfChanged(): Promise<ArtifactWorkspaceStatus>;
-  listRuns(): Promise<ResolvedArtifactRun[]>;
-  selectRun(runId: string): Promise<ArtifactWorkspaceStatus>;
 }
 
 export interface McpJsonToolResult {
   [key: string]: unknown;
   content: Array<{ type: 'text'; text: string }>;
+  structuredContent?: Record<string, unknown>;
   isError?: boolean;
 }
 
@@ -32,10 +34,19 @@ type ToolInput = Record<string, unknown>;
 
 const MSG_UNIQUE_ID_REQUIRED = 'uniqueId is required.';
 
-function jsonResult(payload: unknown): McpJsonToolResult {
+function jsonResult(
+  payload: Record<string, unknown>,
+  options?: { isError?: boolean },
+): McpJsonToolResult {
   return {
-    content: [{ type: 'text', text: JSON.stringify(payload) }],
+    content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+    structuredContent: payload,
+    ...(options?.isError === true ? { isError: true } : {}),
   };
+}
+
+function jsonResultFromValue(payload: unknown, options?: { isError?: boolean }): McpJsonToolResult {
+  return jsonResult(payload as Record<string, unknown>, options);
 }
 
 function optionalString(input: ToolInput, key: string): string | undefined {
@@ -48,6 +59,20 @@ function optionalString(input: ToolInput, key: string): string | undefined {
 function optionalNumber(input: ToolInput, key: string): number | undefined {
   const value = input[key];
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function optionalStringArray(input: ToolInput, key: string): string[] | undefined {
+  const value = input[key];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+  return undefined;
 }
 
 function boundedLimit(
@@ -65,6 +90,25 @@ function offset(input: ToolInput): number {
   const raw = optionalNumber(input, 'offset');
   if (raw == null) return 0;
   return Math.max(0, Math.floor(raw));
+}
+
+function optionalRecord(input: ToolInput, key: string): Record<string, unknown> | undefined {
+  const value = input[key];
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  return value as Record<string, unknown>;
+}
+
+function pickWarehouseBlock(
+  block: Record<string, unknown> | undefined,
+  fields: Record<string, string>,
+): Record<string, unknown> | undefined {
+  if (block == null) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [targetKey, sourceKey] of Object.entries(fields)) {
+    const value = block[sourceKey];
+    if (value !== undefined) out[targetKey] = value;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function searchInput(input: ToolInput): SearchResourcesInput {
@@ -90,7 +134,7 @@ function getResourceInput(input: ToolInput): GetResourceInput {
   };
 }
 
-function lineageInput(input: ToolInput): LineageInput {
+function queryDependenciesInput(input: ToolInput): QueryDependenciesInput {
   const uniqueId = optionalString(input, 'uniqueId');
   if (uniqueId == null) {
     throw new Error(MSG_UNIQUE_ID_REQUIRED);
@@ -100,38 +144,84 @@ function lineageInput(input: ToolInput): LineageInput {
     uniqueId,
     direction,
     depth: optionalNumber(input, 'depth'),
+    buildOrder: input.buildOrder === true,
   };
 }
 
-function impactInput(input: ToolInput): ImpactInput {
-  const uniqueId = optionalString(input, 'uniqueId');
-  if (uniqueId == null) {
-    throw new Error(MSG_UNIQUE_ID_REQUIRED);
+function queryExecutionsInput(input: ToolInput): QueryExecutionsRequest {
+  const statusRaw = input.status;
+  let status: string | string[] | undefined;
+  if (typeof statusRaw === 'string') status = statusRaw;
+  else if (Array.isArray(statusRaw)) {
+    status = statusRaw.filter((item): item is string => typeof item === 'string');
   }
-  return {
-    uniqueId,
-    depth: optionalNumber(input, 'depth'),
-  };
-}
 
-function failuresInput(input: ToolInput): FailuresInput {
-  return {
-    status: optionalString(input, 'status'),
-    limit: boundedLimit(input, FAILURES_DEFAULT_LIMIT, FAILURES_MAX_LIMIT),
+  const sortRaw = optionalString(input, 'sort');
+  const sort =
+    sortRaw === 'execution_time_asc' || sortRaw === 'execution_time_desc' || sortRaw === 'unique_id'
+      ? sortRaw
+      : undefined;
+
+  const request: QueryExecutionsRequest = {
+    resourceTypes: optionalStringArray(input, 'resourceTypes'),
+    status,
+    limit: boundedLimit(input, QUERY_EXECUTIONS_DEFAULT_LIMIT, QUERY_EXECUTIONS_MAX_LIMIT),
     offset: offset(input),
+    uniqueIdPattern: optionalString(input, 'uniqueIdPattern'),
+    minExecutionTime: optionalNumber(input, 'minExecutionTime'),
+    maxExecutionTime: optionalNumber(input, 'maxExecutionTime'),
+    ...(sort != null ? { sort } : {}),
+    bigquery: pickWarehouseBlock(optionalRecord(input, 'bigquery'), {
+      sort: 'sort',
+      minSlotMs: 'minSlotMs',
+      minBytesProcessed: 'minBytesProcessed',
+      minBytesBilled: 'minBytesBilled',
+      minRowsAffected: 'minRowsAffected',
+    }) as BigQuerySearchCriteria | undefined,
+    snowflake: pickWarehouseBlock(optionalRecord(input, 'snowflake'), {
+      sort: 'sort',
+      minBytesProcessed: 'minBytesProcessed',
+      minRowsAffected: 'minRowsAffected',
+      minRowsInserted: 'minRowsInserted',
+      minRowsUpdated: 'minRowsUpdated',
+      minRowsDeleted: 'minRowsDeleted',
+      minRowsDuplicated: 'minRowsDuplicated',
+    }) as SnowflakeSearchCriteria | undefined,
+    athena: pickWarehouseBlock(optionalRecord(input, 'athena'), {
+      sort: 'sort',
+      minBytesProcessed: 'minBytesProcessed',
+      minRowsAffected: 'minRowsAffected',
+    }) as AthenaSearchCriteria | undefined,
+    postgres: pickWarehouseBlock(optionalRecord(input, 'postgres'), {
+      sort: 'sort',
+      minBytesProcessed: 'minBytesProcessed',
+      minRowsAffected: 'minRowsAffected',
+    }) as BaseAdapterSearchCriteria | undefined,
+    redshift: pickWarehouseBlock(optionalRecord(input, 'redshift'), {
+      sort: 'sort',
+      minBytesProcessed: 'minBytesProcessed',
+      minRowsAffected: 'minRowsAffected',
+    }) as BaseAdapterSearchCriteria | undefined,
+    spark: pickWarehouseBlock(optionalRecord(input, 'spark'), {
+      sort: 'sort',
+      minBytesProcessed: 'minBytesProcessed',
+      minRowsAffected: 'minRowsAffected',
+    }) as BaseAdapterSearchCriteria | undefined,
   };
+
+  return request;
 }
 
-function runReportInput(input: ToolInput): RunReportInput {
-  return {
-    nodeExecutionsLimit: boundedLimit(
-      input,
-      RUN_REPORT_DEFAULT_LIMIT,
-      RUN_REPORT_MAX_LIMIT,
-      'nodeExecutionsLimit',
-    ),
-    nodeExecutionsOffset: offset(input),
-  };
+function validationErrorResult(error: QueryExecutionsValidationError): McpJsonToolResult {
+  return jsonResult(
+    {
+      error: error.message,
+      hint: error.hint,
+      allowed_sorts: error.allowed_sorts,
+      allowed_min_filters: error.allowed_min_filters,
+    },
+    { isError: true },
+  );
 }
 
 export function createDbtToolsMcpToolHandlers(
@@ -140,39 +230,33 @@ export function createDbtToolsMcpToolHandlers(
 ) {
   return {
     dbt_tools_status: async (_input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult(await workspace.getStatus()),
+      jsonResultFromValue(await workspace.getStatus()),
 
     dbt_tools_refresh: async (_input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult(await workspace.refreshIfChanged()),
-
-    dbt_tools_list_runs: async (_input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult({ runs: await workspace.listRuns() }),
-
-    dbt_tools_select_run: async (input: ToolInput): Promise<McpJsonToolResult> => {
-      const runId = optionalString(input, 'runId');
-      if (runId == null) {
-        throw new Error('runId is required.');
-      }
-      return jsonResult(await workspace.selectRun(runId));
-    },
+      jsonResultFromValue(await workspace.refreshIfChanged()),
 
     dbt_tools_search_resources: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult(await useCases.searchResources(searchInput(input))),
+      jsonResultFromValue(await useCases.searchResources(searchInput(input))),
 
     dbt_tools_get_resource: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult(await useCases.getResource(getResourceInput(input))),
+      jsonResultFromValue(await useCases.getResource(getResourceInput(input))),
 
-    dbt_tools_lineage: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult(await useCases.getLineage(lineageInput(input))),
+    dbt_tools_query_dependencies: async (input: ToolInput): Promise<McpJsonToolResult> =>
+      jsonResultFromValue(await useCases.queryDependencies(queryDependenciesInput(input))),
 
-    dbt_tools_impact: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult(await useCases.getImpact(impactInput(input))),
+    dbt_tools_query_executions: async (input: ToolInput): Promise<McpJsonToolResult> => {
+      try {
+        return jsonResultFromValue(await useCases.queryExecutions(queryExecutionsInput(input)));
+      } catch (error) {
+        if (error instanceof QueryExecutionsValidationError) {
+          return validationErrorResult(error);
+        }
+        throw error;
+      }
+    },
 
-    dbt_tools_failures: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult(await useCases.summarizeFailures(failuresInput(input))),
-
-    dbt_tools_run_report: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResult(await useCases.buildRunReport(runReportInput(input))),
+    dbt_tools_get_run_summary: async (_input: ToolInput): Promise<McpJsonToolResult> =>
+      jsonResultFromValue(await useCases.getRunSummary()),
   };
 }
 

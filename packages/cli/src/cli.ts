@@ -20,21 +20,21 @@ import {
   writeGraphOutput,
 } from '@dbt-tools/core';
 import {
-  runReportAction,
   depsAction,
   inventoryAction,
   timelineAction,
   searchAction,
   discoverAction,
   explainAction,
-  impactAction,
   diagnoseRunAction,
   diagnoseNodeAction,
   exportAction,
   statusAction,
-  failuresAction,
+  queryExecutionsAction,
+  runSummaryAction,
 } from './cli-actions';
 import { resolveCliArtifactPaths } from './internal/cli-artifact-resolve';
+import { registerQueryExecutionsCommand } from './internal/cli-query-executions-register';
 import { CLI_PACKAGE_VERSION } from './internal/version';
 
 const program = new Command();
@@ -73,9 +73,6 @@ const OPT_OFFSET_N = '--offset <n>';
 const DESC_INVENTORY_LIMIT = 'Return at most N entries after filters (max 200); omit for full list';
 const DESC_SEARCH_LIMIT = 'Return at most N matches after scoring (max 200); omit for full list';
 const DESC_OFFSET_REQUIRES_LIMIT = 'Skip N rows after sort (requires --limit)';
-const DESC_FAILURES_LIMIT = 'Max rows returned (default 50, max 200)';
-const DESC_FAILURES_OFFSET = 'Skip N rows after stable sort (uses explicit or default --limit)';
-
 program
   .name('dbt-tools')
   .description('Command-line interface for dbt artifact analysis')
@@ -294,134 +291,41 @@ program
     },
   );
 
-/**
- * Run report command: Execution summary from run_results.json
- */
+registerQueryExecutionsCommand(
+  program,
+  {
+    OPT_DBT_TARGET,
+    DESC_DBT_TARGET,
+    OPT_JSON,
+    DESC_JSON,
+    OPT_NO_JSON,
+    DESC_NO_JSON,
+    OPT_FIELDS,
+    DESC_FIELDS,
+  },
+  async (options) => {
+    await queryExecutionsAction(options, handleCliError);
+  },
+);
+
 program
-  .command('run-report')
-  .description('Generate execution report from run_results.json')
+  .command('run-summary')
+  .description(
+    'Run-level summary, status breakdown, bottlenecks, and adapter totals (no node list)',
+  )
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
   .option(OPT_FIELDS, DESC_FIELDS)
-  .option('--bottlenecks', 'Include bottleneck section in report')
-  .option('--bottlenecks-top <n>', 'Top N slowest nodes (default: 10 when --bottlenecks)', parseInt)
-  .option(
-    '--bottlenecks-threshold <s>',
-    'Nodes exceeding s seconds (alternative to top-N)',
-    parseFloat,
-  )
-  .option(
-    '--adapter-summary',
-    'Include adapter_response aggregates (and default top-5 slot/bytes in human output)',
-  )
-  .option(
-    '--adapter-top-by <metric>',
-    'Rank nodes by adapter metric: bytes_processed | bytes_billed | slot_ms | rows_affected | rows_inserted | rows_updated | rows_deleted | rows_duplicated',
-  )
-  .option('--adapter-top-n <n>', 'Top N for --adapter-top-by (default: 10)', parseInt)
-  .option(
-    '--adapter-min-bytes <n>',
-    'When using --adapter-top-by, require bytes_processed >= n',
-    parseFloat,
-  )
-  .option(
-    '--adapter-min-slot-ms <n>',
-    'When using --adapter-top-by, require slot_ms >= n',
-    parseFloat,
-  )
-  .option(
-    '--adapter-min-rows-affected <n>',
-    'When using --adapter-top-by, require rows_affected >= n',
-    parseFloat,
-  )
-  .option(
-    '--node-executions-limit <n>',
-    'Cap node_executions length in JSON output (stable sort by started_at then unique_id); summary metrics still use the full run',
-    parseInt,
-  )
-  .option(
-    '--node-executions-offset <n>',
-    'Skip N node_executions rows before applying --node-executions-limit (requires --node-executions-limit)',
-    parseInt,
-  )
   .option(OPT_JSON, DESC_JSON)
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
     async (
       options: {
         fields?: string;
-        bottlenecks?: boolean;
-        bottlenecksTop?: number;
-        bottlenecksThreshold?: number;
-        adapterSummary?: boolean;
-        adapterTopBy?: string;
-        adapterTopN?: number;
-        adapterMinBytes?: number;
-        adapterMinSlotMs?: number;
-        adapterMinRowsAffected?: number;
-        nodeExecutionsLimit?: number;
-        nodeExecutionsOffset?: number;
         json?: boolean;
         noJson?: boolean;
       } & ArtifactRootFlags,
     ) => {
-      const allowed = new Set([
-        'bytes_processed',
-        'bytes_billed',
-        'slot_ms',
-        'rows_affected',
-        'rows_inserted',
-        'rows_updated',
-        'rows_deleted',
-        'rows_duplicated',
-      ]);
-      let adapterTopBy:
-        | 'bytes_processed'
-        | 'bytes_billed'
-        | 'slot_ms'
-        | 'rows_affected'
-        | 'rows_inserted'
-        | 'rows_updated'
-        | 'rows_deleted'
-        | 'rows_duplicated'
-        | undefined;
-      if (options.adapterTopBy != null && options.adapterTopBy !== '') {
-        if (!allowed.has(options.adapterTopBy)) {
-          handleCliError(
-            new Error(`--adapter-top-by must be one of: ${[...allowed].join(', ')}`),
-            shouldOutputJSON(options.json, options.noJson),
-          );
-          return;
-        }
-        adapterTopBy = options.adapterTopBy as
-          | 'bytes_processed'
-          | 'bytes_billed'
-          | 'slot_ms'
-          | 'rows_affected'
-          | 'rows_inserted'
-          | 'rows_updated'
-          | 'rows_deleted'
-          | 'rows_duplicated';
-      }
-      await runReportAction(
-        {
-          fields: options.fields,
-          bottlenecks: options.bottlenecks,
-          bottlenecksTop: options.bottlenecksTop,
-          bottlenecksThreshold: options.bottlenecksThreshold,
-          adapterSummary: options.adapterSummary,
-          adapterTopBy,
-          adapterTopN: options.adapterTopN,
-          adapterMinBytes: options.adapterMinBytes,
-          adapterMinSlotMs: options.adapterMinSlotMs,
-          adapterMinRowsAffected: options.adapterMinRowsAffected,
-          nodeExecutionsLimit: options.nodeExecutionsLimit,
-          nodeExecutionsOffset: options.nodeExecutionsOffset,
-          json: options.json,
-          noJson: options.noJson,
-          dbtTarget: options.dbtTarget,
-        },
-        handleCliError,
-      );
+      await runSummaryAction(options, handleCliError);
     },
   );
 
@@ -501,63 +405,12 @@ program
   );
 
 /**
- * Failures command: non-success run_results rows with bounded JSON for triage
- */
-program
-  .command('failures')
-  .description(
-    'List non-successful nodes from run_results.json with optional manifest enrichment and suggested follow-up commands',
-  )
-  .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(
-    '--status <status>',
-    'Override default filter: comma-separated statuses (default: all except success and pass)',
-  )
-  .option(OPT_LIMIT_N, DESC_FAILURES_LIMIT, parseInt)
-  .option(OPT_OFFSET_N, DESC_FAILURES_OFFSET, parseInt)
-  .option('--message-max-chars <n>', 'Truncate message field beyond N characters', parseInt)
-  .option(
-    '--include-path',
-    'Add path, original_file_path, and resource_type from manifest when available',
-  )
-  .option(
-    '--include-compiled',
-    'Include compiled_code and raw_code snippets from manifest (capped; use with --compiled-max-chars)',
-  )
-  .option(
-    '--compiled-max-chars <n>',
-    'Max characters per compiled/raw snippet when --include-compiled is set',
-    parseInt,
-  )
-  .option(OPT_FIELDS, DESC_FIELDS)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
-  .action(
-    async (
-      options: {
-        status?: string;
-        limit?: number;
-        offset?: number;
-        messageMaxChars?: number;
-        includePath?: boolean;
-        includeCompiled?: boolean;
-        compiledMaxChars?: number;
-        fields?: string;
-        json?: boolean;
-        noJson?: boolean;
-      } & ArtifactRootFlags,
-    ) => {
-      await failuresAction(options, handleCliError);
-    },
-  );
-
-/**
  * Timeline command: Per-node execution entries from run_results.json
  */
 program
   .command('timeline')
   .description(
-    'Show per-node execution timeline from run_results.json (row-level, unlike run-report)',
+    'Show per-node execution timeline from run_results.json (row-level; use query-executions for ranked filters)',
   )
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
   .option(
@@ -695,35 +548,11 @@ program
     },
   );
 
-/**
- * Impact intent: upstream/downstream counts and notable dependents
- */
-program
-  .command('impact')
-  .description('Dependency impact snapshot (intent; resolves short names via discover)')
-  .argument(ARG_RESOURCE, DESC_ARG_RESOURCE_OR_DISCOVER)
-  .option(OPT_FIELDS, DESC_FIELDS)
-  .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
-  .option(OPT_JSON, DESC_JSON)
-  .option(OPT_NO_JSON, DESC_NO_JSON)
-  .option(OPT_TRACE, DESC_TRACE)
-  .action(
-    async (
-      resource: string,
-      options: {
-        fields?: string;
-        json?: boolean;
-        noJson?: boolean;
-        trace?: boolean;
-      } & ArtifactRootFlags,
-    ) => {
-      await impactAction(resource, options, handleCliError);
-    },
-  );
-
 const diagnoseCmd = program
   .command('diagnose')
-  .description('Operational diagnosis facade (points to run-report, timeline, deps primitives)');
+  .description(
+    'Operational diagnosis facade (points to run-summary, query-executions, timeline, deps primitives)',
+  );
 
 diagnoseCmd
   .command('run')
@@ -746,7 +575,7 @@ diagnoseCmd
 
 diagnoseCmd
   .command('node')
-  .description('Diagnose a specific resource (deps + run-report primitives)')
+  .description('Diagnose a specific resource (deps + run-summary / query-executions primitives)')
   .argument(ARG_RESOURCE, DESC_ARG_RESOURCE_OR_DISCOVER)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)

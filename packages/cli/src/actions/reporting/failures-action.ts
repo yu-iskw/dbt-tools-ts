@@ -159,7 +159,8 @@ function buildPrimitiveCommands(
   const t = dbtTarget ?? '.';
   const out: string[] = [
     `dbt-tools timeline --dbt-target "${t}" --failed-only --json`,
-    `dbt-tools run-report --dbt-target "${t}" --json`,
+    `dbt-tools run-summary --dbt-target "${t}" --json`,
+    `dbt-tools query-executions --dbt-target "${t}" --status error,fail,skipped --limit 50 --json`,
   ];
   if (sampleUniqueId) {
     out.push(

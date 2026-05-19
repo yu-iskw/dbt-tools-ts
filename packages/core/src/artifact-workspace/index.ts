@@ -3,10 +3,15 @@ import { parseCatalog } from 'dbt-artifacts-parser/catalog';
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 import { parseSources } from 'dbt-artifacts-parser/sources';
-import type { AnalysisSnapshot, ResourceNode } from '../analysis/analysis-snapshot';
-import { buildAnalysisSnapshotFromParsedArtifactBundle } from '../analysis/analysis-snapshot';
-import { DependencyService, type DependencyResult } from '../analysis/dependency-service';
-import type { ManifestGraph } from '../analysis/manifest-graph';
+import type { AnalysisSnapshot, ResourceNode } from '../analysis/snapshot';
+import { buildAnalysisSnapshotFromParsedArtifactBundle } from '../analysis/snapshot';
+import type { DependencyResult } from '../analysis/dependencies/service';
+import { getRunSummaryFromSnapshot, type RunSummaryOutput } from '../analysis/snapshot/run-summary';
+import type { ManifestGraph } from '../analysis/manifest/graph';
+import { queryDependencies, type QueryDependenciesInput } from '../analysis/dependencies/query';
+import { queryExecutions, type QueryExecutionsOutput } from '../analysis/search/run-results';
+import type { QueryExecutionsRequest } from '../analysis/search/types';
+import { normalizeWarehouseAdapterType } from '../analysis/search/warehouse';
 import {
   getDbtToolsRemoteClientEnvFromEnv,
   getDbtToolsRemoteSourceConfigFromEnv,
@@ -66,6 +71,11 @@ export interface ResolvedArtifactRun {
   versionToken: string;
 }
 
+export interface ArtifactWorkspaceRunRef {
+  runId: string;
+  versionToken: string;
+}
+
 export interface ArtifactWorkspaceStatus {
   target: string;
   selectedRunId: string | null;
@@ -73,6 +83,8 @@ export interface ArtifactWorkspaceStatus {
   loadedAtMs: number | null;
   stale: boolean;
   lastRefreshError?: string;
+  runs: ArtifactWorkspaceRunRef[];
+  warehouse_type?: ReturnType<typeof normalizeWarehouseAdapterType>;
 }
 
 interface LoadedArtifactWorkspace {
@@ -132,66 +144,18 @@ export interface GetResourceInput {
 
 export type ResourceDetails = ResourceNode;
 
-export interface LineageInput {
-  uniqueId: string;
-  direction: 'upstream' | 'downstream';
-  depth?: number;
-}
-
-export type LineageOutput = DependencyResult;
-
-export interface ImpactInput {
-  uniqueId: string;
-  depth?: number;
-}
-
-export type ImpactOutput = DependencyResult;
-
-export interface FailuresInput {
-  status?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface FailuresOutput {
-  total: number;
-  returned: number;
-  limit: number;
-  offset: number;
-  has_more: boolean;
-  failures: AnalysisSnapshot['executions'];
-}
-
-export interface RunReportInput {
-  nodeExecutionsLimit?: number;
-  nodeExecutionsOffset?: number;
-}
-
-export interface RunReportOutput {
-  summary: AnalysisSnapshot['summary'];
-  statusBreakdown: AnalysisSnapshot['statusBreakdown'];
-  bottlenecks: AnalysisSnapshot['bottlenecks'];
-  node_executions: AnalysisSnapshot['executions'];
-  node_executions_limit: number;
-  node_executions_offset: number;
-  node_executions_has_more: boolean;
-}
+export type QueryDependenciesOutput = DependencyResult;
 
 export interface DbtToolsUseCases {
   searchResources(input: SearchResourcesInput): Promise<SearchResourcesOutput>;
   getResource(input: GetResourceInput): Promise<ResourceDetails | null>;
-  getLineage(input: LineageInput): Promise<LineageOutput>;
-  getImpact(input: ImpactInput): Promise<ImpactOutput>;
-  summarizeFailures(input: FailuresInput): Promise<FailuresOutput>;
-  buildRunReport(input: RunReportInput): Promise<RunReportOutput>;
+  queryDependencies(input: QueryDependenciesInput): Promise<QueryDependenciesOutput>;
+  queryExecutions(input: QueryExecutionsRequest): Promise<QueryExecutionsOutput>;
+  getRunSummary(): Promise<RunSummaryOutput>;
 }
 
 export const SEARCH_RESOURCES_DEFAULT_LIMIT = 20;
 export const SEARCH_RESOURCES_MAX_LIMIT = 200;
-export const FAILURES_DEFAULT_LIMIT = 50;
-export const FAILURES_MAX_LIMIT = 200;
-export const RUN_REPORT_DEFAULT_LIMIT = 20;
-export const RUN_REPORT_MAX_LIMIT = 200;
 
 function clampLimit(value: number | undefined, defaultValue: number, maxValue: number): number {
   if (value == null || !Number.isFinite(value)) return defaultValue;
@@ -286,11 +250,6 @@ export function searchResourcesInGraph(
         }
       : {}),
   };
-}
-
-function isNonSuccessStatus(status: string): boolean {
-  const normalized = status.toLowerCase();
-  return normalized !== 'success' && normalized !== 'pass';
 }
 
 export class ArtifactWorkspace {
@@ -416,12 +375,18 @@ export class ArtifactWorkspace {
   }
 
   private status(): ArtifactWorkspaceStatus {
+    const warehouseType =
+      this.loaded?.analysis.warehouseType != null
+        ? normalizeWarehouseAdapterType(this.loaded.analysis.warehouseType)
+        : undefined;
     return {
       target: this.dbtTarget,
       selectedRunId: this.selectedRunId,
       versionToken: this.loaded?.run.versionToken ?? null,
       loadedAtMs: this.loaded?.loadedAtMs ?? null,
       stale: this.stale,
+      runs: this.runs.map((run) => ({ runId: run.runId, versionToken: run.versionToken })),
+      ...(warehouseType != null ? { warehouse_type: warehouseType } : {}),
       ...(this.lastRefreshError != null ? { lastRefreshError: this.lastRefreshError } : {}),
     };
   }
@@ -598,72 +563,22 @@ export function createDbtToolsUseCases(workspace: ArtifactWorkspace): DbtToolsUs
       return resource == null ? null : copyResourceForOutput(resource, input.includeCode === true);
     },
 
-    async getLineage(input) {
+    async queryDependencies(input) {
       const loaded = await workspace.getLoadedWorkspace();
-      return DependencyService.getDependencies(
-        loaded.graph,
-        input.uniqueId,
-        input.direction,
-        undefined,
-        input.depth,
-        'flat',
-      ) as DependencyResult;
+      return queryDependencies(loaded.graph, input);
     },
 
-    async getImpact(input) {
+    async queryExecutions(input) {
       const loaded = await workspace.getLoadedWorkspace();
-      return DependencyService.getDependencies(
-        loaded.graph,
-        input.uniqueId,
-        'downstream',
-        undefined,
-        input.depth,
-        'flat',
-      ) as DependencyResult;
+      return queryExecutions(loaded.analysis.executions, input, {
+        warehouseType: loaded.analysis.warehouseType,
+        graph: loaded.graph,
+      });
     },
 
-    async summarizeFailures(input) {
+    async getRunSummary() {
       const loaded = await workspace.getLoadedWorkspace();
-      const statuses = input.status
-        ?.split(',')
-        .map((status) => status.trim().toLowerCase())
-        .filter(Boolean);
-      const failures = loaded.analysis.executions.filter((execution) =>
-        statuses != null && statuses.length > 0
-          ? statuses.includes(execution.status.toLowerCase())
-          : isNonSuccessStatus(execution.status),
-      );
-      const limit = clampLimit(input.limit, FAILURES_DEFAULT_LIMIT, FAILURES_MAX_LIMIT);
-      const offset = normalizeOffset(input.offset);
-      const page = failures.slice(offset, offset + limit);
-      return {
-        total: failures.length,
-        returned: page.length,
-        limit,
-        offset,
-        has_more: offset + page.length < failures.length,
-        failures: page,
-      };
-    },
-
-    async buildRunReport(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      const limit = clampLimit(
-        input.nodeExecutionsLimit,
-        RUN_REPORT_DEFAULT_LIMIT,
-        RUN_REPORT_MAX_LIMIT,
-      );
-      const offset = normalizeOffset(input.nodeExecutionsOffset);
-      const executions = loaded.analysis.executions.slice(offset, offset + limit);
-      return {
-        summary: loaded.analysis.summary,
-        statusBreakdown: loaded.analysis.statusBreakdown,
-        bottlenecks: loaded.analysis.bottlenecks,
-        node_executions: executions,
-        node_executions_limit: limit,
-        node_executions_offset: offset,
-        node_executions_has_more: offset + executions.length < loaded.analysis.executions.length,
-      };
+      return getRunSummaryFromSnapshot(loaded.analysis);
     },
   };
 }

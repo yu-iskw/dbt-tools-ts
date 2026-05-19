@@ -118,25 +118,22 @@ Credentials stay in the Node child process (AWS/GCP default chains). See [REFERE
 1. **`dbt_tools_status`** — confirm the target loaded and whether `stale` is true
 2. **`dbt_tools_search_resources`** — find models/sources by name or filters
 3. **`dbt_tools_get_resource`** — details for a `unique_id` (set `includeCode: true` when you need SQL)
-4. **`dbt_tools_lineage`** or **`dbt_tools_impact`** — dependency neighborhood or downstream blast radius
-5. **`dbt_tools_refresh`** — after a new dbt run uploads artifacts (or rely on `--poll-interval-ms`)
+4. **`dbt_tools_query_dependencies`** — upstream/downstream DAG (blast radius = `direction: downstream`)
+5. **`dbt_tools_query_executions`** — ranked/filtered executions (warehouse block for adapter metrics)
+6. **`dbt_tools_get_run_summary`** — totals and bottlenecks without a node list
+7. **`dbt_tools_refresh`** — after a new dbt run uploads artifacts (or rely on `--poll-interval-ms`)
 
-For failures and run timing, use **`dbt_tools_failures`** and **`dbt_tools_run_report`**.
+## Tools (7)
 
-## Tools
-
-| Tool                         | Summary                                                     |
-| ---------------------------- | ----------------------------------------------------------- |
-| `dbt_tools_status`           | Target, selected run, version token, load time, stale state |
-| `dbt_tools_refresh`          | Reload if the selected run’s artifacts changed              |
-| `dbt_tools_list_runs`        | Discovered runs (typically 0 or 1 entry)                    |
-| `dbt_tools_select_run`       | Load a run by id (usually `current`)                        |
-| `dbt_tools_search_resources` | Search by query and optional filters                        |
-| `dbt_tools_get_resource`     | One resource by `unique_id`                                 |
-| `dbt_tools_lineage`          | Upstream or downstream dependencies                         |
-| `dbt_tools_impact`           | Downstream impact                                           |
-| `dbt_tools_failures`         | Page of non-successful executions                           |
-| `dbt_tools_run_report`       | Execution summary and bounded execution rows                |
+| Tool                           | Summary                                     |
+| ------------------------------ | ------------------------------------------- |
+| `dbt_tools_status`             | Target, runs[], warehouse_type, stale state |
+| `dbt_tools_refresh`            | Reload if artifacts changed                 |
+| `dbt_tools_search_resources`   | Catalog search                              |
+| `dbt_tools_get_resource`       | One resource by `unique_id`                 |
+| `dbt_tools_query_dependencies` | Upstream/downstream dependencies            |
+| `dbt_tools_query_executions`   | Filter/sort run executions                  |
+| `dbt_tools_get_run_summary`    | Run aggregates (no node list)               |
 
 Parameters, defaults, and pagination limits: **[REFERENCE.md](REFERENCE.md#mcp-tools-reference)**.
 

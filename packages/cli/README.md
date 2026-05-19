@@ -15,8 +15,8 @@ graph TD
   CLI["dbt-tools"]
   CLI --> summary["summary\nmanifest statistics"]
   CLI --> graphCmd["graph\nexport dependency graph"]
-  CLI --> rr["run-report\nexecution report"]
-  CLI --> failures["failures\nnon-success bundle"]
+  CLI --> qe["query-executions\nfilter/sort executions"]
+  CLI --> rs["run-summary\nrun aggregates"]
   CLI --> deps["deps\nupstream / downstream deps"]
   CLI --> inventory["inventory\nlist / filter resources"]
   CLI --> timeline["timeline\nper-node execution timeline"]
@@ -26,8 +26,8 @@ graph TD
 
   summary -->|manifest.json| MG[ManifestGraph]
   graphCmd -->|manifest.json| MG
-  rr -->|run_results.json\n+ manifest.json| EA[ExecutionAnalyzer]
-  failures -->|run_results.json\n+ manifest optional| EA
+  qe -->|run_results.json\n+ manifest.json| EA[ExecutionAnalyzer]
+  rs -->|run_results.json\n+ manifest.json| EA
   deps -->|manifest.json| DS[DependencyService]
   inventory -->|manifest.json| MG
   timeline -->|run_results.json\n+ manifest.json| EA
@@ -55,10 +55,11 @@ pnpm add -g @dbt-tools/cli
 - **Schema introspection**: Runtime command and option discovery via `schema` command
 - **Dependency analysis**: Find upstream/downstream dependencies with `deps` command
 - **Inventory**: Browse and filter all dbt resources in one view
-- **Timeline**: Inspect per-node execution timing (row-level, unlike `run-report`)
-- **`failures`**: Bounded JSON bundle of non-success `run_results` rows with optional manifest paths/SQL snippets and suggested `dbt`/CLI follow-ups
+- **Timeline**: Inspect per-node execution timing (row-level; use `query-executions` for ranked filters)
+- **`query-executions`**: Filter and sort run executions (time + warehouse adapter metrics via subcommands)
+- **`run-summary`**: Run-level summary, bottlenecks, and adapter totals without a per-node list
 - **Search**: Discover resources by name, tag, type, or free-text query
-- **Paging**: `inventory` and `search` support `--limit` / `--offset` (max 200); `run-report --json` supports `--node-executions-limit` / `--node-executions-offset` to cap the `node_executions` array while keeping summary metrics on the full run
+- **Paging**: `inventory` and `search` support `--limit` / `--offset` (max 200); `query-executions` defaults to limit 10 (max 50)
 - **Status / Freshness**: Check if artifacts are present and how recent they are
 - **Subgraph focus**: Export a focused subgraph for any node via `graph --focus`
 - **Remote prefixes**: Use **`s3://bucket/prefix`** or **`gs://bucket/prefix`** (scheme required). Objects are downloaded to a temp directory for the duration of the command. **Credentials** use the normal AWS / GCP client chains; optional JSON in **`DBT_TOOLS_REMOTE_SOURCE`** supplies region, endpoint, GCS project id, etc. (see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
@@ -155,68 +156,32 @@ dbt-tools graph --dbt-target ./target --focus model.my_project.orders \
 
 ---
 
-### run-report
+### query-executions
 
-Generate **aggregated** execution report from run_results.json (totals, critical path, bottlenecks).
-For **row-level** per-node timings, use [`timeline`](#timeline) instead.
+Filter and sort **executed nodes** from `run_results.json`. Use warehouse **subcommands** for adapter metrics (`bigquery`, `snowflake`, …). Pass **`--status`** explicitly for triage (no hidden default).
 
 ```bash
-dbt-tools run-report --dbt-target ./target
+dbt-tools query-executions --dbt-target ./target \
+  --sort execution_time_desc --limit 10 --json
 
-# Include bottleneck section (top 10 slowest nodes by default)
-dbt-tools run-report --dbt-target ./target --bottlenecks
+dbt-tools query-executions --dbt-target ./target \
+  --status error,fail,skipped --limit 50 --json
 
-# Top 5 slowest nodes
-dbt-tools run-report --dbt-target ./target --bottlenecks --bottlenecks-top 5
-
-# Nodes exceeding 10 seconds
-dbt-tools run-report --dbt-target ./target --bottlenecks --bottlenecks-threshold 10
-
-# Field filtering
-dbt-tools run-report --dbt-target ./target --fields "total_execution_time,critical_path"
-
-# JSON output
-dbt-tools run-report --dbt-target ./target --json
-
-# Cap node_executions in JSON (stable sort by started_at, then unique_id)
-dbt-tools run-report --dbt-target ./target --json --node-executions-limit 50
+dbt-tools query-executions bigquery --dbt-target ./target \
+  --sort slot_ms_desc --min-slot-ms 1000 --limit 10 --json
 ```
 
-**Options:**
-
-- `--dbt-target <path|s3://…|gs://…>` - Artifact root (default: `DBT_TOOLS_DBT_TARGET` when set)
-- `--fields <fields>` - Comma-separated list of fields to include
-- `--bottlenecks` - Include bottleneck section in report
-- `--bottlenecks-top <n>` - Top N slowest nodes (default: 10 when `--bottlenecks`)
-- `--bottlenecks-threshold <s>` - Nodes exceeding s seconds (cannot combine with `--bottlenecks-top`)
-- `--node-executions-limit <n>` - When set with `--json`, return at most N rows from `node_executions` (totals, critical path, and bottlenecks still reflect the full run)
-- `--node-executions-offset <n>` - Skip N rows before applying `--node-executions-limit` (requires `--node-executions-limit`)
-- `--json` - Force JSON stdout and structured JSON errors on stderr
-- `--no-json` - Force human-readable output
+Subcommands: `bigquery`, `snowflake`, `athena`, `postgres`, `redshift`, `spark` (scoped min/sort options).
 
 ---
 
-### failures
+### run-summary
 
-Summarize **non-success** rows from `run_results.json` in one bounded JSON payload (default **50** rows, max **200**). Default filter matches **`timeline --failed-only`**: excludes `success` and `pass`; override with **`--status`**. Optional manifest enrichment adds paths or capped SQL snippets. **`next_commands`** lists heuristic `dbt` selectors (verify in your project before running); **`primitive_commands`** points back to `timeline`, `run-report`, `explain`, and `deps`.
+Run-level **summary**, status breakdown, bottlenecks, and adapter totals — **no** `node_executions` array (use `query-executions` for rows).
 
 ```bash
-dbt-tools failures --dbt-target ./target --json
-dbt-tools failures --dbt-target ./target --json --limit 20 --offset 0
-dbt-tools failures --dbt-target ./target --json --status error,warn --include-path
+dbt-tools run-summary --dbt-target ./target --json
 ```
-
-**Options:**
-
-- `--dbt-target <path|s3://…|gs://…>` - Artifact root (requires `run_results.json`; `manifest.json` optional for enrichment)
-- `--status <csv>` - Status filter (comma-separated). When omitted, all statuses except `success` and `pass`
-- `--limit <n>` - Page size (default 50, max 200)
-- `--offset <n>` - Skip N rows after sort (paging; default limit still applies)
-- `--message-max-chars <n>` - Truncate `message` beyond N characters
-- `--include-path` - Add `path`, `original_file_path`, `resource_type` from manifest when the node exists in the graph
-- `--include-compiled` - Include `compiled_code` / `raw_code` snippets (capped)
-- `--compiled-max-chars <n>` - Per-field cap when `--include-compiled` is set
-- `--fields`, `--json`, `--no-json` - Same semantics as other commands
 
 ---
 
@@ -336,12 +301,12 @@ Show **per-node execution entries** from run_results.json, sorted by duration. T
 
 **How `timeline` differs from `run-report`:**
 
-|                     | `run-report`                                              | `timeline`                           |
-| ------------------- | --------------------------------------------------------- | ------------------------------------ |
-| Output              | Aggregated stats (totals, critical path, bottlenecks)     | One row per executed node            |
-| Use case            | Overall health summary                                    | Inspect individual execution timings |
-| CSV output          | No                                                        | Yes                                  |
-| Filtering by status | No (see [`failures`](#failures) for a non-success bundle) | Yes (`--failed-only`, `--status`)    |
+|                     | `run-report`                                                     | `timeline`                           |
+| ------------------- | ---------------------------------------------------------------- | ------------------------------------ |
+| Output              | Aggregated stats (totals, critical path, bottlenecks)            | One row per executed node            |
+| Use case            | Overall health summary                                           | Inspect individual execution timings |
+| CSV output          | No                                                               | Yes                                  |
+| Filtering by status | No (see [`query-executions`](#query-executions) with `--status`) | Yes (`--failed-only`, `--status`)    |
 
 Requires: `manifest.json` and `run_results.json` under **`--dbt-target`**. Rows are enriched with **`name`** and **`resource_type`** from the manifest when available.
 

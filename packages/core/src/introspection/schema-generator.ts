@@ -146,86 +146,77 @@ function getGraphSchema(): CommandSchema {
   };
 }
 
-function getRunReportSchema(): CommandSchema {
+function getQueryExecutionsCommonOptions(): SchemaOption[] {
+  return [
+    {
+      name: '--sort',
+      type: TYPE_STRING,
+      description: 'Sort key (execution_time_desc, slot_ms_desc, rows_inserted_desc, …)',
+    },
+    {
+      name: '--status',
+      type: TYPE_STRING,
+      description: 'Comma-separated statuses to include',
+    },
+    { name: '--limit', type: TYPE_NUMBER, description: 'Max rows (default 10, max 50)' },
+    {
+      name: '--offset',
+      type: TYPE_NUMBER,
+      description: 'Skip rows (requires --limit)',
+    },
+    {
+      name: '--resource-types',
+      type: TYPE_STRING,
+      description: 'Comma-separated resource types (default: model,test,unit_test)',
+    },
+    {
+      name: '--unique-id-pattern',
+      type: TYPE_STRING,
+      description: 'Glob pattern for unique_id',
+    },
+    {
+      name: '--min-execution-time',
+      type: 'number',
+      description: 'Minimum execution time in seconds',
+    },
+    {
+      name: '--max-execution-time',
+      type: 'number',
+      description: 'Maximum execution time in seconds',
+    },
+    { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
+    { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
+    { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+    ...getArtifactRootCliSchemaOptions(),
+  ];
+}
+
+function getQueryExecutionsSchema(): CommandSchema {
   return {
-    command: 'run-report',
-    description: 'Generate execution report from run_results.json',
+    command: 'query-executions',
+    description: 'Filter and sort run_results executions (time and warehouse metrics)',
+    arguments: [],
+    options: getQueryExecutionsCommonOptions(),
+    output_format: OUTPUT_JSON_OR_HUMAN,
+    example:
+      'dbt-tools query-executions --dbt-target ./target --sort execution_time_desc --limit 10 --json',
+  };
+}
+
+function getRunSummarySchema(): CommandSchema {
+  return {
+    command: 'run-summary',
+    description:
+      'Run-level summary, status breakdown, bottlenecks, and adapter totals (no per-node list)',
     arguments: [],
     options: [
-      {
-        name: '--fields',
-        type: TYPE_STRING,
-        description: DESC_FIELDS,
-      },
-      {
-        name: '--bottlenecks',
-        type: TYPE_BOOLEAN,
-        description: 'Include bottleneck section in report',
-      },
-      {
-        name: '--bottlenecks-top',
-        type: 'number',
-        default: '10',
-        description: 'Top N slowest nodes (default: 10 when --bottlenecks)',
-      },
-      {
-        name: '--bottlenecks-threshold',
-        type: 'number',
-        description: 'Nodes exceeding N seconds (alternative to top-N)',
-      },
-      {
-        name: '--adapter-summary',
-        type: TYPE_BOOLEAN,
-        description: 'Include adapter_response aggregates (human default top-5 slot/bytes)',
-      },
-      {
-        name: '--adapter-top-by',
-        type: TYPE_STRING,
-        values: ['bytes_processed', 'slot_ms', 'rows_affected'],
-        description: 'Rank nodes by adapter metric',
-      },
-      {
-        name: '--adapter-top-n',
-        type: 'number',
-        default: '10',
-        description: 'Top N for --adapter-top-by',
-      },
-      {
-        name: '--adapter-min-bytes',
-        type: 'number',
-        description: 'With --adapter-top-by, require bytes_processed >= n',
-      },
-      {
-        name: '--adapter-min-slot-ms',
-        type: 'number',
-        description: 'With --adapter-top-by, require slot_ms >= n',
-      },
-      {
-        name: '--node-executions-limit',
-        type: TYPE_NUMBER,
-        description:
-          'When set, cap node_executions in JSON (stable sort); summary metrics still use full run',
-      },
-      {
-        name: '--node-executions-offset',
-        type: TYPE_NUMBER,
-        description:
-          'Skip N node_executions rows before --node-executions-limit (requires --node-executions-limit)',
-      },
-      {
-        name: OPT_JSON,
-        type: TYPE_BOOLEAN,
-        description: DESC_FORCE_JSON,
-      },
-      {
-        name: OPT_NO_JSON,
-        type: TYPE_BOOLEAN,
-        description: DESC_FORCE_HUMAN,
-      },
+      { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
+      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
+      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
       ...getArtifactRootCliSchemaOptions(),
     ],
     output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools run-report --dbt-target ./target --bottlenecks',
+    example: 'dbt-tools run-summary --dbt-target ./target --json',
   };
 }
 
@@ -370,67 +361,11 @@ function getInventorySchema(): CommandSchema {
   };
 }
 
-function getFailuresSchema(): CommandSchema {
-  return {
-    command: 'failures',
-    description:
-      'List non-successful nodes from run_results.json with optional manifest enrichment and suggested follow-up commands',
-    arguments: [],
-    options: [
-      {
-        name: '--status',
-        type: TYPE_STRING,
-        description: 'Comma-separated statuses to include (default: all except success and pass)',
-      },
-      {
-        name: '--limit',
-        type: TYPE_NUMBER,
-        description: 'Max rows returned (default 50, max 200)',
-      },
-      {
-        name: '--offset',
-        type: TYPE_NUMBER,
-        description: 'Skip N rows after sort (paging; default limit still applies)',
-      },
-      {
-        name: '--message-max-chars',
-        type: TYPE_NUMBER,
-        description: 'Truncate message field beyond N characters',
-      },
-      {
-        name: '--include-path',
-        type: TYPE_BOOLEAN,
-        description: 'Add path, original_file_path, and resource_type from manifest when available',
-      },
-      {
-        name: '--include-compiled',
-        type: TYPE_BOOLEAN,
-        description: 'Include compiled_code and raw_code snippets from manifest (capped)',
-      },
-      {
-        name: '--compiled-max-chars',
-        type: TYPE_NUMBER,
-        description: 'Max characters per compiled/raw snippet when --include-compiled is set',
-      },
-      {
-        name: '--fields',
-        type: TYPE_STRING,
-        description: DESC_FIELDS,
-      },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
-      ...getArtifactRootCliSchemaOptions(),
-    ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools failures --dbt-target ./target --json --limit 20',
-  };
-}
-
 function getTimelineSchema(): CommandSchema {
   return {
     command: 'timeline',
     description:
-      'Show per-node execution timeline from run_results.json (row-level entries, unlike run-report)',
+      'Show per-node execution timeline from run_results.json (row-level; use query-executions for ranked filters)',
     arguments: [],
     options: [
       {
@@ -552,37 +487,11 @@ function getExplainSchema(): CommandSchema {
   };
 }
 
-function getImpactSchema(): CommandSchema {
-  return {
-    command: 'impact',
-    description: 'Intent: upstream/downstream counts and notable downstream models (deps-based)',
-    arguments: [
-      {
-        name: 'resource',
-        required: true,
-        description: DESC_SCHEMA_ARG_UNIQUE_DISCOVER,
-      },
-    ],
-    options: [
-      {
-        name: '--fields',
-        type: TYPE_STRING,
-        description: DESC_FIELDS,
-      },
-      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
-      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
-      { name: OPT_TRACE, type: TYPE_BOOLEAN, description: DESC_TRACE },
-      ...getArtifactRootCliSchemaOptions(),
-    ],
-    output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools impact --dbt-target ./target model.my_pkg.orders --json',
-  };
-}
-
 function getDiagnoseRunSchema(): CommandSchema {
   return {
     command: 'diagnose run',
-    description: 'Intent: run-level diagnosis facade (primitive commands: run-report, timeline)',
+    description:
+      'Intent: run-level diagnosis facade (primitive commands: run-summary, query-executions, timeline)',
     arguments: [],
     options: [
       {
@@ -603,7 +512,7 @@ function getDiagnoseNodeSchema(): CommandSchema {
   return {
     command: 'diagnose node',
     description:
-      'Intent: resource-level diagnosis facade (primitive commands: run-report, deps, explain)',
+      'Intent: resource-level diagnosis facade (primitive commands: run-summary, query-executions, deps, explain)',
     arguments: [
       {
         name: 'resource',
@@ -747,15 +656,14 @@ export function getAllSchemas(): Record<string, CommandSchema> {
   const raw = {
     summary: getSummarySchema(),
     graph: getGraphSchema(),
-    'run-report': getRunReportSchema(),
+    'query-executions': getQueryExecutionsSchema(),
+    'run-summary': getRunSummarySchema(),
     deps: getDepsSchema(),
     inventory: getInventorySchema(),
-    failures: getFailuresSchema(),
     timeline: getTimelineSchema(),
     search: getSearchSchema(),
     discover: getDiscoverSchema(),
     explain: getExplainSchema(),
-    impact: getImpactSchema(),
     'diagnose run': getDiagnoseRunSchema(),
     'diagnose node': getDiagnoseNodeSchema(),
     export: getExportIntentSchema(),

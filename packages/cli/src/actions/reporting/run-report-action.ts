@@ -13,7 +13,7 @@ import {
   detectBottlenecks,
   buildAdapterTotals,
   detectAdapterHeavyNodes,
-  searchRunResults,
+  filterAdapterMetricMins,
   formatOutput,
   formatRunReport,
   formatAdapterTotalsHuman,
@@ -131,22 +131,11 @@ function filterExecutionsForAdapterTop(
   executions: NodeExecution[],
   options: RunReportOptions,
 ): NodeExecution[] {
-  let filtered = executions;
-  const filters = [
-    { key: 'min_bytes_processed' as const, value: options.adapterMinBytes },
-    { key: 'min_slot_ms' as const, value: options.adapterMinSlotMs },
-    {
-      key: 'min_rows_affected' as const,
-      value: options.adapterMinRowsAffected,
-    },
-  ];
-  for (const filter of filters) {
-    if (filter.value === undefined) continue;
-    filtered = searchRunResults(filtered, {
-      [filter.key]: filter.value,
-    });
-  }
-  return filtered;
+  return filterAdapterMetricMins(executions, {
+    minBytesProcessed: options.adapterMinBytes,
+    minSlotMs: options.adapterMinSlotMs,
+    minRowsAffected: options.adapterMinRowsAffected,
+  });
 }
 
 function buildAdapterSections(

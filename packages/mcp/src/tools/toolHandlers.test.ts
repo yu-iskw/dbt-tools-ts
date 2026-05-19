@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { QueryExecutionsValidationError } from '@dbt-tools/core';
 import type {
   ArtifactWorkspaceStatus,
   DbtToolsUseCases,
-  ResolvedArtifactRun,
   SearchResourcesInput,
 } from '@dbt-tools/core/artifact-workspace';
 import { createDbtToolsMcpToolHandlers, type ArtifactWorkspaceControl } from './toolHandlers.js';
@@ -14,17 +14,9 @@ class FakeWorkspaceControl implements ArtifactWorkspaceControl {
     versionToken: 'manifest:1|run_results:1',
     loadedAtMs: 100,
     stale: false,
+    runs: [{ runId: 'current', versionToken: 'manifest:1|run_results:1' }],
+    warehouse_type: 'bigquery',
   };
-
-  runs: ResolvedArtifactRun[] = [
-    {
-      runId: 'current',
-      manifestKey: '/target/manifest.json',
-      runResultsKey: '/target/run_results.json',
-      updatedAtMs: 1,
-      versionToken: 'manifest:1|run_results:1',
-    },
-  ];
 
   async getStatus(): Promise<ArtifactWorkspaceStatus> {
     return this.status;
@@ -33,19 +25,11 @@ class FakeWorkspaceControl implements ArtifactWorkspaceControl {
   async refreshIfChanged(): Promise<ArtifactWorkspaceStatus> {
     return { ...this.status, loadedAtMs: 200 };
   }
-
-  async listRuns(): Promise<ResolvedArtifactRun[]> {
-    return this.runs;
-  }
-
-  async selectRun(runId: string): Promise<ArtifactWorkspaceStatus> {
-    this.status = { ...this.status, selectedRunId: runId };
-    return this.status;
-  }
 }
 
 class FakeUseCases implements DbtToolsUseCases {
   lastSearchInput: SearchResourcesInput | null = null;
+  lastQueryExecutionsInput: unknown = null;
 
   async searchResources(input: SearchResourcesInput) {
     this.lastSearchInput = input;
@@ -82,7 +66,7 @@ class FakeUseCases implements DbtToolsUseCases {
     };
   }
 
-  async getLineage() {
+  async queryDependencies() {
     return {
       resource_id: 'model.pkg.orders',
       direction: 'upstream' as const,
@@ -91,27 +75,24 @@ class FakeUseCases implements DbtToolsUseCases {
     };
   }
 
-  async getImpact() {
+  async queryExecutions(input: unknown) {
+    this.lastQueryExecutionsInput = input;
     return {
-      resource_id: 'model.pkg.orders',
-      direction: 'downstream' as const,
-      dependencies: [],
-      count: 0,
-    };
-  }
-
-  async summarizeFailures() {
-    return {
-      total: 0,
-      returned: 0,
-      limit: 20,
+      warehouse: 'bigquery' as const,
+      run_warehouse: 'bigquery' as const,
+      warehouse_criteria: null,
+      resource_types: ['model'],
+      sort: 'execution_time_desc' as const,
+      limit: 10,
       offset: 0,
+      total_matched: 0,
+      returned: 0,
       has_more: false,
-      failures: [],
+      rows: [],
     };
   }
 
-  async buildRunReport() {
+  async getRunSummary() {
     return {
       summary: {
         total_execution_time: 0,
@@ -121,10 +102,8 @@ class FakeUseCases implements DbtToolsUseCases {
       },
       statusBreakdown: [],
       bottlenecks: undefined,
-      node_executions: [],
-      node_executions_limit: 20,
-      node_executions_offset: 0,
-      node_executions_has_more: false,
+      adapterTotals: null,
+      warehouse_type: 'bigquery' as const,
     };
   }
 }
@@ -143,6 +122,7 @@ describe('createDbtToolsMcpToolHandlers', () => {
       target: './target',
       selectedRunId: 'current',
       stale: false,
+      runs: [{ runId: 'current' }],
     });
   });
 
@@ -160,12 +140,20 @@ describe('createDbtToolsMcpToolHandlers', () => {
     });
   });
 
-  it('selects a run through the workspace control surface', async () => {
-    const workspace = new FakeWorkspaceControl();
-    const handlers = createDbtToolsMcpToolHandlers(workspace, new FakeUseCases());
-
-    const payload = parseToolJson(await handlers.dbt_tools_select_run({ runId: 'new-run' }));
-
-    expect(payload).toMatchObject({ selectedRunId: 'new-run' });
+  it('maps validation errors to isError tool results', async () => {
+    const useCases = new FakeUseCases();
+    useCases.queryExecutions = async () => {
+      throw new QueryExecutionsValidationError('bad sort', {
+        hint: 'use execution_time_desc',
+        allowed_sorts: ['execution_time_desc'],
+      });
+    };
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
+    const result = await handlers.dbt_tools_query_executions({ sort: 'slot_ms_desc' });
+    expect(result.isError).toBe(true);
+    expect(parseToolJson(result)).toMatchObject({
+      error: 'bad sort',
+      allowed_sorts: ['execution_time_desc'],
+    });
   });
 });
