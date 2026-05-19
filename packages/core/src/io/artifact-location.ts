@@ -139,6 +139,29 @@ export interface GcsArtifactSourceRequestOptions {
   impersonatedServiceAccount?: string;
 }
 
+/** CLI/UI overrides applied on top of env-based remote config when merging. */
+export interface RemoteSourceClientOverrides {
+  projectId?: string;
+  region?: string;
+  endpoint?: string;
+  forcePathStyle?: boolean;
+}
+
+function resolveGcsImpersonationPrincipal(
+  gcsRequestOptions: GcsArtifactSourceRequestOptions | undefined,
+  envGcs: DbtToolsRemoteSourceConfig | undefined,
+): string | undefined {
+  const fromRequest = gcsRequestOptions?.impersonatedServiceAccount?.trim();
+  if (fromRequest != null && fromRequest !== '') {
+    return fromRequest;
+  }
+  const fromEnv = envGcs?.impersonatedServiceAccount?.trim();
+  if (fromEnv != null && fromEnv !== '') {
+    return fromEnv;
+  }
+  return undefined;
+}
+
 /**
  * Build {@link DbtToolsRemoteSourceConfig} for SDK clients using UI-provided
  * bucket/prefix while inheriting poll interval and provider-specific options
@@ -148,6 +171,7 @@ export function mergeRemoteSourceConfigWithParsedLocation(
   envConfig: DbtToolsRemoteSourceConfig | undefined,
   parsed: ParsedRemoteArtifactLocation,
   gcsRequestOptions?: GcsArtifactSourceRequestOptions,
+  clientOverrides?: RemoteSourceClientOverrides,
 ): DbtToolsRemoteSourceConfig {
   const pollIntervalMs =
     envConfig?.pollIntervalMs != null && envConfig.pollIntervalMs >= 0
@@ -161,25 +185,25 @@ export function mergeRemoteSourceConfigWithParsedLocation(
       bucket: parsed.bucket,
       prefix: parsed.prefix,
       pollIntervalMs,
-      region: envS3?.region,
-      endpoint: envS3?.endpoint,
-      forcePathStyle: envS3?.forcePathStyle,
+      region: clientOverrides?.region ?? envS3?.region,
+      endpoint: clientOverrides?.endpoint ?? envS3?.endpoint,
+      forcePathStyle: clientOverrides?.forcePathStyle ?? envS3?.forcePathStyle,
     };
   }
 
   const envGcs = envConfig?.provider === 'gcs' ? envConfig : undefined;
-  const trimmedImpersonation = gcsRequestOptions?.impersonatedServiceAccount?.trim();
-  if (trimmedImpersonation != null && trimmedImpersonation !== '') {
-    assertGcsImpersonationPrincipalAllowed(trimmedImpersonation);
+  const impersonationPrincipal = resolveGcsImpersonationPrincipal(gcsRequestOptions, envGcs);
+  if (impersonationPrincipal != null) {
+    assertGcsImpersonationPrincipalAllowed(impersonationPrincipal);
   }
   return {
     provider: 'gcs',
     bucket: parsed.bucket,
     prefix: parsed.prefix,
     pollIntervalMs,
-    projectId: envGcs?.projectId,
-    ...(trimmedImpersonation != null && trimmedImpersonation !== ''
-      ? { impersonatedServiceAccount: trimmedImpersonation }
+    projectId: clientOverrides?.projectId ?? envGcs?.projectId,
+    ...(impersonationPrincipal != null
+      ? { impersonatedServiceAccount: impersonationPrincipal }
       : {}),
   };
 }

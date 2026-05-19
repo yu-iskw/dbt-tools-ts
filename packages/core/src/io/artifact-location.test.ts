@@ -152,6 +152,39 @@ describe('mergeRemoteSourceConfigWithParsedLocation', () => {
     }
   });
 
+  it('applies clientOverrides projectId over env GCS projectId', () => {
+    const merged = mergeRemoteSourceConfigWithParsedLocation(
+      {
+        provider: 'gcs',
+        bucket: 'ignored',
+        prefix: 'ignored',
+        pollIntervalMs: 9_000,
+        projectId: 'env-proj',
+      },
+      { kind: 'remote', provider: 'gcs', bucket: 'b', prefix: 'p' },
+      undefined,
+      { projectId: 'cli-proj' },
+    );
+    expect(merged).toMatchObject({
+      provider: 'gcs',
+      projectId: 'cli-proj',
+    });
+  });
+
+  it('uses impersonatedServiceAccount from env GCS config when gcsRequestOptions omitted', () => {
+    const merged = mergeRemoteSourceConfigWithParsedLocation(
+      {
+        provider: 'gcs',
+        bucket: 'ignored',
+        prefix: 'ignored',
+        pollIntervalMs: 9_000,
+        impersonatedServiceAccount: 'from-env@proj.iam.gserviceaccount.com',
+      },
+      { kind: 'remote', provider: 'gcs', bucket: 'b', prefix: 'p' },
+    );
+    expect(merged.impersonatedServiceAccount).toBe('from-env@proj.iam.gserviceaccount.com');
+  });
+
   it('allows GCS impersonation when suffix allowlist matches', () => {
     const prevAllow = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
     const prevSuf = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;

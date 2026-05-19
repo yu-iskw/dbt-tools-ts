@@ -7,7 +7,11 @@ import type { AnalysisSnapshot, ResourceNode } from '../analysis/analysis-snapsh
 import { buildAnalysisSnapshotFromParsedArtifactBundle } from '../analysis/analysis-snapshot';
 import { DependencyService, type DependencyResult } from '../analysis/dependency-service';
 import type { ManifestGraph } from '../analysis/manifest-graph';
-import { getDbtToolsRemoteSourceConfigFromEnv } from '../config/dbt-tools-env';
+import {
+  getDbtToolsRemoteClientEnvFromEnv,
+  getDbtToolsRemoteSourceConfigFromEnv,
+  type DbtToolsRemoteClientEnv,
+} from '../config/dbt-tools-env';
 import {
   applyDiscoveryNodeFilters,
   legacySearchScore,
@@ -20,9 +24,11 @@ import {
   type ArtifactDiscoveryResult,
 } from '../io/artifact-discovery';
 import {
+  type GcsArtifactSourceRequestOptions,
   joinObjectStorageKey,
   mergeRemoteSourceConfigWithParsedLocation,
   normalizeArtifactPrefix,
+  type RemoteSourceClientOverrides,
 } from '../io/artifact-location';
 import { parseDbtToolsArtifactTarget } from '../io/dbt-artifact-bundle';
 import {
@@ -31,11 +37,18 @@ import {
 } from '../io/remote-object-store';
 import type { GraphNodeAttributes } from '../types';
 
+export type {
+  GcsArtifactSourceRequestOptions,
+  RemoteSourceClientOverrides,
+} from '../io/artifact-location';
+
 export interface ArtifactWorkspaceOptions {
   dbtTarget: string;
   now?: () => number;
   cwd?: string;
   remoteClient?: RemoteObjectStoreClient;
+  gcsRequestOptions?: GcsArtifactSourceRequestOptions;
+  remoteClientOverrides?: RemoteSourceClientOverrides;
 }
 
 export interface ResolvedArtifactRun {
@@ -280,6 +293,8 @@ export class ArtifactWorkspace {
   private readonly cwd: string;
   private readonly now: () => number;
   private readonly injectedRemoteClient: RemoteObjectStoreClient | undefined;
+  private readonly gcsRequestOptions: GcsArtifactSourceRequestOptions | undefined;
+  private readonly remoteClientOverrides: RemoteSourceClientOverrides | undefined;
   private selectedRunId: string | null = null;
   private runs: ResolvedArtifactRun[] = [];
   private loaded: LoadedArtifactWorkspace | null = null;
@@ -292,6 +307,8 @@ export class ArtifactWorkspace {
     this.cwd = options.cwd ?? process.cwd();
     this.now = options.now ?? Date.now;
     this.injectedRemoteClient = options.remoteClient;
+    this.gcsRequestOptions = options.gcsRequestOptions;
+    this.remoteClientOverrides = options.remoteClientOverrides;
   }
 
   async initialize(): Promise<void> {
@@ -410,6 +427,24 @@ export class ArtifactWorkspace {
     return discovery.ok ? null : discovery.failure.message;
   }
 
+  private mergeRemoteClientEnvLayers(
+    base: DbtToolsRemoteClientEnv,
+    override: DbtToolsRemoteClientEnv,
+  ): {
+    gcsRequestOptions?: GcsArtifactSourceRequestOptions;
+    remoteClientOverrides?: RemoteSourceClientOverrides;
+  } {
+    const gcsRequestOptions =
+      base.gcsRequestOptions != null || override.gcsRequestOptions != null
+        ? { ...base.gcsRequestOptions, ...override.gcsRequestOptions }
+        : undefined;
+    const remoteClientOverrides =
+      base.remoteClientOverrides != null || override.remoteClientOverrides != null
+        ? { ...base.remoteClientOverrides, ...override.remoteClientOverrides }
+        : undefined;
+    return { gcsRequestOptions, remoteClientOverrides };
+  }
+
   private async discoverSource(): Promise<DiscoveredSource> {
     const parsed = parseDbtToolsArtifactTarget(this.dbtTarget, this.cwd);
     if (parsed.kind === 'local') {
@@ -417,9 +452,18 @@ export class ArtifactWorkspace {
       return { kind: 'local', discovery, runs };
     }
 
+    const { gcsRequestOptions, remoteClientOverrides } = this.mergeRemoteClientEnvLayers(
+      getDbtToolsRemoteClientEnvFromEnv(),
+      {
+        gcsRequestOptions: this.gcsRequestOptions,
+        remoteClientOverrides: this.remoteClientOverrides,
+      },
+    );
     const config = mergeRemoteSourceConfigWithParsedLocation(
       getDbtToolsRemoteSourceConfigFromEnv(),
       parsed,
+      gcsRequestOptions,
+      remoteClientOverrides,
     );
     const client = this.injectedRemoteClient ?? (await createRemoteObjectStoreClient(config));
     const prefix = normalizeArtifactPrefix(config.prefix);

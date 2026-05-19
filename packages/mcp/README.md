@@ -23,6 +23,15 @@ The binary is **`dbt-tools-mcp`**. Or run via **`npx`** from your MCP client con
 dbt-tools-mcp --dbt-target ./target --help
 ```
 
+### Developing from source
+
+From the monorepo root (workspace `bin` is not linked for this package):
+
+```bash
+pnpm --filter @dbt-tools/mcp build
+node packages/mcp/dist/server.js --help
+```
+
 ## Quick start (local)
 
 Add to your MCP client (Cursor, Claude Desktop, etc.):
@@ -45,11 +54,14 @@ Point `./target` at the directory that contains `manifest.json` and `run_results
 - **`--dbt-target`** — local path, `s3://bucket/prefix`, or `gs://bucket/prefix` (required unless env is set)
 - **`DBT_TOOLS_DBT_TARGET`** — same value as `--dbt-target` when you omit the flag
 - **`--poll-interval-ms`** — optional background refresh interval (best-effort); use **`dbt_tools_refresh`** for an immediate reload after CI uploads
-- **`DBT_TOOLS_REMOTE_SOURCE`** — optional JSON for S3/GCS client options (region, endpoint, project id); the **URI** sets bucket/prefix, not a second location
+- **`--gcs-project-id`**, **`--gcs-impersonate-service-account`**, **`--s3-region`**, **`--s3-endpoint`** — remote client settings (`gs://` vs `s3://` only; see [REFERENCE.md](REFERENCE.md))
+- **`DBT_TOOLS_GCS_PROJECT_ID`**, **`DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`**, **`DBT_TOOLS_S3_REGION`**, **`DBT_TOOLS_S3_ENDPOINT`** — same settings via env (flags override env when both are set); bucket/prefix always from the URI
 
 Full CLI flags, environment variables, client examples, tool parameters, and troubleshooting: **[REFERENCE.md](REFERENCE.md)**.
 
 ### Remote artifacts (summary)
+
+**S3:**
 
 ```json
 {
@@ -61,18 +73,35 @@ Full CLI flags, environment variables, client examples, tool parameters, and tro
         "@dbt-tools/mcp",
         "--dbt-target",
         "s3://my-bucket/dbt/prod",
-        "--poll-interval-ms",
-        "30000"
+        "--s3-region",
+        "ap-northeast-1"
       ],
+      "env": { "AWS_REGION": "ap-northeast-1" }
+    }
+  }
+}
+```
+
+**GCS** (project + impersonation via env):
+
+```json
+{
+  "mcpServers": {
+    "dbt-tools": {
+      "command": "npx",
+      "args": ["-y", "@dbt-tools/mcp", "--dbt-target", "gs://my-bucket/dbt/prod"],
       "env": {
-        "AWS_REGION": "ap-northeast-1"
+        "DBT_TOOLS_GCS_PROJECT_ID": "my-gcp-project",
+        "DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT": "reader@my-gcp-project.iam.gserviceaccount.com",
+        "DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST": "reader@my-gcp-project.iam.gserviceaccount.com",
+        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/key.json"
       }
     }
   }
 }
 ```
 
-Credentials stay in the Node child process (AWS/GCP default chains). For endpoint, region, and `DBT_TOOLS_REMOTE_SOURCE` details, see [REFERENCE.md](REFERENCE.md) and [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
+Credentials stay in the Node child process (AWS/GCP default chains). See [REFERENCE.md](REFERENCE.md) and [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
 
 ## Suggested agent workflow
 
@@ -103,6 +132,8 @@ Parameters, defaults, and pagination limits: **[REFERENCE.md](REFERENCE.md#mcp-t
 
 ## Troubleshooting
 
+- **`No versions available for @dbt-tools/mcp` (npm 11+)** — if your `~/.npmrc` sets `min-release-age`, fresh releases are hidden until they age out. Use `npx --min-release-age=0 -y @dbt-tools/mcp …`, wait for the quarantine window, or lower that setting. npm does not yet support a per-scope exclude like pnpm’s `minimumReleaseAgeExclude`.
+- **No output from `npx … -- --help`** — pass flags after `--` (e.g. `npx --min-release-age=0 -y @dbt-tools/mcp -- --help`); help prints to stdout and exits 0.
 - **`dbt artifact target is required`** — set `--dbt-target` or `DBT_TOOLS_DBT_TARGET` in the MCP server `env` or args.
 - **`Expected exactly one artifact set`** — the target must contain a single complete `manifest.json` + `run_results.json` pair at its root; fix the path or layout ([ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
 - **S3/GCS access denied** — configure AWS/GCP credentials on the **child process** (`env` in MCP config).

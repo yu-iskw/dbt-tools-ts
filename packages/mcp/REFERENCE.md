@@ -8,12 +8,17 @@ Operator and agent lookup for `dbt-tools-mcp`. For a short introduction, see [RE
 Usage: dbt-tools-mcp --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> [options]
 ```
 
-| Flag                        | Required | Description                                                                                                                                                |
-| --------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--dbt-target <target>`     | Yes\*    | Local directory, or `s3://bucket/prefix`, or `gs://bucket/prefix`                                                                                          |
-| `--poll-interval-ms <ms>`   | No       | Non-negative integer. If **> 0**, runs a background timer that calls `refreshIfChanged()` on that interval (errors are swallowed). Omit or `0` to disable. |
-| `--max-cached-runs <count>` | No       | **Reserved** — accepted by the parser but not passed to the workspace in the current release; do not rely on it.                                           |
-| `-h`, `--help`              | No       | Print usage to **stdout** and exit **0**                                                                                                                   |
+| Flag                                        | Required | Environment variable                                                                                                                        | Description                                                                                                                                                |
+| ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dbt-target <target>`                     | Yes\*    | `DBT_TOOLS_DBT_TARGET`                                                                                                                      | Local directory, or `s3://bucket/prefix`, or `gs://bucket/prefix`                                                                                          |
+| `--poll-interval-ms <ms>`                   | No       | _(none — set in MCP `args` only)_                                                                                                           | Non-negative integer. If **> 0**, runs a background timer that calls `refreshIfChanged()` on that interval (errors are swallowed). Omit or `0` to disable. |
+| `--gcs-project-id <id>`                     | No       | `DBT_TOOLS_GCS_PROJECT_ID`                                                                                                                  | GCS client project ID (`gs://` targets only)                                                                                                               |
+| `--gcs-impersonate-service-account <email>` | No       | `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`; policy `DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST`, `DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES` | GCS read-only impersonation principal (`gs://` targets only)                                                                                               |
+| `--s3-region <region>`                      | No       | `DBT_TOOLS_S3_REGION` (credentials may also use `AWS_REGION`)                                                                               | S3 region (`s3://` targets only)                                                                                                                           |
+| `--s3-endpoint <url>`                       | No       | `DBT_TOOLS_S3_ENDPOINT`                                                                                                                     | S3-compatible endpoint URL (`s3://` targets only)                                                                                                          |
+| `-h`, `--help`                              | No       | —                                                                                                                                           | Print usage to **stdout** and exit **0**                                                                                                                   |
+
+CLI flag values override the matching `DBT_TOOLS_*` env vars when both are set. The `--dbt-target` URI always supplies `bucket`, `prefix`, and provider.
 
 \*Required unless **`DBT_TOOLS_DBT_TARGET`** is set to a non-empty value.
 
@@ -29,11 +34,16 @@ Configuration errors print to **stderr** and exit **1** before the MCP server co
 
 ### Used by MCP
 
-| Variable                  | Purpose                                                                                                                                      |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DBT_TOOLS_DBT_TARGET`    | Default artifact root when `--dbt-target` is omitted                                                                                         |
-| `DBT_TOOLS_REMOTE_SOURCE` | Optional JSON for S3/GCS **client** options merged with the `--dbt-target` URI (region, endpoint, `projectId`, etc.)                         |
-| AWS / GCP standard vars   | Credentials for remote targets in the child process, e.g. `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_PROFILE`, `GOOGLE_APPLICATION_CREDENTIALS` |
+| Variable                                       | Purpose                                                                                                                 |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `DBT_TOOLS_DBT_TARGET`                         | Default artifact root when `--dbt-target` is omitted                                                                    |
+| `DBT_TOOLS_GCS_PROJECT_ID`                     | GCS client project (`gs://` targets)                                                                                    |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`    | GCS impersonation principal (`gs://` targets)                                                                           |
+| `DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST`        | Comma-separated allowed impersonation principals (exact match)                                                          |
+| `DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES` | Comma-separated principal suffix allowlist (e.g. `@myorg.iam.gserviceaccount.com`)                                      |
+| `DBT_TOOLS_S3_REGION`                          | S3 region (`s3://` targets)                                                                                             |
+| `DBT_TOOLS_S3_ENDPOINT`                        | S3-compatible endpoint URL (`s3://` targets)                                                                            |
+| AWS / GCP standard vars                        | Credentials for remote targets, e.g. `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_PROFILE`, `GOOGLE_APPLICATION_CREDENTIALS` |
 
 ### Not used by MCP
 
@@ -46,35 +56,9 @@ These apply to other dbt-tools surfaces, not `dbt-tools-mcp`:
 | `DBT_TOOLS_WATCH`, `DBT_TOOLS_RELOAD_DEBOUNCE_MS` | File-watch reload (not MCP)                              |
 | `DBT_TARGET_DIR`, `DBT_TARGET`                    | Legacy aliases for target directory                      |
 
-### `DBT_TOOLS_REMOTE_SOURCE`
+For `s3://` and `gs://` targets, **bucket and prefix come only from the URI** (or `DBT_TOOLS_DBT_TARGET`). Set client options via the env vars above or the matching CLI flags.
 
-When `--dbt-target` is `s3://…` or `gs://…`, **bucket and prefix come from the URI**. The JSON env var supplies provider-specific client settings when `provider` matches. The parser requires `bucket` and `prefix` in JSON even though MCP overrides them from the URI.
-
-**S3 example** (often set in the MCP client `env` block):
-
-```json
-{
-  "provider": "s3",
-  "bucket": "my-bucket",
-  "prefix": "dbt/prod",
-  "region": "ap-northeast-1",
-  "endpoint": "https://s3.local",
-  "forcePathStyle": true
-}
-```
-
-**GCS example:**
-
-```json
-{
-  "provider": "gcs",
-  "bucket": "my-bucket",
-  "prefix": "dbt/prod",
-  "projectId": "my-gcp-project"
-}
-```
-
-Further remote semantics: [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
+Further remote semantics: [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md). The web app may still use `DBT_TOOLS_REMOTE_SOURCE` JSON; MCP does not.
 
 ## MCP client configuration
 
@@ -104,11 +88,31 @@ Further remote semantics: [ADR-0004](../../docs/adr/0004-remote-object-storage-a
         "--dbt-target",
         "s3://my-bucket/dbt/prod",
         "--poll-interval-ms",
-        "30000"
+        "30000",
+        "--s3-region",
+        "ap-northeast-1"
       ],
       "env": {
-        "AWS_REGION": "ap-northeast-1",
-        "DBT_TOOLS_REMOTE_SOURCE": "{\"provider\":\"s3\",\"bucket\":\"my-bucket\",\"prefix\":\"dbt/prod\",\"region\":\"ap-northeast-1\"}"
+        "AWS_REGION": "ap-northeast-1"
+      }
+    }
+  }
+}
+```
+
+### Remote GCS (env vars)
+
+```json
+{
+  "mcpServers": {
+    "dbt-tools": {
+      "command": "npx",
+      "args": ["-y", "@dbt-tools/mcp", "--dbt-target", "gs://my-bucket/dbt/prod"],
+      "env": {
+        "DBT_TOOLS_GCS_PROJECT_ID": "my-gcp-project",
+        "DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT": "reader@my-gcp-project.iam.gserviceaccount.com",
+        "DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST": "reader@my-gcp-project.iam.gserviceaccount.com",
+        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/key.json"
       }
     }
   }
