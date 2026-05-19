@@ -13,6 +13,11 @@ import {
   type DbtToolsRemoteClientEnv,
 } from '../config/dbt-tools-env';
 import {
+  dbtToolsDebugLog,
+  dbtToolsDebugLogPhase,
+  dbtToolsDebugNow,
+} from '../debug/dbt-tools-debug-log.js';
+import {
   applyDiscoveryNodeFilters,
   legacySearchScore,
   parseDiscoveryQueryTokens,
@@ -312,6 +317,8 @@ export class ArtifactWorkspace {
   }
 
   async initialize(): Promise<void> {
+    const startedAt = dbtToolsDebugNow();
+    dbtToolsDebugLog(`initialize start target=${this.dbtTarget}`);
     const source = await this.discoverSource();
     this.runs = source.runs;
     if (!source.discovery.ok) {
@@ -335,6 +342,7 @@ export class ArtifactWorkspace {
     this.loaded = await this.loadRun(source, run);
     this.stale = false;
     this.lastRefreshError = undefined;
+    dbtToolsDebugLogPhase('initialize complete', startedAt, `runId=${run.runId}`);
   }
 
   async refreshIfChanged(): Promise<ArtifactWorkspaceStatus> {
@@ -446,9 +454,12 @@ export class ArtifactWorkspace {
   }
 
   private async discoverSource(): Promise<DiscoveredSource> {
+    const startedAt = dbtToolsDebugNow();
     const parsed = parseDbtToolsArtifactTarget(this.dbtTarget, this.cwd);
+    dbtToolsDebugLog(`discoverSource kind=${parsed.kind}`);
     if (parsed.kind === 'local') {
       const { discovery, runs } = await discoverLocalArtifactRunPaths(parsed.resolvedPath);
+      dbtToolsDebugLogPhase('discoverSource local done', startedAt, `runs=${runs.length}`);
       return { kind: 'local', discovery, runs };
     }
 
@@ -469,6 +480,7 @@ export class ArtifactWorkspace {
     const prefix = normalizeArtifactPrefix(config.prefix);
     const objects = await client.listObjects(config.bucket, prefix);
     const discovery = discoverArtifactCandidates(remoteKeysToListedArtifacts(objects, prefix));
+    dbtToolsDebugLog(`discoverSource remote listed=${objects.length} discoveryOk=${discovery.ok}`);
     const runs: ResolvedArtifactRun[] = discovery.ok
       ? discovery.candidates.map((candidate) => ({
           runId: candidate.runId,
@@ -484,6 +496,7 @@ export class ArtifactWorkspace {
           versionToken: candidate.versionToken,
         }))
       : [];
+    dbtToolsDebugLogPhase('discoverSource remote done', startedAt, `runs=${runs.length}`);
     return { kind: 'remote', bucket: config.bucket, client, discovery, runs };
   }
 
@@ -491,10 +504,15 @@ export class ArtifactWorkspace {
     source: DiscoveredSource,
     run: ResolvedArtifactRun,
   ): Promise<LoadedArtifactWorkspace> {
+    const startedAt = dbtToolsDebugNow();
+    dbtToolsDebugLog(`loadRun start runId=${run.runId}`);
     const [manifestBytes, runResultsBytes, catalogBytes, sourcesBytes] =
       source.kind === 'local'
         ? await this.readLocalRun(run)
         : await this.readRemoteRun(source, run);
+    dbtToolsDebugLog(
+      `loadRun read bytes manifest=${manifestBytes.byteLength} run_results=${runResultsBytes.byteLength}`,
+    );
     const manifestJson = decodeJson(manifestBytes);
     const runResultsJson = decodeJson(runResultsBytes);
     const catalogJson = optionalDecodeJson(catalogBytes);
@@ -513,6 +531,7 @@ export class ArtifactWorkspace {
       catalog,
       sources,
     });
+    dbtToolsDebugLogPhase('loadRun complete', startedAt, `resources=${analysis.resources.length}`);
     return {
       run,
       analysis,

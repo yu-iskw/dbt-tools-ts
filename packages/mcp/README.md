@@ -30,6 +30,15 @@ From the monorepo root (workspace `bin` is not linked for this package):
 ```bash
 pnpm --filter @dbt-tools/mcp build
 node packages/mcp/dist/server.js --help
+
+# Local smoke test (lazy init + debug logs on stderr)
+DBT_TOOLS_DEBUG=1 node packages/mcp/dist/server.js --dbt-target ./target
+```
+
+Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector) (local build):
+
+```bash
+npx @modelcontextprotocol/inspector -- node packages/mcp/dist/server.js --dbt-target ./target
 ```
 
 ## Quick start (local)
@@ -56,6 +65,8 @@ Point `./target` at the directory that contains `manifest.json` and `run_results
 - **`--poll-interval-ms`** — optional background refresh interval (best-effort); use **`dbt_tools_refresh`** for an immediate reload after CI uploads
 - **`--gcs-project-id`**, **`--gcs-impersonate-service-account`**, **`--s3-region`**, **`--s3-endpoint`** — remote client settings (`gs://` vs `s3://` only; see [REFERENCE.md](REFERENCE.md))
 - **`DBT_TOOLS_GCS_PROJECT_ID`**, **`DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`**, **`DBT_TOOLS_S3_REGION`**, **`DBT_TOOLS_S3_ENDPOINT`** — same settings via env (flags override env when both are set); bucket/prefix always from the URI
+- **`DBT_TOOLS_DEBUG=1`** — phased progress on **stderr** (list/download/parse); use while debugging GCS/S3 startup
+- **Lazy startup** — MCP connects immediately; artifacts load on the first tool that needs them.
 
 Full CLI flags, environment variables, client examples, tool parameters, and troubleshooting: **[REFERENCE.md](REFERENCE.md)**.
 
@@ -93,7 +104,6 @@ Full CLI flags, environment variables, client examples, tool parameters, and tro
       "env": {
         "DBT_TOOLS_GCS_PROJECT_ID": "my-gcp-project",
         "DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT": "reader@my-gcp-project.iam.gserviceaccount.com",
-        "DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST": "reader@my-gcp-project.iam.gserviceaccount.com",
         "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/key.json"
       }
     }

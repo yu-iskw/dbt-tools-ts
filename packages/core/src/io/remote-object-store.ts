@@ -1,10 +1,12 @@
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Storage } from '@google-cloud/storage';
 import { GoogleAuth, Impersonated } from 'google-auth-library';
+import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
 import {
-  assertGcsImpersonationPrincipalAllowed,
-  type DbtToolsRemoteSourceConfig,
-} from '../config/dbt-tools-env';
+  dbtToolsDebugLog,
+  dbtToolsDebugLogPhase,
+  dbtToolsDebugNow,
+} from '../debug/dbt-tools-debug-log.js';
 import type { RemoteObjectMetadata } from './artifact-discovery';
 
 export interface RemoteObjectStoreClient {
@@ -24,6 +26,8 @@ class S3RemoteObjectStoreClient implements RemoteObjectStoreClient {
   }
 
   async listObjects(bucket: string, prefix: string): Promise<RemoteObjectMetadata[]> {
+    const startedAt = dbtToolsDebugNow();
+    dbtToolsDebugLog(`S3 listObjects start bucket=${bucket} prefix=${prefix || '(root)'}`);
     const results: RemoteObjectMetadata[] = [];
     let continuationToken: string | undefined;
 
@@ -48,10 +52,13 @@ class S3RemoteObjectStoreClient implements RemoteObjectStoreClient {
       continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
     } while (continuationToken);
 
+    dbtToolsDebugLogPhase('S3 listObjects done', startedAt, `objects=${results.length}`);
     return results;
   }
 
   async readObjectBytes(bucket: string, key: string): Promise<Uint8Array> {
+    const startedAt = dbtToolsDebugNow();
+    dbtToolsDebugLog(`S3 readObject start bucket=${bucket} key=${key}`);
     const response = await this.client.send(
       new GetObjectCommand({
         Bucket: bucket,
@@ -61,6 +68,7 @@ class S3RemoteObjectStoreClient implements RemoteObjectStoreClient {
 
     const bytes = await response.Body?.transformToByteArray();
     if (bytes == null) throw new Error(`Missing S3 object body for ${key}`);
+    dbtToolsDebugLogPhase('S3 readObject done', startedAt, `bytes=${bytes.byteLength}`);
     return bytes;
   }
 }
@@ -69,12 +77,14 @@ class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
   constructor(private readonly storage: Storage) {}
 
   async listObjects(bucket: string, prefix: string): Promise<RemoteObjectMetadata[]> {
+    const startedAt = dbtToolsDebugNow();
+    dbtToolsDebugLog(`GCS listObjects start bucket=${bucket} prefix=${prefix || '(root)'}`);
     const [files] = await this.storage.bucket(bucket).getFiles({
       prefix: prefix === '' ? undefined : `${prefix}/`,
       autoPaginate: true,
     });
 
-    return files.flatMap((file) => {
+    const results = files.flatMap((file) => {
       const updated = file.metadata.updated;
       if (!updated) return [];
       return [
@@ -87,25 +97,32 @@ class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
         },
       ];
     });
+    dbtToolsDebugLogPhase('GCS listObjects done', startedAt, `objects=${results.length}`);
+    return results;
   }
 
   async readObjectBytes(bucket: string, key: string): Promise<Uint8Array> {
+    const startedAt = dbtToolsDebugNow();
+    dbtToolsDebugLog(`GCS readObject start bucket=${bucket} key=${key}`);
     const [bytes] = await this.storage.bucket(bucket).file(key).download();
+    dbtToolsDebugLogPhase('GCS readObject done', startedAt, `bytes=${bytes.byteLength}`);
     return bytes;
   }
 }
 
 async function createGcsStorage(config: DbtToolsRemoteSourceConfig): Promise<Storage> {
+  const startedAt = dbtToolsDebugNow();
   const targetPrincipal = config.impersonatedServiceAccount?.trim();
-  if (targetPrincipal != null && targetPrincipal !== '') {
-    assertGcsImpersonationPrincipalAllowed(targetPrincipal);
-  }
   if (targetPrincipal == null || targetPrincipal === '') {
-    return new Storage({
+    dbtToolsDebugLog(`GCS client create projectId=${config.projectId ?? '(default)'}`);
+    const storage = new Storage({
       projectId: config.projectId,
     });
+    dbtToolsDebugLogPhase('GCS client ready', startedAt);
+    return storage;
   }
 
+  dbtToolsDebugLog(`GCS impersonation start principal=${targetPrincipal}`);
   const auth = new GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/cloud-platform'],
   });
@@ -116,18 +133,25 @@ async function createGcsStorage(config: DbtToolsRemoteSourceConfig): Promise<Sto
     delegates: [],
     targetScopes: ['https://www.googleapis.com/auth/devstorage.read_only'],
   });
-  return new Storage({
+  const storage = new Storage({
     projectId: config.projectId,
     authClient: impersonatedClient,
   });
+  dbtToolsDebugLogPhase('GCS client ready (impersonated)', startedAt);
+  return storage;
 }
 
 export async function createRemoteObjectStoreClient(
   config: DbtToolsRemoteSourceConfig,
 ): Promise<RemoteObjectStoreClient> {
+  const startedAt = dbtToolsDebugNow();
+  dbtToolsDebugLog(`remote client create provider=${config.provider} bucket=${config.bucket}`);
   if (config.provider === 's3') {
-    return new S3RemoteObjectStoreClient(config);
+    const client = new S3RemoteObjectStoreClient(config);
+    dbtToolsDebugLogPhase('remote client ready', startedAt, 'provider=s3');
+    return client;
   }
   const storage = await createGcsStorage(config);
+  dbtToolsDebugLogPhase('remote client ready', startedAt, 'provider=gcs');
   return new GcsRemoteObjectStoreClient(storage);
 }

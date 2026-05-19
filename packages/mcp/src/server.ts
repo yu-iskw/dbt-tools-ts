@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
+import { dbtToolsDebugLog } from '@dbt-tools/core';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { isCliEntrypoint } from './entrypoint.js';
@@ -44,7 +45,14 @@ function remoteClientOverridesFromOptions(options: ReturnType<typeof parseMcpSer
   };
 }
 
-export async function createDbtToolsMcpServer(argv: string[] = process.argv.slice(2)) {
+export interface DbtToolsMcpStack {
+  server: McpServer;
+  workspace: ArtifactWorkspace;
+}
+
+export async function createDbtToolsMcpStack(
+  argv: string[] = process.argv.slice(2),
+): Promise<DbtToolsMcpStack> {
   const options = parseMcpServerOptions(argv);
   const remoteClientOverrides = remoteClientOverridesFromOptions(options);
   const workspace = new ArtifactWorkspace({
@@ -54,7 +62,7 @@ export async function createDbtToolsMcpServer(argv: string[] = process.argv.slic
       : {}),
     ...(remoteClientOverrides != null ? { remoteClientOverrides } : {}),
   });
-  await workspace.initialize();
+  dbtToolsDebugLog('lazy-init: artifacts load on first tool call');
   startRefreshPolling(workspace, options.pollIntervalMs);
   const useCases = createDbtToolsUseCases(workspace);
   const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);
@@ -63,6 +71,11 @@ export async function createDbtToolsMcpServer(argv: string[] = process.argv.slic
     version: readMcpPackageVersion(),
   });
   registerDbtToolsTools(server, handlers);
+  return { server, workspace };
+}
+
+export async function createDbtToolsMcpServer(argv: string[] = process.argv.slice(2)) {
+  const { server } = await createDbtToolsMcpStack(argv);
   return server;
 }
 
@@ -73,6 +86,7 @@ export async function runDbtToolsMcpCli(
   try {
     const server = await createDbtToolsMcpServer(argv);
     await server.connect(new StdioServerTransport());
+    dbtToolsDebugLog('MCP stdio transport connected');
     return 0;
   } catch (error) {
     if (error instanceof McpHelpRequested) {

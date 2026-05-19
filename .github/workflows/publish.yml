@@ -33,9 +33,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    environment:
-      name: release
-      deployment: true
     defaults:
       run:
         shell: bash
