@@ -6,7 +6,14 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '@dbt-tools/core';
 import type { DbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
 import { registerDbtToolsTools } from './tools/registerTools.js';
-import { createDbtToolsMcpServer, runDbtToolsMcpCli, startRefreshPolling } from './server.js';
+import {
+  createDbtToolsMcpServer,
+  createDbtToolsMcpStack,
+  runDbtToolsMcpCli,
+  startRefreshPolling,
+} from './server.js';
+import { createDbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
+import { createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 
 class RecordingMcpServer {
   readonly tools: Array<{ name: string; config: unknown; handler: unknown }> = [];
@@ -83,12 +90,48 @@ describe('dbt-tools MCP server wiring', () => {
     ]);
   });
 
-  it('initializes a server from a real local artifact target', async () => {
+  it('creates a server from a real local artifact target', async () => {
     await writeArtifacts(tempDir);
 
     const server = await createDbtToolsMcpServer(['--dbt-target', tempDir]);
 
     expect(server).toBeInstanceOf(Object);
+  });
+
+  it('defers artifact load until a tool needs the workspace (lazy init)', async () => {
+    await writeArtifacts(tempDir);
+
+    const { workspace } = await createDbtToolsMcpStack(['--dbt-target', tempDir]);
+    const statusBefore = await workspace.getStatus();
+    expect(statusBefore.loadedAtMs).toBeNull();
+
+    const useCases = createDbtToolsUseCases(workspace);
+    const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);
+    await handlers.dbt_tools_search_resources({ query: 'orders' });
+
+    const statusAfter = await workspace.getStatus();
+    expect(statusAfter.loadedAtMs).not.toBeNull();
+  });
+
+  it('logs lazy-init guidance when DBT_TOOLS_DEBUG=1', async () => {
+    await writeArtifacts(tempDir);
+    const prev = process.env.DBT_TOOLS_DEBUG;
+    process.env.DBT_TOOLS_DEBUG = '1';
+    let stderr = '';
+    const originalWrite = process.stderr.write.bind(process.stderr);
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      stderr += String(chunk);
+      return originalWrite(chunk);
+    }) as typeof process.stderr.write;
+
+    try {
+      await createDbtToolsMcpStack(['--dbt-target', tempDir]);
+      expect(stderr).toContain('lazy-init');
+    } finally {
+      process.stderr.write = originalWrite;
+      if (prev === undefined) delete process.env.DBT_TOOLS_DEBUG;
+      else process.env.DBT_TOOLS_DEBUG = prev;
+    }
   });
 
   it('polls refreshes at the configured interval', async () => {

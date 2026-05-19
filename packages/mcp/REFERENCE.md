@@ -8,15 +8,15 @@ Operator and agent lookup for `dbt-tools-mcp`. For a short introduction, see [RE
 Usage: dbt-tools-mcp --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> [options]
 ```
 
-| Flag                                        | Required | Environment variable                                                                                                                        | Description                                                                                                                                                |
-| ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--dbt-target <target>`                     | Yes\*    | `DBT_TOOLS_DBT_TARGET`                                                                                                                      | Local directory, or `s3://bucket/prefix`, or `gs://bucket/prefix`                                                                                          |
-| `--poll-interval-ms <ms>`                   | No       | _(none — set in MCP `args` only)_                                                                                                           | Non-negative integer. If **> 0**, runs a background timer that calls `refreshIfChanged()` on that interval (errors are swallowed). Omit or `0` to disable. |
-| `--gcs-project-id <id>`                     | No       | `DBT_TOOLS_GCS_PROJECT_ID`                                                                                                                  | GCS client project ID (`gs://` targets only)                                                                                                               |
-| `--gcs-impersonate-service-account <email>` | No       | `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`; policy `DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST`, `DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES` | GCS read-only impersonation principal (`gs://` targets only)                                                                                               |
-| `--s3-region <region>`                      | No       | `DBT_TOOLS_S3_REGION` (credentials may also use `AWS_REGION`)                                                                               | S3 region (`s3://` targets only)                                                                                                                           |
-| `--s3-endpoint <url>`                       | No       | `DBT_TOOLS_S3_ENDPOINT`                                                                                                                     | S3-compatible endpoint URL (`s3://` targets only)                                                                                                          |
-| `-h`, `--help`                              | No       | —                                                                                                                                           | Print usage to **stdout** and exit **0**                                                                                                                   |
+| Flag                                        | Required | Environment variable                                          | Description                                                                                                                                                |
+| ------------------------------------------- | -------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dbt-target <target>`                     | Yes\*    | `DBT_TOOLS_DBT_TARGET`                                        | Local directory, or `s3://bucket/prefix`, or `gs://bucket/prefix`                                                                                          |
+| `--poll-interval-ms <ms>`                   | No       | _(none — set in MCP `args` only)_                             | Non-negative integer. If **> 0**, runs a background timer that calls `refreshIfChanged()` on that interval (errors are swallowed). Omit or `0` to disable. |
+| `--gcs-project-id <id>`                     | No       | `DBT_TOOLS_GCS_PROJECT_ID`                                    | GCS client project ID (`gs://` targets only)                                                                                                               |
+| `--gcs-impersonate-service-account <email>` | No       | `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`                   | GCS read-only impersonation principal (`gs://` targets only)                                                                                               |
+| `--s3-region <region>`                      | No       | `DBT_TOOLS_S3_REGION` (credentials may also use `AWS_REGION`) | S3 region (`s3://` targets only)                                                                                                                           |
+| `--s3-endpoint <url>`                       | No       | `DBT_TOOLS_S3_ENDPOINT`                                       | S3-compatible endpoint URL (`s3://` targets only)                                                                                                          |
+| `-h`, `--help`                              | No       | —                                                             | Print usage to **stdout** and exit **0**                                                                                                                   |
 
 CLI flag values override the matching `DBT_TOOLS_*` env vars when both are set. The `--dbt-target` URI always supplies `bucket`, `prefix`, and provider.
 
@@ -34,16 +34,15 @@ Configuration errors print to **stderr** and exit **1** before the MCP server co
 
 ### Used by MCP
 
-| Variable                                       | Purpose                                                                                                                 |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `DBT_TOOLS_DBT_TARGET`                         | Default artifact root when `--dbt-target` is omitted                                                                    |
-| `DBT_TOOLS_GCS_PROJECT_ID`                     | GCS client project (`gs://` targets)                                                                                    |
-| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`    | GCS impersonation principal (`gs://` targets)                                                                           |
-| `DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST`        | Comma-separated allowed impersonation principals (exact match)                                                          |
-| `DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES` | Comma-separated principal suffix allowlist (e.g. `@myorg.iam.gserviceaccount.com`)                                      |
-| `DBT_TOOLS_S3_REGION`                          | S3 region (`s3://` targets)                                                                                             |
-| `DBT_TOOLS_S3_ENDPOINT`                        | S3-compatible endpoint URL (`s3://` targets)                                                                            |
-| AWS / GCP standard vars                        | Credentials for remote targets, e.g. `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_PROFILE`, `GOOGLE_APPLICATION_CREDENTIALS` |
+| Variable                                    | Purpose                                                                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `DBT_TOOLS_DBT_TARGET`                      | Default artifact root when `--dbt-target` is omitted                                                                     |
+| `DBT_TOOLS_GCS_PROJECT_ID`                  | GCS client project (`gs://` targets)                                                                                     |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | GCS impersonation principal (`gs://` targets)                                                                            |
+| `DBT_TOOLS_S3_REGION`                       | S3 region (`s3://` targets)                                                                                              |
+| `DBT_TOOLS_S3_ENDPOINT`                     | S3-compatible endpoint URL (`s3://` targets)                                                                             |
+| `DBT_TOOLS_DEBUG`                           | Set to **`1`** for phased progress logs on **stderr** (GCS/S3 list, download, parse). Safe for MCP; never log to stdout. |
+| AWS / GCP standard vars                     | Credentials for remote targets, e.g. `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_PROFILE`, `GOOGLE_APPLICATION_CREDENTIALS`  |
 
 ### Not used by MCP
 
@@ -111,7 +110,6 @@ Further remote semantics: [ADR-0004](../../docs/adr/0004-remote-object-storage-a
       "env": {
         "DBT_TOOLS_GCS_PROJECT_ID": "my-gcp-project",
         "DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT": "reader@my-gcp-project.iam.gserviceaccount.com",
-        "DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST": "reader@my-gcp-project.iam.gserviceaccount.com",
         "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/key.json"
       }
     }
@@ -291,13 +289,15 @@ Return a bounded execution summary for the selected artifact run.
 
 ## Troubleshooting
 
-| Symptom                             | Likely cause                                    | What to do                                                                                                                     |
-| ----------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `dbt artifact target is required`   | No `--dbt-target` and no `DBT_TOOLS_DBT_TARGET` | Set one in MCP `args` or `env`                                                                                                 |
-| `Expected exactly one artifact set` | Zero or multiple complete pairs at the target   | Use a single dbt `target/` root; see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md) |
-| S3/GCS access denied                | Missing credentials on child process            | Add AWS/GCP env vars to MCP `env`                                                                                              |
-| `stale: true`                       | Reload failed after artifact change             | Call `dbt_tools_refresh`; inspect `lastRefreshError`                                                                           |
-| MCP transport errors                | Non-protocol output on stdout                   | Do not wrap the server with scripts that print to stdout                                                                       |
+| Symptom                                    | Likely cause                                                   | What to do                                                                                                                                          |
+| ------------------------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dbt artifact target is required`          | No `--dbt-target` and no `DBT_TOOLS_DBT_TARGET`                | Set one in MCP `args` or `env`                                                                                                                      |
+| `Expected exactly one artifact set`        | Zero or multiple complete pairs at the target                  | Use a single dbt `target/` root; see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)                      |
+| S3/GCS access denied                       | Missing credentials on child process                           | Add AWS/GCP env vars to MCP `env`                                                                                                                   |
+| `stale: true`                              | Reload failed after artifact change                            | Call `dbt_tools_refresh`; inspect `lastRefreshError`                                                                                                |
+| Inspector **Request timed out** on connect | Client timeout while first artifact load runs (remote targets) | Startup is **lazy** (MCP connects immediately). Raise Inspector `MCP_REQUEST_MAX_TOTAL_TIMEOUT` for the first heavy tool call that loads artifacts. |
+| No logs during a long hang                 | Progress only when `DBT_TOOLS_DEBUG=1`                         | `export DBT_TOOLS_DEBUG=1` and read **stderr** (`initialize`, `GCS listObjects`, `loadRun`, …).                                                     |
+| MCP transport errors                       | Non-protocol output on stdout                                  | Do not wrap the server with scripts that print to stdout                                                                                            |
 
 ## Related documentation
 

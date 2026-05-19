@@ -10,11 +10,8 @@ export * from './analysis/analysis-snapshot';
 
 // Config exports (Node; not re-exported from browser entry)
 export {
-  assertGcsImpersonationPrincipalAllowed,
   getDbtToolsTargetDirFromEnv,
   getDbtToolsDbtTargetFromEnv,
-  getDbtToolsGcsImpersonationAllowlistFromEnv,
-  getDbtToolsGcsImpersonationAllowedSuffixesFromEnv,
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteClientEnvFromEnv,
   getDbtToolsRemoteSourceConfigFromEnv,
@@ -23,6 +20,11 @@ export {
   isDbtToolsDebugEnabled,
   isDbtToolsWatchEnabled,
 } from './config/dbt-tools-env';
+export {
+  dbtToolsDebugLog,
+  dbtToolsDebugLogPhase,
+  dbtToolsDebugNow,
+} from './debug/dbt-tools-debug-log';
 export type {
   DbtToolsRemoteClientEnv,
   DbtToolsRemoteSourceConfig,

@@ -1,8 +1,5 @@
 import * as path from 'node:path';
-import {
-  assertGcsImpersonationPrincipalAllowed,
-  type DbtToolsRemoteSourceConfig,
-} from '../config/dbt-tools-env';
+import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
 
 export type ArtifactSourceKind = 'local' | 's3' | 'gcs';
@@ -193,9 +190,6 @@ export function mergeRemoteSourceConfigWithParsedLocation(
 
   const envGcs = envConfig?.provider === 'gcs' ? envConfig : undefined;
   const impersonationPrincipal = resolveGcsImpersonationPrincipal(gcsRequestOptions, envGcs);
-  if (impersonationPrincipal != null) {
-    assertGcsImpersonationPrincipalAllowed(impersonationPrincipal);
-  }
   return {
     provider: 'gcs',
     bucket: parsed.bucket,

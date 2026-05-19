@@ -107,37 +107,66 @@ interface ParsedMcpArgv {
   s3Endpoint?: string;
 }
 
+function applyMcpStringFlag(
+  parsed: ParsedMcpArgv,
+  flag: string,
+  args: string[],
+  index: number,
+  assign: (value: string) => void,
+): void {
+  assign(readFlagValue(args, index, flag).trim());
+}
+
+const MCP_STRING_FLAGS: Array<{
+  flag: string;
+  assign: (parsed: ParsedMcpArgv, value: string) => void;
+}> = [
+  {
+    flag: '--dbt-target',
+    assign: (parsed, value) => {
+      parsed.dbtTarget = value;
+    },
+  },
+  {
+    flag: '--gcs-project-id',
+    assign: (parsed, value) => {
+      parsed.gcsProjectId = value;
+    },
+  },
+  {
+    flag: '--gcs-impersonate-service-account',
+    assign: (parsed, value) => {
+      parsed.gcsImpersonateServiceAccount = value;
+    },
+  },
+  {
+    flag: '--s3-region',
+    assign: (parsed, value) => {
+      parsed.s3Region = value;
+    },
+  },
+  {
+    flag: '--s3-endpoint',
+    assign: (parsed, value) => {
+      parsed.s3Endpoint = value;
+    },
+  },
+];
+
 function parseMcpArgvFlags(args: string[]): ParsedMcpArgv {
   const parsed: ParsedMcpArgv = {};
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
-    if (arg === '--dbt-target') {
-      parsed.dbtTarget = readFlagValue(args, i, arg).trim();
+    const stringFlag = MCP_STRING_FLAGS.find((entry) => entry.flag === arg);
+    if (stringFlag != null) {
+      applyMcpStringFlag(parsed, stringFlag.flag, args, i, (value) => {
+        stringFlag.assign(parsed, value);
+      });
       i += 1;
       continue;
     }
     if (arg === '--poll-interval-ms') {
       parsed.pollIntervalMs = parsePositiveInteger(readFlagValue(args, i, arg), arg);
-      i += 1;
-      continue;
-    }
-    if (arg === '--gcs-project-id') {
-      parsed.gcsProjectId = readFlagValue(args, i, arg).trim();
-      i += 1;
-      continue;
-    }
-    if (arg === '--gcs-impersonate-service-account') {
-      parsed.gcsImpersonateServiceAccount = readFlagValue(args, i, arg).trim();
-      i += 1;
-      continue;
-    }
-    if (arg === '--s3-region') {
-      parsed.s3Region = readFlagValue(args, i, arg).trim();
-      i += 1;
-      continue;
-    }
-    if (arg === '--s3-endpoint') {
-      parsed.s3Endpoint = readFlagValue(args, i, arg).trim();
       i += 1;
       continue;
     }
@@ -200,7 +229,6 @@ export function helpText(): string {
     '  --gcs-impersonate-service-account <email>',
     '      GCS impersonation principal (gs:// targets only).',
     '      Env: DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT',
-    '      Policy: DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST, DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES',
     '  --s3-region <region>',
     '      S3 region (s3:// targets only).',
     '      Env: DBT_TOOLS_S3_REGION (credentials may also use AWS_REGION)',
@@ -212,5 +240,6 @@ export function helpText(): string {
     '',
     'Bucket and prefix always come from the --dbt-target URI (or DBT_TOOLS_DBT_TARGET).',
     'Remote credentials: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_PROFILE, GOOGLE_APPLICATION_CREDENTIALS.',
+    'Debug: DBT_TOOLS_DEBUG=1 logs progress to stderr (safe for MCP; do not write to stdout).',
   ].join('\n');
 }

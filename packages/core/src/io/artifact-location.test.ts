@@ -125,33 +125,6 @@ describe('mergeRemoteSourceConfigWithParsedLocation', () => {
     });
   });
 
-  it('rejects GCS impersonation when allowlist is set and principal is not listed', () => {
-    const prevAllow = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
-    const prevSuf = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
-    process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = 'other@proj.iam.gserviceaccount.com';
-    delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
-    try {
-      expect(() =>
-        mergeRemoteSourceConfigWithParsedLocation(
-          {
-            provider: 'gcs',
-            bucket: 'ignored',
-            prefix: 'ignored',
-            pollIntervalMs: 9_000,
-            projectId: 'env-proj',
-          },
-          { kind: 'remote', provider: 'gcs', bucket: 'b', prefix: 'p' },
-          { impersonatedServiceAccount: 'target@svc.iam.gserviceaccount.com' },
-        ),
-      ).toThrow(/not permitted/);
-    } finally {
-      if (prevAllow === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
-      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = prevAllow;
-      if (prevSuf === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
-      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES = prevSuf;
-    }
-  });
-
   it('applies clientOverrides projectId over env GCS projectId', () => {
     const merged = mergeRemoteSourceConfigWithParsedLocation(
       {
@@ -185,29 +158,18 @@ describe('mergeRemoteSourceConfigWithParsedLocation', () => {
     expect(merged.impersonatedServiceAccount).toBe('from-env@proj.iam.gserviceaccount.com');
   });
 
-  it('allows GCS impersonation when suffix allowlist matches', () => {
-    const prevAllow = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
-    const prevSuf = process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
-    delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
-    process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES = '@myorg.iam.gserviceaccount.com';
-    try {
-      const merged = mergeRemoteSourceConfigWithParsedLocation(
-        {
-          provider: 'gcs',
-          bucket: 'ignored',
-          prefix: 'ignored',
-          pollIntervalMs: 9_000,
-          projectId: 'env-proj',
-        },
-        { kind: 'remote', provider: 'gcs', bucket: 'b', prefix: 'p' },
-        { impersonatedServiceAccount: 'svc@myorg.iam.gserviceaccount.com' },
-      );
-      expect(merged.impersonatedServiceAccount).toBe('svc@myorg.iam.gserviceaccount.com');
-    } finally {
-      if (prevAllow === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST;
-      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST = prevAllow;
-      if (prevSuf === undefined) delete process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES;
-      else process.env.DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES = prevSuf;
-    }
+  it('merges GCS impersonation principal from gcsRequestOptions', () => {
+    const merged = mergeRemoteSourceConfigWithParsedLocation(
+      {
+        provider: 'gcs',
+        bucket: 'ignored',
+        prefix: 'ignored',
+        pollIntervalMs: 9_000,
+        projectId: 'env-proj',
+      },
+      { kind: 'remote', provider: 'gcs', bucket: 'b', prefix: 'p' },
+      { impersonatedServiceAccount: 'svc@myorg.iam.gserviceaccount.com' },
+    );
+    expect(merged.impersonatedServiceAccount).toBe('svc@myorg.iam.gserviceaccount.com');
   });
 });
