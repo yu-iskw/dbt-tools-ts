@@ -1,14 +1,14 @@
 import {
   ADAPTER_METRIC_DESCRIPTORS,
+  getObjectProperty,
   getPresentAdapterTotalDescriptors,
 } from '@dbt-tools/core/browser';
-import { useMemo } from 'react';
-
 import {
   PRIMARY_PROJECT_SUMMARY_GROUPS,
   TEST_RESOURCE_TYPES,
 } from '@web/lib/analysis-workspace/constants';
 import { isMainProjectResource } from '@web/lib/analysis-workspace/utils';
+import { useMemo } from 'react';
 
 import type { AnalysisState } from '@web/types';
 import type { ReactElement } from 'react';
@@ -66,7 +66,10 @@ export function HealthMetricRow({
       });
       for (const descriptor of getPresentAdapterTotalDescriptors(adapter)) {
         const totalKey = descriptor.summaryTotalKey;
-        const value = totalKey != null ? adapter[totalKey] : undefined;
+        const value =
+          totalKey != null
+            ? getObjectProperty(adapter as unknown as Record<string, unknown>, totalKey)
+            : undefined;
         if (typeof value !== 'number') continue;
         row.push({
           label:

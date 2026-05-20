@@ -1,3 +1,4 @@
+import { incrementMapCount, recordFromMap } from '../../util/typed-map';
 import {
   adapterMetricsHasData,
   coerceAdapterResponseInput,
@@ -142,13 +143,13 @@ export class ExecutionAnalyzer {
    */
   getSummary(): ExecutionSummary {
     const nodeExecutions = this.getNodeExecutions();
-    const nodesByStatus: Record<string, number> = {};
+    const nodesByStatus = new Map<string, number>();
     let totalExecutionTime = 0;
 
     for (const execution of nodeExecutions) {
       // Count by status
       const status = execution.status || 'unknown';
-      nodesByStatus[status] = (nodesByStatus[status] || 0) + 1;
+      incrementMapCount(nodesByStatus, status);
 
       // Sum execution time
       totalExecutionTime += execution.execution_time || 0;
@@ -160,7 +161,7 @@ export class ExecutionAnalyzer {
     return {
       total_execution_time: totalExecutionTime,
       total_nodes: nodeExecutions.length,
-      nodes_by_status: nodesByStatus,
+      nodes_by_status: recordFromMap(nodesByStatus),
       critical_path: criticalPath,
       node_executions: nodeExecutions,
     };

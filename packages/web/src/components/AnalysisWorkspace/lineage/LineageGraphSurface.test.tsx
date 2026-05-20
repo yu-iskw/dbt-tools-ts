@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 
+import { buildLineageGraphModel } from '@web/lib/analysis-workspace/lineage-model';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import { buildLineageGraphModel } from '@web/lib/analysis-workspace/lineage-model';
 
 import { LineageGraphSurface } from './LineageGraphSurface';
 

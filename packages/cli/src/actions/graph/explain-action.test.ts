@@ -1,5 +1,4 @@
-import * as fs from 'node:fs/promises';
-
+import { rmValidated } from '@dbt-tools/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createJaffleArtifactBundleDir } from '../../internal/cli-test-bundle-dir';
@@ -21,7 +20,7 @@ describe('explainAction', () => {
 
   afterEach(async () => {
     consoleLogSpy.mockRestore();
-    await fs.rm(dbtTargetDir, { recursive: true, force: true });
+    await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
   it('emits explain JSON with resolved target', async () => {

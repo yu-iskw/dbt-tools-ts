@@ -105,3 +105,13 @@ export type {
   InvestigationTranscript,
 } from './discovery/types';
 export { DISCOVER_SCHEMA_VERSION } from './discovery';
+
+export {
+  getObjectProperty,
+  setObjectProperty,
+  groupByToMap,
+  incrementMapCount,
+  mapFromRecord,
+  pushToMapList,
+  recordFromMap,
+} from './util/typed-map';

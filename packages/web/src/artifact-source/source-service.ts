@@ -1,12 +1,11 @@
 /** Node (Vite dev) service: configurable local path or remote S3/GCS; drives middleware routes. */
-import fs from 'node:fs/promises';
-
 import {
   getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsTargetDirFromEnv,
   isDbtToolsDebugEnabled,
   mergeRemoteSourceConfigWithParsedLocation,
   parseArtifactSourceLocation,
+  readValidatedUtf8,
   type ArtifactDiscoveryResult,
   type ArtifactSourceKind,
   type DbtToolsRemoteSourceConfig,
@@ -304,16 +303,21 @@ export class ArtifactSourceService {
   }
 
   private async readPreloadArtifacts(run: ResolvedArtifactRun): Promise<CurrentArtifactPayload> {
-    const [manifestBytes, runResultsBytes, catalogBytes, sourcesBytes] = await Promise.all([
-      fs.readFile(run.manifestKey),
-      fs.readFile(run.runResultsKey),
+    const encoder = new TextEncoder();
+    const [manifestText, runResultsText, catalogText, sourcesText] = await Promise.all([
+      readValidatedUtf8(run.manifestKey),
+      readValidatedUtf8(run.runResultsKey),
       run.catalogKey != null
-        ? fs.readFile(run.catalogKey).catch(() => null)
+        ? readValidatedUtf8(run.catalogKey).catch(() => null)
         : Promise.resolve(null),
       run.sourcesKey != null
-        ? fs.readFile(run.sourcesKey).catch(() => null)
+        ? readValidatedUtf8(run.sourcesKey).catch(() => null)
         : Promise.resolve(null),
     ]);
+    const manifestBytes = encoder.encode(manifestText);
+    const runResultsBytes = encoder.encode(runResultsText);
+    const catalogBytes = catalogText != null ? encoder.encode(catalogText) : null;
+    const sourcesBytes = sourcesText != null ? encoder.encode(sourcesText) : null;
 
     return {
       source: 'preload',

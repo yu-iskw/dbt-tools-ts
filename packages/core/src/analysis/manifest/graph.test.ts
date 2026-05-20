@@ -4,6 +4,8 @@ import { parseManifest } from 'dbt-artifacts-parser/manifest';
 import { loadTestManifest } from 'dbt-artifacts-parser/test-utils';
 import { describe, it, expect } from 'vitest';
 
+import { getObjectProperty, setObjectProperty } from '../../util/typed-map';
+
 import { ManifestGraph } from './graph';
 
 import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
@@ -130,9 +132,10 @@ describe('ManifestGraph', () => {
       const testId =
         'test.jaffle_shop.relationships_stg_order_items_order_id__order_id__ref_stg_orders_.dbe9930c54';
       const parentMap = raw.parent_map as Record<string, string[]>;
-      expect(parentMap[testId]?.length).toBeGreaterThanOrEqual(1);
+      expect(getObjectProperty(parentMap, testId) as string[] | undefined).toBeDefined();
+      expect((getObjectProperty(parentMap, testId) as string[]).length).toBeGreaterThanOrEqual(1);
       // Simulate manifests where parent_map lists fewer parents than depends_on.nodes
-      parentMap[testId] = ['model.jaffle_shop.stg_order_items'];
+      setObjectProperty(parentMap, testId, ['model.jaffle_shop.stg_order_items']);
 
       const manifest = parseManifest(raw);
       const graph = new ManifestGraph(manifest);
@@ -577,9 +580,17 @@ describe('ManifestGraph', () => {
     it('should add field-to-field edges and resolve relation names', () => {
       const manifestJson = loadTestManifest('v12', 'manifest_1.10.json');
       // Add relation_name to a node for testing resolution
-      const rawManifest = manifestJson as Record<string, Record<string, Record<string, unknown>>>;
-      rawManifest['nodes']['model.jaffle_shop.stg_customers']['relation_name'] =
-        '"analytics"."core"."stg_customers"';
+      const rawManifest = structuredClone(manifestJson) as Record<string, unknown>;
+      const nodes = getObjectProperty(rawManifest, 'nodes') as Record<string, unknown> | undefined;
+      const stgCustomers = nodes
+        ? (getObjectProperty(nodes, 'model.jaffle_shop.stg_customers') as
+            | Record<string, unknown>
+            | undefined)
+        : undefined;
+      if (stgCustomers == null) {
+        throw new Error('Missing stg_customers node in test manifest');
+      }
+      setObjectProperty(stgCustomers, 'relation_name', '"analytics"."core"."stg_customers"');
 
       const manifest = parseManifest(rawManifest);
       const graph = new ManifestGraph(manifest);

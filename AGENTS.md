@@ -50,7 +50,7 @@ Product positioning is [ADR-0008](docs/adr/0008-dbt-tools-operational-intelligen
 
 Unless the user explicitly narrows scope, run the relevant gates from the repository root before claiming completion:
 
-Root [`eslint.config.mjs`](eslint.config.mjs) layers `eslint-plugin-security` (code patterns) on top of Trunk security scanners (Trivy/OSV). See [`pnpm lint:security`](package.json) for dependency/CVE scope.
+Root [`eslint.config.mjs`](eslint.config.mjs) layers `eslint-plugin-security` (code patterns) on top of Trunk security scanners (Trivy/OSV). See [`pnpm lint:security`](package.json) for dependency/CVE scope. Dynamic filesystem paths must go through [`packages/core/src/io/safe-fs.ts`](packages/core/src/io/safe-fs.ts) (`resolveSafePath` first); packaged fixture reads use [`packages/test-fixtures/dbt-artifacts-parser/test-utils.ts`](packages/test-fixtures/dbt-artifacts-parser/test-utils.ts). `pnpm lint:trunk-all` expects zero `eslint/security/*` findings—use `Map` / [`typed-map.ts`](packages/core/src/util/typed-map.ts) helpers instead of dynamic object indexing elsewhere.
 
 1. `pnpm test` for Vitest.
 2. `pnpm lint:report` and `pnpm knip`.

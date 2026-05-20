@@ -1,4 +1,3 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
@@ -7,6 +6,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '../io/artifact-filenames';
+import {
+  mkdtempValidated,
+  resolveJoinedSafe,
+  rmValidated,
+  writeValidatedUtf8,
+} from '../io/safe-fs';
 
 import { ArtifactWorkspace, createDbtToolsUseCases } from './index';
 
@@ -61,19 +66,22 @@ const manifestJson = loadTestManifest('v12', 'manifest_1.10.json') as Record<str
 const runResultsJson = loadTestRunResults('v6', 'run_results.json') as Record<string, unknown>;
 
 async function writeArtifacts(dir: string): Promise<void> {
-  await fs.writeFile(path.join(dir, DBT_MANIFEST_JSON), JSON.stringify(manifestJson), 'utf8');
-  await fs.writeFile(path.join(dir, DBT_RUN_RESULTS_JSON), JSON.stringify(runResultsJson), 'utf8');
+  await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_MANIFEST_JSON), JSON.stringify(manifestJson));
+  await writeValidatedUtf8(
+    resolveJoinedSafe(dir, DBT_RUN_RESULTS_JSON),
+    JSON.stringify(runResultsJson),
+  );
 }
 
 describe('ArtifactWorkspace', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-workspace-'));
+    tempDir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-'));
   });
 
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await rmValidated(tempDir, { recursive: true, force: true });
   });
 
   it('loads a local target once and serves shared search/resource/lineage use cases', async () => {

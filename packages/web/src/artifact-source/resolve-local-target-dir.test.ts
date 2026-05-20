@@ -1,7 +1,7 @@
-import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { mkdtempSyncValidated, rmSyncValidated } from '@dbt-tools/core';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -34,12 +34,12 @@ describe('resolveLocalArtifactTargetDirFromEnv', () => {
   });
 
   it('uses real temp dir when target exists', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dbt-resolve-'));
+    const dir = mkdtempSyncValidated(path.join(os.tmpdir(), 'dbt-resolve-'));
     try {
       const resolved = resolveLocalArtifactTargetDirFromEnv(process.cwd(), dir);
       expect(resolved).toBe(path.resolve(process.cwd(), dir));
     } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
+      rmSyncValidated(dir, { recursive: true, force: true });
     }
   });
 });

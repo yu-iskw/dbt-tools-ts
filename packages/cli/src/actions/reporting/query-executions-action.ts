@@ -1,10 +1,9 @@
-import * as fs from 'node:fs/promises';
-
 import {
   buildAnalysisSnapshotFromParsedArtifacts,
   formatOutput,
   FieldFilter,
   queryExecutions,
+  readValidatedUtf8,
   shouldOutputJSON,
   validateSafePath,
   type QueryExecutionsOutput,
@@ -44,7 +43,7 @@ export type QueryExecutionsOptions = ArtifactRootCliOptions & {
 };
 
 async function readArtifactJson(path: string): Promise<Record<string, unknown>> {
-  const text = await fs.readFile(path, 'utf8');
+  const text = await readValidatedUtf8(path);
   return JSON.parse(text) as Record<string, unknown>;
 }
 

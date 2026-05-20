@@ -115,14 +115,15 @@ export function formatTimeline(result: TimelineResult): string {
     '  ----  ---------  --------  ----------------  ----------------------------------------',
   );
 
-  for (let i = 0; i < result.entries.length; i++) {
-    const e = result.entries[i];
-    const rank = String(i + 1).padStart(4);
+  let rank = 0;
+  for (const e of result.entries) {
+    rank += 1;
+    const rankStr = String(rank).padStart(4);
     const status = (e.status || 'unknown').padEnd(9).slice(0, 9);
     const time = e.execution_time.toFixed(2).padStart(8);
     const rt = (e.resource_type || '').padEnd(16).slice(0, 16);
     const label = e.name ?? e.unique_id;
-    lines.push(`  ${rank}  ${status}  ${time}  ${rt}  ${label}`);
+    lines.push(`  ${rankStr}  ${status}  ${time}  ${rt}  ${label}`);
     for (const descriptor of descriptors) {
       const value = getAdapterMetricValue(e.adapter_metrics, descriptor.key);
       if (value === undefined) continue;

@@ -1,5 +1,4 @@
-import * as fs from 'node:fs/promises';
-
+import { rmValidated } from '@dbt-tools/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -24,7 +23,7 @@ describe('discoverAction', () => {
 
   afterEach(async () => {
     consoleLogSpy.mockRestore();
-    await fs.rm(dbtTargetDir, { recursive: true, force: true });
+    await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
   it('reports missing query and filters via handleError', async () => {
@@ -87,7 +86,7 @@ describe('discoverAction', () => {
       const parsed = JSON.parse(output) as { matches: unknown[] };
       expect(parsed.matches.length).toBeGreaterThan(0);
     } finally {
-      await fs.rm(manifestOnlyDir, { recursive: true, force: true });
+      await rmValidated(manifestOnlyDir, { recursive: true, force: true });
     }
   });
 

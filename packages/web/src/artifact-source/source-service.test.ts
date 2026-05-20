@@ -1,7 +1,12 @@
-import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import {
+  mkdtempValidated,
+  resolveJoinedSafe,
+  rmValidated,
+  writeValidatedUtf8,
+} from '@dbt-tools/core';
 import * as artifactIo from '@dbt-tools/core/artifact-io';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -43,7 +48,7 @@ const tempDirs: string[] = [];
 afterEach(async () => {
   await Promise.all(
     tempDirs.splice(0).map(async (dir) => {
-      await fs.rm(dir, { recursive: true, force: true });
+      await rmValidated(dir, { recursive: true, force: true });
     }),
   );
 });
@@ -119,19 +124,19 @@ describe('ArtifactSourceService', () => {
   });
 
   it('reads the current local preload pair when a target dir is configured', async () => {
-    const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-artifact-source-'));
+    const targetDir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-artifact-source-'));
     tempDirs.push(targetDir);
 
-    await fs.writeFile(
-      path.join(targetDir, 'manifest.json'),
+    await writeValidatedUtf8(
+      resolveJoinedSafe(targetDir, 'manifest.json'),
       '{"metadata":{"project_name":"local-run"}}',
     );
-    await fs.writeFile(
-      path.join(targetDir, 'run_results.json'),
+    await writeValidatedUtf8(
+      resolveJoinedSafe(targetDir, 'run_results.json'),
       '{"metadata":{"project_name":"local-run"}}',
     );
-    await fs.writeFile(path.join(targetDir, 'catalog.json'), '{"nodes":{}}');
-    await fs.writeFile(path.join(targetDir, 'sources.json'), '{"results":[]}');
+    await writeValidatedUtf8(resolveJoinedSafe(targetDir, 'catalog.json'), '{"nodes":{}}');
+    await writeValidatedUtf8(resolveJoinedSafe(targetDir, 'sources.json'), '{"results":[]}');
 
     const service = new ArtifactSourceService({
       remoteConfig: null,
@@ -154,25 +159,27 @@ describe('ArtifactSourceService', () => {
   });
 
   it('discovery previews a location without changing the active session', async () => {
-    const activeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-artifact-active-'));
+    const activeDir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-artifact-active-'));
     tempDirs.push(activeDir);
-    await fs.writeFile(
-      path.join(activeDir, 'manifest.json'),
+    await writeValidatedUtf8(
+      resolveJoinedSafe(activeDir, 'manifest.json'),
       '{"metadata":{"project_name":"active-run"}}',
     );
-    await fs.writeFile(
-      path.join(activeDir, 'run_results.json'),
+    await writeValidatedUtf8(
+      resolveJoinedSafe(activeDir, 'run_results.json'),
       '{"metadata":{"project_name":"active-run"}}',
     );
 
-    const previewDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-artifact-preview-'));
+    const previewDir = await mkdtempValidated(
+      path.join(os.tmpdir(), 'dbt-tools-artifact-preview-'),
+    );
     tempDirs.push(previewDir);
-    await fs.writeFile(
-      path.join(previewDir, 'manifest.json'),
+    await writeValidatedUtf8(
+      resolveJoinedSafe(previewDir, 'manifest.json'),
       '{"metadata":{"project_name":"preview-run"}}',
     );
-    await fs.writeFile(
-      path.join(previewDir, 'run_results.json'),
+    await writeValidatedUtf8(
+      resolveJoinedSafe(previewDir, 'run_results.json'),
       '{"metadata":{"project_name":"preview-run"}}',
     );
 
@@ -194,10 +201,16 @@ describe('ArtifactSourceService', () => {
   });
 
   it('commits root-level artifacts when configureArtifactSource is called', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-artifact-'));
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-artifact-'));
     tempDirs.push(dir);
-    await fs.writeFile(path.join(dir, 'manifest.json'), '{"metadata":{"project_name":"alpha"}}');
-    await fs.writeFile(path.join(dir, 'run_results.json'), '{"metadata":{"project_name":"alpha"}}');
+    await writeValidatedUtf8(
+      resolveJoinedSafe(dir, 'manifest.json'),
+      '{"metadata":{"project_name":"alpha"}}',
+    );
+    await writeValidatedUtf8(
+      resolveJoinedSafe(dir, 'run_results.json'),
+      '{"metadata":{"project_name":"alpha"}}',
+    );
 
     const service = new ArtifactSourceService({ remoteConfig: null });
 
@@ -210,10 +223,16 @@ describe('ArtifactSourceService', () => {
   });
 
   it('rejects invalid run ids during configureArtifactSource', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-artifact-'));
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-artifact-'));
     tempDirs.push(dir);
-    await fs.writeFile(path.join(dir, 'manifest.json'), '{"metadata":{"project_name":"alpha"}}');
-    await fs.writeFile(path.join(dir, 'run_results.json'), '{"metadata":{"project_name":"alpha"}}');
+    await writeValidatedUtf8(
+      resolveJoinedSafe(dir, 'manifest.json'),
+      '{"metadata":{"project_name":"alpha"}}',
+    );
+    await writeValidatedUtf8(
+      resolveJoinedSafe(dir, 'run_results.json'),
+      '{"metadata":{"project_name":"alpha"}}',
+    );
 
     const service = new ArtifactSourceService({ remoteConfig: null });
 

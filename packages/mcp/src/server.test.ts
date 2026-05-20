@@ -1,8 +1,16 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '@dbt-tools/core';
+import {
+  DBT_MANIFEST_JSON,
+  DBT_RUN_RESULTS_JSON,
+  mkdtempValidated,
+  readValidatedUtf8,
+  resolveJoinedSafe,
+  rmValidated,
+  writeValidatedUtf8,
+} from '@dbt-tools/core';
 import { createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,8 +43,10 @@ class RefreshingWorkspace {
 }
 
 async function readFixtureJson(relativePath: string): Promise<Record<string, unknown>> {
-  const fixtureUrl = new URL(`../../test-fixtures/${relativePath}`, import.meta.url);
-  return JSON.parse(await fs.readFile(fixtureUrl, 'utf8')) as Record<string, unknown>;
+  const fixturePath = fileURLToPath(
+    new URL(`../../test-fixtures/${relativePath}`, import.meta.url),
+  );
+  return JSON.parse(await readValidatedUtf8(fixturePath)) as Record<string, unknown>;
 }
 
 async function writeArtifacts(dir: string): Promise<void> {
@@ -46,19 +56,22 @@ async function writeArtifacts(dir: string): Promise<void> {
   const runResultsJson = await readFixtureJson(
     'dbt-artifacts-parser/resources/run_results/v6/jaffle_shop/run_results.json',
   );
-  await fs.writeFile(path.join(dir, DBT_MANIFEST_JSON), JSON.stringify(manifestJson), 'utf8');
-  await fs.writeFile(path.join(dir, DBT_RUN_RESULTS_JSON), JSON.stringify(runResultsJson), 'utf8');
+  await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_MANIFEST_JSON), JSON.stringify(manifestJson));
+  await writeValidatedUtf8(
+    resolveJoinedSafe(dir, DBT_RUN_RESULTS_JSON),
+    JSON.stringify(runResultsJson),
+  );
 }
 
 describe('dbt-tools MCP server wiring', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-mcp-'));
+    tempDir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-mcp-'));
   });
 
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await rmValidated(tempDir, { recursive: true, force: true });
     vi.useRealTimers();
   });
 

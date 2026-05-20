@@ -1,4 +1,3 @@
-import fs from 'node:fs/promises';
 import * as path from 'node:path';
 
 import {
@@ -8,6 +7,7 @@ import {
   DBT_SOURCES_JSON,
 } from './artifact-filenames';
 import { normalizeArtifactPrefix } from './artifact-location';
+import { readdirValidated, resolveJoinedSafe, statValidated } from './safe-fs';
 
 /** Synthetic run id for artifacts at the location root (not under a subdirectory). */
 export const ARTIFACT_RUN_ID_CURRENT = 'current';
@@ -310,14 +310,14 @@ export async function discoverLocalArtifactRunPaths(resolvedDirAbs: string): Pro
 export async function listLocalArtifactObjects(
   resolvedDirAbs: string,
 ): Promise<ListedArtifactObject[]> {
-  const entries = await fs.readdir(resolvedDirAbs, { withFileTypes: true });
+  const entries = await readdirValidated(resolvedDirAbs);
   const results: ListedArtifactObject[] = [];
 
   for (const entry of entries) {
     const name = entry.name;
     if (!entry.isFile() || !isSupportedBasename(name)) continue;
-    const full = path.join(resolvedDirAbs, name);
-    const stat = await fs.stat(full);
+    const full = resolveJoinedSafe(resolvedDirAbs, name);
+    const stat = await statValidated(full);
     results.push({
       relativePath: name,
       updatedAtMs: stat.mtimeMs,

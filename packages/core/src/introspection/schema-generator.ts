@@ -1,3 +1,5 @@
+import { getObjectProperty } from '../util/typed-map';
+
 import { COMMAND_STABILITY, type StabilityLevel } from './command-stability';
 
 /**
@@ -308,7 +310,8 @@ function getSchemaCommandSchema(): CommandSchema {
  */
 export function getCommandSchema(command: string): CommandSchema | null {
   const schemas = getAllSchemas();
-  return schemas[command] || null;
+  const schema = getObjectProperty(schemas as Record<string, unknown>, command);
+  return schema != null ? (schema as CommandSchema) : null;
 }
 
 function getInventorySchema(): CommandSchema {
@@ -682,7 +685,8 @@ export function getAllSchemas(): Record<string, CommandSchema> {
       key,
       {
         ...schema,
-        stability: COMMAND_STABILITY[key] ?? 'core',
+        stability:
+          (getObjectProperty(COMMAND_STABILITY, key) as StabilityLevel | undefined) ?? 'core',
       } satisfies CommandSchema,
     ]),
   ) as Record<string, CommandSchema>;

@@ -1,3 +1,4 @@
+import { getObjectProperty } from '@dbt-tools/core/browser';
 import {
   type ThemeMode,
   STATUS_HEX_DARK,
@@ -12,8 +13,8 @@ export const STATUS_COLORS: Record<string, string> = { ...STATUS_HEX_LIGHT };
 export function getStatusColor(status: string, theme: ThemeMode = 'light'): string {
   const map = theme === 'dark' ? STATUS_HEX_DARK : STATUS_HEX_LIGHT;
   const key = status.toLowerCase();
-  const fromMap = (map as Record<string, string | undefined>)[key];
-  return fromMap ?? getThemeHex(theme).textSoft;
+  const fromMap = getObjectProperty(map as Record<string, unknown>, key);
+  return typeof fromMap === 'string' ? fromMap : getThemeHex(theme).textSoft;
 }
 
 export function getResourceTypeColor(
@@ -21,5 +22,9 @@ export function getResourceTypeColor(
   theme: ThemeMode = 'light',
 ): string {
   const map = getResourceTypeHexMap(theme);
-  return (resourceType && map[resourceType]) ?? getThemeHex(theme).borderSubtle;
+  if (resourceType) {
+    const color = getObjectProperty(map as Record<string, unknown>, resourceType);
+    if (typeof color === 'string') return color;
+  }
+  return getThemeHex(theme).borderSubtle;
 }

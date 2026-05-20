@@ -9,6 +9,7 @@ import {
   formatOutput,
   shouldOutputJSON,
   type GraphNodeAttributes,
+  groupByToMap,
 } from '@dbt-tools/core';
 
 import {
@@ -100,15 +101,9 @@ export function formatInventory(result: InventoryResult): string {
     return lines.join('\n');
   }
 
-  // Group by resource type
-  const byType: Record<string, InventoryEntry[]> = {};
-  for (const entry of result.entries) {
-    const rt = entry.resource_type;
-    if (!byType[rt]) byType[rt] = [];
-    byType[rt].push(entry);
-  }
+  const byType = groupByToMap(result.entries, (entry) => entry.resource_type);
 
-  for (const [type, entries] of Object.entries(byType)) {
+  for (const [type, entries] of byType) {
     lines.push(`\n${type} (${entries.length}):`);
     for (const e of entries) {
       const tags = e.tags?.length ? `  [${e.tags.join(', ')}]` : '';

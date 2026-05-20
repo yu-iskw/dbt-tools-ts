@@ -1,12 +1,11 @@
 /**
  * Run-report CLI action handler and helpers.
  */
-import * as fs from 'node:fs/promises';
-
 import {
   ManifestGraph,
   ExecutionAnalyzer,
   buildNodeExecutionsFromRunResults,
+  existsValidated,
   loadManifest,
   loadRunResults,
   validateSafePath,
@@ -24,6 +23,8 @@ import {
   type ExecutionSummary,
   type NodeExecution,
   type AdapterHeavyMetric,
+  incrementMapCount,
+  recordFromMap,
 } from '@dbt-tools/core';
 
 import {
@@ -64,17 +65,16 @@ function sortNodeExecutionsForSlice(executions: NodeExecution[]): NodeExecution[
 
 /** Create a reduced summary when manifest.json is unavailable. */
 function createMinimalSummary(runResults: ReturnType<typeof loadRunResults>): ExecutionSummary {
-  const nodesByStatus: Record<string, number> = {};
+  const nodesByStatus = new Map<string, number>();
   if (runResults.results) {
     for (const result of runResults.results) {
-      const status = result.status || 'unknown';
-      nodesByStatus[status] = (nodesByStatus[status] || 0) + 1;
+      incrementMapCount(nodesByStatus, result.status || 'unknown');
     }
   }
   return {
     total_execution_time: runResults.elapsed_time || 0,
     total_nodes: runResults.results?.length || 0,
-    nodes_by_status: nodesByStatus,
+    nodes_by_status: recordFromMap(nodesByStatus),
     node_executions: [],
   };
 }
@@ -217,10 +217,7 @@ export async function runReportAction(
     );
 
     validateSafePath(paths.runResults);
-    const hasManifest = await fs
-      .access(paths.manifest)
-      .then(() => true)
-      .catch(() => false);
+    const hasManifest = existsValidated(paths.manifest);
     if (hasManifest) {
       validateSafePath(paths.manifest);
     }

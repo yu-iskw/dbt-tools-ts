@@ -66,12 +66,12 @@ export function computeVisRange(
   }
   const bottom = scrollTop + viewportH - AXIS_TOP;
   let start = 0;
-  while (start < bundleCount - 1 && (rowOffsets[start + 1] ?? 0) <= scrollTop) {
+  while (start < bundleCount - 1 && (rowOffsets.at(start + 1) ?? 0) <= scrollTop) {
     start++;
   }
   start = Math.max(0, start - 1);
   let end = start;
-  while (end < bundleCount - 1 && (rowOffsets[end] ?? 0) < bottom) {
+  while (end < bundleCount - 1 && (rowOffsets.at(end) ?? 0) < bottom) {
     end++;
   }
   return { visStart: start, visEnd: Math.min(end, bundleCount - 1) };

@@ -131,8 +131,12 @@ describe('search/run-results', () => {
       const result = searchRunResults(fixtures, {
         sort: 'unique_id',
       });
-      for (let i = 0; i < result.length - 1; i++) {
-        expect(result[i].unique_id.localeCompare(result[i + 1].unique_id)).toBeLessThanOrEqual(0);
+      let previousUniqueId: string | undefined;
+      for (const row of result) {
+        if (previousUniqueId !== undefined) {
+          expect(previousUniqueId.localeCompare(row.unique_id)).toBeLessThanOrEqual(0);
+        }
+        previousUniqueId = row.unique_id;
       }
     });
 

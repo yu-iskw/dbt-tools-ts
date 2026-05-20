@@ -1,3 +1,5 @@
+import { timingSafeStringEqual } from '../../util/timing-safe';
+
 /**
  * Normalized dbt execution / materialization semantics for analysis UI.
  * Provenance is manifest-only today (run_results do not carry materialization).
@@ -34,14 +36,31 @@ export interface NodeExecutionSemantics {
   rawMaterialization?: string;
 }
 
-const MODEL_MATERIALIZATION_ALIASES: Record<string, MaterializationKind> = {
-  table: 'table',
-  view: 'view',
-  incremental: 'incremental',
-  ephemeral: 'ephemeral',
-  materialized_view: 'materialized_view',
-  materializedview: 'materialized_view',
-};
+const RESOURCE_TYPE_MATERIALIZATION_KIND = new Map<string, MaterializationKind>([
+  ['seed', 'seed'],
+  ['snapshot', 'snapshot'],
+  ['test', 'test'],
+  ['unit_test', 'test'],
+  ['operation', 'operation'],
+]);
+
+function materializationKindFromToken(token: string): MaterializationKind | undefined {
+  switch (token) {
+    case 'table':
+      return 'table';
+    case 'view':
+      return 'view';
+    case 'incremental':
+      return 'incremental';
+    case 'ephemeral':
+      return 'ephemeral';
+    case 'materialized_view':
+    case 'materializedview':
+      return 'materialized_view';
+    default:
+      return undefined;
+  }
+}
 
 /** Normalized key for dbt `resource_type` strings (trim, lower, empty → `unknown`). */
 export function normalizeDbtResourceTypeKey(resourceType: string): string {
@@ -64,25 +83,32 @@ export function normalizeMaterializationKind(
   const rt = normalizeDbtResourceTypeKey(resourceType);
   const token = normalizeMaterializedToken(materializedRaw);
 
-  if (rt === 'seed') return { kind: 'seed' };
-  if (rt === 'snapshot') return { kind: 'snapshot' };
-  if (rt === 'test' || rt === 'unit_test') return { kind: 'test' };
-  if (rt === 'operation') return { kind: 'operation' };
+  const resourceKind = RESOURCE_TYPE_MATERIALIZATION_KIND.get(rt);
+  if (resourceKind !== undefined) {
+    return { kind: resourceKind };
+  }
 
-  if (rt === 'model' || rt === '') {
-    if (token == null) return { kind: 'unknown' };
-    const mapped = MODEL_MATERIALIZATION_ALIASES[token];
-    if (mapped != null) return { kind: mapped };
-    return { kind: 'unknown', raw: materializedRaw!.trim() };
+  if (rt.length === 0 || timingSafeStringEqual(rt, 'model')) {
+    if (typeof token !== 'string') return { kind: 'unknown' };
+    return materializationFromToken(token, materializedRaw);
   }
 
   /* semantic_model, metric, exposure, source, etc.: not model materializations */
-  if (token != null) {
-    const mapped = MODEL_MATERIALIZATION_ALIASES[token];
-    if (mapped != null) return { kind: mapped, raw: undefined };
+  if (typeof token === 'string') {
+    const mapped = materializationKindFromToken(token);
+    if (mapped !== undefined) return { kind: mapped, raw: undefined };
     return { kind: 'unknown', raw: materializedRaw!.trim() };
   }
   return { kind: 'unknown' };
+}
+
+function materializationFromToken(
+  token: string,
+  materializedRaw: string | null | undefined,
+): { kind: MaterializationKind; raw?: string } {
+  const mapped = materializationKindFromToken(token);
+  if (mapped !== undefined) return { kind: mapped };
+  return { kind: 'unknown', raw: materializedRaw!.trim() };
 }
 
 export function deriveSemanticsFlags(

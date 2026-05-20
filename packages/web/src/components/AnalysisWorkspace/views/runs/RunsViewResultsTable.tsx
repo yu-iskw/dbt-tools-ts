@@ -1,4 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { nextRunsSort, runsColumnHeaderSortUi } from '@web/lib/analysis-workspace/runs-sort';
+import { badgeClassName, formatSeconds } from '@web/lib/analysis-workspace/utils';
 import {
   type CSSProperties,
   type Dispatch,
@@ -7,10 +9,8 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ReactElement,
 } from 'react';
-
-import { nextRunsSort, runsColumnHeaderSortUi } from '@web/lib/analysis-workspace/runs-sort';
-import { badgeClassName, formatSeconds } from '@web/lib/analysis-workspace/utils';
 
 import { MaterializationSemanticsBadge } from '../../MaterializationSemanticsBadge';
 
@@ -24,7 +24,6 @@ import type {
   RunsViewState,
 } from '@web/lib/analysis-workspace/types';
 import type { AnalysisState } from '@web/types';
-import type { ReactElement } from 'react';
 
 type RunsResultsState = RunsResultsSourceState;
 

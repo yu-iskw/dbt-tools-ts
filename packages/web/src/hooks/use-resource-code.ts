@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-
 import { requestResourceCodeFromWorker } from '@web/services/analysis-loader';
+import { useEffect, useRef, useState } from 'react';
 
 import type { AnalysisState } from '@web/types';
 

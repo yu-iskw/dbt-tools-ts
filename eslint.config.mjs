@@ -101,7 +101,8 @@ const sharedTsRules = Object.assign({}, tseslint.configs.recommended.rules, {
   '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: true } }],
   '@typescript-eslint/consistent-type-imports': [
     'error',
-    { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+    // inline-type-imports keeps one import per module (import-x/no-duplicates).
+    { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
   ],
   '@typescript-eslint/explicit-module-boundary-types': 'error',
   '@typescript-eslint/sort-type-constituents': 'error',
@@ -162,7 +163,11 @@ export default [
       '**/playwright-report/**',
       '**/test-results/**',
       '**/vitest.config.ts',
+      'vitest.config.ts',
+      'vitest.coverage.ts',
       'vitest.shared.ts',
+      '**/coverage.policy.ts',
+      '**/coverage.policy.d.ts',
     ],
   },
   {

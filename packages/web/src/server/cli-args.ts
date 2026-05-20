@@ -45,7 +45,7 @@ function parsePortString(s: string): number | null {
 type Step = { status: 'advance'; nextIndex: number } | { status: 'done'; result: ParsedCli };
 
 function consumeOne(argv: string[], i: number, state: MutableCliState): Step {
-  const arg = argv[i]!;
+  const arg = argv.at(i)!;
   if (arg === '--help' || arg === '-h') {
     return { status: 'done', result: { kind: 'help' } };
   }

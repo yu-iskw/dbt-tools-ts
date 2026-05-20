@@ -2,7 +2,6 @@
  * Status / freshness CLI action handler.
  * Reports artifact presence, modification times, and analysis readiness.
  */
-import * as fs from 'fs';
 import * as path from 'path';
 
 import {
@@ -13,6 +12,7 @@ import {
   formatOutput,
   parseDbtToolsArtifactTarget,
   shouldOutputJSON,
+  statValidatedSync,
   validateSafePath,
 } from '@dbt-tools/core';
 
@@ -62,7 +62,7 @@ function pushArtifactStatus(lines: string[], label: string, status: ArtifactFile
 
 function getFileStatus(filePath: string): ArtifactFileStatus {
   try {
-    const stat = fs.statSync(filePath);
+    const stat = statValidatedSync(filePath);
     const modifiedAt = stat.mtime.toISOString();
     const ageSeconds = Math.floor((Date.now() - stat.mtime.getTime()) / 1000);
     return {
@@ -189,12 +189,19 @@ export async function statusAction(
       latestAgeSeconds = latest.age_seconds;
     }
 
-    const summaryMap: Record<StatusResult['readiness'], string> = {
-      full: 'Required artifacts present. Manifest and execution analysis available; catalog.json and sources.json remain optional enrichments.',
-      'manifest-only':
-        'manifest.json found; run_results.json missing. Execution analysis unavailable.',
-      unavailable: 'manifest.json not found. Most commands require manifest.json.',
-    };
+    let summary: string;
+    switch (readiness) {
+      case 'full':
+        summary =
+          'Required artifacts present. Manifest and execution analysis available; catalog.json and sources.json remain optional enrichments.';
+        break;
+      case 'manifest-only':
+        summary = 'manifest.json found; run_results.json missing. Execution analysis unavailable.';
+        break;
+      case 'unavailable':
+        summary = 'manifest.json not found. Most commands require manifest.json.';
+        break;
+    }
 
     const result: StatusResult = {
       target_dir: targetDir,
@@ -205,7 +212,7 @@ export async function statusAction(
       readiness,
       latest_modified_at: latestModifiedAt,
       age_seconds: latestAgeSeconds,
-      summary: summaryMap[readiness],
+      summary,
     };
 
     const useJson = shouldOutputJSON(options.json, options.noJson);

@@ -1,3 +1,5 @@
+import { setObjectProperty } from '../../util/typed-map';
+
 import { statusLabel, statusTone } from './shared';
 
 import type { NeighborGraph } from './internal';
@@ -32,12 +34,16 @@ export function buildTimelineAdjacency(
 ): AnalysisSnapshot['timelineAdjacency'] {
   const out: AnalysisSnapshot['timelineAdjacency'] = {};
   for (const id of executedUniqueIds) {
-    out[id] = graphologyGraph.hasNode(id)
-      ? {
-          inbound: [...graphologyGraph.inboundNeighbors(id)],
-          outbound: [...graphologyGraph.outboundNeighbors(id)],
-        }
-      : { inbound: [], outbound: [] };
+    setObjectProperty(
+      out as unknown as Record<string, unknown>,
+      id,
+      graphologyGraph.hasNode(id)
+        ? {
+            inbound: [...graphologyGraph.inboundNeighbors(id)],
+            outbound: [...graphologyGraph.outboundNeighbors(id)],
+          }
+        : { inbound: [], outbound: [] },
+    );
   }
   return out;
 }

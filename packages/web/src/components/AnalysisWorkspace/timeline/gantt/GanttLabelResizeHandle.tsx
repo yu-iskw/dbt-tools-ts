@@ -1,6 +1,4 @@
-import { useCallback, useRef, type PointerEvent } from 'react';
-
-import type { ReactElement } from 'react';
+import { type PointerEvent, type ReactElement, useCallback, useRef } from 'react';
 
 const HANDLE_W = 8;
 

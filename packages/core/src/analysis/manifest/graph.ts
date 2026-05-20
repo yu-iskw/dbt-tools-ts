@@ -1,6 +1,7 @@
 import { DirectedGraph } from 'graphology';
 import { hasCycle, topologicalSort } from 'graphology-dag';
 
+import { getObjectProperty, incrementMapCount, recordFromMap } from '../../util/typed-map';
 import { isSupportedVersion, getVersionInfo, MIN_SUPPORTED_SCHEMA_VERSION } from '../../version';
 
 import type { ColumnDependencyMap } from './sql-analyzer';
@@ -108,7 +109,7 @@ export class ManifestGraph {
       const entryRecord = entry as Record<string, unknown>;
       this.graph.addNode(uniqueId, buildAttributes(uniqueId, entryRecord));
       if (relationNameField != null) {
-        this.registerRelationName(uniqueId, entryRecord[relationNameField]);
+        this.registerRelationName(uniqueId, getObjectProperty(entryRecord, relationNameField));
       }
     }
   }
@@ -123,7 +124,7 @@ export class ManifestGraph {
   private metricArrayStrings(value: unknown, field: string): string[] | undefined {
     if (!Array.isArray(value)) return undefined;
     return (value as Array<Record<string, unknown>>)
-      .map((entry) => entry[field])
+      .map((entry) => getObjectProperty(entry, field))
       .filter((entry): entry is string => typeof entry === 'string');
   }
 
@@ -467,14 +468,14 @@ export class ManifestGraph {
    * Get summary statistics about the graph
    */
   getSummary(): GraphSummary {
-    const nodesByType: Record<string, number> = {};
+    const nodesByType = new Map<string, number>();
     let totalNodes = 0;
 
     // Count nodes by type
     this.graph.forEachNode((_nodeId, attributes) => {
       totalNodes++;
       const type = attributes.resource_type || 'unknown';
-      nodesByType[type] = (nodesByType[type] || 0) + 1;
+      incrementMapCount(nodesByType, type);
     });
 
     // Detect cycles using graphology-dag
@@ -482,7 +483,7 @@ export class ManifestGraph {
 
     return {
       total_nodes: totalNodes,
-      nodes_by_type: nodesByType,
+      nodes_by_type: recordFromMap(nodesByType),
       total_edges: this.graph.size,
       has_cycles: hasCycles,
     };

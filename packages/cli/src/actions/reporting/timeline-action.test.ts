@@ -1,7 +1,7 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { mkdtempValidated, rmValidated } from '@dbt-tools/core';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import {
@@ -26,7 +26,7 @@ describe('timelineAction', () => {
 
   afterEach(async () => {
     consoleLogSpy.mockRestore();
-    await fs.rm(dbtTargetDir, { recursive: true, force: true });
+    await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
   it('outputs JSON timeline with required fields', async () => {
@@ -65,7 +65,7 @@ describe('timelineAction', () => {
       expect(parsed.total).toBeGreaterThan(0);
       expect(parsed.entries.some((entry) => entry.name == null)).toBe(true);
     } finally {
-      await fs.rm(runResultsOnlyDir, { recursive: true, force: true });
+      await rmValidated(runResultsOnlyDir, { recursive: true, force: true });
     }
   });
 
@@ -78,7 +78,7 @@ describe('timelineAction', () => {
     };
     const times = parsed.entries.map((e) => e.execution_time);
     for (let i = 1; i < times.length; i++) {
-      expect(times[i]).toBeLessThanOrEqual(times[i - 1]);
+      expect(times.at(i)).toBeLessThanOrEqual(times.at(i - 1));
     }
   });
 
@@ -145,13 +145,13 @@ describe('timelineAction', () => {
   });
 
   it('throws when required artifacts are missing', async () => {
-    const empty = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tl-empty-'));
+    const empty = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tl-empty-'));
     try {
       await expect(timelineAction({ dbtTarget: empty }, handleError)).rejects.toThrow(
         /Missing required dbt artifact/,
       );
     } finally {
-      await fs.rm(empty, { recursive: true, force: true });
+      await rmValidated(empty, { recursive: true, force: true });
     }
   });
 });

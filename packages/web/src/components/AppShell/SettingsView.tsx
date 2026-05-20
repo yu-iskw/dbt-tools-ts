@@ -1,3 +1,4 @@
+import { sourceLabel, userArtifactSourceKindLabel } from '@web/lib/artifact-source';
 import {
   useCallback,
   useEffect,
@@ -6,9 +7,8 @@ import {
   type Dispatch,
   type RefObject,
   type SetStateAction,
+  type ReactElement,
 } from 'react';
-
-import { sourceLabel, userArtifactSourceKindLabel } from '@web/lib/artifact-source';
 
 import { SectionCard, WorkspaceScaffold } from '../AnalysisWorkspace/shared';
 import { ArtifactLoadPanel } from '../ArtifactLoadPanel';
@@ -22,7 +22,6 @@ import type {
   RemoteArtifactRun,
   WorkspaceArtifactSource,
 } from '@web/services/artifact-source-api';
-import type { ReactElement } from 'react';
 
 const ACTIVE_PILL_CLASS = 'workspace-pill workspace-pill--active';
 const INACTIVE_PILL_CLASS = 'workspace-pill';

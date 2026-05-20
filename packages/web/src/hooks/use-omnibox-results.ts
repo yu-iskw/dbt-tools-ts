@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-
 import { searchResourcesFromWorker } from '@web/services/analysis-loader';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { SearchState } from '@web/lib/analysis-workspace/types';
 import type { AnalysisState, ResourceNode } from '@web/types';

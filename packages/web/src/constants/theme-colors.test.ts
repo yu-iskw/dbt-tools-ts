@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
-
 import { getCanvasColors, getResourceTypeHexMap, getThemeHex } from '@web/constants/theme-colors';
+import { describe, it, expect } from 'vitest';
 
 describe('getThemeHex', () => {
   it('returns light palette for light', () => {

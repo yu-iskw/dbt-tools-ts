@@ -1,3 +1,4 @@
+import { incrementMapCount } from '@dbt-tools/core/browser';
 import {
   isDefaultTimelineResource,
   isMainProjectResource,
@@ -11,12 +12,11 @@ const PINNED_RESOURCE_TYPES = ['model', 'source', 'seed', 'snapshot'] as const;
 function countGraphNodesByTypeForProject(
   resources: readonly ResourceNode[],
   projectName: string,
-): Record<string, number> {
-  const out: Record<string, number> = {};
+): Map<string, number> {
+  const out = new Map<string, number>();
   for (const resource of resources) {
     if (!isMainProjectResource(resource, projectName)) continue;
-    const t = resource.resourceType;
-    out[t] = (out[t] ?? 0) + 1;
+    incrementMapCount(out, resource.resourceType);
   }
   return out;
 }
@@ -43,38 +43,36 @@ export function buildInvocationResourceComparison(
   const graphByType =
     projectName != null
       ? countGraphNodesByTypeForProject(resources, projectName)
-      : analysis.graphSummary.nodesByType;
+      : new Map(Object.entries(analysis.graphSummary.nodesByType));
 
-  const executionsByType: Record<string, number> = {};
+  const executionsByType = new Map<string, number>();
   for (const row of analysis.executions) {
     if (projectName != null && !isMainProjectResource(row, projectName)) {
       continue;
     }
-    const t = row.resourceType;
-    executionsByType[t] = (executionsByType[t] ?? 0) + 1;
+    incrementMapCount(executionsByType, row.resourceType);
   }
 
-  const timelineByType: Record<string, number> = {};
+  const timelineByType = new Map<string, number>();
   for (const item of analysis.ganttData) {
     if (!isDefaultTimelineResource(item, projectName)) continue;
-    const t = item.resourceType;
-    timelineByType[t] = (timelineByType[t] ?? 0) + 1;
+    incrementMapCount(timelineByType, item.resourceType);
   }
 
   const typeSet = new Set<string>([
     ...PINNED_RESOURCE_TYPES,
-    ...Object.keys(graphByType),
-    ...Object.keys(executionsByType),
-    ...Object.keys(timelineByType),
+    ...graphByType.keys(),
+    ...executionsByType.keys(),
+    ...timelineByType.keys(),
   ]);
 
   const rows: InvocationResourceComparisonRow[] = [];
   for (const resourceType of [...typeSet].sort((a, b) => a.localeCompare(b))) {
     rows.push({
       resourceType,
-      graphCount: graphByType[resourceType] ?? 0,
-      runCount: executionsByType[resourceType] ?? 0,
-      timelineCount: timelineByType[resourceType] ?? 0,
+      graphCount: graphByType.get(resourceType) ?? 0,
+      runCount: executionsByType.get(resourceType) ?? 0,
+      timelineCount: timelineByType.get(resourceType) ?? 0,
     });
   }
 

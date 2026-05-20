@@ -7,7 +7,11 @@ import {
   type AthenaSearchCriteria,
   type BaseAdapterSearchCriteria,
   type BigQuerySearchCriteria,
+  type QueryDependenciesInput,
+  type QueryExecutionsRequest,
   type SnowflakeSearchCriteria,
+  getObjectProperty,
+  setObjectProperty,
 } from '@dbt-tools/core';
 import {
   type ArtifactWorkspaceStatus,
@@ -15,9 +19,6 @@ import {
   type GetResourceInput,
   type SearchResourcesInput,
 } from '@dbt-tools/core/artifact-workspace';
-
-import type { QueryDependenciesInput } from '@dbt-tools/core';
-import type { QueryExecutionsRequest } from '@dbt-tools/core';
 
 export interface ArtifactWorkspaceControl {
   getStatus(): Promise<ArtifactWorkspaceStatus>;
@@ -51,19 +52,19 @@ function jsonResultFromValue(payload: unknown, options?: { isError?: boolean }):
 }
 
 function optionalString(input: ToolInput, key: string): string | undefined {
-  const value = input[key];
+  const value = getObjectProperty(input, key);
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed === '' ? undefined : trimmed;
 }
 
 function optionalNumber(input: ToolInput, key: string): number | undefined {
-  const value = input[key];
+  const value = getObjectProperty(input, key);
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 function optionalStringArray(input: ToolInput, key: string): string[] | undefined {
-  const value = input[key];
+  const value = getObjectProperty(input, key);
   if (Array.isArray(value)) {
     return value.filter((item): item is string => typeof item === 'string');
   }
@@ -94,7 +95,7 @@ function offset(input: ToolInput): number {
 }
 
 function optionalRecord(input: ToolInput, key: string): Record<string, unknown> | undefined {
-  const value = input[key];
+  const value = getObjectProperty(input, key);
   if (value == null || typeof value !== 'object' || Array.isArray(value)) return undefined;
   return value as Record<string, unknown>;
 }
@@ -106,8 +107,8 @@ function pickWarehouseBlock(
   if (block == null) return undefined;
   const out: Record<string, unknown> = {};
   for (const [targetKey, sourceKey] of Object.entries(fields)) {
-    const value = block[sourceKey];
-    if (value !== undefined) out[targetKey] = value;
+    const value = getObjectProperty(block, sourceKey);
+    if (value !== undefined) setObjectProperty(out, targetKey, value);
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }

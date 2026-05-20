@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-
 import {
   DBT_CATALOG_JSON,
   DBT_MANIFEST_JSON,
@@ -8,6 +6,7 @@ import {
   getDbtToolsReloadDebounceMs,
   isDbtToolsDebugEnabled,
   isDbtToolsWatchEnabled,
+  watchValidated,
 } from '@dbt-tools/core';
 
 import { resolveWatchableLocalTargetDir } from './artifact-source/resolve-local-target-dir';
@@ -38,7 +37,7 @@ function setupArtifactWatch(
     }, debounceMs);
   };
 
-  fs.watch(resolved, (_eventType, filename) => {
+  watchValidated(resolved, (_eventType, filename) => {
     if (
       filename === DBT_MANIFEST_JSON ||
       filename === DBT_RUN_RESULTS_JSON ||

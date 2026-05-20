@@ -1,4 +1,3 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
@@ -12,6 +11,7 @@ import {
   remoteKeysToListedArtifacts,
 } from './artifact-discovery';
 import { DBT_CATALOG_JSON, DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from './artifact-filenames';
+import { mkdirValidated, mkdtempValidated, resolveJoinedSafe, writeValidatedUtf8 } from './safe-fs';
 
 describe('isAllowedArtifactRelativePath', () => {
   it('allows root-level artifact basenames only', () => {
@@ -118,12 +118,12 @@ describe('discoverArtifactCandidates', () => {
 
 describe('listLocalArtifactObjects', () => {
   it('lists root artifacts only and ignores subdirectories', async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-art-'));
-    await fs.writeFile(path.join(root, DBT_MANIFEST_JSON), '{}', 'utf8');
-    await fs.writeFile(path.join(root, DBT_RUN_RESULTS_JSON), '{}', 'utf8');
-    await fs.mkdir(path.join(root, 'runA'), { recursive: true });
-    await fs.writeFile(path.join(root, 'runA', DBT_MANIFEST_JSON), '{}', 'utf8');
-    await fs.writeFile(path.join(root, 'runA', DBT_RUN_RESULTS_JSON), '{}', 'utf8');
+    const root = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-art-'));
+    await writeValidatedUtf8(resolveJoinedSafe(root, DBT_MANIFEST_JSON), '{}');
+    await writeValidatedUtf8(resolveJoinedSafe(root, DBT_RUN_RESULTS_JSON), '{}');
+    await mkdirValidated(resolveJoinedSafe(root, 'runA'), { recursive: true });
+    await writeValidatedUtf8(resolveJoinedSafe(root, 'runA', DBT_MANIFEST_JSON), '{}');
+    await writeValidatedUtf8(resolveJoinedSafe(root, 'runA', DBT_RUN_RESULTS_JSON), '{}');
 
     const listed = await listLocalArtifactObjects(root);
     const rels = listed.map((x) => x.relativePath).sort();
@@ -137,10 +137,10 @@ describe('listLocalArtifactObjects', () => {
   });
 
   it('subdir-only layout yields missing pair at root', async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-art-'));
-    await fs.mkdir(path.join(root, 'runA'), { recursive: true });
-    await fs.writeFile(path.join(root, 'runA', DBT_MANIFEST_JSON), '{}', 'utf8');
-    await fs.writeFile(path.join(root, 'runA', DBT_RUN_RESULTS_JSON), '{}', 'utf8');
+    const root = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-art-'));
+    await mkdirValidated(resolveJoinedSafe(root, 'runA'), { recursive: true });
+    await writeValidatedUtf8(resolveJoinedSafe(root, 'runA', DBT_MANIFEST_JSON), '{}');
+    await writeValidatedUtf8(resolveJoinedSafe(root, 'runA', DBT_RUN_RESULTS_JSON), '{}');
 
     const listed = await listLocalArtifactObjects(root);
     expect(listed).toHaveLength(0);

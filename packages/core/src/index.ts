@@ -41,6 +41,11 @@ export * from './io/artifact-loader';
 export * from './io/artifact-discovery';
 export * from './io/artifact-location';
 export * from './io/dbt-artifact-bundle';
+export * from './io/safe-fs';
+
+// Utilities (Map lookups, timing-safe compare)
+export * from './util/typed-map';
+export * from './util/timing-safe';
 
 // Long-lived artifact workspace (Node-safe)
 export * from './artifact-workspace/index';

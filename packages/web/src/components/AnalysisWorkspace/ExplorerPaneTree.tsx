@@ -1,12 +1,11 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { type ReactNode, useRef } from 'react';
-
 import {
   getResourceOriginLabel,
   testStatsHasAttention,
   type ExplorerTreeRow,
   type TestStats,
 } from '@web/lib/analysis-workspace/explorer-tree';
+import { type ReactNode, useRef, type ReactElement } from 'react';
 
 import { EmptyState } from '../EmptyState';
 
@@ -16,7 +15,6 @@ import { ExplorerBranchIcon, ResourceTypeIcon, formatResourceTypeLabel } from '.
 
 import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
 import type { ResourceNode } from '@web/types';
-import type { ReactElement } from 'react';
 
 function explorerLeafAriaLabel(resource: ResourceNode): string {
   const typeLabel = formatResourceTypeLabel(resource.resourceType);

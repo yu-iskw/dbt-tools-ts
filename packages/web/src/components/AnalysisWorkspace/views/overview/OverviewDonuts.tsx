@@ -1,5 +1,3 @@
-import { useId, useMemo } from 'react';
-
 import { useSyncedDocumentTheme } from '@web/hooks/use-theme';
 import { getStatusTonePalette } from '@web/lib/analysis-workspace/constants';
 import {
@@ -12,6 +10,7 @@ import {
   buildTypeStatusBreakdowns,
   type TypeStatusBreakdown,
 } from '@web/lib/analysis-workspace/overview-state';
+import { useId, useMemo } from 'react';
 
 import { formatResourceTypeLabel } from '../../shared';
 

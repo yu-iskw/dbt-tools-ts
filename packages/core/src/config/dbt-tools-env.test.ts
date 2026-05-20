@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import {
+  deleteProcessEnv,
+  getObjectProperty,
+  getProcessEnv,
+  setObjectProperty,
+  setProcessEnv,
+} from '../util/typed-map';
+
+import {
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteClientEnvFromEnv,
   getDbtToolsRemoteSourceConfigFromEnv,
@@ -20,16 +28,17 @@ const REMOTE_KEYS = ['DBT_TOOLS_REMOTE_SOURCE'] as const;
 function clearKeys(keys: readonly string[]): Record<string, string | undefined> {
   const prev: Record<string, string | undefined> = {};
   for (const k of keys) {
-    prev[k] = process.env[k];
-    delete process.env[k];
+    setObjectProperty(prev, k, getProcessEnv(k));
+    deleteProcessEnv(k);
   }
   return prev;
 }
 
 function restoreKeys(prev: Record<string, string | undefined>): void {
-  for (const [k, v] of Object.entries(prev)) {
-    if (v === undefined) delete process.env[k];
-    else process.env[k] = v;
+  for (const k of Object.keys(prev)) {
+    const v = getObjectProperty(prev, k) as string | undefined;
+    if (v === undefined) deleteProcessEnv(k);
+    else setProcessEnv(k, v);
   }
 }
 

@@ -1,8 +1,7 @@
 /**
  * Tests for failuresAction.
  */
-import * as fs from 'node:fs/promises';
-
+import { rmValidated } from '@dbt-tools/core';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import {
@@ -27,7 +26,7 @@ describe('failuresAction', () => {
 
   afterEach(async () => {
     consoleLogSpy.mockRestore();
-    await fs.rm(dbtTargetDir, { recursive: true, force: true });
+    await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
   it('outputs failures JSON with schema_version and summary', async () => {
@@ -62,7 +61,7 @@ describe('failuresAction', () => {
       const parsed = JSON.parse(output) as { failures: unknown[] };
       expect(parsed.failures.length).toBeLessThanOrEqual(5);
     } finally {
-      await fs.rm(runResultsOnlyDir, { recursive: true, force: true });
+      await rmValidated(runResultsOnlyDir, { recursive: true, force: true });
     }
   });
 

@@ -1,3 +1,5 @@
+import { getObjectProperty } from '../../util/typed-map';
+
 import type {
   BaseAdapterSearchCriteria,
   BigQuerySearchCriteria,
@@ -120,23 +122,72 @@ export function normalizeWarehouseAdapterType(
 ): WarehouseAdapterType | 'unknown' {
   if (warehouseType == null || typeof warehouseType !== 'string') return 'unknown';
   const normalized = warehouseType.trim().toLowerCase();
-  if (normalized in WAREHOUSE_EXECUTION_PROFILES) {
-    return normalized as WarehouseAdapterType;
+  switch (normalized) {
+    case 'bigquery':
+    case 'snowflake':
+    case 'athena':
+    case 'postgres':
+    case 'redshift':
+    case 'spark':
+      return normalized;
+    default:
+      return 'unknown';
   }
-  return 'unknown';
+}
+
+function readWarehouseBlock(request: QueryExecutionsRequest, key: WarehouseAdapterType): unknown {
+  switch (key) {
+    case 'bigquery':
+      return request.bigquery;
+    case 'snowflake':
+      return request.snowflake;
+    case 'athena':
+      return request.athena;
+    case 'postgres':
+      return request.postgres;
+    case 'redshift':
+      return request.redshift;
+    case 'spark':
+      return request.spark;
+    default: {
+      const _exhaustive: never = key;
+      return _exhaustive;
+    }
+  }
+}
+
+function warehouseExecutionProfile(warehouse: WarehouseAdapterType): WarehouseExecutionProfile {
+  switch (warehouse) {
+    case 'bigquery':
+      return WAREHOUSE_EXECUTION_PROFILES.bigquery;
+    case 'snowflake':
+      return WAREHOUSE_EXECUTION_PROFILES.snowflake;
+    case 'athena':
+      return WAREHOUSE_EXECUTION_PROFILES.athena;
+    case 'postgres':
+      return WAREHOUSE_EXECUTION_PROFILES.postgres;
+    case 'redshift':
+      return WAREHOUSE_EXECUTION_PROFILES.redshift;
+    case 'spark':
+      return WAREHOUSE_EXECUTION_PROFILES.spark;
+    default: {
+      const _exhaustive: never = warehouse;
+      return _exhaustive;
+    }
+  }
 }
 
 function countWarehouseBlocks(request: QueryExecutionsRequest): {
   keys: WarehouseAdapterType[];
-  blocks: Partial<Record<WarehouseAdapterType, unknown>>;
+  blocks: Map<WarehouseAdapterType, unknown>;
 } {
-  const blocks: Partial<Record<WarehouseAdapterType, unknown>> = {};
+  const blocks = new Map<WarehouseAdapterType, unknown>();
   const keys: WarehouseAdapterType[] = [];
   for (const key of WAREHOUSE_BLOCK_KEYS) {
-    const value = request[key];
+    const value = readWarehouseBlock(request, key);
     if (value != null && typeof value === 'object' && Object.keys(value).length > 0) {
       keys.push(key);
-      blocks[key] = value;
+      blocks.set(key, value);
     }
   }
   return { keys, blocks };
@@ -189,7 +240,7 @@ function validateMinFieldsAgainstProfile(
 ): void {
   const allowed = new Set(profile.allowedMinFields);
   for (const key of MIN_FIELD_KEYS) {
-    const value = criteria[key];
+    const value = getObjectProperty(criteria, key);
     if (value === undefined) continue;
     if (!allowed.has(key)) {
       throw new QueryExecutionsValidationError(
@@ -245,7 +296,7 @@ function assertWarehouseBlockMatchesRun(
       hint: `Omit the block or use the ${runWarehouse} block only.`,
       allowed_sorts: [
         ...COMMON_EXECUTION_SORTS,
-        ...(WAREHOUSE_EXECUTION_PROFILES[runWarehouse]?.allowedSorts ?? []),
+        ...warehouseExecutionProfile(runWarehouse).allowedSorts,
       ],
     },
   );
@@ -305,11 +356,11 @@ export function resolveWarehouseSearchPlan(
 
   const activeAdapter = keys[0] ?? null;
   const activeWarehouseBlock =
-    activeAdapter != null ? toWarehouseSearchBlock(activeAdapter, blocks[activeAdapter]) : null;
+    activeAdapter != null ? toWarehouseSearchBlock(activeAdapter, blocks.get(activeAdapter)) : null;
   assertWarehouseBlockMatchesRun(activeWarehouseBlock, runWarehouse);
 
   const warehouse = resolveWarehouseLabel(activeWarehouseBlock, runWarehouse);
-  const profile = warehouse === 'unknown' ? null : WAREHOUSE_EXECUTION_PROFILES[warehouse];
+  const profile = warehouse === 'unknown' ? null : warehouseExecutionProfile(warehouse);
 
   const resourceTypes = (request.resourceTypes ?? [...DEFAULT_RESOURCE_TYPES]).map((t) =>
     t.toLowerCase(),

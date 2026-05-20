@@ -1,4 +1,3 @@
-import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
@@ -12,6 +11,8 @@ import {
   formatSummary,
   getCommandSchema,
   getAllSchemas,
+  mkdtempSyncValidated,
+  rmSyncValidated,
 } from '@dbt-tools/core';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -222,7 +223,7 @@ describe('CLI command error formatting', () => {
 
   beforeEach(() => {
     vi.resetModules();
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dbt-tools-cli-test-'));
+    tmpDir = mkdtempSyncValidated(path.join(os.tmpdir(), 'dbt-tools-cli-test-'));
   });
 
   afterEach(() => {
@@ -231,7 +232,7 @@ describe('CLI command error formatting', () => {
       value: originalStdoutIsTTY,
       configurable: true,
     });
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    rmSyncValidated(tmpDir, { recursive: true, force: true });
     vi.restoreAllMocks();
   });
 

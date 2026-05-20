@@ -156,7 +156,8 @@ const MCP_STRING_FLAGS: Array<{
 function parseMcpArgvFlags(args: string[]): ParsedMcpArgv {
   const parsed: ParsedMcpArgv = {};
   for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
+    const arg = args.at(i);
+    if (arg === undefined) continue;
     const stringFlag = MCP_STRING_FLAGS.find((entry) => entry.flag === arg);
     if (stringFlag != null) {
       applyMcpStringFlag(parsed, stringFlag.flag, args, i, (value) => {

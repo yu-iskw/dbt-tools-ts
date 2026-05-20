@@ -24,9 +24,9 @@ function formatDepsTreeNode(node: DepNode, prefix: string, isLast: boolean, line
 
   const children = (node.dependencies ?? []) as DepNode[];
   const childPrefix = prefix + (isLast ? '    ' : '│   ');
-  for (let i = 0; i < children.length; i++) {
-    formatDepsTreeNode(children[i], childPrefix, i === children.length - 1, lines);
-  }
+  children.forEach((child, index) => {
+    formatDepsTreeNode(child, childPrefix, index === children.length - 1, lines);
+  });
 }
 
 function formatDepsTree(result: {
@@ -41,9 +41,9 @@ function formatDepsTree(result: {
   lines.push(`Count: ${result.count}`);
   lines.push('');
 
-  for (let i = 0; i < result.dependencies.length; i++) {
-    formatDepsTreeNode(result.dependencies[i], '', i === result.dependencies.length - 1, lines);
-  }
+  result.dependencies.forEach((dependency, index) => {
+    formatDepsTreeNode(dependency, '', index === result.dependencies.length - 1, lines);
+  });
 
   return lines.join('\n');
 }

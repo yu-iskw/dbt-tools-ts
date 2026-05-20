@@ -1,3 +1,5 @@
+import { getObjectProperty, setObjectProperty } from '../../util/typed-map';
+
 import {
   COMMON_EXECUTION_SORTS,
   executionRowToNodeExecution,
@@ -29,14 +31,16 @@ function matchesGlob(text: string, pattern: string): boolean {
   const parts = pattern.split('*');
   if (parts.length === 1) return text === pattern;
   let pos = 0;
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
+  let first = true;
+  for (const part of parts) {
     const idx = text.indexOf(part, pos);
     if (idx === -1) return false;
-    if (i === 0 && idx !== 0) return false;
+    if (first && idx !== 0) return false;
+    first = false;
     pos = idx + part.length;
   }
-  return parts[parts.length - 1] === '' || text.endsWith(parts[parts.length - 1]);
+  const lastPart = parts[parts.length - 1];
+  return lastPart === '' || text.endsWith(lastPart);
 }
 
 function matchesUniqueId(uniqueId: string, pattern: RegExp | string): boolean {
@@ -46,30 +50,30 @@ function matchesUniqueId(uniqueId: string, pattern: RegExp | string): boolean {
   return matchesGlob(uniqueId, pattern);
 }
 
-const ADAPTER_METRIC_VALUE_ACCESSORS = {
-  query_id: (execution: NodeExecution) => execution.adapterMetrics?.queryId ?? '',
-  adapter_code: (execution: NodeExecution) => execution.adapterMetrics?.adapterCode ?? '',
-  adapter_message: (execution: NodeExecution) => execution.adapterMetrics?.adapterMessage ?? '',
-  bytes_processed: (execution: NodeExecution) => execution.adapterMetrics?.bytesProcessed,
-  bytes_billed: (execution: NodeExecution) => execution.adapterMetrics?.bytesBilled,
-  slot_ms: (execution: NodeExecution) => execution.adapterMetrics?.slotMs,
-  rows_affected: (execution: NodeExecution) => execution.adapterMetrics?.rowsAffected,
-  project_id: (execution: NodeExecution) => execution.adapterMetrics?.projectId,
-  location: (execution: NodeExecution) => execution.adapterMetrics?.location,
-  rows_inserted: (execution: NodeExecution) => execution.adapterMetrics?.rowsInserted,
-  rows_updated: (execution: NodeExecution) => execution.adapterMetrics?.rowsUpdated,
-  rows_deleted: (execution: NodeExecution) => execution.adapterMetrics?.rowsDeleted,
-  rows_duplicated: (execution: NodeExecution) => execution.adapterMetrics?.rowsDuplicated,
-} as const satisfies Record<
+const ADAPTER_METRIC_SORT_FNS = new Map<
   AdapterMetricSortKey,
   (execution: NodeExecution) => number | string | undefined
->;
+>([
+  ['query_id', (execution) => execution.adapterMetrics?.queryId ?? ''],
+  ['adapter_code', (execution) => execution.adapterMetrics?.adapterCode ?? ''],
+  ['adapter_message', (execution) => execution.adapterMetrics?.adapterMessage ?? ''],
+  ['bytes_processed', (execution) => execution.adapterMetrics?.bytesProcessed],
+  ['bytes_billed', (execution) => execution.adapterMetrics?.bytesBilled],
+  ['slot_ms', (execution) => execution.adapterMetrics?.slotMs],
+  ['rows_affected', (execution) => execution.adapterMetrics?.rowsAffected],
+  ['project_id', (execution) => execution.adapterMetrics?.projectId],
+  ['location', (execution) => execution.adapterMetrics?.location],
+  ['rows_inserted', (execution) => execution.adapterMetrics?.rowsInserted],
+  ['rows_updated', (execution) => execution.adapterMetrics?.rowsUpdated],
+  ['rows_deleted', (execution) => execution.adapterMetrics?.rowsDeleted],
+  ['rows_duplicated', (execution) => execution.adapterMetrics?.rowsDuplicated],
+]);
 
 export function getAdapterMetricSortValue(
   execution: NodeExecution,
   sortKey: AdapterMetricSortKey,
 ): number | string | undefined {
-  return ADAPTER_METRIC_VALUE_ACCESSORS[sortKey](execution);
+  return ADAPTER_METRIC_SORT_FNS.get(sortKey)?.(execution);
 }
 
 const ADAPTER_HEAVY_DESC_KEYS = [
@@ -88,22 +92,9 @@ function adapterNumericHeavyOrZero(execution: NodeExecution, metric: AdapterHeav
   return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 }
 
-const NUMERIC_SORT_ACCESSORS = Object.fromEntries(
-  ADAPTER_HEAVY_DESC_KEYS.map((m) => [
-    `${m}_desc`,
-    (e: NodeExecution) => adapterNumericHeavyOrZero(e, m),
-  ]),
-) as Record<
-  | 'bytes_billed_desc'
-  | 'bytes_processed_desc'
-  | 'rows_affected_desc'
-  | 'rows_deleted_desc'
-  | 'rows_duplicated_desc'
-  | 'rows_inserted_desc'
-  | 'rows_updated_desc'
-  | 'slot_ms_desc',
-  (execution: NodeExecution) => number
->;
+const NUMERIC_SORT_KEY_TO_METRIC = new Map<ExecutionSortKey, AdapterHeavyMetric>(
+  ADAPTER_HEAVY_DESC_KEYS.map((m) => [`${m}_desc` as ExecutionSortKey, m]),
+);
 
 function adapterTextMatches(execution: NodeExecution, token: string): boolean {
   const metrics = execution.adapterMetrics;
@@ -179,9 +170,9 @@ export function sortByExecutionSortKey(
   }
 
   return [...executions].sort((a, b) => {
-    if (sortKey in NUMERIC_SORT_ACCESSORS) {
-      const accessor = NUMERIC_SORT_ACCESSORS[sortKey as keyof typeof NUMERIC_SORT_ACCESSORS];
-      return accessor(b) - accessor(a);
+    const metric = NUMERIC_SORT_KEY_TO_METRIC.get(sortKey);
+    if (metric != null) {
+      return adapterNumericHeavyOrZero(b, metric) - adapterNumericHeavyOrZero(a, metric);
     }
     return 0;
   });
@@ -204,7 +195,7 @@ function applyMinFields(
 ): NodeExecution[] {
   let result = executions;
   for (const [field, metric] of Object.entries(MIN_FIELD_TO_METRIC)) {
-    const min = criteria[field];
+    const min = getObjectProperty(criteria, field);
     if (typeof min !== 'number') continue;
     result = result.filter((e) => adapterNumericHeavyOrZero(e, metric) >= min);
   }
@@ -228,7 +219,7 @@ export function filterAdapterMetricMins(
   const criteria: Record<string, unknown> = {};
   for (const [field, value] of Object.entries(mins)) {
     if (value !== undefined) {
-      criteria[field] = value;
+      setObjectProperty(criteria, field, value);
     }
   }
   return applyMinFields(executions, criteria);

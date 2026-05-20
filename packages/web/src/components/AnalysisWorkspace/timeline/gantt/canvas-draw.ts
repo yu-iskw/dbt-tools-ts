@@ -614,15 +614,15 @@ export function drawGantt(
   ctx.textBaseline = 'middle';
 
   for (let i = visStart; i <= visEnd; i++) {
-    const bundle = bundles[i];
+    const bundle = bundles.at(i);
     if (!bundle) continue;
-    const rowY = AXIS_TOP + (rowOffsets[i] ?? 0) - scrollTop;
+    const rowY = AXIS_TOP + (rowOffsets.at(i) ?? 0) - scrollTop;
     drawGanttVisibleRow({
       ctx,
       bundle,
       rowIndex: i,
       rowY,
-      bundleRowHeightPx: rowHeights[i] ?? ROW_H,
+      bundleRowHeightPx: rowHeights.at(i) ?? ROW_H,
       w,
       labelW,
       chartW,
@@ -649,7 +649,7 @@ export function findFirstVisible(rowOffsets: number[], scrollTop: number): numbe
     hi = rowOffsets.length - 1;
   while (lo < hi) {
     const mid = Math.floor((lo + hi) / 2);
-    if ((rowOffsets[mid] ?? 0) < scrollTop) {
+    if ((rowOffsets.at(mid) ?? 0) < scrollTop) {
       lo = mid + 1;
     } else {
       hi = mid;
@@ -669,8 +669,8 @@ export function findLastVisible(
   const bottom = scrollTop + contentH;
   let result = 0;
   for (let i = 0; i < rowOffsets.length; i++) {
-    const offset = rowOffsets[i] ?? 0;
-    const rowEnd = offset + (rowHeights[i] ?? ROW_H);
+    const offset = rowOffsets.at(i) ?? 0;
+    const rowEnd = offset + (rowHeights.at(i) ?? ROW_H);
     if (rowEnd <= scrollTop) continue; // entirely above viewport
     if (offset >= bottom) break; // entirely below viewport
     result = i;

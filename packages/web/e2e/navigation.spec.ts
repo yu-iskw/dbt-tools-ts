@@ -28,7 +28,7 @@ test.describe('sidebar navigation', () => {
     for (const { label, heading, view } of NAV_VIEWS) {
       await page.locator(APP_SIDEBAR).getByRole('button', { name: label, exact: true }).click();
       await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible();
-      await expect(page).toHaveURL(new RegExp(`[?&]view=${view}`));
+      await expect(page).toHaveURL((url) => url.searchParams.get('view') === view);
     }
   });
 

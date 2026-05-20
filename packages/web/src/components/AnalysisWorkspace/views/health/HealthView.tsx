@@ -1,7 +1,6 @@
-import { useMemo } from 'react';
-
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
 import { buildOverviewDerivedState } from '@web/lib/analysis-workspace/overview-state';
+import { useMemo } from 'react';
 
 import { EmptyState } from '../../../EmptyState';
 import { InvocationResourceStats } from '../../InvocationResourceStatsTable';

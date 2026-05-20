@@ -1,17 +1,15 @@
-import { type Dispatch, type SetStateAction } from 'react';
-
 import {
   isRunsAdapterSortBy,
   type RunsAdapterColumnLayout,
 } from '@web/lib/analysis-workspace/runs-adapter-columns';
 import { defaultRunsSortDirection } from '@web/lib/analysis-workspace/runs-sort';
+import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
 
 import { MaterializationKindPillRow } from '../../MaterializationKindPillRow';
 
 import type { RunsResultsSourceState } from '@web/hooks/use-runs-results-source';
 import type { RunsViewState } from '@web/lib/analysis-workspace/types';
 import type { MaterializationKind } from '@web/types';
-import type { ReactElement } from 'react';
 
 type RunsResultsState = RunsResultsSourceState;
 

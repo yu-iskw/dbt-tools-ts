@@ -5,9 +5,8 @@ import {
   getPresentAdapterMetricDescriptors,
   type AdapterResponseMetrics,
 } from '@dbt-tools/core/browser';
-import { useLayoutEffect, useRef, useState } from 'react';
-
 import { buildMaterializationTooltipText } from '@web/lib/analysis-workspace/materialization-semantics-ui';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import { TOOLTIP_LABEL_STYLE } from './constants';
 import { formatMs, formatTimestamp } from './formatting';

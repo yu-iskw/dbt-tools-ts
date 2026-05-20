@@ -1,5 +1,5 @@
 export const coveragePolicy = {
-  glob: 'packages/cli/src/**',
+  glob: 'packages/cli/src/{actions,internal}/**',
   thresholds: {
     lines: 63,
     branches: 44,

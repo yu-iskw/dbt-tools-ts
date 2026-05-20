@@ -1,7 +1,6 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
-import { getDbtToolsTargetDirFromEnv } from '@dbt-tools/core';
+import { existsValidated, getDbtToolsTargetDirFromEnv, statValidatedSync } from '@dbt-tools/core';
 
 export function expandDbtTargetDirFromEnvValue(targetDir: string): string {
   return targetDir.replace(/^~($|\/)/, `${process.env.HOME ?? ''}$1`).trim();
@@ -30,7 +29,7 @@ export function resolveWatchableLocalTargetDir(cwd: string): string | null {
     }
   }
 
-  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
+  if (!existsValidated(resolved) || !statValidatedSync(resolved).isDirectory()) {
     console.warn('[dbt-target] DBT_TOOLS_TARGET_DIR is not a directory:', resolved);
     return null;
   }

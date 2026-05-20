@@ -1,3 +1,4 @@
+import { getObjectProperty, mapFromRecord } from '@dbt-tools/core/browser';
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
 
 import {
@@ -57,9 +58,20 @@ const UPSTREAM_RESOURCE_RANK: Record<string, number> = {
   analysis: 10,
 };
 
+const UPSTREAM_RESOURCE_RANK_MAP = mapFromRecord(UPSTREAM_RESOURCE_RANK);
+
+function getTimelineAdjacencyEntry(
+  timelineAdjacency: Record<string, TimelineAdjacencyEntry>,
+  nodeId: string,
+): TimelineAdjacencyEntry | undefined {
+  return getObjectProperty(timelineAdjacency as Record<string, unknown>, nodeId) as
+    | TimelineAdjacencyEntry
+    | undefined;
+}
+
 function resourceTypeRank(resourceType: string | undefined): number {
   if (!resourceType) return 99;
-  return UPSTREAM_RESOURCE_RANK[resourceType] ?? 98;
+  return UPSTREAM_RESOURCE_RANK_MAP.get(resourceType) ?? 98;
 }
 
 /**
@@ -298,7 +310,7 @@ function addExtendedEdge(ctx: ExtendedBfsVisitCtx, fromId: string, toId: string)
 }
 
 function visitExtendedNeighborsForVertex(v: string, ctx: ExtendedBfsVisitCtx): boolean {
-  const entry = ctx.timelineAdjacency[v];
+  const entry = getTimelineAdjacencyEntry(ctx.timelineAdjacency, v);
   if (!entry) return false;
   const neighbors = ctx.direction === 'upstream' ? entry.inbound : entry.outbound;
   for (const n of neighbors) {
@@ -391,7 +403,7 @@ export function countInboundOnTimeline(
   bundleIndexById: Map<string, number>,
 ): number {
   if (!focusId || !timelineAdjacency) return 0;
-  const entry = timelineAdjacency[focusId];
+  const entry = getTimelineAdjacencyEntry(timelineAdjacency, focusId);
   if (!entry) return 0;
   let n = 0;
   for (const u of entry.inbound) {
@@ -407,7 +419,7 @@ export function countOutboundOnTimeline(
   bundleIndexById: Map<string, number>,
 ): number {
   if (!focusId || !timelineAdjacency) return 0;
-  const entry = timelineAdjacency[focusId];
+  const entry = getTimelineAdjacencyEntry(timelineAdjacency, focusId);
   if (!entry) return 0;
   let n = 0;
   for (const v of entry.outbound) {
@@ -422,7 +434,7 @@ export function countInboundInAdjacency(
   timelineAdjacency: Record<string, TimelineAdjacencyEntry> | undefined,
 ): number {
   if (!focusId || !timelineAdjacency) return 0;
-  const entry = timelineAdjacency[focusId];
+  const entry = getTimelineAdjacencyEntry(timelineAdjacency, focusId);
   return entry?.inbound.length ?? 0;
 }
 
@@ -432,7 +444,7 @@ export function countOutboundInAdjacency(
   timelineAdjacency: Record<string, TimelineAdjacencyEntry> | undefined,
 ): number {
   if (!focusId || !timelineAdjacency) return 0;
-  const entry = timelineAdjacency[focusId];
+  const entry = getTimelineAdjacencyEntry(timelineAdjacency, focusId);
   return entry?.outbound.length ?? 0;
 }
 
@@ -451,7 +463,7 @@ function bfsTimelineNeighborhoodHalf(
   for (let hop = 0; hop < maxHops; hop++) {
     const nextFrontier = new Set<string>();
     for (const v of frontier) {
-      const entry = timelineAdjacency[v];
+      const entry = getTimelineAdjacencyEntry(timelineAdjacency, v);
       if (!entry) continue;
       for (const neighborId of getNeighbors(entry)) {
         if (!candidateIds.has(neighborId) || result.has(neighborId)) {
@@ -514,7 +526,7 @@ export function collectTimelineNeighborhoodIds({
   const noop = () => new Set(candidateIds);
   if (focusId == null || !timelineAdjacency) return noop();
   if (!candidateIds.has(focusId)) return noop();
-  if (!timelineAdjacency[focusId]) return noop();
+  if (!getTimelineAdjacencyEntry(timelineAdjacency, focusId)) return noop();
 
   const maxHops = Math.max(
     1,
@@ -557,7 +569,7 @@ export function getFocusTimelineEdges(
   if (!focusId || !timelineAdjacency) {
     return { edges: [], extendedTruncated: false };
   }
-  const entry = timelineAdjacency[focusId];
+  const entry = getTimelineAdjacencyEntry(timelineAdjacency, focusId);
   const focusItem = itemById.get(focusId);
   if (!entry || !focusItem || !bundleIndexById.has(focusId)) {
     return { edges: [], extendedTruncated: false };
@@ -610,9 +622,9 @@ export function parcelCenterY(
   scrollTop: number,
   showTests: boolean,
 ): number | null {
-  const bundle = bundles[bundleIndex];
+  const bundle = bundles.at(bundleIndex);
   if (!bundle) return null;
-  const rowY = AXIS_TOP + (rowOffsets[bundleIndex] ?? 0) - scrollTop;
+  const rowY = AXIS_TOP + (rowOffsets.at(bundleIndex) ?? 0) - scrollTop;
 
   if (bundle.item.unique_id === uniqueId) {
     return rowY + BAR_PAD + BAR_H / 2;

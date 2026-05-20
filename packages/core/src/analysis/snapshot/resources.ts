@@ -1,3 +1,4 @@
+import { getObjectProperty, setObjectProperty } from '../../util/typed-map';
 import { buildNodeExecutionSemantics } from '../execution/semantics';
 
 import { buildResourceDefinition, sortResources, statusLabel, statusTone } from './shared';
@@ -14,7 +15,7 @@ import type {
 import type { NodeExecution } from '../execution/analyzer';
 
 function optionalStringField(obj: Record<string, unknown>, key: string): string | null {
-  const v = obj[key];
+  const v = getObjectProperty(obj, key);
   return typeof v === 'string' ? v : null;
 }
 
@@ -47,7 +48,12 @@ function buildCatalogLookup(
   const lookup = new Map<string, Record<string, unknown>>();
   if (catalogJson == null) return lookup;
   for (const groupKey of ['nodes', 'sources'] as const) {
-    const group = catalogJson[groupKey];
+    const group =
+      groupKey === 'nodes'
+        ? catalogJson.nodes
+        : groupKey === 'sources'
+          ? catalogJson.sources
+          : undefined;
     if (group == null || typeof group !== 'object') continue;
     for (const [uniqueId, value] of Object.entries(group)) {
       if (value != null && typeof value === 'object') {
@@ -281,7 +287,11 @@ export function buildResourcesAndDependencyIndex(
         },
       ),
     );
-    dependencyIndex[uniqueId] = mapDependencyNeighbors(graph, graphologyGraph, uniqueId);
+    setObjectProperty(
+      dependencyIndex as Record<string, unknown>,
+      uniqueId,
+      mapDependencyNeighbors(graph, graphologyGraph, uniqueId),
+    );
   });
 
   resources.sort(sortResources);

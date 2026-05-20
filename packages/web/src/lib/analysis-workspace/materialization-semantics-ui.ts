@@ -1,4 +1,4 @@
-import { normalizeDbtResourceTypeKey } from '@dbt-tools/core/browser';
+import { getObjectProperty, normalizeDbtResourceTypeKey } from '@dbt-tools/core/browser';
 
 import type { MaterializationKind, NodeExecutionSemantics } from '@web/types';
 
@@ -78,7 +78,8 @@ const KIND_SUMMARY: Record<MaterializationKind, string> = {
 };
 
 export function materializationKindShortLabel(kind: MaterializationKind): string {
-  return SHORT_LABEL[kind] ?? kind;
+  const label = getObjectProperty(SHORT_LABEL as Record<string, unknown>, kind);
+  return typeof label === 'string' ? label : kind;
 }
 
 /** Rich tooltip: summary + optional incremental hints + raw custom materialization. */

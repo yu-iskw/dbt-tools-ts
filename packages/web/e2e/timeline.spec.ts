@@ -1,21 +1,11 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
+import { getObjectProperty, setObjectProperty } from '@dbt-tools/core/browser';
 import { test, expect, type Page } from '@playwright/test';
 
+import seedManifest from './fixtures/dbt-artifacts/manifest_1.11.json';
+import seedRunResults from './fixtures/dbt-artifacts/run_results_1.11.json';
 import { loadWorkspace, mockPreload } from './helpers/preload';
 
 const SEARCH_TIMELINE_LABEL = 'Search timeline nodes';
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SEED_SOURCE_MANIFEST_PATH = path.resolve(
-  __dirname,
-  'fixtures/dbt-artifacts/manifest_1.11.json',
-);
-const SEED_SOURCE_RUN_RESULTS_PATH = path.resolve(
-  __dirname,
-  'fixtures/dbt-artifacts/run_results_1.11.json',
-);
 
 type JsonRecord = Record<string, unknown>;
 
@@ -23,21 +13,17 @@ async function buildSeedAndSourceTimelineFixtures(): Promise<{
   manifest: JsonRecord;
   runResults: JsonRecord;
 }> {
-  const [manifestRaw, runResultsRaw] = await Promise.all([
-    fs.readFile(SEED_SOURCE_MANIFEST_PATH, 'utf8'),
-    fs.readFile(SEED_SOURCE_RUN_RESULTS_PATH, 'utf8'),
-  ]);
-  const manifest = JSON.parse(manifestRaw) as JsonRecord & {
+  const manifest = structuredClone(seedManifest) as JsonRecord & {
     nodes: Record<string, JsonRecord>;
     parent_map: Record<string, string[]>;
     child_map: Record<string, string[]>;
   };
-  const runResults = JSON.parse(runResultsRaw) as JsonRecord & {
+  const runResults = structuredClone(seedRunResults) as JsonRecord & {
     results: JsonRecord[];
   };
 
   const cloneNode = (sourceId: string, overrides: JsonRecord) => {
-    const source = manifest.nodes[sourceId];
+    const source = getObjectProperty(manifest.nodes, sourceId) as JsonRecord | undefined;
     if (source == null) {
       throw new Error(`Missing manifest node: ${sourceId}`);
     }
@@ -54,9 +40,10 @@ async function buildSeedAndSourceTimelineFixtures(): Promise<{
   const sourceTestId = 'test.jaffle_shop.not_null_raw_customers_customer_id.synthetic_source';
   const sourceParentId = 'source.jaffle_shop.ecom.raw_customers';
 
-  manifest.nodes[sourceTestId] = cloneNode(
-    'test.jaffle_shop.not_null_stg_customers_customer_id.e2cfb1f9aa',
-    {
+  setObjectProperty(
+    manifest.nodes,
+    sourceTestId,
+    cloneNode('test.jaffle_shop.not_null_stg_customers_customer_id.e2cfb1f9aa', {
       unique_id: sourceTestId,
       name: 'not_null_raw_customers_customer_id',
       path: 'models/staging/__sources.yml',
@@ -66,13 +53,12 @@ async function buildSeedAndSourceTimelineFixtures(): Promise<{
         macros: [],
         nodes: [sourceParentId],
       },
-    },
+    }),
   );
-  manifest.parent_map[sourceTestId] = [sourceParentId];
-  manifest.child_map[sourceParentId] = [
-    ...(manifest.child_map[sourceParentId] ?? []),
-    sourceTestId,
-  ];
+  setObjectProperty(manifest.parent_map, sourceTestId, [sourceParentId]);
+  const existingChildren =
+    (getObjectProperty(manifest.child_map, sourceParentId) as string[] | undefined) ?? [];
+  setObjectProperty(manifest.child_map, sourceParentId, [...existingChildren, sourceTestId]);
 
   runResults.results.push(
     cloneResult((entry) => entry.unique_id === 'model.jaffle_shop.stg_orders', {

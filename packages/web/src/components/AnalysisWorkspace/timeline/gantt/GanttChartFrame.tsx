@@ -1,4 +1,11 @@
-import { useLayoutEffect, useRef, useState, type MouseEvent, type RefObject } from 'react';
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type RefObject,
+  type ReactElement,
+} from 'react';
 
 import { GanttEdgeLayer } from './GanttEdgeLayer';
 import { GanttLabelResizeHandle } from './GanttLabelResizeHandle';
@@ -9,7 +16,6 @@ import type { HoverState } from './hit-test';
 import type { ThemeMode } from '@web/constants/theme-colors';
 import type { BundleRow } from '@web/lib/analysis-workspace/bundle-layout';
 import type { GanttItem, ResourceNode, ResourceTestStats } from '@web/types';
-import type { ReactElement } from 'react';
 
 export interface GanttLabelColumnResizeProps {
   width: number;

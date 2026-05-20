@@ -1,7 +1,14 @@
-import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import {
+  createReadStreamValidated,
+  existsValidated,
+  getObjectProperty,
+  realpathValidatedSync,
+  statValidatedSync,
+} from '@dbt-tools/core';
 
 import { ArtifactSourceService } from '../artifact-source/source-service.js';
 import { tryHandleArtifactSourceViteRequest } from '../artifact-source/vite-artifact-routes.js';
@@ -11,7 +18,7 @@ const DIST_DIR = path.resolve(__dirname, '../../dist');
 
 let DIST_ROOT_REAL: string;
 try {
-  DIST_ROOT_REAL = fs.realpathSync(DIST_DIR);
+  DIST_ROOT_REAL = realpathValidatedSync(DIST_DIR);
 } catch {
   DIST_ROOT_REAL = path.resolve(DIST_DIR);
 }
@@ -53,7 +60,7 @@ function toSafeAbsoluteUnderDist(candidatePath: string): string {
   }
   const underReal = path.join(DIST_ROOT_REAL, rel);
   try {
-    const canonical = fs.realpathSync(underReal);
+    const canonical = realpathValidatedSync(underReal);
     return isContainedUnderRoot(DIST_ROOT_REAL, canonical) ? canonical : INDEX_HTML;
   } catch {
     return underReal;
@@ -81,7 +88,7 @@ export function resolveStaticPath(urlPath: string): string {
   }
 
   try {
-    const canonical = fs.realpathSync(resolved);
+    const canonical = realpathValidatedSync(resolved);
     if (!isContainedUnderRoot(DIST_ROOT_REAL, canonical)) {
       return INDEX_HTML;
     }
@@ -111,7 +118,7 @@ function sendFileWithOptionalSpaFallback(
   allowSpaFallback: boolean,
 ): void {
   const safePath = toSafeAbsoluteUnderDist(primaryPath);
-  const stream = fs.createReadStream(safePath);
+  const stream = createReadStreamValidated(safePath);
   stream.on('error', () => {
     stream.destroy();
     if (allowSpaFallback && !res.headersSent) {
@@ -122,7 +129,10 @@ function sendFileWithOptionalSpaFallback(
   });
 
   const ext = path.extname(safePath).toLowerCase();
-  res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream');
+  const mime =
+    (getObjectProperty(MIME as Record<string, unknown>, ext) as string | undefined) ??
+    'application/octet-stream';
+  res.setHeader('Content-Type', mime);
   res.statusCode = 200;
   stream.pipe(res);
 }
@@ -131,7 +141,7 @@ function serveStaticFile(filePath: string, res: http.ServerResponse): void {
   const safeResolved = toSafeAbsoluteUnderDist(filePath);
   const safeIndex = toSafeAbsoluteUnderDist(INDEX_HTML);
   let target = safeResolved;
-  if (!fs.existsSync(target) || fs.statSync(target).isDirectory()) {
+  if (!existsValidated(target) || statValidatedSync(target).isDirectory()) {
     target = safeIndex;
   }
   const allowSpaFallback = safeResolved !== safeIndex;

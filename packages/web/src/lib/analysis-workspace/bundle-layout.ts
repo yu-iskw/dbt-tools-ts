@@ -82,9 +82,9 @@ function assignLanes(tests: GanttItem[]): {
   for (const test of sorted) {
     let assignedLane = -1;
     for (let l = 0; l < laneTails.length; l++) {
-      if ((laneTails[l] ?? 0) <= test.start) {
+      if ((laneTails.at(l) ?? 0) <= test.start) {
         assignedLane = l;
-        laneTails[l] = test.end;
+        laneTails.splice(l, 1, test.end);
         break;
       }
     }

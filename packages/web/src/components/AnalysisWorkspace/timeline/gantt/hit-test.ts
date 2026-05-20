@@ -41,8 +41,8 @@ export function findBundleAtOffset(
     hi = rowOffsets.length - 1;
   while (lo <= hi) {
     const mid = Math.floor((lo + hi) / 2);
-    const offset = rowOffsets[mid] ?? 0;
-    const height = rowHeights[mid] ?? ROW_H;
+    const offset = rowOffsets.at(mid) ?? 0;
+    const height = rowHeights.at(mid) ?? ROW_H;
     if (offset > contentY) {
       hi = mid - 1;
     } else if (offset + height <= contentY) {
@@ -94,11 +94,11 @@ export function hitTestBundle(
   const bundleIdx = findBundleAtOffset(rowOffsets, rowHeights, contentY);
   if (bundleIdx < 0 || bundleIdx >= bundles.length) return null;
 
-  const bundle = bundles[bundleIdx];
+  const bundle = bundles.at(bundleIdx);
   if (!bundle) return null;
 
   const chartW = canvas.getBoundingClientRect().width - effectiveLabelW - X_PAD;
-  const bundleRowY = AXIS_TOP + (rowOffsets[bundleIdx] ?? 0) - scrollTop;
+  const bundleRowY = AXIS_TOP + (rowOffsets.at(bundleIdx) ?? 0) - scrollTop;
 
   // Label column: select parent
   if (mouseX < effectiveLabelW) {

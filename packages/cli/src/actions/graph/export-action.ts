@@ -1,12 +1,11 @@
 /**
  * Export intent — normalized envelope over graph export primitives.
  */
-import * as fs from 'node:fs';
-
 import {
   ManifestGraph,
   loadManifest,
   validateSafePath,
+  writeValidatedUtf8Sync,
   FieldFilter,
   formatOutput,
   shouldOutputJSON,
@@ -105,7 +104,7 @@ export async function exportAction(
 
     if (useJson) {
       if (options.output) {
-        fs.writeFileSync(options.output, body, 'utf-8');
+        writeValidatedUtf8Sync(options.output, body);
       }
       const meta: ExportOutput = {
         intent: 'export',

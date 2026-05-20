@@ -5,7 +5,7 @@ export function getCompilePhaseDarkenRgba(theme: ThemeMode): string {
   return theme === 'dark' ? 'rgba(0, 0, 0, 0.34)' : 'rgba(0, 0, 0, 0.2)';
 }
 
-const compileStripePatternCache: Partial<Record<ThemeMode, CanvasPattern | null>> = {};
+const compileStripePatternCache = new Map<ThemeMode, CanvasPattern | null>();
 
 function createDiagonalStripePattern(theme: ThemeMode): CanvasPattern | null {
   if (typeof document === 'undefined') return null;
@@ -34,11 +34,12 @@ function createDiagonalStripePattern(theme: ThemeMode): CanvasPattern | null {
 
 /** Cached repeating pattern for compile phase (browser only). */
 export function getCompileStripePattern(theme: ThemeMode): CanvasPattern | null {
-  if (theme in compileStripePatternCache) {
-    return compileStripePatternCache[theme] ?? null;
+  if (compileStripePatternCache.has(theme)) {
+    return compileStripePatternCache.get(theme) ?? null;
   }
-  compileStripePatternCache[theme] = createDiagonalStripePattern(theme);
-  return compileStripePatternCache[theme] ?? null;
+  const pattern = createDiagonalStripePattern(theme);
+  compileStripePatternCache.set(theme, pattern);
+  return pattern;
 }
 
 /**

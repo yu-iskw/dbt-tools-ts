@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState, type AnchorHTMLAttributes } from 'react';
+import { useEffect, useRef, useState, type AnchorHTMLAttributes, type ReactElement } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
-import type { ReactElement } from 'react';
 
 function MarkdownAnchor({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) {
   const openInNewTab =

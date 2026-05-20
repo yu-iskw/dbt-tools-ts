@@ -1,5 +1,3 @@
-import { useMemo, useState } from 'react';
-
 import { PILL_ACTIVE, PILL_BASE } from '@web/lib/analysis-workspace/constants';
 import {
   THREAD_DISTRIBUTION_METRIC_OPTIONS,
@@ -11,6 +9,7 @@ import {
   type ThreadDistributionMetric,
 } from '@web/lib/analysis-workspace/thread-distribution-metrics';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
+import { useMemo, useState } from 'react';
 
 import { EmptyState } from '../../../EmptyState';
 

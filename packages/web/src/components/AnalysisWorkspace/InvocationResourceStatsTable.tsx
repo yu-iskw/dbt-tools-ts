@@ -1,10 +1,9 @@
-import { useMemo, type ReactElement } from 'react';
-
 import {
   buildInvocationResourceComparison,
   type InvocationResourceComparisonRow,
 } from '@web/lib/analysis-workspace/invocation-resource-stats';
 import { deriveProjectName, formatResourceTypeLabel } from '@web/lib/analysis-workspace/utils';
+import { useMemo, type ReactElement } from 'react';
 
 import type { AnalysisState } from '@web/types';
 

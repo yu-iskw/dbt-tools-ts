@@ -1,5 +1,7 @@
 import { Parser } from 'node-sql-parser';
 
+import { getObjectProperty, recordFromMap } from '../../util/typed-map';
+
 import type { Select } from 'node-sql-parser';
 
 /** AST node shapes from node-sql-parser (loosely typed for runtime objects) */
@@ -56,6 +58,9 @@ export interface ColumnDependency {
 
 export type ColumnDependencyMap = Record<string, ColumnDependency[]>;
 
+type TableAliasMap = Map<string, string>;
+type CteMap = Map<string, ColumnDependencyMap>;
+
 /**
  * SQLAnalyzer performs AST analysis on SQL to infer column-level lineage.
  */
@@ -94,7 +99,7 @@ export class SQLAnalyzer {
   private analyzeSelect(
     select: Select,
     dialect: string,
-    parentCteMap: Record<string, ColumnDependencyMap> = {},
+    parentCteMap: CteMap = new Map(),
   ): ColumnDependencyMap {
     if (!select || select.type !== 'select') return {};
 
@@ -107,17 +112,13 @@ export class SQLAnalyzer {
     return this.processSelectColumns(select.columns as SelectColumn[], tableMap, cteMap);
   }
 
-  private buildCteMap(
-    select: Select,
-    dialect: string,
-    parentCteMap: Record<string, ColumnDependencyMap>,
-  ): Record<string, ColumnDependencyMap> {
-    const cteMap = { ...parentCteMap };
+  private buildCteMap(select: Select, dialect: string, parentCteMap: CteMap): CteMap {
+    const cteMap = new Map(parentCteMap);
     if (!select.with || !Array.isArray(select.with)) return cteMap;
 
     for (const cte of select.with) {
       if (cte.stmt?.ast) {
-        cteMap[cte.name.value] = this.analyzeSelect(cte.stmt.ast as Select, dialect, cteMap);
+        cteMap.set(cte.name.value, this.analyzeSelect(cte.stmt.ast as Select, dialect, cteMap));
       }
     }
     return cteMap;
@@ -144,10 +145,10 @@ export class SQLAnalyzer {
 
   private processSelectColumns(
     columns: SelectColumn[],
-    tableMap: Record<string, string>,
-    cteMap: Record<string, ColumnDependencyMap>,
+    tableMap: TableAliasMap,
+    cteMap: CteMap,
   ): ColumnDependencyMap {
-    const dependencies: ColumnDependencyMap = {};
+    const dependencies = new Map<string, ColumnDependency[]>();
 
     for (const col of columns) {
       const targetName = this.getColumnTargetName(col);
@@ -161,7 +162,7 @@ export class SQLAnalyzer {
             : undefined;
         if (targetName === '*' || colColumn === '*') {
           const starDeps = this.resolveExpressionDependencies(col.expr, tableMap, cteMap);
-          dependencies['*'] = this.uniqueDependencies(starDeps);
+          dependencies.set('*', this.uniqueDependencies(starDeps));
         }
         continue;
       }
@@ -169,11 +170,11 @@ export class SQLAnalyzer {
       const colDeps = this.resolveExpressionDependencies(col.expr, tableMap, cteMap);
       const uniqueDeps = this.uniqueDependencies(colDeps);
       if (uniqueDeps.length > 0) {
-        dependencies[targetName] = uniqueDeps;
+        dependencies.set(targetName, uniqueDeps);
       }
     }
 
-    return dependencies;
+    return recordFromMap(dependencies);
   }
 
   private extractColumnName(column: unknown): string {
@@ -192,8 +193,8 @@ export class SQLAnalyzer {
     return String(column);
   }
 
-  private buildTableMap(from: unknown[]): Record<string, string> {
-    const map: Record<string, string> = {};
+  private buildTableMap(from: unknown[]): TableAliasMap {
+    const map = new Map<string, string>();
     if (!from || !Array.isArray(from)) return map;
 
     for (const item of from) {
@@ -201,11 +202,11 @@ export class SQLAnalyzer {
       if (f.table) {
         const actualTable = f.table;
         const alias = f.as || actualTable;
-        map[alias] = actualTable;
+        map.set(alias, actualTable);
       } else if (f.expr && f.expr.ast) {
         const subqueryAlias = f.as;
         if (subqueryAlias) {
-          map[subqueryAlias] = `__subquery_${subqueryAlias}__`;
+          map.set(subqueryAlias, `__subquery_${subqueryAlias}__`);
         }
       }
     }
@@ -214,8 +215,8 @@ export class SQLAnalyzer {
 
   private resolveExpressionDependencies(
     expr: unknown,
-    tableMap: Record<string, string>,
-    cteMap: Record<string, ColumnDependencyMap>,
+    tableMap: TableAliasMap,
+    cteMap: CteMap,
   ): ColumnDependency[] {
     const deps: ColumnDependency[] = [];
     this.traverseAst(expr, tableMap, cteMap, deps);
@@ -224,8 +225,8 @@ export class SQLAnalyzer {
 
   private traverseAst(
     node: unknown,
-    tableMap: Record<string, string>,
-    cteMap: Record<string, ColumnDependencyMap>,
+    tableMap: TableAliasMap,
+    cteMap: CteMap,
     deps: ColumnDependency[],
   ): void {
     if (!node || typeof node !== 'object') return;
@@ -267,28 +268,31 @@ export class SQLAnalyzer {
 
   private collectColumnRefDeps(
     n: Record<string, unknown>,
-    tableMap: Record<string, string>,
-    cteMap: Record<string, ColumnDependencyMap>,
+    tableMap: TableAliasMap,
+    cteMap: CteMap,
     deps: ColumnDependency[],
   ): void {
     const tableAlias = n.table as string | undefined;
     const columnName = this.extractColumnName(n.column);
 
     if (tableAlias) {
-      const actualTable = tableMap[tableAlias];
+      const actualTable = tableMap.get(tableAlias);
       if (actualTable) {
         this.pushColumnDeps(actualTable, columnName, cteMap, deps);
       }
       return;
     }
 
-    const tables = Object.values(tableMap);
+    const tables = [...tableMap.values()];
     if (tables.length === 1) {
-      this.pushColumnDeps(tables[0], columnName, cteMap, deps);
+      this.pushColumnDeps(tables[0]!, columnName, cteMap, deps);
       return;
     }
     for (const table of tables) {
-      const cteCols = cteMap[table]?.[columnName];
+      const cteEntry = cteMap.get(table);
+      const cteCols = cteEntry
+        ? (getObjectProperty(cteEntry, columnName) as ColumnDependency[] | undefined)
+        : undefined;
       if (cteCols?.length) deps.push(...cteCols);
     }
   }
@@ -296,10 +300,14 @@ export class SQLAnalyzer {
   private pushColumnDeps(
     actualTable: string,
     columnName: string,
-    cteMap: Record<string, ColumnDependencyMap>,
+    cteMap: CteMap,
     deps: ColumnDependency[],
   ): void {
-    const cteDeps = cteMap[actualTable]?.[columnName] ?? [];
+    const cteEntry = cteMap.get(actualTable);
+    const cteDeps =
+      (cteEntry
+        ? (getObjectProperty(cteEntry, columnName) as ColumnDependency[] | undefined)
+        : undefined) ?? [];
     if (cteDeps.length > 0) {
       deps.push(...cteDeps);
     } else {

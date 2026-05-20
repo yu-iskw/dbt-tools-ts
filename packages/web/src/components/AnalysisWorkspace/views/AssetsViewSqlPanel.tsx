@@ -18,103 +18,132 @@ interface SqlToken {
   value: string;
 }
 
-function tokenizeSQL(sql: string): SqlToken[] {
-  const readBlockComment = (start: number): string | null => {
-    if (!sql.startsWith('/*', start)) return null;
-    const end = sql.indexOf('*/', start + 2);
-    return end === -1 ? sql.slice(start) : sql.slice(start, end + 2);
-  };
+function isIdentifierStart(ch: string): boolean {
+  return /[a-zA-Z_]/.test(ch);
+}
 
-  const readLineComment = (start: number): string | null => {
-    if (!sql.startsWith('--', start)) return null;
-    const end = sql.indexOf('\n', start);
-    return end === -1 ? sql.slice(start) : sql.slice(start, end + 1);
-  };
+function isIdentifierPart(ch: string): boolean {
+  return /[a-zA-Z0-9_]/.test(ch);
+}
 
-  const readStringLiteral = (start: number): string | null => {
-    if (sql[start] !== "'") return null;
-    let end = start + 1;
-    while (end < sql.length) {
-      if (sql[end] === "'" && sql[end - 1] !== '\\') {
-        end += 1;
-        break;
-      }
+function isDigit(ch: string): boolean {
+  return ch >= '0' && ch <= '9';
+}
+
+function readBlockComment(sql: string, start: number): string | null {
+  if (!sql.startsWith('/*', start)) return null;
+  const end = sql.indexOf('*/', start + 2);
+  return end === -1 ? sql.slice(start) : sql.slice(start, end + 2);
+}
+
+function readLineComment(sql: string, start: number): string | null {
+  if (!sql.startsWith('--', start)) return null;
+  const end = sql.indexOf('\n', start);
+  return end === -1 ? sql.slice(start) : sql.slice(start, end + 1);
+}
+
+function readStringLiteral(sql: string, start: number): string | null {
+  if (sql.charAt(start) !== "'") return null;
+  let end = start + 1;
+  while (end < sql.length) {
+    if (sql.charAt(end) === "'" && sql.charAt(end - 1) !== '\\') {
       end += 1;
+      break;
     }
-    return sql.slice(start, end);
-  };
+    end += 1;
+  }
+  return sql.slice(start, end);
+}
 
-  const readNumberLiteral = (start: number): string | null => {
-    const numMatch = /^[0-9]+(\.[0-9]+)?/.exec(sql.slice(start));
-    if (!numMatch || (start > 0 && /[a-zA-Z_]/.test(sql[start - 1]))) {
-      return null;
-    }
-    return numMatch[0];
-  };
-
-  const readWord = (start: number): { type: string; value: string } | null => {
-    const wordMatch = /^[a-zA-Z_][a-zA-Z0-9_]*/.exec(sql.slice(start));
-    if (!wordMatch) return null;
-    const word = wordMatch[0];
-    const upper = word.toUpperCase();
-    return {
-      type: SQL_KEYWORDS.has(upper)
-        ? 'keyword'
-        : SQL_FUNCTIONS.has(upper)
-          ? 'function'
-          : 'identifier',
-      value: word,
-    };
-  };
-
-  const readStructuredToken = (start: number): { type: string; value: string } | null => {
-    const value =
-      readBlockComment(start) ??
-      readLineComment(start) ??
-      readStringLiteral(start) ??
-      readNumberLiteral(start);
-    if (value == null) return null;
-    if (value.startsWith('/*') || value.startsWith('--')) {
-      return { type: 'comment', value };
-    }
-    if (sql[start] === "'") {
-      return { type: 'string', value };
-    }
-    return { type: 'number', value };
-  };
-
-  const singleCharTokenType = (char: string): string | null => {
-    if (/[=<>!|+\-*/%^&~]/.test(char)) return 'operator';
-    if (/[(),;.[\]{}]/.test(char)) return 'punctuation';
+function readNumberLiteral(sql: string, start: number): string | null {
+  if (start > 0 && isIdentifierPart(sql.charAt(start - 1))) {
     return null;
-  };
+  }
+  let end = start;
+  while (end < sql.length && isDigit(sql.charAt(end))) {
+    end += 1;
+  }
+  if (end === start) return null;
+  if (sql.charAt(end) === '.') {
+    let frac = end + 1;
+    while (frac < sql.length && isDigit(sql.charAt(frac))) {
+      frac += 1;
+    }
+    if (frac > end + 1) {
+      end = frac;
+    }
+  }
+  return sql.slice(start, end);
+}
 
+function readWord(sql: string, start: number): { type: string; value: string } | null {
+  if (!isIdentifierStart(sql.charAt(start))) return null;
+  let end = start + 1;
+  while (end < sql.length && isIdentifierPart(sql.charAt(end))) {
+    end += 1;
+  }
+  const word = sql.slice(start, end);
+  const upper = word.toUpperCase();
+  return {
+    type: SQL_KEYWORDS.has(upper)
+      ? 'keyword'
+      : SQL_FUNCTIONS.has(upper)
+        ? 'function'
+        : 'identifier',
+    value: word,
+  };
+}
+
+function readStructuredToken(sql: string, start: number): { type: string; value: string } | null {
+  const value =
+    readBlockComment(sql, start) ??
+    readLineComment(sql, start) ??
+    readStringLiteral(sql, start) ??
+    readNumberLiteral(sql, start);
+  if (value == null) return null;
+  if (value.startsWith('/*') || value.startsWith('--')) {
+    return { type: 'comment', value };
+  }
+  if (sql.charAt(start) === "'") {
+    return { type: 'string', value };
+  }
+  return { type: 'number', value };
+}
+
+function singleCharTokenType(char: string): string | null {
+  if (/[=<>!|+\-*/%^&~]/.test(char)) return 'operator';
+  if (/[(),;.[\]{}]/.test(char)) return 'punctuation';
+  return null;
+}
+
+function tokenizeSQL(sql: string): SqlToken[] {
   const tokens: SqlToken[] = [];
   let pos = 0;
   const len = sql.length;
 
   while (pos < len) {
-    const structuredToken = readStructuredToken(pos);
+    const structuredToken = readStructuredToken(sql, pos);
     if (structuredToken != null) {
       tokens.push(structuredToken);
       pos += structuredToken.value.length;
       continue;
     }
 
-    const word = readWord(pos);
+    const word = readWord(sql, pos);
     if (word != null) {
       tokens.push(word);
       pos += word.value.length;
       continue;
     }
-    const charType = singleCharTokenType(sql[pos]);
+    const ch = sql.charAt(pos);
+    const charType = singleCharTokenType(ch);
     if (charType != null) {
-      tokens.push({ type: charType, value: sql[pos] });
-      pos++;
+      tokens.push({ type: charType, value: ch });
+      pos += 1;
       continue;
     }
-    tokens.push({ type: 'plain', value: sql[pos] });
-    pos++;
+    tokens.push({ type: 'plain', value: ch });
+    pos += 1;
   }
   return tokens;
 }

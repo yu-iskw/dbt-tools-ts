@@ -2,7 +2,8 @@
  * Graph export helpers for JSON, DOT, and GEXF formats.
  * Used by the CLI graph command and other graph export consumers.
  */
-import * as fs from 'fs';
+import { writeValidatedUtf8Sync } from '../io/safe-fs';
+import { pushToMapList } from '../util/typed-map';
 
 import { FieldFilter } from './field-filter';
 
@@ -56,15 +57,12 @@ function exportGraphDot(graph: DirectedGraph<GraphNodeAttributes, GraphEdgeAttri
   lines.push('  node [shape=box, style=filled, fillcolor=white];');
 
   const resourceNodes: string[] = [];
-  const fieldNodesByParent: Record<string, string[]> = {};
+  const fieldNodesByParent = new Map<string, string[]>();
 
   graph.forEachNode((nodeId, attributes) => {
     if (attributes.resource_type === 'field') {
       const parentId = attributes.parent_id as string;
-      if (!fieldNodesByParent[parentId]) {
-        fieldNodesByParent[parentId] = [];
-      }
-      fieldNodesByParent[parentId].push(nodeId);
+      pushToMapList(fieldNodesByParent, parentId, nodeId);
     } else {
       resourceNodes.push(nodeId);
     }
@@ -73,7 +71,7 @@ function exportGraphDot(graph: DirectedGraph<GraphNodeAttributes, GraphEdgeAttri
   for (const nodeId of resourceNodes) {
     const attributes = graph.getNodeAttributes(nodeId);
     const name = (attributes.name as string) || nodeId;
-    const fields = fieldNodesByParent[nodeId];
+    const fields = fieldNodesByParent.get(nodeId);
 
     if (fields && fields.length > 0) {
       lines.push(`  subgraph "cluster_${nodeId}" {`);
@@ -129,7 +127,7 @@ ${edges.map((e, i) => `      <edge id="${i}" source="${e.source}" target="${e.ta
 
 export function writeGraphOutput(output: string, outputPath?: string): void {
   if (outputPath) {
-    fs.writeFileSync(outputPath, output, 'utf-8');
+    writeValidatedUtf8Sync(outputPath, output);
     console.log(`Graph exported to ${outputPath}`);
   } else {
     console.log(output);

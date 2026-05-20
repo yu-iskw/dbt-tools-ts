@@ -1,8 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
 import { useSyncedDocumentTheme } from '@web/hooks/use-theme';
 import { groupIntoBundles } from '@web/lib/analysis-workspace/bundle-layout';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import {
   AXIS_TOP,
@@ -156,11 +155,16 @@ export function GanttChart({
 
   // TanStack Virtual drives scroll metrics; sizes come from bundle data (see bundleRowHeight).
 
+  // TanStack Virtual returns unstable function refs; incompatible with React Compiler memoization.
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual + React Compiler
   const virtualizer = useVirtualizer({
     count: bundles.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: (index) => (bundles[index] ? bundleRowHeight(bundles[index], showTests) : ROW_H),
-    getItemKey: (index) => bundles[index]?.item.unique_id ?? index,
+    estimateSize: (index) => {
+      const bundle = bundles.at(index);
+      return bundle ? bundleRowHeight(bundle, showTests) : ROW_H;
+    },
+    getItemKey: (index) => bundles.at(index)?.item.unique_id ?? index,
     overscan: 10,
   });
 
@@ -178,7 +182,7 @@ export function GanttChart({
   const bundleIndexById = useMemo(() => {
     const map = new Map<string, number>();
     for (let i = 0; i < bundles.length; i++) {
-      const bundle = bundles[i];
+      const bundle = bundles.at(i);
       if (!bundle) continue;
       map.set(bundle.item.unique_id, i);
       for (const test of bundle.tests) map.set(test.unique_id, i);

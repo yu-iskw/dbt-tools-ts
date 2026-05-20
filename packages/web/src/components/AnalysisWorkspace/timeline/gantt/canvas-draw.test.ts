@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import { CANVAS_LIGHT } from '@web/constants/theme-colors';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { drawGantt, fillRoundRect, findFirstVisible, findLastVisible } from './canvas-draw';
 import { ROW_H } from './constants';
@@ -60,17 +59,17 @@ function bundle(item: GanttItem, tests: GanttItem[], laneCount: number): BundleR
 function createMock2dContext(): CanvasRenderingContext2D & {
   __strokeOps: Array<{ strokeStyle: unknown; lineWidth: unknown }>;
 } {
-  const store: Record<string, unknown> = {
-    fillStyle: '',
-    strokeStyle: '',
-    font: '',
-    globalAlpha: 1,
-    lineWidth: 1,
-    lineCap: 'butt',
-    lineJoin: 'miter',
-    textAlign: 'start',
-    textBaseline: 'alphabetic',
-  };
+  const store = new Map<string, unknown>([
+    ['fillStyle', ''],
+    ['strokeStyle', ''],
+    ['font', ''],
+    ['globalAlpha', 1],
+    ['lineWidth', 1],
+    ['lineCap', 'butt'],
+    ['lineJoin', 'miter'],
+    ['textAlign', 'start'],
+    ['textBaseline', 'alphabetic'],
+  ]);
   const strokeOps: Array<{ strokeStyle: unknown; lineWidth: unknown }> = [];
   const fn = () => {};
   return new Proxy({} as CanvasRenderingContext2D, {
@@ -79,8 +78,8 @@ function createMock2dContext(): CanvasRenderingContext2D & {
       if (prop === 'stroke') {
         return () => {
           strokeOps.push({
-            strokeStyle: store.strokeStyle,
-            lineWidth: store.lineWidth,
+            strokeStyle: store.get('strokeStyle'),
+            lineWidth: store.get('lineWidth'),
           });
         };
       }
@@ -88,11 +87,11 @@ function createMock2dContext(): CanvasRenderingContext2D & {
       if (prop === 'measureText') {
         return (text: string) => ({ width: Math.max(8, text.length * 6) });
       }
-      if (typeof prop === 'string' && prop in store) return store[prop];
+      if (typeof prop === 'string' && store.has(prop)) return store.get(prop);
       return fn;
     },
     set(_t, prop, value) {
-      if (typeof prop === 'string') store[prop] = value;
+      if (typeof prop === 'string') store.set(prop, value);
       return true;
     },
   });

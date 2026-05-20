@@ -5,6 +5,8 @@
  * arbitrary UI rendering.
  */
 
+import { getObjectProperty, incrementMapCount, setObjectProperty } from '../../util/typed-map';
+
 export type AdapterResponseFieldKind =
   | 'array'
   | 'boolean'
@@ -58,7 +60,7 @@ export interface AdapterTotalsSnapshot {
 }
 
 export function readFiniteNumber(obj: Record<string, unknown>, key: string): number | undefined {
-  const v = obj[key];
+  const v = getObjectProperty(obj, key);
   if (typeof v === 'number' && Number.isFinite(v)) {
     return v;
   }
@@ -72,7 +74,7 @@ export function readFiniteNumber(obj: Record<string, unknown>, key: string): num
 }
 
 export function readNonEmptyString(obj: Record<string, unknown>, key: string): string | undefined {
-  const v = obj[key];
+  const v = getObjectProperty(obj, key);
   if (typeof v === 'string' && v.trim() !== '') {
     return v;
   }
@@ -97,7 +99,7 @@ function stableStringify(value: unknown): string {
   }
   const sortedKeys = Object.keys(value).sort();
   return `{${sortedKeys
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(getObjectProperty(value, key))}`)
     .join(',')}}`;
 }
 
@@ -169,7 +171,9 @@ function flattenTopLevelEntry(key: string, value: unknown): AdapterResponseField
     return [buildField(key, value)];
   }
 
-  return nestedKeys.map((nestedKey) => buildField(`${key}.${nestedKey}`, value[nestedKey]));
+  return nestedKeys.map((nestedKey) =>
+    buildField(`${key}.${nestedKey}`, getObjectProperty(value, nestedKey)),
+  );
 }
 
 /**
@@ -272,7 +276,44 @@ export function extractAdapterResponseFields(adapterResponse: unknown): AdapterR
 
   return Object.keys(adapterResponse)
     .sort()
-    .flatMap((key) => flattenTopLevelEntry(key, adapterResponse[key]));
+    .flatMap((key) => flattenTopLevelEntry(key, getObjectProperty(adapterResponse, key)));
+}
+
+type AdapterMetricTotalConfig = Array<{
+  metricKey: Exclude<keyof AdapterResponseMetrics, 'rawKeys'>;
+  totalKey: keyof AdapterTotalsSnapshot;
+}>;
+
+function accumulateAdapterMetricTotals(
+  metrics: AdapterResponseMetrics,
+  metricConfig: AdapterMetricTotalConfig,
+  totals: Map<keyof AdapterTotalsSnapshot, number>,
+  seen: Map<keyof AdapterTotalsSnapshot, boolean>,
+): void {
+  for (const { metricKey, totalKey } of metricConfig) {
+    const value = getObjectProperty(metrics as unknown as Record<string, unknown>, metricKey);
+    if (typeof value === 'number') {
+      incrementMapCount(totals, totalKey, value);
+      seen.set(totalKey, true);
+    }
+  }
+}
+
+function adapterTotalsSnapshotFromMaps(
+  nodesWithAdapterData: number,
+  metricConfig: AdapterMetricTotalConfig,
+  totals: Map<keyof AdapterTotalsSnapshot, number>,
+  seen: Map<keyof AdapterTotalsSnapshot, boolean>,
+): AdapterTotalsSnapshot {
+  const snapshot: AdapterTotalsSnapshot = { nodesWithAdapterData };
+  for (const { totalKey } of metricConfig) {
+    if (!seen.get(totalKey)) continue;
+    const total = totals.get(totalKey);
+    if (total !== undefined) {
+      setObjectProperty(snapshot as unknown as Record<string, unknown>, totalKey, total);
+    }
+  }
+  return snapshot;
 }
 
 /**
@@ -290,43 +331,24 @@ export function buildAdapterTotals(
     { metricKey: 'rowsUpdated', totalKey: 'totalRowsUpdated' },
     { metricKey: 'rowsDeleted', totalKey: 'totalRowsDeleted' },
     { metricKey: 'rowsDuplicated', totalKey: 'totalRowsDuplicated' },
-  ] as const satisfies Array<{
-    metricKey: Exclude<keyof AdapterResponseMetrics, 'rawKeys'>;
-    totalKey: keyof AdapterTotalsSnapshot;
-  }>;
+  ] as const satisfies AdapterMetricTotalConfig;
   let nodesWithAdapterData = 0;
-  const totals = Object.fromEntries(metricConfig.map(({ totalKey }) => [totalKey, 0])) as Record<
-    keyof AdapterTotalsSnapshot,
-    number
-  >;
-  const seen = Object.fromEntries(metricConfig.map(({ totalKey }) => [totalKey, false])) as Record<
-    keyof AdapterTotalsSnapshot,
-    boolean
-  >;
+  const totals = new Map<keyof AdapterTotalsSnapshot, number>();
+  const seen = new Map<keyof AdapterTotalsSnapshot, boolean>();
+  for (const { totalKey } of metricConfig) {
+    totals.set(totalKey, 0);
+    seen.set(totalKey, false);
+  }
 
   for (const m of metricsList) {
     if (m == null || !adapterMetricsHasData(m)) continue;
     nodesWithAdapterData += 1;
-    for (const { metricKey, totalKey } of metricConfig) {
-      const value = m[metricKey];
-      if (typeof value === 'number') {
-        totals[totalKey] += value;
-        seen[totalKey] = true;
-      }
-    }
+    accumulateAdapterMetricTotals(m, metricConfig, totals, seen);
   }
 
   if (nodesWithAdapterData === 0) {
     return undefined;
   }
 
-  const snapshot: AdapterTotalsSnapshot = {
-    nodesWithAdapterData,
-  };
-  for (const { totalKey } of metricConfig) {
-    if (seen[totalKey]) {
-      snapshot[totalKey] = totals[totalKey];
-    }
-  }
-  return snapshot;
+  return adapterTotalsSnapshotFromMaps(nodesWithAdapterData, metricConfig, totals, seen);
 }

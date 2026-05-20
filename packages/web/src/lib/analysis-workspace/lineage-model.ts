@@ -1,8 +1,13 @@
+import { mapFromRecord } from '@dbt-tools/core/browser';
+
 import { TEST_RESOURCE_TYPES, SUPPORT_TESTS_RESOURCE_TYPES } from './constants';
+import { getDependencyRelation, type DependencyIndex } from './dependency-index-access';
 import { buildResourceTestStats } from './explorer-tree';
 
 import type { LensMode } from './types';
-import type { AnalysisState, ResourceNode } from '@web/types';
+import type { ResourceNode } from '@web/types';
+
+export type { DependencyIndex } from './dependency-index-access';
 
 export type LineageDisplayMode = 'focused' | 'summary';
 
@@ -35,7 +40,6 @@ export interface LineageGraphModel {
   displayMode: LineageDisplayMode;
 }
 
-export type DependencyIndex = AnalysisState['dependencyIndex'];
 type LineageColumnNode = { column: number; resources: ResourceNode[] };
 type LineageGraphEdge = { from: string; to: string };
 
@@ -59,7 +63,7 @@ export function collectDependencyIdsByDepth(
   for (let depth = 1; depth <= maxDepth; depth += 1) {
     const nextFrontier: string[] = [];
     for (const nodeId of frontier) {
-      const relation = index[nodeId];
+      const relation = getDependencyRelation(index, nodeId);
       const neighborIds =
         direction === 'upstream'
           ? (relation?.upstream?.map((d) => d.uniqueId) ?? [])
@@ -138,7 +142,8 @@ export function buildDisplayColumns(
   for (const id of upstreamSorted) {
     const resource = resourceById.get(id);
     if (!resource || TEST_RESOURCE_TYPES.has(resource.resourceType)) continue;
-    const downNeighbors = dependencyIndex[id]?.downstream?.map((d) => d.uniqueId) ?? [];
+    const downNeighbors =
+      getDependencyRelation(dependencyIndex, id)?.downstream?.map((d) => d.uniqueId) ?? [];
     let maxDownRank = 0;
     for (const nbr of downNeighbors) {
       if (nbr === selectedId) {
@@ -159,7 +164,8 @@ export function buildDisplayColumns(
   for (const id of downstreamSorted) {
     const resource = resourceById.get(id);
     if (!resource || TEST_RESOURCE_TYPES.has(resource.resourceType)) continue;
-    const upNeighbors = dependencyIndex[id]?.upstream?.map((d) => d.uniqueId) ?? [];
+    const upNeighbors =
+      getDependencyRelation(dependencyIndex, id)?.upstream?.map((d) => d.uniqueId) ?? [];
     let maxUpRank = 0;
     for (const nbr of upNeighbors) {
       if (nbr === selectedId) {
@@ -226,13 +232,16 @@ export function reorderGraphColumns(
 
   for (let pass = 0; pass < 4; pass += 1) {
     for (let index = 1; index < nextColumns.length; index += 1) {
-      const previous = nextColumns[index - 1];
-      const current = nextColumns[index];
+      const previous = nextColumns.at(index - 1)!;
+      const current = nextColumns.at(index)!;
       current.resources.sort((left, right) => {
         const leftNeighbors =
-          dependencyIndex[left.uniqueId]?.upstream?.map((d) => d.uniqueId) ?? [];
+          getDependencyRelation(dependencyIndex, left.uniqueId)?.upstream?.map((d) => d.uniqueId) ??
+          [];
         const rightNeighbors =
-          dependencyIndex[right.uniqueId]?.upstream?.map((d) => d.uniqueId) ?? [];
+          getDependencyRelation(dependencyIndex, right.uniqueId)?.upstream?.map(
+            (d) => d.uniqueId,
+          ) ?? [];
         const leftScore =
           leftNeighbors.length > 0
             ? leftNeighbors.reduce(
@@ -253,13 +262,17 @@ export function reorderGraphColumns(
     }
 
     for (let index = nextColumns.length - 2; index >= 0; index -= 1) {
-      const next = nextColumns[index + 1];
-      const current = nextColumns[index];
+      const next = nextColumns.at(index + 1)!;
+      const current = nextColumns.at(index)!;
       current.resources.sort((left, right) => {
         const leftNeighbors =
-          dependencyIndex[left.uniqueId]?.downstream?.map((d) => d.uniqueId) ?? [];
+          getDependencyRelation(dependencyIndex, left.uniqueId)?.downstream?.map(
+            (d) => d.uniqueId,
+          ) ?? [];
         const rightNeighbors =
-          dependencyIndex[right.uniqueId]?.downstream?.map((d) => d.uniqueId) ?? [];
+          getDependencyRelation(dependencyIndex, right.uniqueId)?.downstream?.map(
+            (d) => d.uniqueId,
+          ) ?? [];
         const leftScore =
           leftNeighbors.length > 0
             ? leftNeighbors.reduce(
@@ -372,7 +385,7 @@ function collectDisplayedGraphEdges(
 ): LineageGraphEdge[] {
   const graphEdges: LineageGraphEdge[] = [];
   for (const nodeId of displayedIds) {
-    const downstream = dependencyIndex[nodeId]?.downstream ?? [];
+    const downstream = getDependencyRelation(dependencyIndex, nodeId)?.downstream ?? [];
     for (const entry of downstream) {
       if (displayedIds.has(entry.uniqueId)) {
         graphEdges.push({ from: nodeId, to: entry.uniqueId });
@@ -494,6 +507,8 @@ export const STATUS_LENS_FILLS: Record<string, string> = {
   neutral: 'var(--bg-surface-muted)',
 };
 
+const STATUS_LENS_FILL_MAP = mapFromRecord(STATUS_LENS_FILLS);
+
 // status lens used to be here
 
 const COVERAGE_DOCUMENTED_FILL = 'var(--bg-success-soft)';
@@ -533,12 +548,17 @@ export const TYPE_LENS_SOLID: Record<string, string> = {
   sql_operation: 'var(--dbt-type-operation)',
 };
 
+const TYPE_LENS_FILL_MAP = mapFromRecord(TYPE_LENS_FILLS);
+const TYPE_LENS_SOLID_MAP = mapFromRecord(TYPE_LENS_SOLID);
+
 export function getLensNodeFill(resource: ResourceNode, lensMode: LensMode): string {
   switch (lensMode) {
     case 'status':
-      return STATUS_LENS_FILLS[resource.statusTone ?? 'neutral'];
+      return (
+        STATUS_LENS_FILL_MAP.get(resource.statusTone ?? 'neutral') ?? STATUS_LENS_FILLS.neutral
+      );
     case 'type':
-      return TYPE_LENS_FILLS[resource.resourceType] ?? TYPE_LENS_NEUTRAL;
+      return TYPE_LENS_FILL_MAP.get(resource.resourceType) ?? TYPE_LENS_NEUTRAL;
     case 'coverage':
       return resource.description ? COVERAGE_DOCUMENTED_FILL : COVERAGE_UNDOCUMENTED_FILL;
   }
@@ -583,7 +603,7 @@ export function getLensLegendItems(
     return order.map((tone) => ({
       key: tone,
       label: capitalizeFirst(tone),
-      color: STATUS_LENS_FILLS[tone],
+      color: STATUS_LENS_FILL_MAP.get(tone) ?? STATUS_LENS_FILLS.neutral,
     }));
   };
 
@@ -591,8 +611,8 @@ export function getLensLegendItems(
     getLineageGraphTypes(nodeLayouts).map((type) => ({
       key: type,
       label: formatResourceLabel(type),
-      color: TYPE_LENS_FILLS[type] ?? TYPE_LENS_NEUTRAL,
-      borderColor: TYPE_LENS_SOLID[type] ?? 'var(--dbt-type-generic)',
+      color: TYPE_LENS_FILL_MAP.get(type) ?? TYPE_LENS_NEUTRAL,
+      borderColor: TYPE_LENS_SOLID_MAP.get(type) ?? 'var(--dbt-type-generic)',
     }));
 
   switch (lensMode) {
@@ -640,7 +660,7 @@ function reachableNodeIdsFromSelected(
   const queue = [selectedId];
   visited.add(selectedId);
   for (let i = 0; i < queue.length; i += 1) {
-    const id = queue[i]!;
+    const id = queue.at(i)!;
     for (const nbr of adj.get(id) ?? []) {
       if (!visited.has(nbr)) {
         visited.add(nbr);

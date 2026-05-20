@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { getObjectProperty } from '../../util/typed-map';
+
 import { buildTestAttachedTargetDisplay } from './test-target';
 
 import type { GraphLike } from './internal';
@@ -8,7 +10,8 @@ function stubGraph(attrsById: Record<string, Record<string, unknown>>): GraphLik
   return {
     getGraph: () => ({
       forEachNode: () => {},
-      getNodeAttributes: (id) => attrsById[id],
+      getNodeAttributes: (id) =>
+        getObjectProperty(attrsById, id) as Record<string, unknown> | undefined,
       hasNode: (id) => id in attrsById,
     }),
     getUpstream: () => [],

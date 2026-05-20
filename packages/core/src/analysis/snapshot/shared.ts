@@ -1,3 +1,5 @@
+import { incrementMapCount } from '../../util/typed-map';
+
 import type {
   AnalysisSnapshot,
   MetricDefinition,
@@ -241,7 +243,7 @@ export function inferDominantPackageFromNodeExecutions(
   graph: PackageLookupGraph,
 ): string | null {
   if (nodeExecutions.length === 0) return null;
-  const counts: Record<string, number> = {};
+  const counts = new Map<string, number>();
   for (const e of nodeExecutions) {
     const resourceType = resourceTypeForExecution(e, graph);
     if (PACKAGE_INFERENCE_SKIP_RESOURCE_TYPES.has(resourceType)) {
@@ -249,10 +251,10 @@ export function inferDominantPackageFromNodeExecutions(
     }
     const pkg = packageNameForExecution(e, graph);
     if (pkg.length > 0 && !PACKAGE_DOMINANCE_DENYLIST.has(pkg)) {
-      counts[pkg] = (counts[pkg] ?? 0) + 1;
+      incrementMapCount(counts, pkg);
     }
   }
-  const sorted = Object.entries(counts).sort((a, b) => {
+  const sorted = [...counts.entries()].sort((a, b) => {
     const byCount = b[1] - a[1];
     if (byCount !== 0) return byCount;
     return a[0].localeCompare(b[0]);

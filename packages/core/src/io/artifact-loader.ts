@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 
 import { parseCatalog } from 'dbt-artifacts-parser/catalog';
@@ -15,6 +14,7 @@ import {
   DBT_RUN_RESULTS_JSON,
   DBT_SOURCES_JSON,
 } from './artifact-filenames';
+import { existsValidated, readValidatedUtf8Sync } from './safe-fs';
 
 import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
 import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
@@ -53,11 +53,11 @@ function loadParsedJsonArtifact<T>(
   parse: (json: Record<string, unknown>) => T,
 ): T {
   const fullPath = resolveSafePath(artifactPath);
-  if (!fs.existsSync(fullPath)) {
+  if (!existsValidated(artifactPath)) {
     throw new Error(`${missingLabel} not found: ${fullPath}`);
   }
 
-  const content = fs.readFileSync(fullPath, 'utf-8');
+  const content = readValidatedUtf8Sync(artifactPath);
   try {
     return parse(JSON.parse(content) as Record<string, unknown>);
   } catch (error) {

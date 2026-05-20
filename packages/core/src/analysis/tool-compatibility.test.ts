@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
@@ -13,6 +12,7 @@ import {
 } from 'dbt-artifacts-parser/test-utils';
 import { describe, it, expect } from 'vitest';
 
+import { readValidatedUtf8Sync } from '../io/safe-fs';
 import { getManifestSchemaVersion } from '../version';
 
 import { DependencyService } from './dependencies/service';
@@ -31,7 +31,7 @@ describe('tool compatibility matrix', () => {
         manifestPath,
       );
       it(`should work with ${relativePath}`, () => {
-        const content = fs.readFileSync(manifestPath, 'utf-8');
+        const content = readValidatedUtf8Sync(manifestPath);
         const parsed = JSON.parse(content) as Record<string, unknown>;
         const manifest = parseManifest(parsed);
 

@@ -1,10 +1,9 @@
-import * as fs from 'node:fs/promises';
-
 import {
   buildAnalysisSnapshotFromParsedArtifacts,
   formatOutput,
   FieldFilter,
   getRunSummaryFromSnapshot,
+  readValidatedUtf8,
   shouldOutputJSON,
   validateSafePath,
 } from '@dbt-tools/core';
@@ -23,7 +22,7 @@ export type RunSummaryOptions = ArtifactRootCliOptions & {
 };
 
 async function readArtifactJson(path: string): Promise<Record<string, unknown>> {
-  const text = await fs.readFile(path, 'utf8');
+  const text = await readValidatedUtf8(path);
   return JSON.parse(text) as Record<string, unknown>;
 }
 

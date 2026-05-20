@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-
 import {
   artifactLocationSnapshotFromStatus,
   type ArtifactLocationSnapshot,
 } from '@web/lib/artifact-source';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { debug, markDebug, measureDebug } from '../debug';
 import {

@@ -44,7 +44,7 @@ pnpm exec trunk --version
 
 If this fails, dependencies may be incomplete—re-run `pnpm install` at the repo root.
 
-If you need a global `trunk` on your PATH (optional), see the [Trunk installation guide](https://docs.trunk.io/references/cli/getting-started/install). On macOS, Homebrew (`brew install trunk-io`) is one option.
+If you need a global `trunk` on your PATH (optional), see the [Trunk installation guide](https://docs.trunk.io/code-quality/overview/getting-started/install). On macOS, Homebrew (`brew install trunk-io`) is one option.
 
 ### 4. Tooling Setup
 

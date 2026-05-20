@@ -4,6 +4,8 @@
  * Keep in sync with `:root` and `[data-theme="dark"]` in index.css.
  */
 
+import { getObjectProperty } from '@dbt-tools/core/browser';
+
 export type ThemeMode = 'dark' | 'light';
 
 export const THEME_HEX_LIGHT = {
@@ -141,7 +143,10 @@ export function getResourceTypeSoftFill(
   theme: ThemeMode,
 ): string {
   const map = getResourceTypeSoftFillMap(theme);
-  if (resourceType && map[resourceType]) return map[resourceType]!;
+  if (resourceType) {
+    const fill = getObjectProperty(map as Record<string, unknown>, resourceType);
+    if (typeof fill === 'string') return fill;
+  }
   return theme === 'dark' ? SOFT_TEST_DARK : SOFT_TEST_LIGHT;
 }
 

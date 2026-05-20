@@ -1,4 +1,5 @@
 import { TEST_RESOURCE_TYPES } from './constants';
+import { getDependencyRelation } from './dependency-index-access';
 import { rollupCountsHaveAttention, type ResourceTestRollupCounts } from './test-rollup-types';
 import { normalizeManifestFilePath } from './utils';
 
@@ -50,8 +51,9 @@ export function buildResourceTestStats(
 
   for (const test of testResources) {
     const testedIds =
-      resolvedDependencyIndex[test.uniqueId]?.upstream?.map((dependency) => dependency.uniqueId) ??
-      [];
+      getDependencyRelation(resolvedDependencyIndex, test.uniqueId)?.upstream?.map(
+        (dependency) => dependency.uniqueId,
+      ) ?? [];
 
     for (const resourceId of testedIds) {
       const stats = resourceTestStats.get(resourceId) ?? emptyTestStats();
@@ -79,7 +81,7 @@ export function buildSelectedAssetTestEvidence(
     .filter((resource) => TEST_RESOURCE_TYPES.has(resource.resourceType))
     .filter((test) =>
       (
-        resolvedDependencyIndex[test.uniqueId]?.upstream?.map(
+        getDependencyRelation(resolvedDependencyIndex, test.uniqueId)?.upstream?.map(
           (dependency) => dependency.uniqueId,
         ) ?? []
       ).includes(resourceId),
@@ -316,7 +318,7 @@ export function buildExplorerTree(
       let siblings = root.children;
 
       for (let index = 0; index < directories.length; index += 1) {
-        const segment = directories[index];
+        const segment = directories.at(index)!;
         const branchId = `${mode}:branch:${[rootLabel, ...directories.slice(0, index + 1)].join('/')}`;
         const branch = ensureBranch(siblings, branchId, segment, [...parentIds]);
         parentIds.push(branchId);
@@ -345,7 +347,7 @@ export function buildExplorerTree(
     let siblings = roots;
 
     for (let index = 0; index < segments.length; index += 1) {
-      const segment = segments[index];
+      const segment = segments.at(index)!;
       const branchId = `${mode}:branch:${segments.slice(0, index + 1).join('/')}`;
       const branch = ensureBranch(siblings, branchId, segment, [...parentIds]);
       parentIds.push(branchId);

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-
+import { getObjectProperty } from '@dbt-tools/core/browser';
 import { EXPLORER_MODE_LABELS } from '@web/lib/analysis-workspace/constants';
+import { useState } from 'react';
 
 import { buildExplorerTreeEmptySubtext, EXPLORER_UI_COPY } from './explorer-pane-copy';
 import {
@@ -96,7 +96,8 @@ export function ExplorerPane({
             <span className="explorer-mode-tab__icon" aria-hidden="true">
               <ExplorerModeIcon mode={mode} />
             </span>
-            {EXPLORER_MODE_LABELS[mode]}
+            {(getObjectProperty(EXPLORER_MODE_LABELS as Record<string, unknown>, mode) as string) ??
+              mode}
           </button>
         ))}
       </div>

@@ -1,8 +1,7 @@
 /**
  * Tests for runReportAction.
  */
-import * as fs from 'node:fs/promises';
-
+import { rmValidated } from '@dbt-tools/core';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import {
@@ -27,7 +26,7 @@ describe('runReportAction', () => {
 
   afterEach(async () => {
     consoleLogSpy.mockRestore();
-    await fs.rm(dbtTargetDir, { recursive: true, force: true });
+    await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
   it('outputs execution summary with manifest and run_results fixtures', async () => {
@@ -53,7 +52,7 @@ describe('runReportAction', () => {
       expect(parsed.total_execution_time).toBeGreaterThan(0);
       expect(parsed.node_executions.length).toBeGreaterThan(0);
     } finally {
-      await fs.rm(runResultsOnlyDir, { recursive: true, force: true });
+      await rmValidated(runResultsOnlyDir, { recursive: true, force: true });
     }
   });
 

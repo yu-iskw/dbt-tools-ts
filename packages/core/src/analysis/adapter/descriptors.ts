@@ -1,3 +1,5 @@
+import { getObjectProperty } from '../../util/typed-map';
+
 import type {
   AdapterResponseField,
   AdapterResponseMetrics,
@@ -152,7 +154,10 @@ export function getAdapterMetricValue(
   key: AdapterMetricKey,
 ): AdapterMetricValue {
   if (metrics == null) return undefined;
-  return metrics[key];
+  return getObjectProperty(
+    metrics as unknown as Record<string, unknown>,
+    key,
+  ) as AdapterMetricValue;
 }
 
 export function formatAdapterMetricValue(
@@ -180,7 +185,12 @@ export function getPresentAdapterTotalDescriptors(
   if (totals == null) return [];
   return ADAPTER_METRIC_DESCRIPTORS.filter((descriptor) => {
     if (descriptor.summaryTotalKey == null) return false;
-    return totals[descriptor.summaryTotalKey] !== undefined;
+    return (
+      getObjectProperty(
+        totals as unknown as Record<string, unknown>,
+        descriptor.summaryTotalKey,
+      ) !== undefined
+    );
   });
 }
 
@@ -215,7 +225,9 @@ function rawAdapterFieldCapturedByNormalizedMetrics(
   if (metrics == null) return false;
   const key = field.key;
   if (key.includes('.')) return false;
-  const metricKey = RAW_ADAPTER_FIELD_KEY_TO_METRIC_KEY[key];
+  const metricKey = getObjectProperty(RAW_ADAPTER_FIELD_KEY_TO_METRIC_KEY, key) as
+    | AdapterMetricKey
+    | undefined;
   if (metricKey === undefined) return false;
   return getAdapterMetricValue(metrics, metricKey) !== undefined;
 }

@@ -1,5 +1,3 @@
-import * as fs from 'node:fs/promises';
-
 import { parseCatalog } from 'dbt-artifacts-parser/catalog';
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 import { parseRunResults } from 'dbt-artifacts-parser/run_results';
@@ -43,6 +41,7 @@ import {
   createRemoteObjectStoreClient,
   type RemoteObjectStoreClient,
 } from '../io/remote-object-store';
+import { readValidatedUtf8 } from '../io/safe-fs';
 
 import type { DependencyResult } from '../analysis/dependencies/service';
 import type { ManifestGraph } from '../analysis/manifest/graph';
@@ -506,19 +505,25 @@ export class ArtifactWorkspace {
   private async readLocalRun(
     run: ResolvedArtifactRun,
   ): Promise<[Uint8Array, Uint8Array, Uint8Array | null, Uint8Array | null]> {
-    const [manifestBytes, runResultsBytes, catalogBytes, sourcesBytes] = await Promise.all([
-      fs.readFile(run.manifestKey),
-      fs.readFile(run.runResultsKey),
-      this.readOptionalLocalFile(run.catalogKey),
-      this.readOptionalLocalFile(run.sourcesKey),
+    const [manifestText, runResultsText, catalogText, sourcesText] = await Promise.all([
+      readValidatedUtf8(run.manifestKey),
+      readValidatedUtf8(run.runResultsKey),
+      this.readOptionalLocalUtf8(run.catalogKey),
+      this.readOptionalLocalUtf8(run.sourcesKey),
     ]);
-    return [manifestBytes, runResultsBytes, catalogBytes, sourcesBytes];
+    const encoder = new TextEncoder();
+    return [
+      encoder.encode(manifestText),
+      encoder.encode(runResultsText),
+      catalogText != null ? encoder.encode(catalogText) : null,
+      sourcesText != null ? encoder.encode(sourcesText) : null,
+    ];
   }
 
-  private async readOptionalLocalFile(filePath: string | undefined): Promise<Uint8Array | null> {
+  private async readOptionalLocalUtf8(filePath: string | undefined): Promise<string | null> {
     if (filePath == null) return null;
     try {
-      return await fs.readFile(filePath);
+      return await readValidatedUtf8(filePath);
     } catch {
       return null;
     }
