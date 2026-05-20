@@ -1,46 +1,37 @@
 # dbt-tools-cli (agent plugin)
 
-First-party plugin wrapping the **[`@dbt-tools/cli`](../../packages/cli/README.md)** **structured interface** (JSON, `schema`, `status`) so coding agents and skills can orchestrate artifact analysis alongside other tools. Skills live under [`skills/`](skills/).
+First-party plugin with **primitive agent skills** for [`@dbt-tools/cli`](../../packages/cli/README.md). Skills define a stable user contract; CLI subcommands are documented in each skill’s `references/implementation.md` and can change without renaming skills.
 
 ## Skill handles (FQH)
-
-Each skill has a **logical handle** for docs and disambiguation when many plugins are installed:
 
 ```text
 dbt-tools-cli:<skill-directory>
 ```
 
-`<skill-directory>` is the kebab-case folder name under [`skills/`](skills/) (same string as YAML `name` in `SKILL.md`). The plugin id `dbt-tools-cli` matches [`plugins/dbt-tools-cli/.claude-plugin/plugin.json`](.claude-plugin/plugin.json) (and the other engine manifests).
+YAML `name` in each `SKILL.md` matches the folder name only (no plugin prefix). See [Agent Skills](https://agentskills.io/specification).
 
-**YAML `name`:** Keep a **single** kebab-case segment (e.g. `name: status`). Do **not** put `dbt-tools-cli:status` in frontmatter `name` — the [Agent Skills specification](https://agentskills.io/specification) and [VS Code Agent Skills](https://code.visualstudio.com/docs/copilot/customization/agent-skills) forbid colons, slashes, and manual namespace prefixes in `name` (Copilot may **silently** skip invalid skills).
+| Handle                             | Skill                                                      | Purpose                                                     |
+| ---------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------- |
+| `dbt-tools-cli:bind-target`        | [`bind-target`](skills/bind-target/SKILL.md)               | Set artifact root (`--dbt-target` / `DBT_TOOLS_DBT_TARGET`) |
+| `dbt-tools-cli:check-session`      | [`check-session`](skills/check-session/SKILL.md)           | Readiness gate and artifact freshness                       |
+| `dbt-tools-cli:refresh-snapshot`   | [`refresh-snapshot`](skills/refresh-snapshot/SKILL.md)     | Re-check after `dbt run` (re-invoke on same target)         |
+| `dbt-tools-cli:find-resources`     | [`find-resources`](skills/find-resources/SKILL.md)         | Resolve `unique_id`                                         |
+| `dbt-tools-cli:describe-resource`  | [`describe-resource`](skills/describe-resource/SKILL.md)   | Resource metadata (`explain`)                               |
+| `dbt-tools-cli:trace-dependencies` | [`trace-dependencies`](skills/trace-dependencies/SKILL.md) | Lineage / impact (`deps`)                                   |
+| `dbt-tools-cli:query-executions`   | [`query-executions`](skills/query-executions/SKILL.md)     | Filter/sort executions                                      |
+| `dbt-tools-cli:summarize-run`      | [`summarize-run`](skills/summarize-run/SKILL.md)           | Run-level summary (`run-summary`)                           |
 
-### Host compatibility (slash / picker)
+## Skills are primitives
 
-- **FQH in this README** = documentation only; your editor may show a different slash token.
-- **Claude Code:** Plugin skills use a `plugin-name:skill-name` namespace for collisions; see [Extend Claude with skills](https://code.claude.com/docs/en/skills).
-- **VS Code + GitHub Copilot:** Plugin-distributed skills get a `/my-plugin:skill-name` style prefix from the product; see [Use Agent Skills in VS Code](https://code.visualstudio.com/docs/copilot/customization/agent-skills).
-- **Cursor:** [Agent Skills](https://cursor.com/docs/skills) documents `/` + skill name; plugin-prefix wording may differ from VS Code’s page—follow the client you use.
-- **Codex:** Explicit skill mention via `$` or `/skills`; plugin `name` is the package namespace — [Agent Skills](https://developers.openai.com/codex/skills), [Build plugins](https://developers.openai.com/codex/plugins/build).
-- **Gemini CLI:** [Agent Skills](https://geminicli.com/docs/cli/skills/) aligns with the open standard; discovery via `/skills`.
+Compose sub-agents or parent workflows from stable handles. Examples:
 
-| Handle                           | Skill                                                  | Purpose                                                                                                                   |
-| -------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `dbt-tools-cli:status`           | [`status`](skills/status/SKILL.md)                     | **`dbt-tools status`:** readiness gate before other commands **and** investigation of presence, freshness, and readiness. |
-| `dbt-tools-cli:discover`         | [`discover`](skills/discover/SKILL.md)                 | Resolve `unique_id` via `discover` / `search`.                                                                            |
-| `dbt-tools-cli:deps`             | [`deps`](skills/deps/SKILL.md)                         | Dependency graph via `dbt-tools deps`.                                                                                    |
-| `dbt-tools-cli:explain`          | [`explain`](skills/explain/SKILL.md)                   | Resource context and downstream blast radius (`explain` + `deps --direction downstream`).                                 |
-| `dbt-tools-cli:query-executions` | [`query-executions`](skills/query-executions/SKILL.md) | Rank and filter run executions (time and warehouse adapter metrics).                                                      |
+```text
+Run triage: bind-target → check-session → refresh-snapshot → query-executions → describe-resource
+Change impact: bind-target → find-resources → describe-resource → trace-dependencies (downstream)
+```
 
-### MCP users
+## MCP sibling plugin
 
-For Cursor/Claude hosts using **`dbt-tools-mcp`**, see [`packages/mcp/REFERENCE.md`](../../packages/mcp/REFERENCE.md) — same core primitives, different surface:
+Same eight skill **names** ship in [`plugins/dbt-tools-mcp`](../dbt-tools-mcp/README.md) with MCP tool implementations. Use MCP for long sessions over large artifacts; use this CLI plugin for one-shot shell/CI or manifest-only `status`.
 
-| CLI                   | MCP                            |
-| --------------------- | ------------------------------ |
-| `status`              | `dbt_tools_status`             |
-| `discover` / `search` | `dbt_tools_search_resources`   |
-| `deps`                | `dbt_tools_query_dependencies` |
-| `explain`             | `dbt_tools_get_resource`       |
-| `query-executions`    | `dbt_tools_query_executions`   |
-
-See [plugins/README.md](../README.md) for marketplace layout and discovery. For verification, CI commands, and per-engine manifest maintenance, see [plugins/CONTRIBUTING.md](../CONTRIBUTING.md).
+See [plugins/README.md](../README.md) and [plugins/CONTRIBUTING.md](../CONTRIBUTING.md).

@@ -1,0 +1,7 @@
+{
+  "name": "dbt-tools-mcp",
+  "version": "0.1.0",
+  "description": "Primitive agent skills for @dbt-tools/mcp (in-memory artifact analysis).",
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

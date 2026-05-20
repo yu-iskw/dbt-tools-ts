@@ -82,6 +82,7 @@ Pack and `npx` smoke for the web package is documented in [`.claude/skills/dbt-t
 ## Agent resources
 
 - CLI plugin authoring: [`.claude/skills/dbt-tools-cli-plugin-skill/SKILL.md`](.claude/skills/dbt-tools-cli-plugin-skill/SKILL.md).
+- Agent plugins (primitive skills): [`plugins/dbt-tools-cli/README.md`](plugins/dbt-tools-cli/README.md), [`plugins/dbt-tools-mcp/README.md`](plugins/dbt-tools-mcp/README.md).
 - E2E authoring: [`.claude/skills/dbt-tools-web-e2e/SKILL.md`](.claude/skills/dbt-tools-web-e2e/SKILL.md).
 - E2E fix loop: [`.claude/skills/dbt-tools-web-e2e-fix/SKILL.md`](.claude/skills/dbt-tools-web-e2e-fix/SKILL.md).
 - UI-scope verification: [`.claude/skills/ui-feature-verify/SKILL.md`](.claude/skills/ui-feature-verify/SKILL.md).
@@ -104,6 +105,7 @@ Do not commit API keys, tokens, or passwords into docs, prompts, rules, or track
 - On follow-up code or security reviews, describe only remaining issues—do not rehash fixes already applied.
 - For large design questions, use structured problem-solving (intent, alternatives, scored recommendation) before implementation when the user invokes that workflow.
 - CLI and MCP surfaces should use warehouse-specific filter and sort shapes, not flat option bags that mix conditions across warehouses.
+- Prefer `dbt-tools-mcp` for long, multi-step agent work over large artifacts; prefer `dbt-tools-cli` for one-shot shell/CI or manifest-only readiness before `run_results.json` exists.
 
 ## Learned Workspace Facts
 
@@ -113,3 +115,7 @@ Do not commit API keys, tokens, or passwords into docs, prompts, rules, or track
 - Published docs may link to GitHub for ADRs; do not treat the VitePress tree as a second ADR corpus.
 - Keep `@dbt-tools/mcp` package README isolated: do not add cross-links to CLI or web package docs from the MCP README.
 - Execution search APIs (CLI/MCP) should align with per-adapter response schemas in `packages/core` rather than mixing warehouse metrics in one shared options type.
+- First-party plugins (`plugins/dbt-tools-cli`, `plugins/dbt-tools-mcp`) ship eight primitive skills with identical folder/YAML names (`bind-target` through `summarize-run`); compose workflows from handles like `dbt-tools-cli:bind-target`, not monolithic workflow skills.
+- Plugin `SKILL.md` files hold the stable contract; `references/implementation.md` in each skill maps to current CLI subcommands or MCP tools when surfaces change.
+- Bundled [`plugins/dbt-tools-mcp/mcp.json`](plugins/dbt-tools-mcp/mcp.json) is spawn-only (`npx -y @dbt-tools/mcp`); per-session artifact roots use `dbt_tools_set_target`, not `DBT_TOOLS_*` env in the plugin bundle.
+- `@dbt-tools/mcp` loads `manifest.json` and `run_results.json` together; there is no manifest-only MCP session—use CLI `check-session` for manifest-only readiness.

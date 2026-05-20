@@ -1,31 +1,29 @@
 ---
 name: query-executions
-description: Filter and sort run_results executions by time and warehouse metrics using
-  dbt-tools query-executions. Use for slow models, slot ms, bytes processed, test runtime,
-  or triage with explicit status filters.
-compatibility: dbt-tools on PATH; manifest.json and run_results.json under --dbt-target.
+description: Filter and sort run_results node executions by status, time, and warehouse metrics. Use for post-run triage and slow-node investigation.
+compatibility: dbt-tools on PATH; run_results required (check-session readiness full).
 ---
 
-# Query run executions
+# Query executions
 
-**Skill handle (FQH):** `dbt-tools-cli:query-executions`
+**Handle:** `dbt-tools-cli:query-executions`
 
-## When to use
+## Contract
 
-- Post-run triage with explicit statuses (`error`, `fail`, `skipped`)
-- Top slowest models or tests
-- BigQuery slot ms or Snowflake row metrics leaders
-- Per-resource execution lookup via `--unique-id-pattern`
+- **Inputs:** optional status filter; sort; limit/offset; optional `unique_id` pattern; warehouse-specific options when relevant
+- **Outputs:** ranked or filtered execution rows
+- **Done when:** the user has the executions needed for triage or drill-down
 
-## Workflow
+## Preconditions
 
-1. When readiness is unknown, run [`status`](../status/SKILL.md) (readiness gate section) first.
-2. Read `warehouse_type` from `dbt-tools status --json` when tuning adapter metrics.
-3. Run ranked queries (see [references/commands.md](references/commands.md)).
-4. Optional totals: `dbt-tools run-summary --dbt-target ./target --json`.
-5. Drill down with [`discover`](../discover/SKILL.md), [`deps`](../deps/SKILL.md), or [`explain`](../explain/SKILL.md).
+- [`bind-target`](../bind-target/SKILL.md)
+- [`check-session`](../check-session/SKILL.md) — `readiness: full` (requires `run_results.json`)
 
-## Related documentation
+## Out of scope
 
-- [references/commands.md](references/commands.md)
-- [packages/cli/README.md](../../../../packages/cli/README.md)
+- Run-level aggregates without per-node detail (use [`summarize-run`](../summarize-run/SKILL.md))
+- Lineage graphs
+
+## Implementation
+
+See [references/implementation.md](references/implementation.md).

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "dbt-tools": {
+      "command": "npx",
+      "args": ["-y", "@dbt-tools/mcp"]
+    }
+  }
+}
