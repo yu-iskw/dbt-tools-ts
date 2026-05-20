@@ -188,6 +188,26 @@ export default [
     },
   },
   {
+    files: ['docs/site/**/*.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: 'module',
+      },
+    },
+    plugins: {
+      ...securityRecommended.plugins,
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      ...securityRecommended.rules,
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+    },
+  },
+  {
     files: ['packages/**/*.ts', 'packages/**/*.tsx'],
     ignores: ['**/dist/**', '**/*.test.ts', '**/*.test.tsx'],
     languageOptions: {

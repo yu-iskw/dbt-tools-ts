@@ -22,4 +22,4 @@ npx @dbt-tools/cli status --dbt-target ./target
 ## Learn more
 
 - Package README: [`packages/cli/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md)
-- [Configuration](/reference/configuration) — environment variables and targets
+- [Configuration](../reference/configuration.md) — environment variables and targets

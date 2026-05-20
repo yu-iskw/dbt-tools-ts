@@ -25,6 +25,7 @@ overrides:
   rollup: '>=4.59.0'
   tar: ^7.5.13
   uuid@<14.0.0: ^14.0.0
+  vitepress>vite: ^6.4.2
 
 minimumReleaseAgeExclude:
   - '@tootallnate/once@3.0.1'
@@ -40,3 +41,5 @@ minimumReleaseAgeExclude:
   - uuid@14.0.0
   - yaml@2.8.3
   - '@dbt-tools/*'
+  - vite@6.4.2
+  - '@vitejs/plugin-vue@5.2.4'

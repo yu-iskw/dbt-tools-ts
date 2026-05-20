@@ -20,6 +20,8 @@ features:
     details: Produce deterministic operational signals for engineering workflows and agent-friendly analysis.
 ---
 
+<!-- markdownlint-disable MD041 -->
+
 ## Why dbt-tools?
 
 dbt-tools helps operators and automation systems reason about dbt projects through structured artifact analysis.

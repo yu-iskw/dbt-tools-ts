@@ -17,4 +17,4 @@ Open the URL printed in the terminal (default port is shown in the CLI help).
 ## Learn more
 
 - Package README: [`packages/web/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md)
-- [Troubleshooting](/reference/troubleshooting) — common setup issues
+- [Troubleshooting](../reference/troubleshooting.md) — common setup issues

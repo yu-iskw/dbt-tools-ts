@@ -2,11 +2,11 @@
 
 dbt-tools analyzes structured outputs from dbt runs. The primary inputs are:
 
-| Artifact | Role |
-| -------- | ---- |
-| `manifest.json` | Project graph: models, sources, tests, dependencies |
-| `run_results.json` | Execution timing, status, and per-node results |
-| `catalog.json` / `sources.json` | Optional metadata when present |
+| Artifact                        | Role                                                |
+| ------------------------------- | --------------------------------------------------- |
+| `manifest.json`                 | Project graph: models, sources, tests, dependencies |
+| `run_results.json`              | Execution timing, status, and per-node results      |
+| `catalog.json` / `sources.json` | Optional metadata when present                      |
 
 ## Target layout
 
