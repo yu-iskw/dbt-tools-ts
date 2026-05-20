@@ -7,7 +7,7 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /guide/getting-started
+      link: /guide/overview
     - theme: alt
       text: View on GitHub
       link: https://github.com/yu-iskw/dbt-tools-ts

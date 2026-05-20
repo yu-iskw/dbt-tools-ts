@@ -32,30 +32,39 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     nav: [
-      { text: 'Guide', link: '/guide/getting-started' },
+      { text: 'Guide', link: '/guide/overview' },
       { text: 'Concepts', link: '/concepts/dbt-artifacts' },
       { text: 'Reference', link: '/reference/configuration' },
       {
         text: 'Packages',
         items: [
-          { text: '@dbt-tools/cli', link: '/guide/cli' },
-          { text: '@dbt-tools/mcp', link: '/guide/mcp' },
-          { text: '@dbt-tools/web', link: '/guide/web' },
+          { text: '@dbt-tools/cli', link: '/guide/cli/getting-started' },
+          { text: '@dbt-tools/mcp', link: '/guide/mcp/getting-started' },
+          { text: '@dbt-tools/web', link: '/guide/web/getting-started' },
+          { text: 'Agents (plugins)', link: '/guide/agents/' },
         ],
       },
     ],
     sidebar: [
       {
         text: 'Start',
-        items: [{ text: 'Getting Started', link: '/guide/getting-started' }],
+        items: [{ text: 'Choose your interface', link: '/guide/overview' }],
       },
       {
-        text: 'Packages',
-        items: [
-          { text: 'CLI', link: '/guide/cli' },
-          { text: 'MCP', link: '/guide/mcp' },
-          { text: 'Web', link: '/guide/web' },
-        ],
+        text: 'CLI',
+        items: [{ text: 'Getting started', link: '/guide/cli/getting-started' }],
+      },
+      {
+        text: 'MCP',
+        items: [{ text: 'Getting started', link: '/guide/mcp/getting-started' }],
+      },
+      {
+        text: 'Web',
+        items: [{ text: 'Getting started', link: '/guide/web/getting-started' }],
+      },
+      {
+        text: 'Agents',
+        items: [{ text: 'Plugins (coming soon)', link: '/guide/agents/' }],
       },
       {
         text: 'Concepts',
