@@ -74,6 +74,14 @@ const importXRules = {
     'error',
     {
       groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'type'],
+      pathGroups: [
+        {
+          pattern: '@web/**',
+          group: 'internal',
+          position: 'after',
+        },
+      ],
+      pathGroupsExcludedImportTypes: ['type'],
       'newlines-between': 'always',
       alphabetize: { order: 'asc', caseInsensitive: true },
     },
