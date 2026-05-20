@@ -23,6 +23,7 @@ import {
   legacySearchScore,
   parseDiscoveryQueryTokens,
 } from '../discovery';
+import { ArtifactTargetNotConfiguredError } from '../errors/artifact-target-not-configured-error';
 import {
   discoverArtifactCandidates,
   discoverLocalArtifactRunPaths,
@@ -50,7 +51,7 @@ import type { AnalysisSnapshot, ResourceNode } from '../analysis/snapshot';
 import type { GraphNodeAttributes } from '../types';
 
 export interface ArtifactWorkspaceOptions {
-  dbtTarget: string;
+  dbtTarget?: string;
   now?: () => number;
   cwd?: string;
   remoteClient?: RemoteObjectStoreClient;
@@ -74,7 +75,7 @@ export interface ArtifactWorkspaceRunRef {
 }
 
 export interface ArtifactWorkspaceStatus {
-  target: string;
+  target: string | null;
   selectedRunId: string | null;
   versionToken: string | null;
   loadedAtMs: number | null;
@@ -250,7 +251,7 @@ export function searchResourcesInGraph(
 }
 
 export class ArtifactWorkspace {
-  private readonly dbtTarget: string;
+  private dbtTarget: string | null;
   private readonly cwd: string;
   private readonly now: () => number;
   private readonly injectedRemoteClient: RemoteObjectStoreClient | undefined;
@@ -264,7 +265,7 @@ export class ArtifactWorkspace {
   private refreshPromise: Promise<ArtifactWorkspaceStatus> | null = null;
 
   constructor(options: ArtifactWorkspaceOptions) {
-    this.dbtTarget = options.dbtTarget;
+    this.dbtTarget = options.dbtTarget ?? null;
     this.cwd = options.cwd ?? process.cwd();
     this.now = options.now ?? Date.now;
     this.injectedRemoteClient = options.remoteClient;
@@ -272,9 +273,29 @@ export class ArtifactWorkspace {
     this.remoteClientOverrides = options.remoteClientOverrides;
   }
 
+  async setTarget(target: string): Promise<ArtifactWorkspaceStatus> {
+    const trimmed = target.trim();
+    if (trimmed === '') {
+      throw new Error('target is required.');
+    }
+    if (this.refreshPromise != null) {
+      await this.refreshPromise;
+      this.refreshPromise = null;
+    }
+    this.dbtTarget = trimmed;
+    this.selectedRunId = null;
+    this.runs = [];
+    this.loaded = null;
+    this.stale = false;
+    this.lastRefreshError = undefined;
+    await this.initialize();
+    return this.status();
+  }
+
   async initialize(): Promise<void> {
     const startedAt = dbtToolsDebugNow();
-    dbtToolsDebugLog(`initialize start target=${this.dbtTarget}`);
+    const configuredTarget = this.requireTarget();
+    dbtToolsDebugLog(`initialize start target=${configuredTarget}`);
     const source = await this.discoverSource();
     this.runs = source.runs;
     if (!source.discovery.ok) {
@@ -302,6 +323,9 @@ export class ArtifactWorkspace {
   }
 
   async refreshIfChanged(): Promise<ArtifactWorkspaceStatus> {
+    if (this.dbtTarget == null) {
+      return this.status();
+    }
     if (this.refreshPromise != null) return this.refreshPromise;
     this.refreshPromise = this.refreshIfChangedInternal().finally(() => {
       this.refreshPromise = null;
@@ -415,9 +439,16 @@ export class ArtifactWorkspace {
     return { gcsRequestOptions, remoteClientOverrides };
   }
 
+  private requireTarget(): string {
+    if (this.dbtTarget == null) {
+      throw new ArtifactTargetNotConfiguredError();
+    }
+    return this.dbtTarget;
+  }
+
   private async discoverSource(): Promise<DiscoveredSource> {
     const startedAt = dbtToolsDebugNow();
-    const parsed = parseDbtToolsArtifactTarget(this.dbtTarget, this.cwd);
+    const parsed = parseDbtToolsArtifactTarget(this.requireTarget(), this.cwd);
     dbtToolsDebugLog(`discoverSource kind=${parsed.kind}`);
     if (parsed.kind === 'local') {
       const { discovery, runs } = await discoverLocalArtifactRunPaths(parsed.resolvedPath);

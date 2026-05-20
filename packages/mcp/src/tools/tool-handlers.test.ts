@@ -1,4 +1,4 @@
-import { QueryExecutionsValidationError } from '@dbt-tools/core';
+import { ArtifactTargetNotConfiguredError, QueryExecutionsValidationError } from '@dbt-tools/core';
 import { describe, expect, it } from 'vitest';
 
 import { createDbtToolsMcpToolHandlers, type ArtifactWorkspaceControl } from './tool-handlers.js';
@@ -26,6 +26,14 @@ class FakeWorkspaceControl implements ArtifactWorkspaceControl {
 
   async refreshIfChanged(): Promise<ArtifactWorkspaceStatus> {
     return { ...this.status, loadedAtMs: 200 };
+  }
+
+  lastSetTarget: string | null = null;
+
+  async setTarget(target: string): Promise<ArtifactWorkspaceStatus> {
+    this.lastSetTarget = target;
+    this.status = { ...this.status, target, loadedAtMs: 300 };
+    return this.status;
   }
 }
 
@@ -139,6 +147,41 @@ describe('createDbtToolsMcpToolHandlers', () => {
       query: 'orders',
       limit: 20,
       offset: 0,
+    });
+  });
+
+  it('calls workspace setTarget with validated remote flags', async () => {
+    const workspace = new FakeWorkspaceControl();
+    const handlers = createDbtToolsMcpToolHandlers(workspace, new FakeUseCases(), {
+      gcsProjectId: 'proj',
+    });
+
+    const payload = parseToolJson(
+      await handlers.dbt_tools_set_target({ target: 'gs://bucket/prefix' }),
+    );
+
+    expect(workspace.lastSetTarget).toBe('gs://bucket/prefix');
+    expect(payload).toMatchObject({ target: 'gs://bucket/prefix', loadedAtMs: 300 });
+  });
+
+  it('returns isError when target is missing from set_target input', async () => {
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), new FakeUseCases());
+    const result = await handlers.dbt_tools_set_target({});
+    expect(result.isError).toBe(true);
+    expect(parseToolJson(result)).toMatchObject({ error: 'target is required.' });
+  });
+
+  it('returns isError when analysis runs before target is configured', async () => {
+    const useCases = new FakeUseCases();
+    useCases.searchResources = async () => {
+      throw new ArtifactTargetNotConfiguredError();
+    };
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
+    const result = await handlers.dbt_tools_search_resources({ query: 'orders' });
+    expect(result.isError).toBe(true);
+    expect(parseToolJson(result)).toMatchObject({
+      error: ArtifactTargetNotConfiguredError.message,
+      hint: expect.stringContaining('dbt_tools_set_target'),
     });
   });
 

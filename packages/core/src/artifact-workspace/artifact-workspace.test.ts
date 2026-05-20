@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { loadTestManifest, loadTestRunResults } from 'dbt-artifacts-parser/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { ArtifactTargetNotConfiguredError } from '../errors/artifact-target-not-configured-error';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '../io/artifact-filenames';
 import {
@@ -161,5 +162,53 @@ describe('ArtifactWorkspace', () => {
         total: expect.any(Number),
       },
     );
+  });
+
+  it('reports null target before configuration', async () => {
+    const workspace = new ArtifactWorkspace({ now: () => 123 });
+    const status = await workspace.getStatus();
+    expect(status.target).toBeNull();
+    expect(status.loadedAtMs).toBeNull();
+    await expect(workspace.getLoadedWorkspace()).rejects.toBeInstanceOf(
+      ArtifactTargetNotConfiguredError,
+    );
+    await expect(workspace.refreshIfChanged()).resolves.toMatchObject({ target: null });
+  });
+
+  it('loads artifacts after setTarget on an unconfigured workspace', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ now: () => 123 });
+    const status = await workspace.setTarget(tempDir);
+    expect(status.target).toBe(tempDir);
+    expect(status.loadedAtMs).toBe(123);
+
+    const useCases = createDbtToolsUseCases(workspace);
+    const search = await useCases.searchResources({ query: 'customers', limit: 5 });
+    expect(search.total).toBeGreaterThan(0);
+  });
+
+  it('replaces the loaded snapshot when setTarget changes path', async () => {
+    const dirA = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-a-'));
+    const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-b-'));
+    try {
+      await writeArtifacts(dirA);
+      await writeArtifacts(dirB);
+
+      const workspace = new ArtifactWorkspace({ now: () => 100 });
+      const first = await workspace.setTarget(dirA);
+      const second = await workspace.setTarget(dirB);
+
+      expect(first.target).toBe(dirA);
+      expect(second.target).toBe(dirB);
+      expect(second.loadedAtMs).toBe(100);
+
+      const useCases = createDbtToolsUseCases(workspace);
+      await expect(
+        useCases.searchResources({ query: 'customers', limit: 1 }),
+      ).resolves.toMatchObject({ total: expect.any(Number) });
+    } finally {
+      await rmValidated(dirA, { recursive: true, force: true });
+      await rmValidated(dirB, { recursive: true, force: true });
+    }
   });
 });

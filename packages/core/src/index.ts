@@ -60,6 +60,7 @@ export * from './formatting/graph-export';
 
 // Error handling exports
 export * from './errors/artifact-bundle-resolution-error';
+export * from './errors/artifact-target-not-configured-error';
 export * from './errors/error-handler';
 
 // Introspection exports

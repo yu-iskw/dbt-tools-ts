@@ -60,8 +60,8 @@ Point `./target` at the directory that contains `manifest.json` and `run_results
 
 ## Configuration (summary)
 
-- **`--dbt-target`** — local path, `s3://bucket/prefix`, or `gs://bucket/prefix` (required unless env is set)
-- **`DBT_TOOLS_DBT_TARGET`** — same value as `--dbt-target` when you omit the flag
+- **`--dbt-target`** — optional local path, `s3://bucket/prefix`, or `gs://bucket/prefix` (or set at runtime via **`dbt_tools_set_target`**)
+- **`DBT_TOOLS_DBT_TARGET`** — same value as `--dbt-target` when you omit the flag at startup
 - **`--poll-interval-ms`** — optional background refresh interval (best-effort); use **`dbt_tools_refresh`** for an immediate reload after CI uploads
 - **`--gcs-project-id`**, **`--gcs-impersonate-service-account`**, **`--s3-region`**, **`--s3-endpoint`** — remote client settings (`gs://` vs `s3://` only; see [REFERENCE.md](REFERENCE.md))
 - **`DBT_TOOLS_GCS_PROJECT_ID`**, **`DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`**, **`DBT_TOOLS_S3_REGION`**, **`DBT_TOOLS_S3_ENDPOINT`** — same settings via env (flags override env when both are set); bucket/prefix always from the URI
@@ -113,21 +113,44 @@ Full CLI flags, environment variables, client examples, tool parameters, and tro
 
 Credentials stay in the Node child process (AWS/GCP default chains). See [REFERENCE.md](REFERENCE.md) and [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
 
+### Optional startup target (runtime `set_target`)
+
+Use one MCP config for many projects; set the artifact path per session:
+
+```json
+{
+  "mcpServers": {
+    "dbt-tools": {
+      "command": "npx",
+      "args": ["-y", "@dbt-tools/mcp"],
+      "env": {
+        "DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT": "reader@my-project.iam.gserviceaccount.com",
+        "DBT_TOOLS_GCS_PROJECT_ID": "my-project"
+      }
+    }
+  }
+}
+```
+
+Then call **`dbt_tools_set_target`** with `{ "target": "./target" }` or a remote URI. GCS impersonation and S3 region stay in startup `env` / flags—not on the tool.
+
 ## Suggested agent workflow
 
-1. **`dbt_tools_status`** — confirm the target loaded and whether `stale` is true
-2. **`dbt_tools_search_resources`** — find models/sources by name or filters
-3. **`dbt_tools_get_resource`** — details for a `unique_id` (set `includeCode: true` when you need SQL)
-4. **`dbt_tools_query_dependencies`** — upstream/downstream DAG (blast radius = `direction: downstream`)
-5. **`dbt_tools_query_executions`** — ranked/filtered executions (warehouse block for adapter metrics)
-6. **`dbt_tools_get_run_summary`** — totals and bottlenecks without a node list
-7. **`dbt_tools_refresh`** — after a new dbt run uploads artifacts (or rely on `--poll-interval-ms`)
+1. **`dbt_tools_status`** — confirm target is set, loaded, and whether `stale` is true
+2. **`dbt_tools_set_target`** — when `target` is `null`, point at local `target/` or `s3://` / `gs://` prefix
+3. **`dbt_tools_search_resources`** — find models/sources by name or filters
+4. **`dbt_tools_get_resource`** — details for a `unique_id` (set `includeCode: true` when you need SQL)
+5. **`dbt_tools_query_dependencies`** — upstream/downstream DAG (blast radius = `direction: downstream`)
+6. **`dbt_tools_query_executions`** — ranked/filtered executions (warehouse block for adapter metrics)
+7. **`dbt_tools_get_run_summary`** — totals and bottlenecks without a node list
+8. **`dbt_tools_refresh`** — after a new dbt run uploads artifacts (or rely on `--poll-interval-ms`)
 
-## Tools (7)
+## Tools (8)
 
 | Tool                           | Summary                                     |
 | ------------------------------ | ------------------------------------------- |
 | `dbt_tools_status`             | Target, runs[], warehouse_type, stale state |
+| `dbt_tools_set_target`         | Set or change artifact root (path/URI only) |
 | `dbt_tools_refresh`            | Reload if artifacts changed                 |
 | `dbt_tools_search_resources`   | Catalog search                              |
 | `dbt_tools_get_resource`       | One resource by `unique_id`                 |
@@ -141,7 +164,7 @@ Parameters, defaults, and pagination limits: **[REFERENCE.md](REFERENCE.md#mcp-t
 
 - **`No versions available for @dbt-tools/mcp` (npm 11+)** — if your `~/.npmrc` sets `min-release-age`, fresh releases are hidden until they age out. Use `npx --min-release-age=0 -y @dbt-tools/mcp …`, wait for the quarantine window, or lower that setting. npm does not yet support a per-scope exclude like pnpm’s `minimumReleaseAgeExclude`.
 - **No output from `npx … -- --help`** — pass flags after `--` (e.g. `npx --min-release-age=0 -y @dbt-tools/mcp -- --help`); help prints to stdout and exits 0.
-- **`dbt artifact target is required`** — set `--dbt-target` or `DBT_TOOLS_DBT_TARGET` in the MCP server `env` or args.
+- **Analysis tools return `target is not configured`** — call **`dbt_tools_set_target`**, or set `--dbt-target` / `DBT_TOOLS_DBT_TARGET` at startup.
 - **`Expected exactly one artifact set`** — the target must contain a single complete `manifest.json` + `run_results.json` pair at its root; fix the path or layout ([ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
 - **S3/GCS access denied** — configure AWS/GCP credentials on the **child process** (`env` in MCP config).
 - **`stale: true`** — last refresh failed; call `dbt_tools_refresh` and read `lastRefreshError` in the status payload.

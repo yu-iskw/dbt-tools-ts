@@ -79,6 +79,7 @@ describe('dbt-tools MCP server wiring', () => {
     const server = new RecordingMcpServer();
     const handlers = {
       dbt_tools_status: async () => ({ content: [] }),
+      dbt_tools_set_target: async () => ({ content: [] }),
       dbt_tools_refresh: async () => ({ content: [] }),
       dbt_tools_search_resources: async () => ({ content: [] }),
       dbt_tools_get_resource: async () => ({ content: [] }),
@@ -91,6 +92,7 @@ describe('dbt-tools MCP server wiring', () => {
 
     expect(server.tools.map((tool) => tool.name)).toEqual([
       'dbt_tools_status',
+      'dbt_tools_set_target',
       'dbt_tools_refresh',
       'dbt_tools_search_resources',
       'dbt_tools_get_resource',
@@ -106,6 +108,26 @@ describe('dbt-tools MCP server wiring', () => {
     const server = await createDbtToolsMcpServer(['--dbt-target', tempDir]);
 
     expect(server).toBeInstanceOf(Object);
+  });
+
+  it('loads artifacts after set_target when no startup target is configured', async () => {
+    await writeArtifacts(tempDir);
+
+    const { workspace } = await createDbtToolsMcpStack([]);
+    const statusBefore = await workspace.getStatus();
+    expect(statusBefore.target).toBeNull();
+    expect(statusBefore.loadedAtMs).toBeNull();
+
+    const useCases = createDbtToolsUseCases(workspace);
+    const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);
+    const setResult = await handlers.dbt_tools_set_target({ target: tempDir });
+    expect(setResult.isError).not.toBe(true);
+
+    await handlers.dbt_tools_search_resources({ query: 'orders' });
+
+    const statusAfter = await workspace.getStatus();
+    expect(statusAfter.target).toBe(tempDir);
+    expect(statusAfter.loadedAtMs).not.toBeNull();
   });
 
   it('defers artifact load until a tool needs the workspace (lazy init)', async () => {

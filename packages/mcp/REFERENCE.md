@@ -5,12 +5,12 @@ Operator and agent lookup for `dbt-tools-mcp`. For a short introduction, see [RE
 ## Command-line interface
 
 ```text
-Usage: dbt-tools-mcp --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> [options]
+Usage: dbt-tools-mcp [--dbt-target <path|s3://bucket/prefix|gs://bucket/prefix>] [options]
 ```
 
 | Flag                                        | Required | Environment variable                                          | Description                                                                                                                                                |
 | ------------------------------------------- | -------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--dbt-target <target>`                     | Yes\*    | `DBT_TOOLS_DBT_TARGET`                                        | Local directory, or `s3://bucket/prefix`, or `gs://bucket/prefix`                                                                                          |
+| `--dbt-target <target>`                     | No\*     | `DBT_TOOLS_DBT_TARGET`                                        | Local directory, or `s3://bucket/prefix`, or `gs://bucket/prefix`. Omit to set via **`dbt_tools_set_target`**.                                             |
 | `--poll-interval-ms <ms>`                   | No       | _(none — set in MCP `args` only)_                             | Non-negative integer. If **> 0**, runs a background timer that calls `refreshIfChanged()` on that interval (errors are swallowed). Omit or `0` to disable. |
 | `--gcs-project-id <id>`                     | No       | `DBT_TOOLS_GCS_PROJECT_ID`                                    | GCS client project ID (`gs://` targets only)                                                                                                               |
 | `--gcs-impersonate-service-account <email>` | No       | `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`                   | GCS read-only impersonation principal (`gs://` targets only)                                                                                               |
@@ -20,9 +20,9 @@ Usage: dbt-tools-mcp --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> [
 
 CLI flag values override the matching `DBT_TOOLS_*` env vars when both are set. The `--dbt-target` URI always supplies `bucket`, `prefix`, and provider.
 
-\*Required unless **`DBT_TOOLS_DBT_TARGET`** is set to a non-empty value.
+\*Optional at startup if you set the target later with **`dbt_tools_set_target`**. When provided (flag or env), it is the initial artifact root.
 
-Configuration errors print to **stderr** and exit **1** before the MCP server connects.
+Configuration errors for invalid CLI flags print to **stderr** and exit **1** before the MCP server connects. Artifact discovery errors from **`dbt_tools_set_target`** return **`isError: true`** JSON to the agent.
 
 ### Target forms
 
@@ -137,13 +137,12 @@ Do not set conflicting values in both `args` and `env`.
 
 ## Lifecycle and refresh
 
-On startup the server:
+On startup the server connects MCP over **stdio** immediately. Artifacts are **not** loaded until:
 
-1. Discovers artifact runs at the configured target
-2. Requires **exactly one** complete `manifest.json` + `run_results.json` pair
-3. Loads that run into memory, then connects MCP over **stdio**
+- **`dbt_tools_set_target`** succeeds, or
+- an analysis tool triggers lazy load when a startup target was configured.
 
-If discovery fails, the process exits before MCP connects.
+When a target is set, discovery requires **exactly one** complete `manifest.json` + `run_results.json` pair at that root ([ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
 
 ```mermaid
 sequenceDiagram
@@ -152,7 +151,9 @@ sequenceDiagram
   participant WS as ArtifactWorkspace
   Agent->>MCP: dbt_tools_status
   MCP->>WS: getStatus
-  WS-->>Agent: target_run_version_stale
+  WS-->>Agent: target_may_be_null
+  Agent->>MCP: dbt_tools_set_target
+  MCP->>WS: setTarget_and_initialize
   Agent->>MCP: dbt_tools_refresh
   MCP->>WS: refreshIfChanged
   alt versionToken_changed
@@ -183,16 +184,16 @@ Example shape (fields may be `null` before load):
 }
 ```
 
-| Field              | Meaning                                                  |
-| ------------------ | -------------------------------------------------------- |
-| `target`           | Configured `--dbt-target` / `DBT_TOOLS_DBT_TARGET` value |
-| `selectedRunId`    | Active run id                                            |
-| `versionToken`     | Changes when underlying artifacts change                 |
-| `loadedAtMs`       | When the current snapshot was loaded                     |
-| `stale`            | `true` if the last refresh attempt failed                |
-| `lastRefreshError` | Present when `stale` is true                             |
-| `runs`             | Discovered runs (replaces separate `list_runs` tool)     |
-| `warehouse_type`   | Adapter type for warehouse-scoped execution queries      |
+| Field              | Meaning                                                                   |
+| ------------------ | ------------------------------------------------------------------------- |
+| `target`           | Active artifact root (`null` before first `set_target` or startup target) |
+| `selectedRunId`    | Active run id                                                             |
+| `versionToken`     | Changes when underlying artifacts change                                  |
+| `loadedAtMs`       | When the current snapshot was loaded                                      |
+| `stale`            | `true` if the last refresh attempt failed                                 |
+| `lastRefreshError` | Present when `stale` is true                                              |
+| `runs`             | Discovered runs (replaces separate `list_runs` tool)                      |
+| `warehouse_type`   | Adapter type for warehouse-scoped execution queries                       |
 
 ## Breaking migration (v2)
 
@@ -209,6 +210,7 @@ Example shape (fields may be `null` before load):
 
 | Scenario         | Chain                                                       |
 | ---------------- | ----------------------------------------------------------- |
+| New MCP session  | `status` → `set_target` → triage                            |
 | Post-run triage  | `status` → `query_executions` (`status`) → `get_resource`   |
 | Slowest nodes    | `status` → `query_executions` (`sort: execution_time_desc`) |
 | Blast radius     | `query_dependencies` (`direction: downstream`)              |
@@ -217,15 +219,25 @@ Example shape (fields may be `null` before load):
 
 ## MCP tools reference
 
-Seven tools. Each returns **JSON** in text `content` and **`structuredContent`** (same payload). Validation errors set **`isError: true`** with `hint` and optional `allowed_sorts`.
+Eight tools. Each returns **JSON** in text `content` and **`structuredContent`** (same payload). Validation errors set **`isError: true`** with `hint` and optional `allowed_sorts`.
 
 ### `dbt_tools_status`
 
-Return the loaded artifact target, selected run, version token, and stale state.
+Return the artifact target (may be `null`), selected run, version token, and stale state.
 
 | Input    | Type | Notes |
 | -------- | ---- | ----- |
 | _(none)_ |      |       |
+
+### `dbt_tools_set_target`
+
+Set or change the dbt artifact root. Does **not** accept GCS impersonation or S3 client flags—those stay at MCP startup.
+
+| Input    | Type             | Notes                                        |
+| -------- | ---------------- | -------------------------------------------- |
+| `target` | string, required | Local path, `s3://bucket/prefix`, or `gs://` |
+
+Returns the same status shape as `dbt_tools_status` on success. On failure, `isError: true` with `error` (and discovery detail in the message).
 
 ### `dbt_tools_refresh`
 
@@ -297,7 +309,7 @@ Summary, status breakdown, bottlenecks, adapter totals — **no** per-node list.
 
 | Symptom                                    | Likely cause                                                   | What to do                                                                                                                                          |
 | ------------------------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dbt artifact target is required`          | No `--dbt-target` and no `DBT_TOOLS_DBT_TARGET`                | Set one in MCP `args` or `env`                                                                                                                      |
+| `dbt artifact target is not configured`    | Analysis tool before `set_target` / startup target             | Call **`dbt_tools_set_target`**, or set `--dbt-target` / `DBT_TOOLS_DBT_TARGET` at startup                                                          |
 | `Expected exactly one artifact set`        | Zero or multiple complete pairs at the target                  | Use a single dbt `target/` root; see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)                      |
 | S3/GCS access denied                       | Missing credentials on child process                           | Add AWS/GCP env vars to MCP `env`                                                                                                                   |
 | `stale: true`                              | Reload failed after artifact change                            | Call `dbt_tools_refresh`; inspect `lastRefreshError`                                                                                                |

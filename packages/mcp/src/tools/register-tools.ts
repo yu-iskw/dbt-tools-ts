@@ -104,6 +104,18 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
   );
 
   server.registerTool(
+    'dbt_tools_set_target',
+    {
+      title: 'dbt-tools set target',
+      description:
+        'Set or change the dbt artifact root (local path, s3://, or gs://). Does not change GCS impersonation or S3 client settings configured at MCP startup.',
+      inputSchema: z.object({ target: z.string().min(1) }),
+      annotations: { readOnlyHint: false, idempotentHint: true },
+    },
+    handlers.dbt_tools_set_target,
+  );
+
+  server.registerTool(
     'dbt_tools_refresh',
     {
       title: 'dbt-tools refresh',

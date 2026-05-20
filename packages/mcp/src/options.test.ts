@@ -50,8 +50,22 @@ describe('parseMcpServerOptions', () => {
     });
   });
 
-  it('throws when no target is available', () => {
-    expect(() => parseMcpServerOptions([], {})).toThrow(/dbt artifact target is required/i);
+  it('allows missing target when no env is set', () => {
+    expect(parseMcpServerOptions([], {})).toEqual({});
+  });
+
+  it('allows GCS remote flags without a startup target', () => {
+    expect(
+      parseMcpServerOptions([
+        '--gcs-project-id',
+        'my-project',
+        '--gcs-impersonate-service-account',
+        'reader@my-project.iam.gserviceaccount.com',
+      ]),
+    ).toEqual({
+      gcsProjectId: 'my-project',
+      gcsImpersonateServiceAccount: 'reader@my-project.iam.gserviceaccount.com',
+    });
   });
 
   it('throws for unknown flags', () => {
@@ -84,5 +98,11 @@ describe('parseMcpServerOptions', () => {
 describe('assertRemoteFlagsMatchTarget', () => {
   it('allows GCS flags on gs:// targets', () => {
     expect(() => assertRemoteFlagsMatchTarget('gs://b/p', { gcsProjectId: 'proj' })).not.toThrow();
+  });
+
+  it('rejects GCS flags when the runtime target is s3://', () => {
+    expect(() => assertRemoteFlagsMatchTarget('s3://b/p', { gcsProjectId: 'proj' })).toThrow(
+      /only valid for gs/i,
+    );
   });
 });

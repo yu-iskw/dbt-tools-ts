@@ -1,4 +1,5 @@
 import {
+  ArtifactTargetNotConfiguredError,
   QUERY_EXECUTIONS_DEFAULT_LIMIT,
   QUERY_EXECUTIONS_MAX_LIMIT,
   QueryExecutionsValidationError,
@@ -20,9 +21,15 @@ import {
   type SearchResourcesInput,
 } from '@dbt-tools/core/artifact-workspace';
 
+import { assertRemoteFlagsMatchTarget, type McpRemoteClientFlagOptions } from '../options.js';
+
+const MCP_TARGET_NOT_CONFIGURED_HINT =
+  'Call dbt_tools_set_target with a local path or s3:// / gs:// URI, or set DBT_TOOLS_DBT_TARGET at MCP startup.';
+
 export interface ArtifactWorkspaceControl {
   getStatus(): Promise<ArtifactWorkspaceStatus>;
   refreshIfChanged(): Promise<ArtifactWorkspaceStatus>;
+  setTarget(target: string): Promise<ArtifactWorkspaceStatus>;
 }
 
 export interface McpJsonToolResult {
@@ -226,10 +233,35 @@ function validationErrorResult(error: QueryExecutionsValidationError): McpJsonTo
   );
 }
 
+function targetNotConfiguredResult(): McpJsonToolResult {
+  return jsonResult(
+    {
+      error: ArtifactTargetNotConfiguredError.message,
+      hint: MCP_TARGET_NOT_CONFIGURED_HINT,
+    },
+    { isError: true },
+  );
+}
+
+async function withLoadedUseCases(
+  useCases: DbtToolsUseCases,
+  run: (uc: DbtToolsUseCases) => Promise<unknown>,
+): Promise<McpJsonToolResult> {
+  try {
+    return jsonResultFromValue(await run(useCases));
+  } catch (error) {
+    if (error instanceof ArtifactTargetNotConfiguredError) {
+      return targetNotConfiguredResult();
+    }
+    throw error;
+  }
+}
+
 type McpToolHandler = (input: ToolInput) => Promise<McpJsonToolResult>;
 
 export type DbtToolsMcpToolHandlers = {
   dbt_tools_status: McpToolHandler;
+  dbt_tools_set_target: McpToolHandler;
   dbt_tools_refresh: McpToolHandler;
   dbt_tools_search_resources: McpToolHandler;
   dbt_tools_get_resource: McpToolHandler;
@@ -241,26 +273,51 @@ export type DbtToolsMcpToolHandlers = {
 export function createDbtToolsMcpToolHandlers(
   workspace: ArtifactWorkspaceControl,
   useCases: DbtToolsUseCases,
+  startupOptions: McpRemoteClientFlagOptions = {},
 ): DbtToolsMcpToolHandlers {
   return {
     dbt_tools_status: async (_input: ToolInput): Promise<McpJsonToolResult> =>
       jsonResultFromValue(await workspace.getStatus()),
 
+    dbt_tools_set_target: async (input: ToolInput): Promise<McpJsonToolResult> => {
+      const target = optionalString(input, 'target');
+      if (target == null) {
+        return jsonResult(
+          {
+            error: 'target is required.',
+            hint: 'Pass a local path or s3:// / gs:// URI for dbt artifacts.',
+          },
+          { isError: true },
+        );
+      }
+      try {
+        assertRemoteFlagsMatchTarget(target, startupOptions);
+        return jsonResultFromValue(await workspace.setTarget(target));
+      } catch (error) {
+        return jsonResult(
+          { error: error instanceof Error ? error.message : String(error) },
+          { isError: true },
+        );
+      }
+    },
+
     dbt_tools_refresh: async (_input: ToolInput): Promise<McpJsonToolResult> =>
       jsonResultFromValue(await workspace.refreshIfChanged()),
 
     dbt_tools_search_resources: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResultFromValue(await useCases.searchResources(searchInput(input))),
+      withLoadedUseCases(useCases, (uc) => uc.searchResources(searchInput(input))),
 
     dbt_tools_get_resource: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResultFromValue(await useCases.getResource(getResourceInput(input))),
+      withLoadedUseCases(useCases, (uc) => uc.getResource(getResourceInput(input))),
 
     dbt_tools_query_dependencies: async (input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResultFromValue(await useCases.queryDependencies(queryDependenciesInput(input))),
+      withLoadedUseCases(useCases, (uc) => uc.queryDependencies(queryDependenciesInput(input))),
 
     dbt_tools_query_executions: async (input: ToolInput): Promise<McpJsonToolResult> => {
       try {
-        return jsonResultFromValue(await useCases.queryExecutions(queryExecutionsInput(input)));
+        return await withLoadedUseCases(useCases, (uc) =>
+          uc.queryExecutions(queryExecutionsInput(input)),
+        );
       } catch (error) {
         if (error instanceof QueryExecutionsValidationError) {
           return validationErrorResult(error);
@@ -270,6 +327,6 @@ export function createDbtToolsMcpToolHandlers(
     },
 
     dbt_tools_get_run_summary: async (_input: ToolInput): Promise<McpJsonToolResult> =>
-      jsonResultFromValue(await useCases.getRunSummary()),
+      withLoadedUseCases(useCases, (uc) => uc.getRunSummary()),
   };
 }

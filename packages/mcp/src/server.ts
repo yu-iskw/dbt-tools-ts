@@ -57,7 +57,7 @@ export async function createDbtToolsMcpStack(
   const options = parseMcpServerOptions(argv);
   const remoteClientOverrides = remoteClientOverridesFromOptions(options);
   const workspace = new ArtifactWorkspace({
-    dbtTarget: options.dbtTarget,
+    ...(options.dbtTarget != null ? { dbtTarget: options.dbtTarget } : {}),
     ...(options.gcsImpersonateServiceAccount != null
       ? { gcsRequestOptions: { impersonatedServiceAccount: options.gcsImpersonateServiceAccount } }
       : {}),
@@ -66,7 +66,7 @@ export async function createDbtToolsMcpStack(
   dbtToolsDebugLog('lazy-init: artifacts load on first tool call');
   startRefreshPolling(workspace, options.pollIntervalMs);
   const useCases = createDbtToolsUseCases(workspace);
-  const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);
+  const handlers = createDbtToolsMcpToolHandlers(workspace, useCases, options);
   const server = new McpServer({
     name: 'dbt-tools',
     version: readMcpPackageVersion(),
