@@ -28,7 +28,6 @@ dbt-tools helps operators and automation systems reason about dbt projects throu
 
 ## Packages
 
-- `@dbt-tools/core` — analysis engine and shared discovery logic
 - `@dbt-tools/cli` — `dbt-tools` for scripts, CI, and one-shot automation
 - `@dbt-tools/mcp` — `dbt-tools-mcp` for long-lived agent sessions
 - `@dbt-tools/web` — `dbt-tools-web` for browser-based investigation

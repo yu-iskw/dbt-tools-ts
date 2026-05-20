@@ -23,4 +23,3 @@ Set `DBT_TOOLS_DBT_TARGET` (CLI/MCP) or point `--dbt-target` / `--target` at you
 - [CLI](./cli.md) — one-shot commands, JSON output, and CI workflows
 - [MCP](./mcp.md) — long-lived sessions for agent clients
 - [Web](./web.md) — browser UI for lineage, execution, and inventory
-- [Core](./core.md) — programmatic analysis substrate

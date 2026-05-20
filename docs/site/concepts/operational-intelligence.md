@@ -6,7 +6,7 @@
 
 1. **Artifact-driven** — answers come from parsed `manifest.json` / `run_results.json`, not from chat.
 2. **Deterministic** — same inputs produce the same structured outputs for CI and agents.
-3. **Package boundaries** — `@dbt-tools/core` is the substrate; CLI, MCP, and web are interfaces for different workflows.
+3. **Shared substrate** — a common analysis engine backs the CLI, MCP, and web interfaces for different workflows.
 4. **Agent-friendly** — JSON, field filtering, and MCP resident caches reduce token churn.
 
 ## Where to read more

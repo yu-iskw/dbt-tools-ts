@@ -2,9 +2,11 @@ import { defineConfig } from 'vitepress';
 
 export default defineConfig({
   vite: {
-    build: {
-      // Monorepo esbuild override targets older browsers; VitePress needs modern output.
-      target: 'esnext',
+    // Monorepo esbuild override targets older browsers; VitePress needs modern output for dev and build.
+    esbuild: { target: 'esnext' },
+    build: { target: 'esnext' },
+    optimizeDeps: {
+      esbuildOptions: { target: 'esnext' },
     },
   },
   lang: 'en-US',
@@ -36,7 +38,6 @@ export default defineConfig({
       {
         text: 'Packages',
         items: [
-          { text: '@dbt-tools/core', link: '/guide/core' },
           { text: '@dbt-tools/cli', link: '/guide/cli' },
           { text: '@dbt-tools/mcp', link: '/guide/mcp' },
           { text: '@dbt-tools/web', link: '/guide/web' },
@@ -51,7 +52,6 @@ export default defineConfig({
       {
         text: 'Packages',
         items: [
-          { text: 'Core', link: '/guide/core' },
           { text: 'CLI', link: '/guide/cli' },
           { text: 'MCP', link: '/guide/mcp' },
           { text: 'Web', link: '/guide/web' },
