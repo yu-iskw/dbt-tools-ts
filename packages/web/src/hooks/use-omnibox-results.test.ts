@@ -1,5 +1,6 @@
-import { matchesResource } from '@web/lib/analysis-workspace/utils';
 import { describe, expect, it } from 'vitest';
+
+import { matchesResource } from '@web/lib/analysis-workspace/utils';
 
 import { computeOmniboxRecentResults } from './use-omnibox-results';
 

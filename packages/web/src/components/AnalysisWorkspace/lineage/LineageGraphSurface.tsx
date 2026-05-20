@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
 import {
   type LineageDisplayMode,
   type LineageGraphModel,
@@ -5,7 +7,6 @@ import {
   filterLineageGraphModel,
   getLensLegendItems,
 } from '@web/lib/analysis-workspace/lineage-model';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { EmptyState } from '../../EmptyState';
 

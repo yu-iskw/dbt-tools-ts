@@ -1,4 +1,5 @@
 import { incrementMapCount } from '@dbt-tools/core/browser';
+
 import {
   isDefaultTimelineResource,
   isMainProjectResource,

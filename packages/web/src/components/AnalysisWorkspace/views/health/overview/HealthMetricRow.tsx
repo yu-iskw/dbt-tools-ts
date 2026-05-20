@@ -3,12 +3,13 @@ import {
   getObjectProperty,
   getPresentAdapterTotalDescriptors,
 } from '@dbt-tools/core/browser';
+import { useMemo } from 'react';
+
 import {
   PRIMARY_PROJECT_SUMMARY_GROUPS,
   TEST_RESOURCE_TYPES,
 } from '@web/lib/analysis-workspace/constants';
 import { isMainProjectResource } from '@web/lib/analysis-workspace/utils';
-import { useMemo } from 'react';
 
 import type { AnalysisState } from '@web/types';
 import type { ReactElement } from 'react';

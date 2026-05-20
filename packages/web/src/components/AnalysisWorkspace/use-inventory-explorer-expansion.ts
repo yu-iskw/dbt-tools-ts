@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
+
 import {
   collectAncestorBranchIdsForResource,
   type ExplorerTreeNode,
   projectRootBranchId,
 } from '@web/lib/analysis-workspace/explorer-tree';
-import { useEffect } from 'react';
 
 import type { AssetViewState } from '@web/lib/analysis-workspace/types';
 import type { Dispatch, SetStateAction } from 'react';

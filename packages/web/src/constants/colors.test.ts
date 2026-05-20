@@ -1,5 +1,6 @@
-import { getResourceTypeColor, getStatusColor } from '@web/constants/colors';
 import { describe, it, expect } from 'vitest';
+
+import { getResourceTypeColor, getStatusColor } from '@web/constants/colors';
 
 describe('getStatusColor', () => {
   it('resolves known statuses in light theme', () => {

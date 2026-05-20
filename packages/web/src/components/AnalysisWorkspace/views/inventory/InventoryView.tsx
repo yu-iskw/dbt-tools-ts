@@ -1,5 +1,6 @@
-import { searchResourcesFromWorker } from '@web/services/analysis-loader';
 import { useEffect, useRef, useState } from 'react';
+
+import { searchResourcesFromWorker } from '@web/services/analysis-loader';
 
 import { EmptyState } from '../../../EmptyState';
 import { WorkspaceScaffold } from '../../shared';

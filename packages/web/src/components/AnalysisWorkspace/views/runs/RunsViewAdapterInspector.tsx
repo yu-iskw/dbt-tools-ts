@@ -1,4 +1,5 @@
 import { getAdapterResponseFieldsBeyondNormalized } from '@dbt-tools/core/browser';
+
 import {
   getRunsAdapterField,
   type RunsAdapterColumn,

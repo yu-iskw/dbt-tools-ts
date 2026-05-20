@@ -1,4 +1,5 @@
 import { getObjectProperty, mapFromRecord } from '@dbt-tools/core/browser';
+
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
 
 import {

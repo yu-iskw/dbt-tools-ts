@@ -1,10 +1,11 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+
 import { PILL_BASE } from '@web/lib/analysis-workspace/constants';
 import {
   type LineageDisplayMode,
   buildLineageGraphModel,
 } from '@web/lib/analysis-workspace/lineage-model';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 import { SectionCard, formatResourceTypeLabel } from '../shared';
 

@@ -1,7 +1,8 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
 import { useSyncedDocumentTheme } from '@web/hooks/use-theme';
 import { groupIntoBundles } from '@web/lib/analysis-workspace/bundle-layout';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import {
   AXIS_TOP,

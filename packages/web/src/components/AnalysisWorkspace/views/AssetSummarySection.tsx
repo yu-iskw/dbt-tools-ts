@@ -4,6 +4,7 @@ import {
   getAdapterResponseFieldsBeyondNormalized,
   getPresentAdapterMetricDescriptors,
 } from '@dbt-tools/core/browser';
+
 import { useArtifactCapability } from '@web/contexts/ArtifactCapabilityContext';
 import { NOT_EXECUTED } from '@web/lib/analysis-workspace/catalog-copy';
 import {

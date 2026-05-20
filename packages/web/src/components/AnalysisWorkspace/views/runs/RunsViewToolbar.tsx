@@ -1,9 +1,10 @@
+import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
+
 import {
   isRunsAdapterSortBy,
   type RunsAdapterColumnLayout,
 } from '@web/lib/analysis-workspace/runs-adapter-columns';
 import { defaultRunsSortDirection } from '@web/lib/analysis-workspace/runs-sort';
-import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
 
 import { MaterializationKindPillRow } from '../../MaterializationKindPillRow';
 

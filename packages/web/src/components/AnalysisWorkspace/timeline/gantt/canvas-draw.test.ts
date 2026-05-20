@@ -1,5 +1,6 @@
-import { CANVAS_LIGHT } from '@web/constants/theme-colors';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { CANVAS_LIGHT } from '@web/constants/theme-colors';
 
 import { drawGantt, fillRoundRect, findFirstVisible, findLastVisible } from './canvas-draw';
 import { ROW_H } from './constants';

@@ -1,4 +1,3 @@
-import { useResourceCode } from '@web/hooks/use-resource-code';
 import {
   type Dispatch,
   type SetStateAction,
@@ -8,6 +7,8 @@ import {
   useState,
   type ReactElement,
 } from 'react';
+
+import { useResourceCode } from '@web/hooks/use-resource-code';
 
 import { EmptyState } from '../../EmptyState';
 import { LineagePanel } from '../lineage/LineagePanel';

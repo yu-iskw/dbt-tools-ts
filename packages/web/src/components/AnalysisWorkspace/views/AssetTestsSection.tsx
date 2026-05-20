@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react';
+
 import { NOT_EXECUTED } from '@web/lib/analysis-workspace/catalog-copy';
 import { buildSelectedAssetTestEvidence } from '@web/lib/analysis-workspace/explorer-tree';
 import {
@@ -6,7 +8,6 @@ import {
   type AssetTestsSortKey,
 } from '@web/lib/analysis-workspace/selected-asset-tests-sort';
 import { formatSeconds, badgeClassName } from '@web/lib/analysis-workspace/utils';
-import { useMemo, useState } from 'react';
 
 import { SectionCard, ResourceTypeBadge } from '../shared';
 

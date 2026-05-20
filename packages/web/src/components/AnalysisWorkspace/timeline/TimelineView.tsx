@@ -1,4 +1,12 @@
 import { incrementMapCount } from '@dbt-tools/core/browser';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useDeferredValue,
+  useMemo,
+  type ReactElement,
+} from 'react';
+
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
 import { buildResourceTestStats } from '@web/lib/analysis-workspace/explorer-tree';
 import {
@@ -8,13 +16,6 @@ import {
   isDefaultTimelineResource,
   timelineGanttHasCompileExecutePhases,
 } from '@web/lib/analysis-workspace/utils';
-import {
-  type Dispatch,
-  type SetStateAction,
-  useDeferredValue,
-  useMemo,
-  type ReactElement,
-} from 'react';
 
 import { SectionCard, WorkspaceScaffold } from '../shared';
 

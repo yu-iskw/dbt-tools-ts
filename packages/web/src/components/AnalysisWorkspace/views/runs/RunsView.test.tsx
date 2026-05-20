@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useRunsResultsSource } from '@web/hooks/use-runs-results-source';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { useRunsResultsSource } from '@web/hooks/use-runs-results-source';
 
 import { RunsView } from './RunsView';
 

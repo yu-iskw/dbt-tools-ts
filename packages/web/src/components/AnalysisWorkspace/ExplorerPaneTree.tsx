@@ -1,11 +1,12 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { type ReactNode, useRef, type ReactElement } from 'react';
+
 import {
   getResourceOriginLabel,
   testStatsHasAttention,
   type ExplorerTreeRow,
   type TestStats,
 } from '@web/lib/analysis-workspace/explorer-tree';
-import { type ReactNode, useRef, type ReactElement } from 'react';
 
 import { EmptyState } from '../EmptyState';
 

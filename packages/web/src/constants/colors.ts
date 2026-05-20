@@ -1,4 +1,5 @@
 import { getObjectProperty } from '@dbt-tools/core/browser';
+
 import {
   type ThemeMode,
   STATUS_HEX_DARK,

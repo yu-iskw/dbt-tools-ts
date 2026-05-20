@@ -1,5 +1,6 @@
-import { PILL_BASE } from '@web/lib/analysis-workspace/constants';
 import { type Dispatch, type ReactElement, type SetStateAction } from 'react';
+
+import { PILL_BASE } from '@web/lib/analysis-workspace/constants';
 
 import type { TimelineFilterState } from '@web/lib/analysis-workspace/types';
 

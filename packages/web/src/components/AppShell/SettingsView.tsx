@@ -1,4 +1,3 @@
-import { sourceLabel, userArtifactSourceKindLabel } from '@web/lib/artifact-source';
 import {
   useCallback,
   useEffect,
@@ -9,6 +8,8 @@ import {
   type SetStateAction,
   type ReactElement,
 } from 'react';
+
+import { sourceLabel, userArtifactSourceKindLabel } from '@web/lib/artifact-source';
 
 import { SectionCard, WorkspaceScaffold } from '../AnalysisWorkspace/shared';
 import { ArtifactLoadPanel } from '../ArtifactLoadPanel';

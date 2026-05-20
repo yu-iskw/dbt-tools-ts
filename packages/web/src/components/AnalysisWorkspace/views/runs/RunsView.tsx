@@ -1,10 +1,11 @@
+import { type Dispatch, type ReactElement, type SetStateAction, useEffect, useMemo } from 'react';
+
 import { useRunsResultsSource } from '@web/hooks/use-runs-results-source';
 import { collectMaterializationKindsFromSemantics } from '@web/lib/analysis-workspace/materialization-semantics-ui';
 import {
   getRunsAdapterColumnLayout,
   isRunsAdapterSortBy,
 } from '@web/lib/analysis-workspace/runs-adapter-columns';
-import { type Dispatch, type ReactElement, type SetStateAction, useEffect, useMemo } from 'react';
 
 import { WorkspaceScaffold } from '../../shared';
 

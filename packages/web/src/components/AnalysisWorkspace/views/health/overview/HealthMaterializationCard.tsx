@@ -1,8 +1,9 @@
+import { useMemo, type ReactElement } from 'react';
+
 import {
   MATERIALIZATION_KIND_ORDER,
   materializationKindShortLabel,
 } from '@web/lib/analysis-workspace/materialization-semantics-ui';
-import { useMemo, type ReactElement } from 'react';
 
 import type { ExecutionRow, MaterializationKind } from '@web/types';
 

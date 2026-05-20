@@ -1,6 +1,7 @@
 import { getObjectProperty } from '@dbt-tools/core/browser';
-import { EXPLORER_MODE_LABELS } from '@web/lib/analysis-workspace/constants';
 import { useState } from 'react';
+
+import { EXPLORER_MODE_LABELS } from '@web/lib/analysis-workspace/constants';
 
 import { buildExplorerTreeEmptySubtext, EXPLORER_UI_COPY } from './explorer-pane-copy';
 import {

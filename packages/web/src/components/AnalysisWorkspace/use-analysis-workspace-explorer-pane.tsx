@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import {
   buildExplorerTree,
   buildResourceTestStats,
@@ -13,7 +15,6 @@ import {
   matchesAssetStatus,
   matchesResource,
 } from '@web/lib/analysis-workspace/utils';
-import { useMemo } from 'react';
 
 import { ExplorerPane } from './ExplorerPane';
 import { useInventoryExplorerExpansion } from './use-inventory-explorer-expansion';
