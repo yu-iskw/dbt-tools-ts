@@ -12,10 +12,6 @@ You see which models or tests took the longest in a run and can explore executio
 | MCP     | Skip unless an agent will run many execution queries        |
 | Web     | Primary surface—execution views, timelines, and bottlenecks |
 
-## Prerequisites
-
-- `manifest.json` and `run_results.json` under `target/` ([overview](../guide/overview.md))
-
 ## Steps
 
 1. Confirm artifacts with [Check run health](check-run-health.md).

@@ -12,10 +12,6 @@ You have a ranked list of matching dbt resources with scores and reasons, plus a
 | MCP     | Many lookups over the same run without re-parsing each time |
 | Web     | Visual discover workspace with the same ranking contract    |
 
-## Prerequisites
-
-- `manifest.json` under `target/` ([overview](../guide/overview.md))
-
 ## Steps
 
 1. Run `discover` with a partial name, typo, or token like `type:model`.

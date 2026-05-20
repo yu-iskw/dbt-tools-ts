@@ -91,9 +91,6 @@ export default defineConfig({
           { text: 'Install plugins', link: '/guide/agents/install' },
           { text: 'CLI vs MCP vs skills', link: '/guide/agents/cli-vs-mcp-vs-skills' },
           { text: 'Skill catalog', link: '/guide/agents/skill-catalog' },
-          { text: 'Install on Cursor', link: '/guide/agents/install-cursor' },
-          { text: 'Install on Codex', link: '/guide/agents/install-codex' },
-          { text: 'Install on Claude', link: '/guide/agents/install-claude' },
         ],
       },
       {

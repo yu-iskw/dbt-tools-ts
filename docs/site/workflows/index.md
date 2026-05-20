@@ -2,6 +2,10 @@
 
 Short, job-focused guides—each completable in a few minutes. Pick a workflow that matches what you need to do right now.
 
+## Prerequisites (all workflows)
+
+- dbt `target/` with `manifest.json` (and usually `run_results.json`) — see [Choose your interface](../guide/overview.md)
+
 | Workflow                                          | Best for                          |
 | ------------------------------------------------- | --------------------------------- |
 | [Check run health](check-run-health.md)           | CI and after `dbt run`            |

@@ -12,14 +12,9 @@ Your coding agent (Cursor, Codex, or Claude Code) can run dbt-tools workflows vi
 | MCP     | Optional: long-lived `dbt-tools-mcp` for IDE tool calls over the same artifacts    |
 | Web     | Optional: open investigation UI while the agent runs CLI skills                    |
 
-## Prerequisites
-
-- Node.js 20+ and artifacts under `target/` ([overview](../guide/overview.md))
-- Clone or work inside this repository (or copy plugin paths into your project)
-
 ## Steps
 
-1. Follow [Install plugins](../guide/agents/install.md) or [Cursor](../guide/agents/install-cursor.md) / [Codex](../guide/agents/install-codex.md) / [Claude](../guide/agents/install-claude.md).
+1. Follow [Install plugins](../guide/agents/install.md) (sections for Cursor, Codex, or Claude).
 2. Enable the `dbt-tools-cli` plugin from the repo marketplace paths.
 3. Use handles from the [Skill catalog](../guide/agents/skill-catalog.md) (for example `dbt-tools-cli:status`, `dbt-tools-cli:discover`).
 4. Optionally add MCP (`dbt-tools-mcp`) for repeated tool calls—see [Connecting clients](../guide/mcp/connecting-clients.md).

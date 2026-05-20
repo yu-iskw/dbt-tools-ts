@@ -12,14 +12,9 @@ A `web_url` from CLI JSON opens the web UI on the same discover query or resourc
 | MCP     | Skip—use CLI for handoff URLs or open the web app manually                |
 | Web     | Destination of the deep link                                              |
 
-## Prerequisites
-
-- Web app running and `DBT_TOOLS_WEB_BASE_URL` set to its origin ([deep links](../reference/deep-links.md))
-- Artifacts under `target/` ([overview](../guide/overview.md))
-
 ## Steps
 
-1. Start `dbt-tools-web` and export `DBT_TOOLS_WEB_BASE_URL`.
+1. Start `dbt-tools-web`, export `DBT_TOOLS_WEB_BASE_URL` to its origin ([deep links](../reference/deep-links.md)).
 2. Run `discover` or `explain` with `--json`.
 3. Copy `web_url` from the JSON payload into a browser (or follow the human “Open in web” line).
 

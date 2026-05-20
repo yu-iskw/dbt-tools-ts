@@ -12,10 +12,6 @@ You know whether `manifest.json` and `run_results.json` are present, fresh enoug
 | MCP     | Skip for one-shot checks—use CLI or wire MCP for repeated agent queries  |
 | Web     | After CLI confirms artifacts, open the UI for health and inventory views |
 
-## Prerequisites
-
-- Artifacts under `target/` ([overview](../guide/overview.md))
-
 ## Steps
 
 1. Point at your dbt `target/` directory with `--dbt-target` or `DBT_TOOLS_DBT_TARGET`.

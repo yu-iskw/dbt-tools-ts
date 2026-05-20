@@ -12,10 +12,6 @@ You understand what a resource does, why a run may have failed, and which downst
 | MCP     | An agent needs several follow-up queries on the same node                |
 | Web     | You want lineage and execution context visually after resolving the node |
 
-## Prerequisites
-
-- `manifest.json` under `target/`; `run_results.json` helps for execution context ([overview](../guide/overview.md))
-
 ## Steps
 
 1. Resolve the resource with [Find a model](find-a-model.md) if you only have a partial name.
