@@ -26,6 +26,13 @@ features:
 
 dbt-tools helps operators and automation systems reason about dbt projects through structured artifact analysis.
 
+## Pick your path
+
+- [I run dbt in CI](/guide/cli/getting-started) — one-shot CLI and JSON
+- [I use AI in the IDE](/guide/agents/install) — plugins and skills
+- [I explore runs in the browser](/guide/web/investigation-tour) — investigation UI
+- [Follow a step-by-step workflow](/workflows/) — job-oriented recipes
+
 ## Packages
 
 - `@dbt-tools/cli` — `dbt-tools` for scripts, CI, and one-shot automation

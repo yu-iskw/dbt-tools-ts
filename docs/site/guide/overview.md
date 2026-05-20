@@ -2,10 +2,11 @@
 
 | If you want to…                                  | Use                                     |
 | ------------------------------------------------ | --------------------------------------- |
+| Follow a step-by-step job                        | [Workflows](../workflows/)              |
 | Run one-shot commands in CI or shell             | [@dbt-tools/cli](./cli/getting-started) |
 | Let a coding agent query the same run many times | [@dbt-tools/mcp](./mcp/getting-started) |
 | Explore lineage and runs in a browser            | [@dbt-tools/web](./web/getting-started) |
-| Install agent skills (Cursor, Codex, Claude)     | [Agents](./agents/) (docs coming)       |
+| Install agent skills (Cursor, Codex, Claude)     | [Agents](./agents/install.md)           |
 
 ## Prerequisites
 

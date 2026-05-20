@@ -33,6 +33,7 @@ export default defineConfig({
     logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/guide/overview' },
+      { text: 'Workflows', link: '/workflows/' },
       { text: 'Concepts', link: '/concepts/dbt-artifacts' },
       { text: 'Reference', link: '/reference/configuration' },
       {
@@ -51,20 +52,49 @@ export default defineConfig({
         items: [{ text: 'Choose your interface', link: '/guide/overview' }],
       },
       {
+        text: 'Workflows',
+        items: [
+          { text: 'Overview', link: '/workflows/' },
+          { text: 'Check run health', link: '/workflows/check-run-health' },
+          { text: 'Find a model', link: '/workflows/find-a-model' },
+          { text: 'Explain a failure', link: '/workflows/explain-failure' },
+          { text: 'Investigate slow runs', link: '/workflows/investigate-slow-runs' },
+          { text: 'Open in web', link: '/workflows/open-in-web' },
+          { text: 'Wire your IDE agent', link: '/workflows/wire-your-ide-agent' },
+        ],
+      },
+      {
         text: 'CLI',
-        items: [{ text: 'Getting started', link: '/guide/cli/getting-started' }],
+        items: [
+          { text: 'Getting started', link: '/guide/cli/getting-started' },
+          { text: 'Common tasks', link: '/guide/cli/common-tasks' },
+        ],
       },
       {
         text: 'MCP',
-        items: [{ text: 'Getting started', link: '/guide/mcp/getting-started' }],
+        items: [
+          { text: 'Getting started', link: '/guide/mcp/getting-started' },
+          { text: 'Connecting clients', link: '/guide/mcp/connecting-clients' },
+        ],
       },
       {
         text: 'Web',
-        items: [{ text: 'Getting started', link: '/guide/web/getting-started' }],
+        items: [
+          { text: 'Getting started', link: '/guide/web/getting-started' },
+          { text: 'Investigation tour', link: '/guide/web/investigation-tour' },
+        ],
       },
       {
         text: 'Agents',
-        items: [{ text: 'Plugins (coming soon)', link: '/guide/agents/' }],
+        items: [
+          { text: 'Overview', link: '/guide/agents/' },
+          { text: 'Install plugins', link: '/guide/agents/install' },
+          { text: 'CLI vs MCP vs skills', link: '/guide/agents/cli-vs-mcp-vs-skills' },
+          { text: 'Skill catalog', link: '/guide/agents/skill-catalog' },
+          { text: 'Install on Cursor', link: '/guide/agents/install-cursor' },
+          { text: 'Install on Codex', link: '/guide/agents/install-codex' },
+          { text: 'Install on Claude', link: '/guide/agents/install-claude' },
+        ],
       },
       {
         text: 'Concepts',
@@ -74,12 +104,19 @@ export default defineConfig({
             text: 'Operational Intelligence',
             link: '/concepts/operational-intelligence',
           },
+          { text: 'Discovery parity', link: '/concepts/discovery-parity' },
+          {
+            text: 'Local and remote artifacts',
+            link: '/concepts/local-and-remote-artifacts',
+          },
         ],
       },
       {
         text: 'Reference',
         items: [
           { text: 'Configuration', link: '/reference/configuration' },
+          { text: 'CLI cheatsheet', link: '/reference/cli-cheatsheet' },
+          { text: 'Deep links', link: '/reference/deep-links' },
           { text: 'Troubleshooting', link: '/reference/troubleshooting' },
         ],
       },
