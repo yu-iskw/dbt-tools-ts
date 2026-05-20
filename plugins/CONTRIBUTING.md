@@ -7,6 +7,7 @@ This document is for **contributors and maintainers**: marketplace changes, stru
 1. Create `plugins/<plugin-id>/` with the expected manifests (`.claude-plugin`, `.codex-plugin`, `.cursor-plugin`) and `skills/` layout per upstream docs.
 2. **Codex:** append an entry to the `plugins` array in [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json) (`source.source: "local"`, `source.path` like `./plugins/<plugin-id>`, plus `policy` and `category` per Codex).
 3. **Cursor:** add a matching entry to [`.cursor-plugin/marketplace.json`](../.cursor-plugin/marketplace.json) (same plugin ids and `./plugins/<plugin-id>` sources as Codex). Automated verification enforces alignment when `PLUGIN_FILTER` is unset.
+4. **Claude Code:** add a matching entry to [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) (same plugin ids, `./plugins/<plugin-id>` sources, and descriptions as Cursor). Keep all three marketplace catalogs in sync.
 
 ## Verification
 

@@ -1,0 +1,23 @@
+{
+  "name": "dbt-tools-ts",
+  "owner": {
+    "name": "dbt-tools-ts"
+  },
+  "metadata": {
+    "description": "Local Claude Code plugins for this repository (keep in sync with .cursor-plugin/marketplace.json and .agents/plugins/marketplace.json)"
+  },
+  "plugins": [
+    {
+      "name": "dbt-tools-cli",
+      "source": "./plugins/dbt-tools-cli",
+      "description": "Primitive skills for @dbt-tools/cli workflows",
+      "version": "0.1.0"
+    },
+    {
+      "name": "dbt-tools-mcp",
+      "source": "./plugins/dbt-tools-mcp",
+      "description": "Same primitive skills for @dbt-tools/mcp (in-memory artifacts)",
+      "version": "0.1.0"
+    }
+  ]
+}
