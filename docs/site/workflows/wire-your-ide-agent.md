@@ -34,5 +34,5 @@ Ask your agent:
 
 - [CLI vs MCP vs skills](../guide/agents/cli-vs-mcp-vs-skills.md)
 - [Skill catalog](../guide/agents/skill-catalog.md)
-- [Agents overview](../guide/agents/)
+- [Agents overview](../guide/agents/index.md)
 - [plugins README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/plugins/README.md)

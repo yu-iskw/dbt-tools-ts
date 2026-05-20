@@ -11,7 +11,7 @@
 
 ## Examples (no LLM required)
 
-**CI gate after `dbt run`**
+### CI gate after `dbt run`
 
 ```bash
 dbt-tools status --dbt-target ./target --json
@@ -19,7 +19,7 @@ dbt-tools status --dbt-target ./target --json
 
 Readiness `full` means manifest and run results are both present—see [Check run health](../workflows/check-run-health.md).
 
-**Resolve “the orders model” without guessing `unique_id`**
+### Resolve “the orders model” without guessing `unique_id`
 
 ```bash
 dbt-tools discover --dbt-target ./target "orders" --json
@@ -27,7 +27,7 @@ dbt-tools discover --dbt-target ./target "orders" --json
 
 Ranked matches include `reasons` you can paste into tickets or agent context—same contract as the web discover view ([Discovery parity](./discovery-parity.md)).
 
-**Investigate slow nodes in the browser**
+### Investigate slow nodes in the browser
 
 ```bash
 npx @dbt-tools/web --target ./target

@@ -14,7 +14,7 @@ dbt-tools exposes three complementary layers. They are not interchangeable—pic
 
 - JSON output, stable exit codes, `--fields` for smaller payloads.
 - Each command is independent unless you reuse the same `--dbt-target`.
-- See [Common CLI tasks](../cli/common-tasks.md) and [workflows](../../workflows/).
+- See [Common CLI tasks](../cli/common-tasks.md) and [workflows](../../workflows/index.md).
 
 ## MCP
 
