@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { getResourceTypeColor, getStatusColor } from '@web/constants/colors';
 
 describe('getStatusColor', () => {

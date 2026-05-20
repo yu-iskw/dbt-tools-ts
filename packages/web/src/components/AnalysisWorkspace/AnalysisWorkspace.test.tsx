@@ -3,9 +3,11 @@
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AnalysisState, MaterializationKind, ResourceNode } from '@web/types';
-import type { AssetViewState } from '@web/lib/analysis-workspace/types';
+
 import { AnalysisWorkspace } from './AnalysisWorkspace';
+
+import type { AssetViewState } from '@web/lib/analysis-workspace/types';
+import type { AnalysisState, MaterializationKind, ResourceNode } from '@web/types';
 
 function makeAnalysis(
   resources: ResourceNode[],

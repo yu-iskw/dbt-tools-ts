@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 const WORKSPACE_FEATURES = [
   {
     title: 'Health-first overview',
@@ -13,7 +14,7 @@ const WORKSPACE_FEATURES = [
   },
 ] as const;
 
-export function ArtifactLoadPanelHero() {
+export function ArtifactLoadPanelHero(): ReactElement {
   return (
     <div className="upload-hero__copy">
       <p className="eyebrow">Load artifacts</p>

@@ -1,21 +1,25 @@
-import * as fs from 'fs';
 import * as path from 'path';
-import { parseManifest } from 'dbt-artifacts-parser/manifest';
-import { resolveSafePath } from '../validation/input-validator';
-import { parseRunResults } from 'dbt-artifacts-parser/run_results';
+
 import { parseCatalog } from 'dbt-artifacts-parser/catalog';
+import { parseManifest } from 'dbt-artifacts-parser/manifest';
+import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 import { parseSources } from 'dbt-artifacts-parser/sources';
-import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
-import type { ParsedRunResults } from 'dbt-artifacts-parser/run_results';
-import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
-import type { ParsedSources } from 'dbt-artifacts-parser/sources';
+
 import { getDbtToolsTargetDirFromEnv } from '../config/dbt-tools-env';
+import { resolveSafePath } from '../validation/input-validator';
+
 import {
   DBT_CATALOG_JSON,
   DBT_MANIFEST_JSON,
   DBT_RUN_RESULTS_JSON,
   DBT_SOURCES_JSON,
 } from './artifact-filenames';
+import { existsValidated, readValidatedUtf8Sync } from './safe-fs';
+
+import type { ParsedCatalog } from 'dbt-artifacts-parser/catalog';
+import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
+import type { ParsedRunResults } from 'dbt-artifacts-parser/run_results';
+import type { ParsedSources } from 'dbt-artifacts-parser/sources';
 
 /**
  * Resolved artifact file paths
@@ -49,11 +53,11 @@ function loadParsedJsonArtifact<T>(
   parse: (json: Record<string, unknown>) => T,
 ): T {
   const fullPath = resolveSafePath(artifactPath);
-  if (!fs.existsSync(fullPath)) {
+  if (!existsValidated(artifactPath)) {
     throw new Error(`${missingLabel} not found: ${fullPath}`);
   }
 
-  const content = fs.readFileSync(fullPath, 'utf-8');
+  const content = readValidatedUtf8Sync(artifactPath);
   try {
     return parse(JSON.parse(content) as Record<string, unknown>);
   } catch (error) {

@@ -1,8 +1,9 @@
-import type { SidebarNavigationTarget } from './appNavigation';
+import type { SidebarNavigationTarget } from './app-navigation';
+import type { ReactElement } from 'react';
 
 type NavIconId = SidebarNavigationTarget['id'] | 'settings';
 
-export function NavIcon({ id }: { id: NavIconId }) {
+export function NavIcon({ id }: { id: NavIconId }): ReactElement {
   const svgProps = {
     viewBox: '0 0 24 24' as const,
     fill: 'none' as const,

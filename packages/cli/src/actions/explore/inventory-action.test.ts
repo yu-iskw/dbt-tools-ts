@@ -1,11 +1,14 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
+import { mkdtempValidated, rmValidated } from '@dbt-tools/core';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   createJaffleArtifactBundleDir,
   createJaffleManifestOnlyDir,
 } from '../../internal/cli-test-bundle-dir';
+
 import { inventoryAction, formatInventory } from './inventory-action';
 
 describe('inventoryAction', () => {
@@ -23,7 +26,7 @@ describe('inventoryAction', () => {
 
   afterEach(async () => {
     consoleLogSpy.mockRestore();
-    await fs.rm(dbtTargetDir, { recursive: true, force: true });
+    await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
   it('outputs JSON inventory of all resources', async () => {
@@ -80,7 +83,7 @@ describe('inventoryAction', () => {
       const parsed = JSON.parse(output) as { total: number };
       expect(parsed.total).toBeGreaterThan(0);
     } finally {
-      await fs.rm(manifestOnlyDir, { recursive: true, force: true });
+      await rmValidated(manifestOnlyDir, { recursive: true, force: true });
     }
   });
 
@@ -168,13 +171,13 @@ describe('inventoryAction', () => {
   });
 
   it('throws when required artifacts are missing', async () => {
-    const empty = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-inv-empty-'));
+    const empty = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-inv-empty-'));
     try {
       await expect(inventoryAction({ dbtTarget: empty, json: true }, handleError)).rejects.toThrow(
         /Missing required dbt artifact/,
       );
     } finally {
-      await fs.rm(empty, { recursive: true, force: true });
+      await rmValidated(empty, { recursive: true, force: true });
     }
   });
 });

@@ -1,3 +1,5 @@
+import { getObjectProperty, setObjectProperty } from '../util/typed-map';
+
 /**
  * FieldFilter provides field selection to reduce context window usage.
  * Supports simple and nested field paths.
@@ -82,8 +84,7 @@ export class FieldFilter {
       if (!Object.prototype.hasOwnProperty.call(current as object, part)) {
         return undefined;
       }
-      // nosemgrep: javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop — part blocked by isUnsafeKey; hasOwnProperty guards proto chain.
-      current = (current as Record<string, unknown>)[part];
+      current = getObjectProperty(current as Record<string, unknown>, part);
     }
 
     return current;
@@ -96,26 +97,21 @@ export class FieldFilter {
     const parts = path.split('.');
     let current: Record<string, unknown> = obj;
 
-    for (let i = 0; i < parts.length - 1; i++) {
-      const part = parts[i];
+    for (const part of parts.slice(0, -1)) {
       if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
         return;
       }
-      if (
-        !Object.prototype.hasOwnProperty.call(current, part) ||
-        typeof current[part] !== 'object' ||
-        current[part] === null
-      ) {
-        current[part] = Object.create(null);
+      const existing = getObjectProperty(current, part);
+      if (existing === undefined || typeof existing !== 'object' || existing === null) {
+        setObjectProperty(current, part, Object.create(null));
       }
-      // nosemgrep: javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop — part blocked by isUnsafeKey; assignment is own property only.
-      current = current[part] as Record<string, unknown>;
+      current = getObjectProperty(current, part) as Record<string, unknown>;
     }
 
     const lastPart = parts[parts.length - 1];
     if (lastPart === '__proto__' || lastPart === 'constructor' || lastPart === 'prototype') {
       return;
     }
-    current[lastPart] = value;
+    setObjectProperty(current, lastPart, value);
   }
 }

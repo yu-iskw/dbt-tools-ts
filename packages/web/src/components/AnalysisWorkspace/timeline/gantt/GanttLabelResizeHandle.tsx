@@ -1,4 +1,4 @@
-import { useCallback, useRef, type PointerEvent } from 'react';
+import { type PointerEvent, type ReactElement, useCallback, useRef } from 'react';
 
 const HANDLE_W = 8;
 
@@ -14,7 +14,7 @@ export function GanttLabelResizeHandle({
   minW: number;
   maxW: number;
   onWidthChange: (nextWidthPx: number) => void;
-}) {
+}): ReactElement {
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
 
   const clamp = useCallback(

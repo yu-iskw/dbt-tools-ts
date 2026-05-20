@@ -8,7 +8,8 @@ import {
   type ArtifactDiscoveryResult,
   type RemoteObjectMetadata,
 } from '@dbt-tools/core';
-import type { RemoteArtifactProvider, RemoteArtifactRun } from '../services/artifactSourceApi';
+
+import type { RemoteArtifactProvider, RemoteArtifactRun } from '../services/artifact-source-api';
 
 export type { RemoteObjectMetadata };
 

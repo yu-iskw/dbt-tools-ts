@@ -1,10 +1,13 @@
-import type { ResourceNode } from '@web/types';
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
-import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
-import { formatResourceTypeLabel } from './shared';
-import { EXPLORER_UI_COPY } from './explorerPaneCopy';
 
-export function ExplorerModeIcon({ mode }: { mode: AssetExplorerMode }) {
+import { EXPLORER_UI_COPY } from './explorer-pane-copy';
+import { formatResourceTypeLabel } from './shared';
+
+import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
+import type { ResourceNode } from '@web/types';
+import type { ReactElement } from 'react';
+
+export function ExplorerModeIcon({ mode }: { mode: AssetExplorerMode }): ReactElement | null {
   if (mode === 'project') {
     return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -25,7 +28,11 @@ export function ExplorerModeIcon({ mode }: { mode: AssetExplorerMode }) {
   return null;
 }
 
-export function ResourceTypeSummaryBar({ resources }: { resources: ResourceNode[] }) {
+export function ResourceTypeSummaryBar({
+  resources,
+}: {
+  resources: ResourceNode[];
+}): ReactElement | null {
   const relevant = resources.filter(
     (r) => !TEST_RESOURCE_TYPES.has(r.resourceType) && r.statusTone !== 'neutral',
   );

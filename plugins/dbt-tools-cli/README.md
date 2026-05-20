@@ -23,12 +23,24 @@ dbt-tools-cli:<skill-directory>
 - **Codex:** Explicit skill mention via `$` or `/skills`; plugin `name` is the package namespace — [Agent Skills](https://developers.openai.com/codex/skills), [Build plugins](https://developers.openai.com/codex/plugins/build).
 - **Gemini CLI:** [Agent Skills](https://geminicli.com/docs/cli/skills/) aligns with the open standard; discovery via `/skills`.
 
-| Handle                               | Skill                                                          | Purpose                                                                                                                                                                                 |
-| ------------------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dbt-tools-cli:dbt-artifacts-status` | [`dbt-artifacts-status`](skills/dbt-artifacts-status/SKILL.md) | **Pre-flight gate:** run `dbt-tools status` before other manifest/run_results workflows; enforce `readiness` branching and the sub-agent contract (pass parsed JSON downstream).        |
-| `dbt-tools-cli:status`               | [`status`](skills/status/SKILL.md)                             | **Investigation:** user questions on artifact presence, freshness, and readiness; field-level JSON guidance. Use the gate skill above to block workflows until artifacts are confirmed. |
-| `dbt-tools-cli:discover`             | [`discover`](skills/discover/SKILL.md)                         | Find dbt resources by name, type, tag, or approximate wording; resolve `unique_id` for downstream commands.                                                                             |
-| `dbt-tools-cli:deps`                 | [`deps`](skills/deps/SKILL.md)                                 | Trace upstream and downstream dependencies for a dbt resource with `dbt-tools deps`.                                                                                                    |
-| `dbt-tools-cli:explain-impact`       | [`explain-impact`](skills/explain-impact/SKILL.md)             | Explain a resource and reason about change impact using `dbt-tools explain` and `dbt-tools impact`.                                                                                     |
+| Handle                           | Skill                                                  | Purpose                                                                                                                   |
+| -------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `dbt-tools-cli:status`           | [`status`](skills/status/SKILL.md)                     | **`dbt-tools status`:** readiness gate before other commands **and** investigation of presence, freshness, and readiness. |
+| `dbt-tools-cli:discover`         | [`discover`](skills/discover/SKILL.md)                 | Resolve `unique_id` via `discover` / `search`.                                                                            |
+| `dbt-tools-cli:deps`             | [`deps`](skills/deps/SKILL.md)                         | Dependency graph via `dbt-tools deps`.                                                                                    |
+| `dbt-tools-cli:explain`          | [`explain`](skills/explain/SKILL.md)                   | Resource context and downstream blast radius (`explain` + `deps --direction downstream`).                                 |
+| `dbt-tools-cli:query-executions` | [`query-executions`](skills/query-executions/SKILL.md) | Rank and filter run executions (time and warehouse adapter metrics).                                                      |
+
+### MCP users
+
+For Cursor/Claude hosts using **`dbt-tools-mcp`**, see [`packages/mcp/REFERENCE.md`](../../packages/mcp/REFERENCE.md) — same core primitives, different surface:
+
+| CLI                   | MCP                            |
+| --------------------- | ------------------------------ |
+| `status`              | `dbt_tools_status`             |
+| `discover` / `search` | `dbt_tools_search_resources`   |
+| `deps`                | `dbt_tools_query_dependencies` |
+| `explain`             | `dbt_tools_get_resource`       |
+| `query-executions`    | `dbt_tools_query_executions`   |
 
 See [plugins/README.md](../README.md) for marketplace layout and discovery. For verification, CI commands, and per-engine manifest maintenance, see [plugins/CONTRIBUTING.md](../CONTRIBUTING.md).

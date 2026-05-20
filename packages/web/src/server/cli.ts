@@ -1,5 +1,5 @@
-import { LISTEN_HOST, startServer } from './serve.js';
 import { parseCliArgs, USAGE } from './cli-args';
+import { LISTEN_HOST, startServer } from './serve.js';
 
 const parsed = parseCliArgs(process.argv.slice(2));
 if (parsed.kind === 'help') {

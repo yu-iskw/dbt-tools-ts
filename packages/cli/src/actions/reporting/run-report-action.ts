@@ -1,11 +1,11 @@
 /**
  * Run-report CLI action handler and helpers.
  */
-import * as fs from 'node:fs/promises';
 import {
   ManifestGraph,
   ExecutionAnalyzer,
   buildNodeExecutionsFromRunResults,
+  existsValidated,
   loadManifest,
   loadRunResults,
   validateSafePath,
@@ -13,7 +13,7 @@ import {
   detectBottlenecks,
   buildAdapterTotals,
   detectAdapterHeavyNodes,
-  searchRunResults,
+  filterAdapterMetricMins,
   formatOutput,
   formatRunReport,
   formatAdapterTotalsHuman,
@@ -23,7 +23,10 @@ import {
   type ExecutionSummary,
   type NodeExecution,
   type AdapterHeavyMetric,
+  incrementMapCount,
+  recordFromMap,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
@@ -34,7 +37,7 @@ import {
   parseOptionalListLimit,
 } from '../../internal/cli-pagination';
 
-type RunReportOptions = {
+type RunReportOptions = ArtifactRootCliOptions & {
   fields?: string;
   bottlenecks?: boolean;
   bottlenecksTop?: number;
@@ -50,7 +53,7 @@ type RunReportOptions = {
   /** When set with JSON output, slice `node_executions` after computing summaries. */
   nodeExecutionsLimit?: number;
   nodeExecutionsOffset?: number;
-} & ArtifactRootCliOptions;
+};
 
 function sortNodeExecutionsForSlice(executions: NodeExecution[]): NodeExecution[] {
   return [...executions].sort((a, b) => {
@@ -62,17 +65,16 @@ function sortNodeExecutionsForSlice(executions: NodeExecution[]): NodeExecution[
 
 /** Create a reduced summary when manifest.json is unavailable. */
 function createMinimalSummary(runResults: ReturnType<typeof loadRunResults>): ExecutionSummary {
-  const nodesByStatus: Record<string, number> = {};
+  const nodesByStatus = new Map<string, number>();
   if (runResults.results) {
     for (const result of runResults.results) {
-      const status = result.status || 'unknown';
-      nodesByStatus[status] = (nodesByStatus[status] || 0) + 1;
+      incrementMapCount(nodesByStatus, result.status || 'unknown');
     }
   }
   return {
     total_execution_time: runResults.elapsed_time || 0,
     total_nodes: runResults.results?.length || 0,
-    nodes_by_status: nodesByStatus,
+    nodes_by_status: recordFromMap(nodesByStatus),
     node_executions: [],
   };
 }
@@ -94,7 +96,7 @@ function computeBottlenecksSection(
           status: string;
         }>;
         total_execution_time: number;
-        criteria_used: 'top_n' | 'threshold';
+        criteria_used: 'threshold' | 'top_n';
       }
     | undefined;
   bottlenecksTopLabel: string | undefined;
@@ -131,22 +133,11 @@ function filterExecutionsForAdapterTop(
   executions: NodeExecution[],
   options: RunReportOptions,
 ): NodeExecution[] {
-  let filtered = executions;
-  const filters = [
-    { key: 'min_bytes_processed' as const, value: options.adapterMinBytes },
-    { key: 'min_slot_ms' as const, value: options.adapterMinSlotMs },
-    {
-      key: 'min_rows_affected' as const,
-      value: options.adapterMinRowsAffected,
-    },
-  ];
-  for (const filter of filters) {
-    if (filter.value === undefined) continue;
-    filtered = searchRunResults(filtered, {
-      [filter.key]: filter.value,
-    });
-  }
-  return filtered;
+  return filterAdapterMetricMins(executions, {
+    minBytesProcessed: options.adapterMinBytes,
+    minSlotMs: options.adapterMinSlotMs,
+    minRowsAffected: options.adapterMinRowsAffected,
+  });
 }
 
 function buildAdapterSections(
@@ -226,10 +217,7 @@ export async function runReportAction(
     );
 
     validateSafePath(paths.runResults);
-    const hasManifest = await fs
-      .access(paths.manifest)
-      .then(() => true)
-      .catch(() => false);
+    const hasManifest = existsValidated(paths.manifest);
     if (hasManifest) {
       validateSafePath(paths.manifest);
     }

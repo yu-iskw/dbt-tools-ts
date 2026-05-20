@@ -1,19 +1,20 @@
-import type { CSSProperties } from 'react';
 import { STATUS_COLORS, getResourceTypeColor, getStatusColor } from '@web/constants/colors';
-import { getResourceTypeSoftFill, getThemeHex } from '@web/constants/themeColors';
-import { useSyncedDocumentTheme } from '@web/hooks/useTheme';
+import { getResourceTypeSoftFill, getThemeHex } from '@web/constants/theme-colors';
+import { useSyncedDocumentTheme } from '@web/hooks/use-theme';
 import { GANTT_LEGEND_PRIMARY_TYPES } from '@web/lib/analysis-workspace/constants';
 import {
   MATERIALIZATION_KIND_ORDER,
   materializationKindShortLabel,
-} from '@web/lib/analysis-workspace/materializationSemanticsUi';
+} from '@web/lib/analysis-workspace/materialization-semantics-ui';
+
 import type { MaterializationKind } from '@web/types';
+import type { ReactElement, CSSProperties } from 'react';
 
 interface GanttLegendProps {
   /** Count per status key (lowercase). Only entries with count > 0 are shown. */
-  statusCounts: Record<string, number>;
+  statusCounts: ReadonlyMap<string, number>;
   /** Count per resource type in scoped timeline data. Primary types are always listed; count may be 0. */
-  typeCounts: Record<string, number>;
+  typeCounts: ReadonlyMap<string, number>;
   /** Optional: when provided, clicking a swatch toggles the corresponding filter. */
   activeStatuses?: Set<string>;
   activeTypes?: Set<string>;
@@ -32,7 +33,7 @@ interface GanttLegendProps {
   /** Show compile vs execute phase swatches when run_results include both phases. */
   showCompileExecuteLegend?: boolean;
   /** Count per normalized materialization kind in scoped timeline rows (read-only legend). */
-  materializationCounts?: Record<string, number>;
+  materializationCounts?: ReadonlyMap<string, number>;
 }
 
 const SWATCH_STYLE: CSSProperties = {
@@ -65,7 +66,7 @@ function GanttBarEncodingKey({
   themeHex,
   showCompileExecuteLegend,
 }: {
-  theme: 'light' | 'dark';
+  theme: 'dark' | 'light';
   themeHex: ThemeHex;
   showCompileExecuteLegend?: boolean;
 }) {
@@ -136,12 +137,12 @@ function StatusLegendGroup({
   theme,
 }: {
   visibleStatuses: string[];
-  statusCounts: Record<string, number>;
+  statusCounts: ReadonlyMap<string, number>;
   activeStatuses?: Set<string>;
   onToggleStatus?: (status: string) => void;
   failuresOnly?: boolean;
   onToggleFailuresOnly?: () => void;
-  theme: 'light' | 'dark';
+  theme: 'dark' | 'light';
 }) {
   if (visibleStatuses.length === 0 && onToggleFailuresOnly == null) {
     return null;
@@ -153,7 +154,7 @@ function StatusLegendGroup({
       {visibleStatuses.map((status) => {
         const isActive = activeStatuses?.has(status) ?? false;
         const color = getStatusColor(status, theme);
-        const count = statusCounts[status] ?? 0;
+        const count = statusCounts.get(status) ?? 0;
         return (
           <button
             key={status}
@@ -204,13 +205,13 @@ function TypeLegendGroup({
   themeHex,
 }: {
   visibleTypes: string[];
-  typeCounts: Record<string, number>;
+  typeCounts: ReadonlyMap<string, number>;
   activeTypes?: Set<string>;
   onToggleType?: (type: string) => void;
   showTests?: boolean;
   onToggleShowTests?: () => void;
   testsLegendCount: number;
-  theme: 'light' | 'dark';
+  theme: 'dark' | 'light';
   themeHex: ThemeHex;
 }) {
   if (visibleTypes.length === 0 && onToggleShowTests == null) {
@@ -223,7 +224,7 @@ function TypeLegendGroup({
       {visibleTypes.map((type) => {
         const isActive = activeTypes?.has(type) ?? false;
         const color = getResourceTypeColor(type, theme);
-        const count = typeCounts[type] ?? 0;
+        const count = typeCounts.get(type) ?? 0;
         return (
           <button
             key={type}
@@ -264,7 +265,7 @@ function MaterializationLegendGroup({
   themeHex,
 }: {
   materializationRows: string[];
-  materializationCounts?: Record<string, number>;
+  materializationCounts?: ReadonlyMap<string, number>;
   themeHex: ThemeHex;
 }) {
   if (materializationRows.length === 0 || materializationCounts == null) {
@@ -276,7 +277,7 @@ function MaterializationLegendGroup({
       <span className="gantt-legend__label">Materialization</span>
       <span className="gantt-legend__hint">Manifest-derived; not a bar color.</span>
       {materializationRows.map((kind) => {
-        const count = materializationCounts[kind] ?? 0;
+        const count = materializationCounts.get(kind) ?? 0;
         return (
           <div
             key={kind}
@@ -319,17 +320,17 @@ export function GanttLegend({
   showBarEncodingKey = true,
   showCompileExecuteLegend = false,
   materializationCounts,
-}: GanttLegendProps) {
+}: GanttLegendProps): ReactElement | null {
   const theme = useSyncedDocumentTheme();
   const themeHex = getThemeHex(theme);
-  const visibleStatuses = Object.keys(STATUS_COLORS).filter((s) => (statusCounts[s] ?? 0) > 0);
-  const visibleTypes = [
-    ...new Set([...GANTT_LEGEND_PRIMARY_TYPES, ...Object.keys(typeCounts)]),
-  ].sort((a, b) => a.localeCompare(b));
+  const visibleStatuses = Object.keys(STATUS_COLORS).filter((s) => (statusCounts.get(s) ?? 0) > 0);
+  const visibleTypes = [...new Set([...GANTT_LEGEND_PRIMARY_TYPES, ...typeCounts.keys()])].sort(
+    (a, b) => a.localeCompare(b),
+  );
 
   const materializationRows =
     materializationCounts != null
-      ? MATERIALIZATION_KIND_ORDER.filter((kind) => (materializationCounts[kind] ?? 0) > 0)
+      ? MATERIALIZATION_KIND_ORDER.filter((kind) => (materializationCounts.get(kind) ?? 0) > 0)
       : [];
 
   const hasAnything =

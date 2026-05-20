@@ -1,12 +1,21 @@
-import { useLayoutEffect, useRef, useState, type MouseEvent, type RefObject } from 'react';
-import type { GanttItem, ResourceNode, ResourceTestStats } from '@web/types';
-import type { BundleRow } from '@web/lib/analysis-workspace/bundleLayout';
-import type { ThemeMode } from '@web/constants/themeColors';
-import type { FocusTimelineEdge } from './edgeGeometry';
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type RefObject,
+  type ReactElement,
+} from 'react';
+
 import { GanttEdgeLayer } from './GanttEdgeLayer';
 import { GanttLabelResizeHandle } from './GanttLabelResizeHandle';
 import { GanttTooltip } from './GanttTooltip';
-import type { HoverState } from './hitTest';
+
+import type { FocusTimelineEdge } from './edge-geometry';
+import type { HoverState } from './hit-test';
+import type { ThemeMode } from '@web/constants/theme-colors';
+import type { BundleRow } from '@web/lib/analysis-workspace/bundle-layout';
+import type { GanttItem, ResourceNode, ResourceTestStats } from '@web/types';
 
 export interface GanttLabelColumnResizeProps {
   width: number;
@@ -73,10 +82,10 @@ export function GanttChartFrame({
   resourceByUniqueId?: ReadonlyMap<string, ResourceNode>;
   selectedId: string | null;
   onSelect?: (id: string | null) => void;
-  onPointer: (e: MouseEvent<HTMLDivElement>, mode: 'move' | 'click') => void;
+  onPointer: (e: MouseEvent<HTMLDivElement>, mode: 'click' | 'move') => void;
   onHoverClear: () => void;
   labelColumnResize?: GanttLabelColumnResizeProps;
-}) {
+}): ReactElement {
   const frameRef = useRef<HTMLElement>(null);
   const [frameWidth, setFrameWidth] = useState(0);
 

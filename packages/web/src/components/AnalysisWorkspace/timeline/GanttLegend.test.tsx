@@ -3,16 +3,17 @@
 import { act, type ComponentProps } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { GanttLegend } from './GanttLegend';
 
-vi.mock('@web/hooks/useTheme', () => ({
+vi.mock('@web/hooks/use-theme', () => ({
   useSyncedDocumentTheme: () => 'light',
 }));
 
 function renderLegend(
   props: Omit<ComponentProps<typeof GanttLegend>, 'statusCounts' | 'typeCounts'> & {
-    statusCounts?: Record<string, number>;
-    typeCounts?: Record<string, number>;
+    statusCounts?: ReadonlyMap<string, number>;
+    typeCounts?: ReadonlyMap<string, number>;
   },
 ) {
   const container = document.createElement('div');
@@ -21,8 +22,8 @@ function renderLegend(
   act(() => {
     root.render(
       <GanttLegend
-        statusCounts={props.statusCounts ?? {}}
-        typeCounts={props.typeCounts ?? {}}
+        statusCounts={props.statusCounts ?? new Map()}
+        typeCounts={props.typeCounts ?? new Map()}
         showBarEncodingKey={props.showBarEncodingKey ?? false}
         {...props}
       />,
@@ -45,7 +46,7 @@ afterEach(() => {
 describe('GanttLegend', () => {
   it('lists primary types with zero counts when absent from typeCounts', () => {
     const { container, root } = renderLegend({
-      typeCounts: { model: 5 },
+      typeCounts: new Map([['model', 5]]),
       showBarEncodingKey: false,
     });
 
@@ -64,7 +65,7 @@ describe('GanttLegend', () => {
   it('calls onToggleType when a zero-count primary type chip is clicked', () => {
     const onToggleType = vi.fn();
     const { container, root } = renderLegend({
-      typeCounts: { model: 1 },
+      typeCounts: new Map([['model', 1]]),
       showBarEncodingKey: false,
       activeTypes: new Set(['model']),
       onToggleType,
@@ -85,7 +86,7 @@ describe('GanttLegend', () => {
   it('renders Tests chip in the type group with testsLegendCount', () => {
     const onToggleShowTests = vi.fn();
     const { container, root } = renderLegend({
-      typeCounts: { model: 1 },
+      typeCounts: new Map([['model', 1]]),
       testsLegendCount: 3,
       showBarEncodingKey: false,
       onToggleShowTests,
@@ -104,9 +105,12 @@ describe('GanttLegend', () => {
 
   it('renders materialization read-only row when counts provided', () => {
     const { container, root } = renderLegend({
-      statusCounts: {},
-      typeCounts: { model: 1 },
-      materializationCounts: { view: 2, incremental: 1 },
+      statusCounts: new Map(),
+      typeCounts: new Map([['model', 1]]),
+      materializationCounts: new Map([
+        ['view', 2],
+        ['incremental', 1],
+      ]),
       showBarEncodingKey: false,
       onToggleType: vi.fn(),
     });
@@ -121,8 +125,8 @@ describe('GanttLegend', () => {
   it('renders Failures only in the status group after status chips', () => {
     const onToggleFailuresOnly = vi.fn();
     const { container, root } = renderLegend({
-      statusCounts: { success: 4 },
-      typeCounts: {},
+      statusCounts: new Map([['success', 4]]),
+      typeCounts: new Map(),
       showBarEncodingKey: false,
       onToggleFailuresOnly,
     });

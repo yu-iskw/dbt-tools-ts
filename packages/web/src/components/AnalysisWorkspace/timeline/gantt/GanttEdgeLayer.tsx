@@ -1,8 +1,11 @@
-import { type ThemeMode, getThemeHex } from '@web/constants/themeColors';
-import type { BundleRow } from '@web/lib/analysis-workspace/bundleLayout';
-import type { GanttItem } from '@web/types';
+import { type ThemeMode, getThemeHex } from '@web/constants/theme-colors';
+
 import { X_PAD } from './constants';
-import { type FocusTimelineEdge, focusEdgePath } from './edgeGeometry';
+import { type FocusTimelineEdge, focusEdgePath } from './edge-geometry';
+
+import type { BundleRow } from '@web/lib/analysis-workspace/bundle-layout';
+import type { GanttItem } from '@web/types';
+import type { ReactElement } from 'react';
 
 const MARKER_W = 8;
 const MARKER_H = 8;
@@ -111,7 +114,7 @@ export function GanttEdgeLayer({
   viewportH: number;
   theme?: ThemeMode;
   showTests?: boolean;
-}) {
+}): ReactElement | null {
   if (focusId == null || edges.length === 0) return null;
 
   const t = getThemeHex(theme);

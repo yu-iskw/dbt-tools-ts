@@ -1,7 +1,12 @@
-import type { KeyboardEvent } from 'react';
-import type { UserArtifactSourceKind } from '../services/artifactSourceApi';
-import { artifactLocationHelper, artifactLocationPlaceholder } from '../lib/artifactLoadPanelCopy';
+import {
+  artifactLocationHelper,
+  artifactLocationPlaceholder,
+} from '../lib/artifact-load-panel-copy';
+
 import { Spinner } from './ui/Spinner';
+
+import type { UserArtifactSourceKind } from '../services/artifact-source-api';
+import type { ReactElement, KeyboardEvent } from 'react';
 
 const SOURCE_TABS: { value: UserArtifactSourceKind; label: string }[] = [
   { value: 'local', label: 'Local directory' },
@@ -55,7 +60,7 @@ export function ArtifactLoadPanelForm({
   loadLoading,
   loadWorkspaceHint,
   onLoadWorkspace,
-}: ArtifactLoadPanelFormProps) {
+}: ArtifactLoadPanelFormProps): ReactElement {
   const describedByIds = [
     'artifact-location-helper',
     discoveryError != null ? 'artifact-location-error' : undefined,

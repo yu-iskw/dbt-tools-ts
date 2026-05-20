@@ -1,5 +1,5 @@
 /**
- * Diagnose intent — structured facade over run-report / timeline / deps primitives.
+ * Diagnose intent — structured facade over runSummary, query-executions, timeline, and deps.
  */
 import {
   ManifestGraph,
@@ -11,21 +11,22 @@ import {
   shouldOutputJSON,
   resolveIntentTarget,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type DiagnoseCliOptions = {
+export type DiagnoseCliOptions = ArtifactRootCliOptions & {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type DiagnoseOutput = {
   intent: 'diagnose';
   contract_version: number;
-  mode: 'run' | 'node';
+  mode: 'node' | 'run';
   target?: { input: string; resolved_unique_id: string };
   provenance: { steps: Array<{ op: string; status: 'ok' }> };
   next_actions: string[];
@@ -52,7 +53,8 @@ export async function diagnoseRunAction(
         ? options.dbtTarget.trim()
         : '${DBT_TOOLS_DBT_TARGET}';
     const primitive_commands = [
-      `dbt-tools run-report --dbt-target ${JSON.stringify(targetDir)} --json`,
+      `dbt-tools run-summary --dbt-target ${JSON.stringify(targetDir)} --json`,
+      `dbt-tools query-executions --dbt-target ${JSON.stringify(targetDir)} --status error,fail,skipped --limit 50 --json`,
       `dbt-tools timeline --dbt-target ${JSON.stringify(targetDir)} --format json`,
     ];
 
@@ -63,7 +65,7 @@ export async function diagnoseRunAction(
       provenance: {
         steps: [{ op: 'diagnose.run.facade', status: 'ok' }],
       },
-      next_actions: ['explain', 'impact'],
+      next_actions: ['explain', 'deps'],
       primitive_commands,
     };
 
@@ -115,7 +117,8 @@ export async function diagnoseNodeAction(
         : '${DBT_TOOLS_DBT_TARGET}';
     const uid = JSON.stringify(resolved.unique_id);
     const primitive_commands = [
-      `dbt-tools run-report --dbt-target ${JSON.stringify(targetDir)} --json`,
+      `dbt-tools run-summary --dbt-target ${JSON.stringify(targetDir)} --json`,
+      `dbt-tools query-executions --dbt-target ${JSON.stringify(targetDir)} --status error,fail,skipped --limit 50 --json`,
       `dbt-tools deps ${uid} --direction downstream --format flat`,
       `dbt-tools explain ${uid}`,
     ];
@@ -134,7 +137,7 @@ export async function diagnoseNodeAction(
           { op: 'diagnose.node.facade', status: 'ok' },
         ],
       },
-      next_actions: ['impact', 'explain'],
+      next_actions: ['deps', 'explain'],
       primitive_commands,
     };
 

@@ -1,18 +1,30 @@
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+} from 'react';
+
+import { useResourceCode } from '@web/hooks/use-resource-code';
+
 import { EmptyState } from '../../EmptyState';
-import type { AnalysisState, ExecutionRow, ResourceNode } from '@web/types';
+import { LineagePanel } from '../lineage/LineagePanel';
+import { MaterializationSemanticsBadge } from '../MaterializationSemanticsBadge';
+import { ResourceTypeBadge } from '../shared';
+
+import { AssetSummarySection } from './AssetSummarySection';
+import { AssetSqlOrDefinitionCard } from './AssetsViewSqlDefinitionCard';
+import { AssetTestsSection } from './AssetTestsSection';
+
 import type {
   AssetViewState,
   LineageViewState,
   WorkspaceView,
 } from '@web/lib/analysis-workspace/types';
-import { ResourceTypeBadge } from '../shared';
-import { MaterializationSemanticsBadge } from '../MaterializationSemanticsBadge';
-import { LineagePanel } from '../lineage/LineagePanel';
-import { AssetTestsSection } from './AssetTestsSection';
-import { useResourceCode } from '@web/hooks/useResourceCode';
-import { AssetSummarySection } from './AssetSummarySection';
-import { AssetSqlOrDefinitionCard } from './AssetsViewSqlDefinitionCard';
+import type { AnalysisState, ExecutionRow, ResourceNode } from '@web/types';
 
 type AssetSectionId = Exclude<AssetViewState['activeTab'], 'runtime'>;
 
@@ -46,7 +58,7 @@ export function AssetsView({
       rootResourceId?: string;
     },
   ) => void;
-}) {
+}): ReactElement {
   const resourceById = useMemo(
     () => new Map(analysis.resources.map((entry) => [entry.uniqueId, entry])),
     [analysis.resources],
@@ -91,16 +103,18 @@ export function AssetsView({
     }));
   const activeSectionId = normalizeAssetSectionId(assetViewState.activeTab);
   const [isLineageDialogOpen, setLineageDialogOpen] = useState(false);
-  const sectionRefs = useRef<Record<AssetSectionId, HTMLElement | null>>({
-    summary: null,
-    lineage: null,
-    sql: null,
-    tests: null,
-  });
+  const sectionRefs = useRef(
+    new Map<AssetSectionId, HTMLElement | null>([
+      ['summary', null],
+      ['lineage', null],
+      ['sql', null],
+      ['tests', null],
+    ]),
+  );
 
   useEffect(() => {
     if (!resource) return;
-    const section = sectionRefs.current[activeSectionId];
+    const section = sectionRefs.current.get(activeSectionId);
     if (!section) return;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     section.scrollIntoView({
@@ -197,7 +211,7 @@ export function AssetsView({
           <section
             id="asset-section-summary"
             ref={(node) => {
-              sectionRefs.current.summary = node;
+              sectionRefs.current.set('summary', node);
             }}
             className="asset-workspace__section"
           >
@@ -207,7 +221,7 @@ export function AssetsView({
           <section
             id="asset-section-lineage"
             ref={(node) => {
-              sectionRefs.current.lineage = node;
+              sectionRefs.current.set('lineage', node);
             }}
             className="asset-workspace__section"
           >
@@ -222,7 +236,7 @@ export function AssetsView({
           <section
             id="asset-section-tests"
             ref={(node) => {
-              sectionRefs.current.tests = node;
+              sectionRefs.current.set('tests', node);
             }}
             className="asset-workspace__section"
           >
@@ -236,7 +250,7 @@ export function AssetsView({
           <section
             id="asset-section-sql"
             ref={(node) => {
-              sectionRefs.current.sql = node;
+              sectionRefs.current.set('sql', node);
             }}
             className="asset-workspace__section"
           >

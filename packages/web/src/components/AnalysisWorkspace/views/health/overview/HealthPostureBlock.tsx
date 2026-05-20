@@ -1,13 +1,15 @@
-import type { AnalysisState } from '@web/types';
-import type { OverviewDerivedState } from '@web/lib/analysis-workspace/overviewState';
 import {
   buildHealthOverviewHeadline,
   buildHealthSummaryBits,
-} from '@web/lib/analysis-workspace/healthOverviewHeadline';
+} from '@web/lib/analysis-workspace/health-overview-headline';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
-import { sourceBadgeLabel } from '@web/lib/artifactSource';
-import type { WorkspaceArtifactSource } from '@web/services/artifactSourceApi';
+import { sourceBadgeLabel } from '@web/lib/artifact-source';
+
+import type { OverviewDerivedState } from '@web/lib/analysis-workspace/overview-state';
 import type { WorkspaceSignal } from '@web/lib/analysis-workspace/types';
+import type { WorkspaceArtifactSource } from '@web/services/artifact-source-api';
+import type { AnalysisState } from '@web/types';
+import type { ReactElement } from 'react';
 
 function workspaceModeFromSignals(signals: WorkspaceSignal[]): string {
   const mode = signals.find((s) => s.label === 'Workspace mode');
@@ -28,7 +30,7 @@ export function HealthPostureBlock({
   derived: OverviewDerivedState;
   filtered: boolean;
   workspaceSignals: WorkspaceSignal[];
-}) {
+}): ReactElement {
   const { tone, title, summary } = buildHealthOverviewHeadline(derived, filtered);
   const summaryBits = buildHealthSummaryBits(analysis, projectName);
   const runtime = filtered

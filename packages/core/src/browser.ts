@@ -2,21 +2,21 @@
  * Browser-safe entry point for @dbt-tools/core.
  * Re-exports only APIs that do not depend on Node.js (fs, path).
  */
-export { ManifestGraph } from './analysis/manifest-graph';
+export { ManifestGraph } from './analysis/manifest/graph';
 export {
   ExecutionAnalyzer,
   buildNodeExecutionsFromRunResults,
-} from './analysis/execution-analyzer';
+} from './analysis/execution/analyzer';
 export {
   searchRunResults,
   detectBottlenecks,
   detectAdapterHeavyNodes,
-} from './analysis/run-results-search';
+} from './analysis/search/run-results';
 export {
   buildAdapterTotals,
   normalizeAdapterResponse,
   adapterMetricsHasData,
-} from './analysis/adapter-response-metrics';
+} from './analysis/adapter/metrics';
 export {
   ADAPTER_METRIC_DESCRIPTORS,
   formatAdapterMetricValue,
@@ -24,34 +24,33 @@ export {
   getAdapterResponseFieldsBeyondNormalized,
   getPresentAdapterMetricDescriptors,
   getPresentAdapterTotalDescriptors,
-} from './analysis/adapter-metric-descriptors';
+} from './analysis/adapter/descriptors';
 export {
   buildAnalysisSnapshotFromArtifactBundle,
   buildAnalysisSnapshotFromArtifacts,
   buildAnalysisSnapshotFromParsedArtifactBundle,
   buildAnalysisSnapshotFromParsedArtifacts,
-} from './analysis/analysis-snapshot';
-export type { NodeExecution, ExecutionSummary, CriticalPath } from './analysis/execution-analyzer';
+} from './analysis/snapshot';
+export type { NodeExecution, ExecutionSummary, CriticalPath } from './analysis/execution/analyzer';
 export type {
+  AdapterHeavyMetric,
   BottleneckNode,
   BottleneckResult,
   RunResultsSearchCriteria,
-  AdapterHeavyMetric,
-  AdapterHeavyNode,
-  AdapterHeavyResult,
-} from './analysis/run-results-search';
+} from './analysis/search/types';
+export type { AdapterHeavyNode, AdapterHeavyResult } from './analysis/search/run-results';
 export type {
   AdapterResponseField,
   AdapterResponseFieldKind,
   AdapterResponseMetrics,
   AdapterTotalsSnapshot,
-} from './analysis/adapter-response-metrics';
+} from './analysis/adapter/metrics';
 export type {
   AdapterMetricDescriptor,
   AdapterMetricKey,
   AdapterMetricSortKey,
   AdapterMetricValue,
-} from './analysis/adapter-metric-descriptors';
+} from './analysis/adapter/descriptors';
 export type {
   AnalysisArtifactInputs,
   AnalysisSnapshot,
@@ -77,14 +76,14 @@ export type {
   StatusTone,
   ThreadStat,
   TimelineAdjacencyEntry,
-} from './analysis/analysis-snapshot';
+} from './analysis/snapshot';
 
 export {
   buildNodeExecutionSemantics,
   deriveSemanticsFlags,
   normalizeDbtResourceTypeKey,
   normalizeMaterializationKind,
-} from './analysis/analysis-snapshot';
+} from './analysis/snapshot';
 
 export {
   discoverResources,
@@ -106,3 +105,13 @@ export type {
   InvestigationTranscript,
 } from './discovery/types';
 export { DISCOVER_SCHEMA_VERSION } from './discovery';
+
+export {
+  getObjectProperty,
+  setObjectProperty,
+  groupByToMap,
+  incrementMapCount,
+  mapFromRecord,
+  pushToMapList,
+  recordFromMap,
+} from './util/typed-map';

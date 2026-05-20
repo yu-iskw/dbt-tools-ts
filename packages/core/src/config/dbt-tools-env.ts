@@ -146,7 +146,7 @@ export function isDbtToolsWatchEnabled(): boolean {
 const DEFAULT_RELOAD_DEBOUNCE_MS = 300;
 const DEFAULT_REMOTE_POLL_INTERVAL_MS = 30_000;
 
-export type DbtToolsRemoteSourceProvider = 's3' | 'gcs';
+export type DbtToolsRemoteSourceProvider = 'gcs' | 's3';
 
 export interface DbtToolsRemoteSourceConfig {
   provider: DbtToolsRemoteSourceProvider;

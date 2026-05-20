@@ -13,18 +13,21 @@ import {
   getAdapterMetricValue,
   getPresentAdapterMetricDescriptors,
   searchRunResults,
+  sortByExecutionSortKey,
   formatOutput,
   shouldOutputJSON,
   type NodeExecution,
   type AdapterResponseMetrics,
   type ArtifactPaths,
+  type ExecutionSortKey,
 } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-export type TimelineOptions = {
+export type TimelineOptions = ArtifactRootCliOptions & {
   sort?: string;
   top?: number;
   failedOnly?: boolean;
@@ -33,7 +36,7 @@ export type TimelineOptions = {
   format?: string;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 export type TimelineEntry = {
   unique_id: string;
@@ -112,14 +115,15 @@ export function formatTimeline(result: TimelineResult): string {
     '  ----  ---------  --------  ----------------  ----------------------------------------',
   );
 
-  for (let i = 0; i < result.entries.length; i++) {
-    const e = result.entries[i];
-    const rank = String(i + 1).padStart(4);
+  let rank = 0;
+  for (const e of result.entries) {
+    rank += 1;
+    const rankStr = String(rank).padStart(4);
     const status = (e.status || 'unknown').padEnd(9).slice(0, 9);
     const time = e.execution_time.toFixed(2).padStart(8);
     const rt = (e.resource_type || '').padEnd(16).slice(0, 16);
     const label = e.name ?? e.unique_id;
-    lines.push(`  ${rank}  ${status}  ${time}  ${rt}  ${label}`);
+    lines.push(`  ${rankStr}  ${status}  ${time}  ${rt}  ${label}`);
     for (const descriptor of descriptors) {
       const value = getAdapterMetricValue(e.adapter_metrics, descriptor.key);
       if (value === undefined) continue;
@@ -282,21 +286,9 @@ function sortTimelineExecutions(executions: NodeExecution[], sortKey: string): N
     'rows_deleted',
     'rows_duplicated',
   ]);
-  const searchSortKey = `${sortKey}${descendingSortKeys.has(sortKey) ? '_desc' : ''}` as
-    | 'bytes_processed_desc'
-    | 'bytes_billed_desc'
-    | 'slot_ms_desc'
-    | 'rows_affected_desc'
-    | 'rows_inserted_desc'
-    | 'rows_updated_desc'
-    | 'rows_deleted_desc'
-    | 'rows_duplicated_desc'
-    | 'query_id'
-    | 'adapter_code'
-    | 'adapter_message';
-  return searchRunResults(executions, {
-    sort: searchSortKey,
-  });
+  const searchSortKey =
+    `${sortKey}${descendingSortKeys.has(sortKey) ? '_desc' : ''}` as ExecutionSortKey;
+  return sortByExecutionSortKey(executions, searchSortKey);
 }
 
 function formatTimelineOutput(result: TimelineResult, options: TimelineOptions): string {

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { expandExplorerBranchIfCollapsed } from './helpers/explorerTree';
+
 import { loadWorkspaceWithProductAdapterResponse } from './helpers/adapter-response-helpers';
+import { expandExplorerBranchIfCollapsed } from './helpers/explorer-tree';
 
 const LEAF_SELECTOR = '.explorer-tree__row--leaf';
 const PRODUCTS_MODEL_TITLE = 'model.jaffle_shop.products';

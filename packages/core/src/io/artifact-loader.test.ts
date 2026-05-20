@@ -1,7 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+
+// @ts-expect-error - workspace package, TypeScript resolves via package.json
+import {
+  loadTestCatalog,
+  loadTestManifest,
+  loadTestRunResults,
+} from 'dbt-artifacts-parser/test-utils';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { resetDbtToolsEnvDeprecationWarningsForTests } from '../config/dbt-tools-env';
+import {
+  deleteProcessEnv,
+  getObjectProperty,
+  getProcessEnv,
+  setObjectProperty,
+  setProcessEnv,
+} from '../util/typed-map';
+
 import {
   resolveArtifactPaths,
   loadCatalog,
@@ -9,13 +25,13 @@ import {
   loadRunResults,
   loadSources,
 } from './artifact-loader';
-import { resetDbtToolsEnvDeprecationWarningsForTests } from '../config/dbt-tools-env';
-// @ts-expect-error - workspace package, TypeScript resolves via package.json
 import {
-  loadTestCatalog,
-  loadTestManifest,
-  loadTestRunResults,
-} from 'dbt-artifacts-parser/test-utils';
+  existsValidated,
+  mkdtempSyncValidated,
+  resolveJoinedSafe,
+  rmSyncValidated,
+  writeValidatedUtf8Sync,
+} from './safe-fs';
 
 const TARGET_ENV_KEYS = ['DBT_TOOLS_TARGET_DIR', 'DBT_TARGET_DIR', 'DBT_TARGET'] as const;
 
@@ -27,20 +43,20 @@ describe('ArtifactLoader', () => {
     resetDbtToolsEnvDeprecationWarningsForTests();
     savedTargetEnv = {};
     for (const k of TARGET_ENV_KEYS) {
-      savedTargetEnv[k] = process.env[k];
-      delete process.env[k];
+      setObjectProperty(savedTargetEnv, k, getProcessEnv(k));
+      deleteProcessEnv(k);
     }
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dbt-tools-test-'));
+    tempDir = mkdtempSyncValidated(path.join(os.tmpdir(), 'dbt-tools-test-'));
   });
 
   afterEach(() => {
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
+    if (existsValidated(tempDir)) {
+      rmSyncValidated(tempDir, { recursive: true, force: true });
     }
     for (const k of TARGET_ENV_KEYS) {
-      const v = savedTargetEnv[k];
-      if (v === undefined) delete process.env[k];
-      else process.env[k] = v;
+      const v = getObjectProperty(savedTargetEnv, k) as string | undefined;
+      if (v === undefined) deleteProcessEnv(k);
+      else setProcessEnv(k, v);
     }
   });
 
@@ -132,8 +148,8 @@ describe('ArtifactLoader', () => {
   describe('loadManifest', () => {
     it('should load and parse valid manifest', () => {
       const manifestJson = loadTestManifest('v12', 'manifest_1.10.json');
-      const manifestPath = path.join(tempDir, 'manifest.json');
-      fs.writeFileSync(manifestPath, JSON.stringify(manifestJson), 'utf-8');
+      const manifestPath = resolveJoinedSafe(tempDir, 'manifest.json');
+      writeValidatedUtf8Sync(manifestPath, JSON.stringify(manifestJson));
 
       const manifest = loadManifest(manifestPath);
       expect(manifest).toBeDefined();
@@ -146,8 +162,8 @@ describe('ArtifactLoader', () => {
     });
 
     it('should throw error for invalid JSON', () => {
-      const invalidPath = path.join(tempDir, 'manifest.json');
-      fs.writeFileSync(invalidPath, 'invalid json', 'utf-8');
+      const invalidPath = resolveJoinedSafe(tempDir, 'manifest.json');
+      writeValidatedUtf8Sync(invalidPath, 'invalid json');
 
       expect(() => loadManifest(invalidPath)).toThrow('Failed to parse manifest file');
     });
@@ -156,8 +172,8 @@ describe('ArtifactLoader', () => {
   describe('loadRunResults', () => {
     it('should load and parse valid run results', () => {
       const runResultsJson = loadTestRunResults('v6', 'run_results.json');
-      const runResultsPath = path.join(tempDir, 'run_results.json');
-      fs.writeFileSync(runResultsPath, JSON.stringify(runResultsJson), 'utf-8');
+      const runResultsPath = resolveJoinedSafe(tempDir, 'run_results.json');
+      writeValidatedUtf8Sync(runResultsPath, JSON.stringify(runResultsJson));
 
       const parsed = loadRunResults(runResultsPath);
       expect(parsed).toBeDefined();
@@ -170,8 +186,8 @@ describe('ArtifactLoader', () => {
     });
 
     it('should throw error for invalid JSON', () => {
-      const invalidPath = path.join(tempDir, 'run_results.json');
-      fs.writeFileSync(invalidPath, 'invalid json', 'utf-8');
+      const invalidPath = resolveJoinedSafe(tempDir, 'run_results.json');
+      writeValidatedUtf8Sync(invalidPath, 'invalid json');
 
       expect(() => loadRunResults(invalidPath)).toThrow('Failed to parse run results file');
     });
@@ -180,8 +196,8 @@ describe('ArtifactLoader', () => {
   describe('loadCatalog', () => {
     it('should load and parse valid catalog', () => {
       const catalogJson = loadTestCatalog('v1', 'catalog.json');
-      const catalogPath = path.join(tempDir, 'catalog.json');
-      fs.writeFileSync(catalogPath, JSON.stringify(catalogJson), 'utf-8');
+      const catalogPath = resolveJoinedSafe(tempDir, 'catalog.json');
+      writeValidatedUtf8Sync(catalogPath, JSON.stringify(catalogJson));
 
       const parsed = loadCatalog(catalogPath);
       expect(parsed).toBeDefined();
@@ -210,8 +226,8 @@ describe('ArtifactLoader', () => {
           },
         ],
       };
-      const sourcesPath = path.join(tempDir, 'sources.json');
-      fs.writeFileSync(sourcesPath, JSON.stringify(sourcesJson), 'utf-8');
+      const sourcesPath = resolveJoinedSafe(tempDir, 'sources.json');
+      writeValidatedUtf8Sync(sourcesPath, JSON.stringify(sourcesJson));
 
       const parsed = loadSources(sourcesPath);
       expect(parsed).toBeDefined();

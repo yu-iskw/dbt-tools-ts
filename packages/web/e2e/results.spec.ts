@@ -1,13 +1,10 @@
 import { test, expect } from '@playwright/test';
+
 import { loadWorkspace } from './helpers/preload';
 
 const OPEN_IN_TIMELINE_LABEL = 'Open in Timeline';
 const OPEN_IN_INVENTORY_LABEL = 'Open in Inventory';
 const RESULTS_TABLE_ROW = '.results-table__row';
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 test.describe('runs workspace', () => {
   test.beforeEach(async ({ page }) => {
@@ -38,7 +35,7 @@ test.describe('runs workspace', () => {
       'Warnings',
       'Errors',
     ]) {
-      await expect(page.getByRole('button', { name: new RegExp(label) }).first()).toBeVisible();
+      await expect(page.getByRole('button', { name: label }).first()).toBeVisible();
     }
   });
 
@@ -79,13 +76,13 @@ test.describe('runs quick jump navigation', () => {
     await page.getByRole('button', { name: OPEN_IN_TIMELINE_LABEL, exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Timeline' }).first()).toBeVisible();
     await expect(page).toHaveURL(/[?&]view=timeline/);
-    await expect(page).toHaveURL(new RegExp(`[?&]selected=${escapeRegExp(MODEL_UNIQUE_ID)}`));
+    await expect(page).toHaveURL((url) => url.searchParams.get('selected') === MODEL_UNIQUE_ID);
   });
 
   test('Open in Inventory navigates to inventory summary for resource', async ({ page }) => {
     await page.getByRole('button', { name: OPEN_IN_INVENTORY_LABEL, exact: true }).click();
     await expect(page).toHaveURL(/[?&]view=inventory/);
-    await expect(page).toHaveURL(new RegExp(`[?&]resource=${escapeRegExp(MODEL_UNIQUE_ID)}(&|$)`));
+    await expect(page).toHaveURL((url) => url.searchParams.get('resource') === MODEL_UNIQUE_ID);
     await expect(page).toHaveURL(/[?&]assetTab=summary/);
     const summaryRegion = page.locator('#asset-section-summary');
     await expect(summaryRegion.getByRole('heading', { name: 'Resource' })).toBeVisible();

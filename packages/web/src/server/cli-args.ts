@@ -9,13 +9,13 @@ Usage: dbt-tools-web [options]
 `.trimStart();
 
 export type ParsedCli =
-  | { kind: 'help' }
-  | { kind: 'error'; message: string }
   | {
       kind: 'ok';
       targetDir: string | undefined;
       port: number;
-    };
+    }
+  | { kind: 'error'; message: string }
+  | { kind: 'help' };
 
 type MutableCliState = {
   targetDir: string | undefined;
@@ -23,8 +23,8 @@ type MutableCliState = {
 };
 
 type RequiredValue =
-  | { ok: true; value: string; nextIndex: number }
-  | { ok: false; message: string };
+  | { ok: false; message: string }
+  | { ok: true; value: string; nextIndex: number };
 
 function readRequiredValue(argv: string[], i: number, flagDesc: string): RequiredValue {
   const next = argv[i + 1];
@@ -45,7 +45,7 @@ function parsePortString(s: string): number | null {
 type Step = { status: 'advance'; nextIndex: number } | { status: 'done'; result: ParsedCli };
 
 function consumeOne(argv: string[], i: number, state: MutableCliState): Step {
-  const arg = argv[i]!;
+  const arg = argv.at(i)!;
   if (arg === '--help' || arg === '-h') {
     return { status: 'done', result: { kind: 'help' } };
   }

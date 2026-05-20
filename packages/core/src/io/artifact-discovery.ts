@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import fs from 'node:fs/promises';
+
 import {
   DBT_CATALOG_JSON,
   DBT_MANIFEST_JSON,
@@ -7,6 +7,7 @@ import {
   DBT_SOURCES_JSON,
 } from './artifact-filenames';
 import { normalizeArtifactPrefix } from './artifact-location';
+import { readdirValidated, resolveJoinedSafe, statValidated } from './safe-fs';
 
 /** Synthetic run id for artifacts at the location root (not under a subdirectory). */
 export const ARTIFACT_RUN_ID_CURRENT = 'current';
@@ -34,7 +35,7 @@ export interface ResolvedArtifactCandidate {
 
 export type MissingRequiredBasename = typeof DBT_MANIFEST_JSON | typeof DBT_RUN_RESULTS_JSON;
 
-export type ArtifactDiscoveryFailureCode = 'MISSING_REQUIRED_PAIR' | 'AMBIGUOUS_LOCATION';
+export type ArtifactDiscoveryFailureCode = 'AMBIGUOUS_LOCATION' | 'MISSING_REQUIRED_PAIR';
 
 export interface ArtifactDiscoveryFailure {
   readonly code: ArtifactDiscoveryFailureCode;
@@ -43,8 +44,8 @@ export interface ArtifactDiscoveryFailure {
 }
 
 export type ArtifactDiscoveryResult =
-  | { readonly ok: true; readonly candidates: ResolvedArtifactCandidate[] }
-  | { readonly ok: false; readonly failure: ArtifactDiscoveryFailure };
+  | { readonly ok: false; readonly failure: ArtifactDiscoveryFailure }
+  | { readonly ok: true; readonly candidates: ResolvedArtifactCandidate[] };
 
 function basenamePosix(rel: string): string {
   const i = rel.lastIndexOf('/');
@@ -82,7 +83,7 @@ function runIdForRelativePath(relativePath: string): string {
 }
 
 function versionTokenForParts(
-  parts: Array<Pick<ListedArtifactObject, 'relativePath' | 'updatedAtMs' | 'etag' | 'generation'>>,
+  parts: Array<Pick<ListedArtifactObject, 'etag' | 'generation' | 'relativePath' | 'updatedAtMs'>>,
 ): string {
   return parts
     .map((p) => [p.relativePath, p.updatedAtMs, p.etag ?? '', p.generation ?? ''].join(':'))
@@ -309,14 +310,14 @@ export async function discoverLocalArtifactRunPaths(resolvedDirAbs: string): Pro
 export async function listLocalArtifactObjects(
   resolvedDirAbs: string,
 ): Promise<ListedArtifactObject[]> {
-  const entries = await fs.readdir(resolvedDirAbs, { withFileTypes: true });
+  const entries = await readdirValidated(resolvedDirAbs);
   const results: ListedArtifactObject[] = [];
 
   for (const entry of entries) {
     const name = entry.name;
     if (!entry.isFile() || !isSupportedBasename(name)) continue;
-    const full = path.join(resolvedDirAbs, name);
-    const stat = await fs.stat(full);
+    const full = resolveJoinedSafe(resolvedDirAbs, name);
+    const stat = await statValidated(full);
     results.push({
       relativePath: name,
       updatedAtMs: stat.mtimeMs,

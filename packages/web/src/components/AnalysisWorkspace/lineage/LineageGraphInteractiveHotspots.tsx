@@ -1,6 +1,13 @@
-import type { CSSProperties, Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type { LineageGraphNodeLayout } from '@web/lib/analysis-workspace/lineageModel';
-import { CONTEXT_MENU_OVERLAY_SIZE, positionOverlay } from './lineageOverlayConstants';
+import { CONTEXT_MENU_OVERLAY_SIZE, positionOverlay } from './lineage-overlay-constants';
+
+import type { LineageGraphNodeLayout } from '@web/lib/analysis-workspace/lineage-model';
+import type {
+  ReactElement,
+  CSSProperties,
+  Dispatch,
+  MutableRefObject,
+  SetStateAction,
+} from 'react';
 
 type NodeDragState = {
   nodeId: string;
@@ -43,7 +50,7 @@ export function LineageGraphInteractiveHotspots({
   setTooltipNodeId: (id: string | null) => void;
   setContextMenu: (value: { x: number; y: number; nodeId: string } | null) => void;
   setNodeOffsets: Dispatch<SetStateAction<Map<string, { dx: number; dy: number }>>>;
-}) {
+}): ReactElement {
   return (
     <div className="dependency-graph__interactive-layer">
       {Array.from(visibleNodeLayouts.values()).map((node) => {

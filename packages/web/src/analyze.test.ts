@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { getObjectProperty, setObjectProperty } from '@dbt-tools/core';
 import { loadTestManifest, loadTestRunResults } from 'dbt-artifacts-parser/test-utils';
+import { describe, it, expect } from 'vitest';
+
 import { analyzeArtifacts } from './services/analyze';
 
 type FixtureMap = Record<string, unknown>;
@@ -43,15 +45,59 @@ function cloneResult(
   };
 }
 
+function readManifestEntry(
+  manifestJson: ManifestFixture,
+  uniqueId: string,
+): Record<string, unknown> | undefined {
+  const fromNodes = manifestJson.nodes
+    ? (getObjectProperty(manifestJson.nodes as Record<string, unknown>, uniqueId) as
+        | Record<string, unknown>
+        | undefined)
+    : undefined;
+  if (fromNodes) return fromNodes;
+  const fromSources = manifestJson.sources
+    ? (getObjectProperty(manifestJson.sources as Record<string, unknown>, uniqueId) as
+        | Record<string, unknown>
+        | undefined)
+    : undefined;
+  if (fromSources) return fromSources;
+  const disabled = manifestJson.disabled
+    ? (getObjectProperty(manifestJson.disabled as Record<string, unknown>, uniqueId) as
+        | Array<Record<string, unknown>>
+        | undefined)
+    : undefined;
+  return disabled?.at(0);
+}
+
+function writeManifestNode(
+  manifestJson: ManifestFixture,
+  nodeId: string,
+  value: Record<string, unknown>,
+): void {
+  if (!manifestJson.nodes) {
+    manifestJson.nodes = {};
+  }
+  setObjectProperty(manifestJson.nodes as Record<string, unknown>, nodeId, value);
+}
+
+function readStringListMap(
+  map: Record<string, string[]> | undefined,
+  key: string,
+): string[] | undefined {
+  if (!map) return undefined;
+  return getObjectProperty(map as Record<string, unknown>, key) as string[] | undefined;
+}
+
+function writeStringListMap(map: Record<string, string[]>, key: string, value: string[]): void {
+  setObjectProperty(map as Record<string, unknown>, key, value);
+}
+
 function cloneManifestEntry(
   manifestJson: ManifestFixture,
   sourceUniqueId: string,
   overrides: Record<string, unknown>,
 ) {
-  const source =
-    manifestJson.nodes?.[sourceUniqueId] ??
-    manifestJson.sources?.[sourceUniqueId] ??
-    manifestJson.disabled?.[sourceUniqueId]?.[0];
+  const source = readManifestEntry(manifestJson, sourceUniqueId);
   if (!source) {
     throw new Error(`Missing fixture manifest node for ${sourceUniqueId}`);
   }
@@ -83,22 +129,35 @@ describe('analyzeArtifacts', () => {
     expect(result.statusBreakdown.length).toBeGreaterThan(0);
     expect(result.threadStats.length).toBeGreaterThan(0);
     expect(result.selectedResourceId).not.toBeNull();
-    expect(result.dependencyIndex[result.selectedResourceId!]).toBeDefined();
+    expect(
+      getObjectProperty(
+        result.dependencyIndex as Record<string, unknown>,
+        result.selectedResourceId!,
+      ),
+    ).toBeDefined();
     expect(result.timelineAdjacency).toBeDefined();
     expect(Object.keys(result.timelineAdjacency).length).toBeGreaterThan(0);
     for (const row of result.ganttData) {
-      expect(result.timelineAdjacency[row.unique_id]).toBeDefined();
-      expect(Array.isArray(result.timelineAdjacency[row.unique_id]!.inbound)).toBe(true);
-      expect(Array.isArray(result.timelineAdjacency[row.unique_id]!.outbound)).toBe(true);
+      const adjacency = getObjectProperty(
+        result.timelineAdjacency as Record<string, unknown>,
+        row.unique_id,
+      ) as { inbound: unknown[]; outbound: unknown[] } | undefined;
+      expect(adjacency).toBeDefined();
+      expect(Array.isArray(adjacency!.inbound)).toBe(true);
+      expect(Array.isArray(adjacency!.outbound)).toBe(true);
       expect(row).toHaveProperty('compileStart');
       expect(row).toHaveProperty('compileEnd');
       expect(row).toHaveProperty('executeStart');
       expect(row).toHaveProperty('executeEnd');
       expect(row).toHaveProperty('materialized');
     }
-    const anyInbound = result.ganttData.some(
-      (g) => (result.timelineAdjacency[g.unique_id]?.inbound.length ?? 0) > 0,
-    );
+    const anyInbound = result.ganttData.some((g) => {
+      const entry = getObjectProperty(
+        result.timelineAdjacency as Record<string, unknown>,
+        g.unique_id,
+      ) as { inbound: unknown[] } | undefined;
+      return (entry?.inbound.length ?? 0) > 0;
+    });
     expect(anyInbound).toBe(true);
   });
 
@@ -134,10 +193,10 @@ describe('analyzeArtifacts', () => {
     const passTestId = 'test.jaffle_shop.not_null_raw_orders_order_id.synthetic_pass';
     const failTestId = 'test.jaffle_shop.unique_raw_orders_order_id.synthetic_fail';
 
-    manifestJson.nodes[passTestId] = cloneManifestEntry(
+    writeManifestNode(
       manifestJson,
-      'test.jaffle_shop.not_null_stg_orders_order_id.81cfe2fe64',
-      {
+      passTestId,
+      cloneManifestEntry(manifestJson, 'test.jaffle_shop.not_null_stg_orders_order_id.81cfe2fe64', {
         unique_id: passTestId,
         name: 'not_null_raw_orders_order_id',
         package_name: 'jaffle_shop',
@@ -146,12 +205,12 @@ describe('analyzeArtifacts', () => {
         fqn: ['jaffle_shop', 'staging', 'source_tests', 'raw_orders'],
         attached_node: sourceId,
         depends_on: { macros: [], nodes: [sourceId] },
-      },
+      }),
     );
-    manifestJson.nodes[failTestId] = cloneManifestEntry(
+    writeManifestNode(
       manifestJson,
-      'test.jaffle_shop.unique_stg_orders_order_id.e3b841c71a',
-      {
+      failTestId,
+      cloneManifestEntry(manifestJson, 'test.jaffle_shop.unique_stg_orders_order_id.e3b841c71a', {
         unique_id: failTestId,
         name: 'unique_raw_orders_order_id',
         package_name: 'jaffle_shop',
@@ -160,16 +219,18 @@ describe('analyzeArtifacts', () => {
         fqn: ['jaffle_shop', 'staging', 'source_tests', 'raw_orders_unique'],
         attached_node: sourceId,
         depends_on: { macros: [], nodes: [sourceId] },
-      },
+      }),
     );
 
-    manifestJson.parent_map[passTestId] = [sourceId];
-    manifestJson.parent_map[failTestId] = [sourceId];
-    manifestJson.child_map[sourceId] = [
-      ...(manifestJson.child_map[sourceId] ?? []),
+    if (!manifestJson.parent_map) manifestJson.parent_map = {};
+    writeStringListMap(manifestJson.parent_map, passTestId, [sourceId]);
+    writeStringListMap(manifestJson.parent_map, failTestId, [sourceId]);
+    if (!manifestJson.child_map) manifestJson.child_map = {};
+    writeStringListMap(manifestJson.child_map, sourceId, [
+      ...(readStringListMap(manifestJson.child_map, sourceId) ?? []),
       passTestId,
       failTestId,
-    ];
+    ]);
 
     runResultsJson.results.push(
       cloneResult(runResultsJson, 'test.jaffle_shop.not_null_stg_orders_order_id.81cfe2fe64', {
@@ -223,7 +284,9 @@ describe('analyzeArtifacts', () => {
     expect(sourceRow?.compileStart).toBeNull();
     expect(sourceRow?.executeEnd).toBeNull();
     expect(sourceTests.map((row) => row.unique_id).sort()).toEqual([failTestId, passTestId].sort());
-    expect(result.timelineAdjacency[sourceId]).toBeDefined();
+    expect(
+      getObjectProperty(result.timelineAdjacency as Record<string, unknown>, sourceId),
+    ).toBeDefined();
   });
 
   it('synthesizes source rows from executed models that reference the source (no source run_results row)', async () => {
@@ -248,7 +311,9 @@ describe('analyzeArtifacts', () => {
     expect(sourceRow?.end).toBe(modelRow?.end);
     expect(sourceRow?.compileStart).toBeNull();
     expect(sourceRow?.executeStart).toBeNull();
-    expect(result.timelineAdjacency[sourceId]).toBeDefined();
+    expect(
+      getObjectProperty(result.timelineAdjacency as Record<string, unknown>, sourceId),
+    ).toBeDefined();
   });
 
   it('uses dominant execution package when manifest metadata.project_name mismatches packages', async () => {
@@ -271,10 +336,10 @@ describe('analyzeArtifacts', () => {
     const snapshotTestId = 'test.jaffle_shop.not_null_orders_snapshot_order_id.synthetic';
     const seedTestId = 'test.jaffle_shop.not_null_raw_orders_order_id.synthetic_seed';
 
-    manifestJson.nodes[snapshotId] = cloneManifestEntry(
+    writeManifestNode(
       manifestJson,
-      'seed.jaffle_shop.raw_orders',
-      {
+      snapshotId,
+      cloneManifestEntry(manifestJson, 'seed.jaffle_shop.raw_orders', {
         unique_id: snapshotId,
         resource_type: 'snapshot',
         name: 'orders_snapshot',
@@ -287,45 +352,47 @@ describe('analyzeArtifacts', () => {
           macros: [],
           nodes: ['source.jaffle_shop.ecom.raw_orders'],
         },
-      },
+      }),
     );
-    manifestJson.nodes[snapshotTestId] = cloneManifestEntry(
+    writeManifestNode(
       manifestJson,
-      'test.jaffle_shop.not_null_orders_order_id.cf6c17daed',
-      {
+      snapshotTestId,
+      cloneManifestEntry(manifestJson, 'test.jaffle_shop.not_null_orders_order_id.cf6c17daed', {
         unique_id: snapshotTestId,
         name: 'not_null_orders_snapshot_order_id',
         path: 'snapshots/orders_snapshot.yml',
         original_file_path: 'snapshots/orders_snapshot.yml',
         attached_node: snapshotId,
         depends_on: { macros: [], nodes: [snapshotId] },
-      },
+      }),
     );
-    manifestJson.nodes[seedTestId] = cloneManifestEntry(
+    writeManifestNode(
       manifestJson,
-      'test.jaffle_shop.not_null_stg_orders_order_id.81cfe2fe64',
-      {
+      seedTestId,
+      cloneManifestEntry(manifestJson, 'test.jaffle_shop.not_null_stg_orders_order_id.81cfe2fe64', {
         unique_id: seedTestId,
         name: 'not_null_raw_orders_order_id',
         path: 'seeds/raw_orders.yml',
         original_file_path: 'seeds/raw_orders.yml',
         attached_node: 'seed.jaffle_shop.raw_orders',
         depends_on: { macros: [], nodes: ['seed.jaffle_shop.raw_orders'] },
-      },
+      }),
     );
 
-    manifestJson.parent_map[snapshotId] = ['source.jaffle_shop.ecom.raw_orders'];
-    manifestJson.child_map['source.jaffle_shop.ecom.raw_orders'] = [
-      ...(manifestJson.child_map['source.jaffle_shop.ecom.raw_orders'] ?? []),
+    if (!manifestJson.parent_map) manifestJson.parent_map = {};
+    if (!manifestJson.child_map) manifestJson.child_map = {};
+    writeStringListMap(manifestJson.parent_map, snapshotId, ['source.jaffle_shop.ecom.raw_orders']);
+    writeStringListMap(manifestJson.child_map, 'source.jaffle_shop.ecom.raw_orders', [
+      ...(readStringListMap(manifestJson.child_map, 'source.jaffle_shop.ecom.raw_orders') ?? []),
       snapshotId,
-    ];
-    manifestJson.parent_map[snapshotTestId] = [snapshotId];
-    manifestJson.child_map[snapshotId] = [snapshotTestId];
-    manifestJson.parent_map[seedTestId] = ['seed.jaffle_shop.raw_orders'];
-    manifestJson.child_map['seed.jaffle_shop.raw_orders'] = [
-      ...(manifestJson.child_map['seed.jaffle_shop.raw_orders'] ?? []),
+    ]);
+    writeStringListMap(manifestJson.parent_map, snapshotTestId, [snapshotId]);
+    writeStringListMap(manifestJson.child_map, snapshotId, [snapshotTestId]);
+    writeStringListMap(manifestJson.parent_map, seedTestId, ['seed.jaffle_shop.raw_orders']);
+    writeStringListMap(manifestJson.child_map, 'seed.jaffle_shop.raw_orders', [
+      ...(readStringListMap(manifestJson.child_map, 'seed.jaffle_shop.raw_orders') ?? []),
       seedTestId,
-    ];
+    ]);
 
     runResultsJson.results.push(
       cloneResult(runResultsJson, 'seed.jaffle_shop.raw_orders', {

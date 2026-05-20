@@ -1,11 +1,15 @@
+import { getLensNodeFill, supportsTests } from '@web/lib/analysis-workspace/lineage-model';
+
+import { ResourceTypeIcon, formatResourceTypeLabel } from '../shared';
+
+import { estimateBadgeWidth } from './lineage-overlay-constants';
+
 import type {
   LineageDisplayMode,
   LineageGraphNodeLayout,
-} from '@web/lib/analysis-workspace/lineageModel';
-import { getLensNodeFill, supportsTests } from '@web/lib/analysis-workspace/lineageModel';
+} from '@web/lib/analysis-workspace/lineage-model';
 import type { LensMode } from '@web/lib/analysis-workspace/types';
-import { ResourceTypeIcon, formatResourceTypeLabel } from '../shared';
-import { estimateBadgeWidth } from './lineageOverlayConstants';
+import type { ReactElement } from 'react';
 
 function LineageGraphNodeTestPills({
   node,
@@ -237,7 +241,7 @@ export function LineageGraphSvgBody({
   lensMode: LensMode;
   highlightedIds: Set<string>;
   hasHoverFocus: boolean;
-}) {
+}): ReactElement {
   return (
     <>
       {visibleEdges.map((edge) => {

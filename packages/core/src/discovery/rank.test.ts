@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
-import { ManifestGraph } from '../analysis/manifest-graph';
+
+import { ManifestGraph } from '../analysis/manifest/graph';
+
 import { discoverResources, levenshteinDistance } from './rank';
+
+import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 
 function baseMeta(): ParsedManifest['metadata'] {
   return {

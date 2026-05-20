@@ -1,8 +1,16 @@
-import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+
+import {
+  mkdtempSyncValidated,
+  resolveJoinedSafe,
+  rmSyncValidated,
+  writeValidatedUtf8Sync,
+} from '@dbt-tools/core';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { statusAction, formatStatus } from './status-action';
+
 import type { StatusResult } from './status-action';
 
 describe('statusAction', () => {
@@ -15,16 +23,16 @@ describe('statusAction', () => {
 
   beforeEach(() => {
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dbt-tools-status-test-'));
+    tmpDir = mkdtempSyncValidated(path.join(os.tmpdir(), 'dbt-tools-status-test-'));
   });
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    rmSyncValidated(tmpDir, { recursive: true, force: true });
   });
 
   it('reports manifest-only readiness when only manifest exists', async () => {
-    fs.writeFileSync(path.join(tmpDir, 'manifest.json'), '{}');
+    writeValidatedUtf8Sync(resolveJoinedSafe(tmpDir, 'manifest.json'), '{}');
 
     await statusAction({ dbtTarget: tmpDir, json: true }, handleError);
 
@@ -38,8 +46,8 @@ describe('statusAction', () => {
   });
 
   it('reports full readiness when both artifacts exist', async () => {
-    fs.writeFileSync(path.join(tmpDir, 'manifest.json'), '{}');
-    fs.writeFileSync(path.join(tmpDir, 'run_results.json'), '{}');
+    writeValidatedUtf8Sync(resolveJoinedSafe(tmpDir, 'manifest.json'), '{}');
+    writeValidatedUtf8Sync(resolveJoinedSafe(tmpDir, 'run_results.json'), '{}');
 
     await statusAction({ dbtTarget: tmpDir, json: true }, handleError);
 
@@ -53,8 +61,8 @@ describe('statusAction', () => {
   });
 
   it('outputs required JSON fields', async () => {
-    fs.writeFileSync(path.join(tmpDir, 'manifest.json'), '{}');
-    fs.writeFileSync(path.join(tmpDir, 'run_results.json'), '{}');
+    writeValidatedUtf8Sync(resolveJoinedSafe(tmpDir, 'manifest.json'), '{}');
+    writeValidatedUtf8Sync(resolveJoinedSafe(tmpDir, 'run_results.json'), '{}');
 
     await statusAction({ dbtTarget: tmpDir, json: true }, handleError);
 
@@ -107,7 +115,7 @@ describe('statusAction', () => {
   });
 
   it('includes modification time when artifact exists', async () => {
-    fs.writeFileSync(path.join(tmpDir, 'manifest.json'), '{}');
+    writeValidatedUtf8Sync(resolveJoinedSafe(tmpDir, 'manifest.json'), '{}');
 
     await statusAction({ dbtTarget: tmpDir, json: true }, handleError);
 

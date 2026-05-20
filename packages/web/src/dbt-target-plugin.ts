@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import type { Plugin } from 'vite';
 import {
   DBT_CATALOG_JSON,
   DBT_MANIFEST_JSON,
@@ -8,10 +6,14 @@ import {
   getDbtToolsReloadDebounceMs,
   isDbtToolsDebugEnabled,
   isDbtToolsWatchEnabled,
+  watchValidated,
 } from '@dbt-tools/core';
-import { ArtifactSourceService } from './artifact-source/sourceService';
-import { resolveWatchableLocalTargetDir } from './artifact-source/resolveLocalTargetDir';
-import { tryHandleArtifactSourceViteRequest } from './artifact-source/viteArtifactRoutes';
+
+import { resolveWatchableLocalTargetDir } from './artifact-source/resolve-local-target-dir';
+import { ArtifactSourceService } from './artifact-source/source-service';
+import { tryHandleArtifactSourceViteRequest } from './artifact-source/vite-artifact-routes';
+
+import type { Plugin } from 'vite';
 
 function debugLog(...args: unknown[]) {
   if (isDbtToolsDebugEnabled()) {
@@ -35,7 +37,7 @@ function setupArtifactWatch(
     }, debounceMs);
   };
 
-  fs.watch(resolved, (_eventType, filename) => {
+  watchValidated(resolved, (_eventType, filename) => {
     if (
       filename === DBT_MANIFEST_JSON ||
       filename === DBT_RUN_RESULTS_JSON ||

@@ -1,3 +1,13 @@
+import {
+  applyDiscoveryNodeFilters,
+  incrementMapCount,
+  parseDiscoveryQueryTokens,
+} from '@dbt-tools/core/browser';
+
+import { TEST_RESOURCE_TYPES, PRIMARY_TIMELINE_TYPES } from './constants';
+import { rollupCountsHaveAttention, type ResourceTestRollupCounts } from './test-rollup-types';
+
+import type { DashboardStatusFilter } from './types';
 import type {
   AnalysisState,
   ExecutionRow,
@@ -6,10 +16,6 @@ import type {
   ResourceNode,
   StatusTone,
 } from '@web/types';
-import { applyDiscoveryNodeFilters, parseDiscoveryQueryTokens } from '@dbt-tools/core/browser';
-import type { DashboardStatusFilter } from './types';
-import { rollupCountsHaveAttention, type ResourceTestRollupCounts } from './testRollupTypes';
-import { TEST_RESOURCE_TYPES, PRIMARY_TIMELINE_TYPES } from './constants';
 
 export function isFailedModelExecution(row: ExecutionRow): boolean {
   return (
@@ -41,8 +47,9 @@ export function formatResourceTypeLabel(resourceType: string): string {
 function readQuotedRelationSegment(s: string, i: number): { segment: string; next: number } {
   let seg = '';
   while (i < s.length) {
-    if (s[i] === '"') {
-      if (s[i + 1] === '"') {
+    const ch = s.charAt(i);
+    if (ch === '"') {
+      if (s.charAt(i + 1) === '"') {
         seg += '"';
         i += 2;
         continue;
@@ -50,7 +57,7 @@ function readQuotedRelationSegment(s: string, i: number): { segment: string; nex
       i += 1;
       break;
     }
-    seg += s[i];
+    seg += ch;
     i += 1;
   }
   return { segment: seg, next: i };
@@ -65,17 +72,18 @@ export function formatRelationNameForDisplay(relation: string): string {
   let i = 0;
   const s = relation;
   while (i < s.length) {
-    if (s[i] === '.') {
+    const ch = s.charAt(i);
+    if (ch === '.') {
       i += 1;
       continue;
     }
-    if (s[i] === '"') {
+    if (ch === '"') {
       const { segment, next } = readQuotedRelationSegment(s, i + 1);
       segments.push(segment);
       i = next;
     } else {
       const start = i;
-      while (i < s.length && s[i] !== '.') i += 1;
+      while (i < s.length && s.charAt(i) !== '.') i += 1;
       segments.push(s.slice(start, i));
     }
   }
@@ -226,13 +234,13 @@ export function matchesExecutionRowDashboardStatus(
  */
 export function deriveProjectName(executions: ExecutionRow[]): string | null {
   if (executions.length === 0) return null;
-  const counts: Record<string, number> = {};
+  const counts = new Map<string, number>();
   for (const row of executions) {
     if (row.packageName) {
-      counts[row.packageName] = (counts[row.packageName] ?? 0) + 1;
+      incrementMapCount(counts, row.packageName);
     }
   }
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   return sorted[0]?.[0] ?? null;
 }
 
@@ -297,7 +305,7 @@ export function getDefaultTimelineActiveTypes(presentTypes: string[]): Set<strin
 }
 
 export function isDefaultTimelineResource(
-  item: Pick<GanttItem, 'resourceType' | 'packageName' | 'name' | 'path'>,
+  item: Pick<GanttItem, 'name' | 'packageName' | 'path' | 'resourceType'>,
   projectName?: string | null,
 ): boolean {
   if (
@@ -313,7 +321,7 @@ export function isDefaultTimelineResource(
 
 /** True when any row has compile and execute intervals with positive duration (legend + bar shading). */
 export function timelineGanttHasCompileExecutePhases(
-  items: readonly Pick<GanttItem, 'compileStart' | 'compileEnd' | 'executeStart' | 'executeEnd'>[],
+  items: readonly Pick<GanttItem, 'compileEnd' | 'compileStart' | 'executeEnd' | 'executeStart'>[],
 ): boolean {
   return items.some(
     (g) =>
@@ -331,7 +339,7 @@ export function timelineGanttHasCompileExecutePhases(
  * These are omitted from {@link isDefaultTimelineResource} (and thus from type-count aggregates).
  */
 export function countTimelineTestResources(
-  items: readonly Pick<GanttItem, 'resourceType' | 'packageName' | 'name' | 'path'>[],
+  items: readonly Pick<GanttItem, 'name' | 'packageName' | 'path' | 'resourceType'>[],
   projectName?: string | null,
 ): number {
   let n = 0;

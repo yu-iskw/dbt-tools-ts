@@ -1,10 +1,11 @@
 import {
   ADAPTER_METRIC_DESCRIPTORS,
   formatAdapterMetricValue,
-} from '../analysis/adapter-metric-descriptors';
-import type { AdapterTotalsSnapshot } from '../analysis/adapter-response-metrics';
-import type { NodeExecution } from '../analysis/execution-analyzer';
-import type { AdapterHeavyResult } from '../analysis/run-results-search';
+} from '../analysis/adapter/descriptors';
+
+import type { AdapterTotalsSnapshot } from '../analysis/adapter/metrics';
+import type { NodeExecution } from '../analysis/execution/analyzer';
+import type { AdapterHeavyResult } from '../analysis/search/run-results';
 
 type DepNode = {
   unique_id: string;
@@ -23,14 +24,14 @@ function formatDepsTreeNode(node: DepNode, prefix: string, isLast: boolean, line
 
   const children = (node.dependencies ?? []) as DepNode[];
   const childPrefix = prefix + (isLast ? '    ' : '│   ');
-  for (let i = 0; i < children.length; i++) {
-    formatDepsTreeNode(children[i], childPrefix, i === children.length - 1, lines);
-  }
+  children.forEach((child, index) => {
+    formatDepsTreeNode(child, childPrefix, index === children.length - 1, lines);
+  });
 }
 
 function formatDepsTree(result: {
   resource_id: string;
-  direction: 'upstream' | 'downstream';
+  direction: 'downstream' | 'upstream';
   dependencies: Array<DepNode & { [key: string]: unknown }>;
   count: number;
 }): string {
@@ -40,9 +41,9 @@ function formatDepsTree(result: {
   lines.push(`Count: ${result.count}`);
   lines.push('');
 
-  for (let i = 0; i < result.dependencies.length; i++) {
-    formatDepsTreeNode(result.dependencies[i], '', i === result.dependencies.length - 1, lines);
-  }
+  result.dependencies.forEach((dependency, index) => {
+    formatDepsTreeNode(dependency, '', index === result.dependencies.length - 1, lines);
+  });
 
   return lines.join('\n');
 }
@@ -108,7 +109,7 @@ export function formatSummary(summary: {
 export function formatDeps(
   result: {
     resource_id: string;
-    direction: 'upstream' | 'downstream';
+    direction: 'downstream' | 'upstream';
     dependencies: Array<{
       unique_id: string;
       resource_type: string;
@@ -163,7 +164,7 @@ export function formatBottlenecks(
   bottlenecks: {
     nodes: BottleneckNodeForFormat[];
     total_execution_time: number;
-    criteria_used: 'top_n' | 'threshold';
+    criteria_used: 'threshold' | 'top_n';
   },
   topLabel?: string,
 ): string {
@@ -297,7 +298,7 @@ export function formatRunReport(
   bottlenecks?: {
     nodes: BottleneckNodeForFormat[];
     total_execution_time: number;
-    criteria_used: 'top_n' | 'threshold';
+    criteria_used: 'threshold' | 'top_n';
   },
   bottlenecksTopLabel?: string,
   adapterAppend?: string,
@@ -334,7 +335,7 @@ export function formatRunReport(
  */
 export function formatHumanReadable(
   data: unknown,
-  format: 'summary' | 'deps' | 'run-report',
+  format: 'deps' | 'run-report' | 'summary',
 ): string {
   switch (format) {
     case 'summary':

@@ -1,17 +1,21 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { AnalysisState, ResourceNode } from '@web/types';
+
 import { PILL_BASE } from '@web/lib/analysis-workspace/constants';
 import {
   type LineageDisplayMode,
   buildLineageGraphModel,
-} from '@web/lib/analysis-workspace/lineageModel';
-import type { LensMode } from '@web/lib/analysis-workspace/types';
+} from '@web/lib/analysis-workspace/lineage-model';
+
 import { SectionCard, formatResourceTypeLabel } from '../shared';
-import { DepthStepper, SharedDepthSelector } from './LineageDepthControls';
+
 import { LensSelector } from './LensSelector';
+import { DepthStepper, SharedDepthSelector } from './LineageDepthControls';
 import { LineageGraphSurface } from './LineageGraphSurface';
+
+import type { LensMode } from '@web/lib/analysis-workspace/types';
+import type { AnalysisState, ResourceNode } from '@web/types';
+import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
 export function LineagePanel({
   resource,
@@ -52,8 +56,8 @@ export function LineagePanel({
   displayMode?: LineageDisplayMode;
   openFullscreen?: boolean;
   onFullscreenChange?: (open: boolean) => void;
-  fullscreenScope?: 'viewport' | 'container';
-}) {
+  fullscreenScope?: 'container' | 'viewport';
+}): ReactElement {
   const [isFullscreenOpen, setFullscreenOpen] = useState(false);
   const ALL_DEPS_DEPTH = 20;
 

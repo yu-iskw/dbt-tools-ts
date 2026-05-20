@@ -1,19 +1,14 @@
-import { type Dispatch, type SetStateAction, useDeferredValue, useMemo } from 'react';
-import { GanttChart } from './GanttChart';
-import { GanttLegend } from './GanttLegend';
-import { TimelineDependencyControls } from './TimelineDependencyControls';
-import { TIMELINE_BUNDLE_COUNT_WARNING } from './gantt/constants';
-import { formatMs, isPositiveStatus } from './gantt/formatting';
+import { incrementMapCount } from '@dbt-tools/core/browser';
 import {
-  type TimelineNeighborhoodUi,
-  useTimelineNeighborhoodRows,
-} from './useTimelineNeighborhoodRows';
-import type { AnalysisState, GanttItem, ResourceNode } from '@web/types';
-import type {
-  InvestigationSelectionState,
-  TimelineFilterState,
-} from '@web/lib/analysis-workspace/types';
+  type Dispatch,
+  type SetStateAction,
+  useDeferredValue,
+  useMemo,
+  type ReactElement,
+} from 'react';
+
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
+import { buildResourceTestStats } from '@web/lib/analysis-workspace/explorer-tree';
 import {
   countTimelineTestResources,
   deriveProjectName,
@@ -21,9 +16,25 @@ import {
   isDefaultTimelineResource,
   timelineGanttHasCompileExecutePhases,
 } from '@web/lib/analysis-workspace/utils';
-import { buildResourceTestStats } from '@web/lib/analysis-workspace/explorerTree';
+
 import { SectionCard, WorkspaceScaffold } from '../shared';
+
+import { TIMELINE_BUNDLE_COUNT_WARNING } from './gantt/constants';
+import { formatMs, isPositiveStatus } from './gantt/formatting';
+import { GanttChart } from './GanttChart';
+import { GanttLegend } from './GanttLegend';
+import { TimelineDependencyControls } from './TimelineDependencyControls';
 import { TimelineSearchControls, type TimelineTypeFilterHint } from './TimelineSearchControls';
+import {
+  type TimelineNeighborhoodUi,
+  useTimelineNeighborhoodRows,
+} from './use-timeline-neighborhood-rows';
+
+import type {
+  InvestigationSelectionState,
+  TimelineFilterState,
+} from '@web/lib/analysis-workspace/types';
+import type { AnalysisState, GanttItem, ResourceNode } from '@web/types';
 
 function TimelineNeighborhoodBanner({
   ui,
@@ -118,9 +129,9 @@ function TimelineSurface({
   filteredData: GanttItem[];
   bundleRowCount: number;
   neighborhoodUi: TimelineNeighborhoodUi | null;
-  statusCounts: Record<string, number>;
-  typeCounts: Record<string, number>;
-  materializationCounts: Record<string, number>;
+  statusCounts: ReadonlyMap<string, number>;
+  typeCounts: ReadonlyMap<string, number>;
+  materializationCounts: ReadonlyMap<string, number>;
   testsLegendCount: number;
   hasActiveFilters: boolean;
   typeFilterHint: TimelineTypeFilterHint | null;
@@ -239,7 +250,7 @@ export function TimelineView({
   filters: TimelineFilterState;
   setFilters: Dispatch<SetStateAction<TimelineFilterState>>;
   onInvestigationSelectionChange: Dispatch<SetStateAction<InvestigationSelectionState>>;
-}) {
+}): ReactElement {
   const deferredQuery = useDeferredValue(filters.query);
   const projectName = analysis.projectName ?? deriveProjectName(analysis.executions);
 
@@ -371,23 +382,20 @@ export function TimelineView({
   );
 
   const materializationCounts = useMemo(() => {
-    const acc: Record<string, number> = {};
+    const acc = new Map<string, number>();
     for (const item of filteredData) {
-      const k = item.semantics?.materialization ?? 'unknown';
-      acc[k] = (acc[k] ?? 0) + 1;
+      incrementMapCount(acc, item.semantics?.materialization ?? 'unknown');
     }
     return acc;
   }, [filteredData]);
 
   const { statusCounts, typeCounts } = useMemo(() => {
-    const nextStatus: Record<string, number> = {};
-    const nextType: Record<string, number> = {};
+    const nextStatus = new Map<string, number>();
+    const nextType = new Map<string, number>();
     for (const item of analysis.ganttData) {
       if (!isDefaultTimelineResource(item, projectName)) continue;
-      const status = item.status.toLowerCase();
-      nextStatus[status] = (nextStatus[status] ?? 0) + 1;
-      const rt = item.resourceType;
-      nextType[rt] = (nextType[rt] ?? 0) + 1;
+      incrementMapCount(nextStatus, item.status.toLowerCase());
+      incrementMapCount(nextType, item.resourceType);
     }
     return { statusCounts: nextStatus, typeCounts: nextType };
   }, [analysis.ganttData, projectName]);
@@ -407,7 +415,7 @@ export function TimelineView({
       .sort()
       .map((type) => ({
         type,
-        count: typeCounts[type] ?? 0,
+        count: typeCounts.get(type) ?? 0,
       }));
 
     if (hidden.length === 0) return null;

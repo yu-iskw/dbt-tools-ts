@@ -1,4 +1,5 @@
 import type { DisplayMode } from './constants';
+import type { ReactElement } from 'react';
 
 export function GanttModeToggle({
   activeMode,
@@ -12,7 +13,7 @@ export function GanttModeToggle({
   activeTimeZone: string;
   timeZones: string[];
   onTimeZoneChange: (next: string) => void;
-}) {
+}): ReactElement {
   return (
     <div className="gantt-controls">
       <div className="gantt-controls__cluster">

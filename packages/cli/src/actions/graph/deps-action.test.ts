@@ -1,9 +1,11 @@
-import * as fs from 'node:fs/promises';
+import { rmValidated } from '@dbt-tools/core';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   createJaffleArtifactBundleDir,
   createJaffleManifestOnlyDir,
 } from '../../internal/cli-test-bundle-dir';
+
 import { depsAction } from './deps-action';
 
 describe('depsAction', () => {
@@ -21,7 +23,7 @@ describe('depsAction', () => {
 
   afterEach(async () => {
     consoleLogSpy.mockRestore();
-    await fs.rm(dbtTargetDir, { recursive: true, force: true });
+    await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
   it('outputs upstream deps for a model with tree format', async () => {
@@ -59,7 +61,7 @@ describe('depsAction', () => {
       const parsed = JSON.parse(output) as { resource_id: string };
       expect(parsed.resource_id).toBe('model.jaffle_shop.stg_products');
     } finally {
-      await fs.rm(manifestOnlyDir, { recursive: true, force: true });
+      await rmValidated(manifestOnlyDir, { recursive: true, force: true });
     }
   });
 

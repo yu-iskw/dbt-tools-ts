@@ -1,28 +1,32 @@
 /**
  * CLI action: bounded bundle of non-successful run_results rows for agents/operators.
  */
-import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+
 import {
   ManifestGraph,
   loadManifest,
   loadRunResults,
   buildNodeExecutionsFromRunResults,
+  existsValidated,
   validateSafePath,
   FieldFilter,
   formatOutput,
   shouldOutputJSON,
   searchRunResults,
+  type GraphNodeAttributes,
   type NodeExecution,
+  incrementMapCount,
+  recordFromMap,
 } from '@dbt-tools/core';
-import type { GraphNodeAttributes } from '@dbt-tools/core';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 import { parseListOffset, resolveFailuresLimit } from '../../internal/cli-pagination';
 
-export type FailuresOptions = {
+export type FailuresOptions = ArtifactRootCliOptions & {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
@@ -33,7 +37,7 @@ export type FailuresOptions = {
   includePath?: boolean;
   includeCompiled?: boolean;
   compiledMaxChars?: number;
-} & ArtifactRootCliOptions;
+};
 
 type ManifestNodeGraph = ReturnType<ManifestGraph['getGraph']>;
 
@@ -117,12 +121,11 @@ function filterExecutions(
 }
 
 function countStatuses(rows: NodeExecution[]): Record<string, number> {
-  const out: Record<string, number> = {};
+  const counts = new Map<string, number>();
   for (const r of rows) {
-    const k = r.status || 'unknown';
-    out[k] = (out[k] || 0) + 1;
+    incrementMapCount(counts, r.status || 'unknown');
   }
-  return out;
+  return recordFromMap(counts);
 }
 
 function buildDbtHints(rows: FailureRow[], g: ManifestNodeGraph | undefined): string[] {
@@ -159,7 +162,8 @@ function buildPrimitiveCommands(
   const t = dbtTarget ?? '.';
   const out: string[] = [
     `dbt-tools timeline --dbt-target "${t}" --failed-only --json`,
-    `dbt-tools run-report --dbt-target "${t}" --json`,
+    `dbt-tools run-summary --dbt-target "${t}" --json`,
+    `dbt-tools query-executions --dbt-target "${t}" --status error,fail,skipped --limit 50 --json`,
   ];
   if (sampleUniqueId) {
     out.push(
@@ -282,10 +286,7 @@ export async function failuresAction(
     );
     validateSafePath(paths.runResults);
 
-    const hasManifest = await fs
-      .access(paths.manifest)
-      .then(() => true)
-      .catch(() => false);
+    const hasManifest = existsValidated(paths.manifest);
     if (hasManifest) {
       validateSafePath(paths.manifest);
     }

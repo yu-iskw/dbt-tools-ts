@@ -1,5 +1,6 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { PILL_BASE } from '@web/lib/analysis-workspace/constants';
+
+import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
 /** Zoom / layout reset + node counts (presentation layer for lineage graph). */
 export function LineageGraphZoomToolbar({
@@ -18,7 +19,7 @@ export function LineageGraphZoomToolbar({
   visibleNodeCount: number;
   upstreamCount: number;
   downstreamCount: number;
-}) {
+}): ReactElement {
   return (
     <div className="lineage-graph__viewport-toolbar">
       <div className="lineage-graph__zoom-controls">

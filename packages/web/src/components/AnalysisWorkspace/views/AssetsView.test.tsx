@@ -3,14 +3,16 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AnalysisState, ExecutionRow, ResourceNode } from '@web/types';
+
 import { AssetsView } from './AssetsView';
+
+import type { AnalysisState, ExecutionRow, ResourceNode } from '@web/types';
 
 const { useResourceCode } = vi.hoisted(() => ({
   useResourceCode: vi.fn(),
 }));
 
-vi.mock('@web/hooks/useResourceCode', () => ({
+vi.mock('@web/hooks/use-resource-code', () => ({
   useResourceCode,
 }));
 
@@ -108,7 +110,7 @@ function renderAssetsView({
 }: {
   resource: ResourceNode;
   analysis: AnalysisState;
-  activeTab?: 'summary' | 'lineage' | 'sql' | 'runtime' | 'tests';
+  activeTab?: 'lineage' | 'runtime' | 'sql' | 'summary' | 'tests';
 }) {
   const container = document.createElement('div');
   document.body.appendChild(container);

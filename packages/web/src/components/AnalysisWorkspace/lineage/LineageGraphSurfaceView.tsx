@@ -1,17 +1,20 @@
-import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from 'react';
+import { formatSeconds } from '@web/lib/analysis-workspace/utils';
+
+import { formatResourceTypeLabel } from '../shared';
+
+import { LineageGraphInteractiveHotspots } from './LineageGraphInteractiveHotspots';
+import { LineageGraphLegendBar } from './LineageGraphLegendBar';
+import { LineageGraphSvgBody } from './LineageGraphSvgBody';
+import { LineageGraphZoomToolbar } from './LineageGraphZoomToolbar';
+
 import type {
   LineageDisplayMode,
   LineageGraphModel,
   LineageGraphNodeLayout,
   LensLegendItem,
-} from '@web/lib/analysis-workspace/lineageModel';
+} from '@web/lib/analysis-workspace/lineage-model';
 import type { LensMode } from '@web/lib/analysis-workspace/types';
-import { formatSeconds } from '@web/lib/analysis-workspace/utils';
-import { formatResourceTypeLabel } from '../shared';
-import { LineageGraphInteractiveHotspots } from './LineageGraphInteractiveHotspots';
-import { LineageGraphLegendBar } from './LineageGraphLegendBar';
-import { LineageGraphSvgBody } from './LineageGraphSvgBody';
-import { LineageGraphZoomToolbar } from './LineageGraphZoomToolbar';
+import type { ReactElement, Dispatch, MutableRefObject, RefObject, SetStateAction } from 'react';
 
 type PanDragRef = MutableRefObject<{
   pointerId: number;
@@ -98,7 +101,7 @@ export function LineageGraphSurfaceView({
   tooltipLayout: LineageGraphNodeLayout | null;
   tooltipPosition: { left: number; top: number } | null;
   contextMenu: { x: number; y: number; nodeId: string } | null;
-}) {
+}): ReactElement {
   return (
     <div
       className={`dependency-graph dependency-graph--${displayMode}${fullscreen ? ' dependency-graph--fullscreen' : ''}`}

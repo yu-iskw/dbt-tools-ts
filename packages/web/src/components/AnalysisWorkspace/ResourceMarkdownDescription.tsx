@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type AnchorHTMLAttributes } from 'react';
+import { useEffect, useRef, useState, type AnchorHTMLAttributes, type ReactElement } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -29,7 +29,7 @@ export function ResourceMarkdownDescription({
   className?: string;
   /** Accessible name for the surrounding region (e.g. for tests or reuse). */
   regionLabel?: string;
-}) {
+}): ReactElement {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);

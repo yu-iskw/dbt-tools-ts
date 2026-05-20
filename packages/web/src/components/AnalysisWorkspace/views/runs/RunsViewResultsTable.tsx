@@ -1,3 +1,4 @@
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   type CSSProperties,
   type Dispatch,
@@ -6,20 +7,24 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ReactElement,
 } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import type { AnalysisState } from '@web/types';
+
+import { nextRunsSort, runsColumnHeaderSortUi } from '@web/lib/analysis-workspace/runs-sort';
+import { badgeClassName, formatSeconds } from '@web/lib/analysis-workspace/utils';
+
+import { MaterializationSemanticsBadge } from '../../MaterializationSemanticsBadge';
+
+import { getAdapterCellValue, getRunsTableTemplate } from './runs-view-table-utils';
+
+import type { RunsResultsSourceState } from '@web/hooks/use-runs-results-source';
+import type { RunsAdapterColumn } from '@web/lib/analysis-workspace/runs-adapter-columns';
 import type {
   InvestigationSelectionState,
   RunsSortBy,
   RunsViewState,
 } from '@web/lib/analysis-workspace/types';
-import { nextRunsSort, runsColumnHeaderSortUi } from '@web/lib/analysis-workspace/runsSort';
-import type { RunsResultsSourceState } from '@web/hooks/useRunsResultsSource';
-import { badgeClassName, formatSeconds } from '@web/lib/analysis-workspace/utils';
-import type { RunsAdapterColumn } from '@web/lib/analysis-workspace/runsAdapterColumns';
-import { getAdapterCellValue, getRunsTableTemplate } from './runsViewTableUtils';
-import { MaterializationSemanticsBadge } from '../../MaterializationSemanticsBadge';
+import type { AnalysisState } from '@web/types';
 
 type RunsResultsState = RunsResultsSourceState;
 
@@ -80,7 +85,7 @@ export function RunsResultsTable({
   adapterColumns: RunsAdapterColumn[];
   onRunsViewStateChange: Dispatch<SetStateAction<RunsViewState>>;
   onInvestigationSelectionChange: Dispatch<SetStateAction<InvestigationSelectionState>>;
-}) {
+}): ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const [listScrollMargin, setListScrollMargin] = useState(44);

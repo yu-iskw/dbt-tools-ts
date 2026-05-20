@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { expandExplorerBranchIfCollapsed } from './helpers/explorerTree';
+
+import { expandExplorerBranchIfCollapsed } from './helpers/explorer-tree';
 import { loadWorkspace } from './helpers/preload';
 
 const APP_SIDEBAR = '#app-sidebar';

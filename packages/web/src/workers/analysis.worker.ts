@@ -1,15 +1,17 @@
 /// <reference lib="webworker" />
 
-import { parseManifest } from 'dbt-artifacts-parser/manifest';
-import { parseCatalog } from 'dbt-artifacts-parser/catalog';
-import { parseRunResults } from 'dbt-artifacts-parser/run_results';
-import { parseSources } from 'dbt-artifacts-parser/sources';
-import { matchesResource } from '../lib/analysis-workspace/utils';
 import {
   buildAnalysisSnapshotFromParsedArtifactBundle,
   type AnalysisSnapshot,
   type ManifestGraph,
 } from '@dbt-tools/core/browser';
+import { parseCatalog } from 'dbt-artifacts-parser/catalog';
+import { parseManifest } from 'dbt-artifacts-parser/manifest';
+import { parseRunResults } from 'dbt-artifacts-parser/run_results';
+import { parseSources } from 'dbt-artifacts-parser/sources';
+
+import { matchesResource } from '../lib/analysis-workspace/utils';
+
 import {
   ANALYSIS_WORKER_PROTOCOL_VERSION,
   type AnalysisWorkerRequest,
@@ -18,7 +20,7 @@ import {
   type GetResourceCodeMessage,
   type LoadAnalysisMessage,
   type SearchResourcesMessage,
-} from './analysisProtocol';
+} from './analysis-protocol';
 
 function now() {
   return performance.now();

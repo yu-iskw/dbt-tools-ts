@@ -1,9 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { loadTestManifest } from 'dbt-artifacts-parser/test-utils';
-import { ManifestGraph } from '../analysis/manifest-graph';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+import { ManifestGraph } from '../analysis/manifest/graph';
+
 import { exportGraphToFormat, writeGraphOutput } from './graph-export';
 
 describe('graph-export', () => {

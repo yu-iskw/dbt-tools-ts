@@ -1,7 +1,8 @@
-import type { DirectedGraph } from 'graphology';
-import type { ManifestGraph } from '../analysis/manifest-graph';
-import type { GraphEdgeAttributes, GraphNodeAttributes } from '../types';
 import { applyDiscoveryNodeFilters, parseDiscoveryQueryTokens } from './query-parse';
+import { DISCOVER_SCHEMA_VERSION } from './types';
+
+import type { ManifestGraph } from '../analysis/manifest/graph';
+import type { GraphEdgeAttributes, GraphNodeAttributes } from '../types';
 import type {
   DiscoverConfidence,
   DiscoverDisambiguationEntry,
@@ -12,7 +13,7 @@ import type {
   DiscoverReason,
   DiscoverRelatedEntry,
 } from './types';
-import { DISCOVER_SCHEMA_VERSION } from './types';
+import type { DirectedGraph } from 'graphology';
 
 const DEFAULT_LIMIT = 50;
 
@@ -22,19 +23,20 @@ export function levenshteinDistance(a: string, b: string): number {
   const n = b.length;
   if (m === 0) return n;
   if (n === 0) return m;
-  const dp = new Array<number>(n + 1);
-  for (let j = 0; j <= n; j++) dp[j] = j;
+  const dp = new Map<number, number>();
+  for (let j = 0; j <= n; j++) dp.set(j, j);
   for (let i = 1; i <= m; i++) {
-    let prevDiag = dp[0]!;
-    dp[0] = i;
+    let prevDiag = dp.get(0)!;
+    dp.set(0, i);
     for (let j = 1; j <= n; j++) {
-      const temp = dp[j]!;
+      const atJ = dp.get(j)!;
+      const atJMinus1 = dp.get(j - 1)!;
       const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
-      dp[j] = Math.min(dp[j]! + 1, dp[j - 1]! + 1, prevDiag + cost);
-      prevDiag = temp;
+      dp.set(j, Math.min(atJ + 1, atJMinus1 + 1, prevDiag + cost));
+      prevDiag = atJ;
     }
   }
-  return dp[n]!;
+  return dp.get(n)!;
 }
 
 function pushReason(reasons: DiscoverReason[], code: DiscoverReason): void {

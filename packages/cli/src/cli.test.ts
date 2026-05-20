@@ -1,7 +1,6 @@
-import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   validateResourceId,
   validateSafePath,
@@ -12,7 +11,10 @@ import {
   formatSummary,
   getCommandSchema,
   getAllSchemas,
+  mkdtempSyncValidated,
+  rmSyncValidated,
 } from '@dbt-tools/core';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 describe('CLI Integration', () => {
   describe('Core service integration', () => {
@@ -38,21 +40,19 @@ describe('CLI Integration', () => {
       expect(schemas).toHaveProperty('summary');
       expect(schemas).toHaveProperty('deps');
       expect(schemas).toHaveProperty('graph');
-      expect(schemas).toHaveProperty('run-report');
+      expect(schemas).toHaveProperty('query-executions');
+      expect(schemas).toHaveProperty('run-summary');
       expect(schemas).toHaveProperty('schema');
-      // New commands
       expect(schemas).toHaveProperty('inventory');
       expect(schemas).toHaveProperty('timeline');
       expect(schemas).toHaveProperty('search');
       expect(schemas).toHaveProperty('discover');
       expect(schemas).toHaveProperty('explain');
-      expect(schemas).toHaveProperty('impact');
       expect(schemas).toHaveProperty('diagnose run');
       expect(schemas).toHaveProperty('diagnose node');
       expect(schemas).toHaveProperty('export');
       expect(schemas).toHaveProperty('status');
       expect(schemas).toHaveProperty('freshness');
-      expect(schemas).toHaveProperty('failures');
     });
 
     it('should have correct inventory schema', () => {
@@ -86,11 +86,10 @@ describe('CLI Integration', () => {
       expect(schema?.options?.some((o) => o.name === '--limit')).toBe(true);
     });
 
-    it('should have correct failures schema', () => {
-      const schema = getCommandSchema('failures');
+    it('should have correct query-executions schema', () => {
+      const schema = getCommandSchema('query-executions');
       expect(schema).not.toBeNull();
-      expect(schema?.command).toBe('failures');
-      expect(schema?.stability).toBe('evolving');
+      expect(schema?.command).toBe('query-executions');
     });
 
     it('should have correct discover schema', () => {
@@ -152,22 +151,10 @@ describe('CLI Integration', () => {
       expect(schema?.options?.some((o) => o.name === '--dbt-target')).toBe(true);
     });
 
-    it('should have run-report schema with bottleneck options', () => {
-      const schema = getCommandSchema('run-report');
+    it('should have run-summary schema', () => {
+      const schema = getCommandSchema('run-summary');
       expect(schema).not.toBeNull();
-      expect(schema?.command).toBe('run-report');
-
-      const bottlenecksOpt = schema?.options?.find((o) => o.name === '--bottlenecks');
-      expect(bottlenecksOpt).toBeDefined();
-      expect(bottlenecksOpt?.type).toBe('boolean');
-
-      const topOpt = schema?.options?.find((o) => o.name === '--bottlenecks-top');
-      expect(topOpt).toBeDefined();
-      expect(topOpt?.type).toBe('number');
-
-      const thresholdOpt = schema?.options?.find((o) => o.name === '--bottlenecks-threshold');
-      expect(thresholdOpt).toBeDefined();
-      expect(thresholdOpt?.type).toBe('number');
+      expect(schema?.command).toBe('run-summary');
     });
   });
 
@@ -236,7 +223,7 @@ describe('CLI command error formatting', () => {
 
   beforeEach(() => {
     vi.resetModules();
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dbt-tools-cli-test-'));
+    tmpDir = mkdtempSyncValidated(path.join(os.tmpdir(), 'dbt-tools-cli-test-'));
   });
 
   afterEach(() => {
@@ -245,7 +232,7 @@ describe('CLI command error formatting', () => {
       value: originalStdoutIsTTY,
       configurable: true,
     });
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    rmSyncValidated(tmpDir, { recursive: true, force: true });
     vi.restoreAllMocks();
   });
 

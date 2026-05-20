@@ -1,7 +1,7 @@
-import type { ManifestGraph } from '../analysis/manifest-graph';
 import { discoverResources } from '../discovery/rank';
-import type { DiscoverOutput } from '../discovery/types';
-import type { DiscoverReason } from '../discovery/types';
+
+import type { ManifestGraph } from '../analysis/manifest/graph';
+import type { DiscoverOutput, DiscoverReason } from '../discovery/types';
 
 export interface ResolvedIntentTarget {
   unique_id: string;

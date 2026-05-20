@@ -1,7 +1,10 @@
+import { join } from 'node:path';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
+import { flatConfigs as importXFlatConfigs } from 'eslint-plugin-import-x';
 import sonarjs from 'eslint-plugin-sonarjs';
-import importPlugin from 'eslint-plugin-import';
+import security from 'eslint-plugin-security';
+import unicorn from 'eslint-plugin-unicorn';
 import playwrightPlugin from 'eslint-plugin-playwright';
 import eslintCommentsPlugin from '@eslint-community/eslint-plugin-eslint-comments';
 import vitestPlugin from '@vitest/eslint-plugin';
@@ -9,30 +12,88 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 
+const repoRoot = import.meta.dirname;
+
 /** @type {import("@typescript-eslint/parser").ParserOptions} */
-const tsProjectOptions = {
+const tsParserOptions = {
   ecmaVersion: 2022,
   sourceType: 'module',
-  project: [
-    './tsconfig.eslint.json',
-    './packages/core/tsconfig.eslint.json',
-    './packages/cli/tsconfig.eslint.json',
-    './packages/mcp/tsconfig.eslint.json',
-    './packages/web/tsconfig.eslint.json',
-    './packages/web/tsconfig.node.json',
-    './packages/web/tsconfig.e2e.json',
-    './packages/test-fixtures/tsconfig.eslint.json',
-  ],
+  projectService: {
+    allowDefaultProject: ['packages/*/coverage.policy.ts', 'packages/core/coverage.policy.d.ts'],
+  },
+  tsconfigRootDir: repoRoot,
 };
 
-const importResolverSettings = {
-  'import/resolver': {
+const webPackageRoot = join(repoRoot, 'packages/web');
+
+const webImportXSettings = {
+  ...importXFlatConfigs.typescript.settings,
+  'import-x/resolver': {
     typescript: {
-      project: tsProjectOptions.project,
       alwaysTryTypes: true,
+      project: [
+        join(webPackageRoot, 'tsconfig.json'),
+        join(webPackageRoot, 'tsconfig.node.json'),
+        join(webPackageRoot, 'tsconfig.e2e.json'),
+        join(webPackageRoot, 'tsconfig.eslint.json'),
+      ],
     },
     node: true,
   },
+};
+
+/** Flat-config fragment from eslint-plugin-security (code-level patterns; complements Trivy/OSV). */
+const securityRecommended = security.configs.recommended;
+
+const importXPlugins = {
+  ...importXFlatConfigs.recommended.plugins,
+  ...importXFlatConfigs.typescript.plugins,
+};
+
+const importXSettings = {
+  ...importXFlatConfigs.typescript.settings,
+  'import-x/resolver': {
+    typescript: {
+      alwaysTryTypes: true,
+      project: [
+        'packages/*/tsconfig.json',
+        'packages/*/tsconfig.eslint.json',
+        'packages/web/tsconfig.node.json',
+        'packages/web/tsconfig.e2e.json',
+        'packages/test-fixtures/tsconfig.json',
+      ],
+    },
+    node: true,
+  },
+};
+
+const importXRules = {
+  ...importXFlatConfigs.recommended.rules,
+  ...importXFlatConfigs.typescript.rules,
+  'import-x/order': [
+    'error',
+    {
+      groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'type'],
+      pathGroups: [
+        {
+          pattern: '@web/**',
+          group: 'internal',
+          position: 'after',
+        },
+      ],
+      pathGroupsExcludedImportTypes: ['type'],
+      'newlines-between': 'always',
+      alphabetize: { order: 'asc', caseInsensitive: true },
+    },
+  ],
+  'import-x/no-cycle': ['error', { maxDepth: 3 }],
+  // import-x does not understand the MCP SDK wildcard ESM exports with .js subpaths.
+  'import-x/no-unresolved': [
+    'error',
+    {
+      ignore: ['^@modelcontextprotocol/sdk/', '\\.js$'],
+    },
+  ],
 };
 
 /**
@@ -48,9 +109,12 @@ const sharedTsRules = Object.assign({}, tseslint.configs.recommended.rules, {
   '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: true } }],
   '@typescript-eslint/consistent-type-imports': [
     'error',
-    { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+    // inline-type-imports keeps one import per module (import-x/no-duplicates).
+    { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
   ],
-  // Security
+  '@typescript-eslint/explicit-module-boundary-types': 'error',
+  '@typescript-eslint/sort-type-constituents': 'error',
+  // Security (core + plugin; Trunk still runs Trivy/OSV)
   'no-eval': 'error',
   'no-implied-eval': 'error',
   'no-new-func': 'error',
@@ -59,7 +123,7 @@ const sharedTsRules = Object.assign({}, tseslint.configs.recommended.rules, {
   'max-depth': ['error', { max: 6 }],
   'max-params': ['error', { max: 8 }],
   'max-nested-callbacks': ['error', { max: 4 }],
-  // SonarJS
+  // SonarJS (stricter than google-cloud-tools baseline: 15 vs 20)
   'sonarjs/cyclomatic-complexity': ['error', { threshold: 15 }],
   'sonarjs/cognitive-complexity': ['error', 15],
   'sonarjs/no-duplicate-string': 'error',
@@ -67,11 +131,28 @@ const sharedTsRules = Object.assign({}, tseslint.configs.recommended.rules, {
   'no-unreachable': 'error',
 });
 
-const sharedImportRules = {
-  'import/no-cycle': 'error',
-  // eslint-plugin-import does not understand the MCP SDK wildcard ESM exports with .js subpaths.
-  'import/no-unresolved': ['error', { ignore: ['^@modelcontextprotocol/sdk/'] }],
-  'import/no-useless-path-segments': 'error',
+const unicornFilenameCase = [
+  'error',
+  {
+    cases: { kebabCase: true, pascalCase: true },
+    ignore: [/^[\w-]+\.test\.ts$/],
+  },
+];
+
+const tsProductionPlugins = {
+  ...importXPlugins,
+  ...securityRecommended.plugins,
+  '@typescript-eslint': tseslint,
+  sonarjs,
+  unicorn,
+};
+
+const tsProductionRules = {
+  ...importXRules,
+  ...securityRecommended.rules,
+  ...sharedTsRules,
+  '@typescript-eslint/no-unused-private-class-members': 'error',
+  'unicorn/filename-case': unicornFilenameCase,
 };
 
 export default [
@@ -89,6 +170,12 @@ export default [
       '**/*.generated.ts',
       '**/playwright-report/**',
       '**/test-results/**',
+      '**/vitest.config.ts',
+      'vitest.config.ts',
+      'vitest.coverage.ts',
+      'vitest.shared.ts',
+      '**/coverage.policy.ts',
+      '**/coverage.policy.d.ts',
     ],
   },
   {
@@ -101,32 +188,30 @@ export default [
     },
   },
   {
-    files: [
-      'packages/**/*.ts',
-      'packages/**/*.tsx',
-      'vitest.config.ts',
-      'vitest.coverage.ts',
-      'vitest.shared.ts',
-    ],
+    files: ['packages/**/*.ts', 'packages/**/*.tsx'],
     ignores: ['**/dist/**', '**/*.test.ts', '**/*.test.tsx'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        ...tsProjectOptions,
+        ...tsParserOptions,
         ecmaFeatures: { jsx: true },
       },
     },
-    plugins: {
-      '@typescript-eslint': tseslint,
-      sonarjs,
-      import: importPlugin,
+    plugins: tsProductionPlugins,
+    settings: importXSettings,
+    rules: tsProductionRules,
+  },
+  {
+    files: ['packages/web/**/*.ts', 'packages/web/**/*.tsx'],
+    ignores: ['**/dist/**', '**/*.test.ts', '**/*.test.tsx'],
+    languageOptions: {
+      parserOptions: {
+        ...tsParserOptions,
+        tsconfigRootDir: webPackageRoot,
+        ecmaFeatures: { jsx: true },
+      },
     },
-    settings: importResolverSettings,
-    rules: {
-      ...sharedTsRules,
-      ...sharedImportRules,
-      '@typescript-eslint/no-unused-private-class-members': 'error',
-    },
+    settings: webImportXSettings,
   },
   {
     files: ['packages/**/*.test.ts', 'packages/**/*.test.tsx'],
@@ -134,21 +219,18 @@ export default [
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        ...tsProjectOptions,
+        ...tsParserOptions,
         ecmaFeatures: { jsx: true },
       },
       globals: vitestPlugin.environments.env.globals,
     },
     plugins: {
-      '@typescript-eslint': tseslint,
-      sonarjs,
-      import: importPlugin,
+      ...tsProductionPlugins,
       ...vitestPlugin.configs.recommended.plugins,
     },
-    settings: importResolverSettings,
+    settings: importXSettings,
     rules: {
-      ...sharedTsRules,
-      ...sharedImportRules,
+      ...tsProductionRules,
       ...vitestPlugin.configs.recommended.rules,
       // Tests often repeat string literals and use conditional expects; keep signal without noise.
       'vitest/no-conditional-expect': 'off',
@@ -157,23 +239,32 @@ export default [
     },
   },
   {
+    files: ['packages/web/**/*.test.ts', 'packages/web/**/*.test.tsx'],
+    languageOptions: {
+      parserOptions: {
+        ...tsParserOptions,
+        tsconfigRootDir: webPackageRoot,
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    settings: webImportXSettings,
+  },
+  {
     files: ['packages/web/e2e/**/*.spec.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        ...tsProjectOptions,
+        ...tsParserOptions,
+        tsconfigRootDir: webPackageRoot,
       },
     },
     plugins: {
-      '@typescript-eslint': tseslint,
-      sonarjs,
+      ...tsProductionPlugins,
       ...playwrightPlugin.configs['flat/recommended'].plugins,
-      import: importPlugin,
     },
-    settings: importResolverSettings,
+    settings: webImportXSettings,
     rules: {
-      ...sharedTsRules,
-      ...sharedImportRules,
+      ...tsProductionRules,
       ...playwrightPlugin.configs['flat/recommended'].rules,
       // Long Playwright flows: relax structural limits without silencing security/type rules
       'playwright/prefer-web-first-assertions': 'off',
@@ -190,7 +281,7 @@ export default [
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        ...tsProjectOptions,
+        ...tsParserOptions,
         ecmaFeatures: { jsx: true },
       },
     },
@@ -335,7 +426,11 @@ export default [
         exports: 'readonly',
       },
     },
+    plugins: {
+      ...securityRecommended.plugins,
+    },
     rules: {
+      ...securityRecommended.rules,
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },

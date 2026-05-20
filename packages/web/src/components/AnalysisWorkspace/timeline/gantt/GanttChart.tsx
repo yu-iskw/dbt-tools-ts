@@ -1,14 +1,9 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useSyncedDocumentTheme } from '@web/hooks/useTheme';
-import type { TimelineDependencyDirection, TimeWindow } from '@web/lib/analysis-workspace/types';
-import type {
-  GanttItem,
-  ResourceNode,
-  ResourceTestStats,
-  TimelineAdjacencyEntry,
-} from '@web/types';
-import { groupIntoBundles } from '@web/lib/analysis-workspace/bundleLayout';
+
+import { useSyncedDocumentTheme } from '@web/hooks/use-theme';
+import { groupIntoBundles } from '@web/lib/analysis-workspace/bundle-layout';
+
 import {
   AXIS_TOP,
   LABEL_COLUMN_MIN_PX,
@@ -20,17 +15,26 @@ import {
   type DisplayMode,
 } from './constants';
 import { getAvailableTimeZones, getInitialTimeZone } from './formatting';
-import { useGanttLabelColumnWidth } from './ganttLabelColumnWidth';
+import { bundleRowHeight, computeRowLayout } from './gantt-chart-helpers';
+import { useGanttLabelColumnWidth } from './gantt-label-column-width';
+import { applyGanttPointerInteraction } from './gantt-pointer-interaction';
 import { GanttChartFrame } from './GanttChartFrame';
 import { GanttModeToggle } from './GanttModeToggle';
 import { GanttTimeBrush } from './GanttTimeBrush';
-import { bundleRowHeight, computeRowLayout } from './ganttChartHelpers';
-import { applyGanttPointerInteraction } from './ganttPointerInteraction';
-import type { BundleLayout, HoverState } from './hitTest';
-import { useGanttCanvasDraw } from './useGanttCanvasDraw';
-import { useGanttFocusEdges } from './useGanttFocusEdges';
+import { useGanttCanvasDraw } from './use-gantt-canvas-draw';
+import { useGanttFocusEdges } from './use-gantt-focus-edges';
 
-export { getFailureBundleIds } from './ganttChartHelpers';
+import type { BundleLayout, HoverState } from './hit-test';
+import type { TimelineDependencyDirection, TimeWindow } from '@web/lib/analysis-workspace/types';
+import type {
+  GanttItem,
+  ResourceNode,
+  ResourceTestStats,
+  TimelineAdjacencyEntry,
+} from '@web/types';
+import type { ReactElement } from 'react';
+
+export { getFailureBundleIds } from './gantt-chart-helpers';
 
 export interface GanttChartProps {
   data: GanttItem[];
@@ -65,7 +69,7 @@ export function GanttChart({
   onSelect,
   timeWindow = null,
   onTimeWindowChange,
-}: GanttChartProps) {
+}: GanttChartProps): ReactElement {
   const theme = useSyncedDocumentTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -151,12 +155,17 @@ export function GanttChart({
   }, [data]);
 
   // TanStack Virtual drives scroll metrics; sizes come from bundle data (see bundleRowHeight).
-  // eslint-disable-next-line react-hooks/incompatible-library -- useVirtualizer is intentionally non-memoized per TanStack
+
+  // TanStack Virtual returns unstable function refs; incompatible with React Compiler memoization.
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual + React Compiler
   const virtualizer = useVirtualizer({
     count: bundles.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: (index) => (bundles[index] ? bundleRowHeight(bundles[index], showTests) : ROW_H),
-    getItemKey: (index) => bundles[index]?.item.unique_id ?? index,
+    estimateSize: (index) => {
+      const bundle = bundles.at(index);
+      return bundle ? bundleRowHeight(bundle, showTests) : ROW_H;
+    },
+    getItemKey: (index) => bundles.at(index)?.item.unique_id ?? index,
     overscan: 10,
   });
 
@@ -174,7 +183,7 @@ export function GanttChart({
   const bundleIndexById = useMemo(() => {
     const map = new Map<string, number>();
     for (let i = 0; i < bundles.length; i++) {
-      const bundle = bundles[i];
+      const bundle = bundles.at(i);
       if (!bundle) continue;
       map.set(bundle.item.unique_id, i);
       for (const test of bundle.tests) map.set(test.unique_id, i);
@@ -246,7 +255,7 @@ export function GanttChart({
     );
   }
 
-  function handlePointerInteraction(e: React.MouseEvent<HTMLDivElement>, mode: 'move' | 'click') {
+  function handlePointerInteraction(e: React.MouseEvent<HTMLDivElement>, mode: 'click' | 'move') {
     applyGanttPointerInteraction(e, mode, {
       bundles,
       layout,

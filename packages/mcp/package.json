@@ -1,6 +1,6 @@
 {
   "name": "@dbt-tools/mcp",
-  "version": "0.5.9",
+  "version": "0.6.0",
   "description": "MCP server for long-lived dbt artifact analysis backed by @dbt-tools/core",
   "keywords": [
     "dbt",
@@ -32,7 +32,7 @@
     "REFERENCE.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
     "test": "vitest run --project @dbt-tools/mcp",
     "test:watch": "vitest --project @dbt-tools/mcp"

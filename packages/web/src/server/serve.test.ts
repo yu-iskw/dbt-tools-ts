@@ -1,16 +1,24 @@
-import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import * as coreSafeFs from '@dbt-tools/core';
+import {
+  mkdtempSyncValidated,
+  resolveJoinedSafe,
+  rmSyncValidated,
+  writeValidatedUtf8Sync,
+} from '@dbt-tools/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type {
   ArtifactSourceDiscoveryResult,
   ArtifactSourceStatus,
-} from '../services/artifactSourceApi';
+} from '../services/artifact-source-api';
 
 // Hoist the mock so it applies before module imports.
-vi.mock('../artifact-source/sourceService', () => {
+vi.mock('../artifact-source/source-service', () => {
   class ArtifactSourceService {
     async getStatus(): Promise<ArtifactSourceStatus> {
       return {
@@ -191,13 +199,13 @@ describe('startServer', () => {
 
   it('serves index.html as the SPA fallback for unknown paths', async () => {
     // Create a temp directory with a minimal index.html and point DIST_DIR to it.
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dbt-serve-fallback-'));
-    fs.writeFileSync(path.join(tmpDir, 'index.html'), '<!DOCTYPE html>SPA');
+    const tmpDir = mkdtempSyncValidated(path.join(os.tmpdir(), 'dbt-serve-fallback-'));
+    writeValidatedUtf8Sync(resolveJoinedSafe(tmpDir, 'index.html'), '<!DOCTYPE html>SPA');
 
     const distRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../dist');
     const distRootResolved = path.resolve(distRoot);
 
-    function mapDistToTmp(p: string | Buffer | URL): string {
+    function mapDistToTmp(p: Buffer | URL | string): string {
       const resolved = path.resolve(String(p));
       if (resolved === distRootResolved) {
         return tmpDir;
@@ -209,30 +217,24 @@ describe('startServer', () => {
       return String(p);
     }
 
-    // Patch fs helpers to redirect resolved dist/ reads to tmpDir.
-    const origExistsSync = fs.existsSync;
-    const origStatSync = fs.statSync;
-    const origReadStream = fs.createReadStream;
+    // Patch safe-fs helpers to redirect resolved dist/ reads to tmpDir.
+    const origExistsValidated = coreSafeFs.existsValidated;
+    const origStatValidatedSync = coreSafeFs.statValidatedSync;
+    const origCreateReadStreamValidated = coreSafeFs.createReadStreamValidated;
 
-    vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
-      return origExistsSync(mapDistToTmp(p as string));
+    vi.spyOn(coreSafeFs, 'existsValidated').mockImplementation((p) => {
+      return origExistsValidated(mapDistToTmp(p));
     });
-    vi.spyOn(fs, 'statSync').mockImplementation((p, opts?) => {
-      return origStatSync(
-        mapDistToTmp(p as string),
-        opts as Parameters<typeof fs.statSync>[1],
-      ) as ReturnType<typeof fs.statSync>;
+    vi.spyOn(coreSafeFs, 'statValidatedSync').mockImplementation((p) => {
+      return origStatValidatedSync(mapDistToTmp(p));
     });
-    vi.spyOn(fs, 'createReadStream').mockImplementation((p, opts?) => {
-      return origReadStream(
-        mapDistToTmp(p as Parameters<typeof fs.createReadStream>[0]),
-        opts as Parameters<typeof fs.createReadStream>[1],
-      ) as ReturnType<typeof fs.createReadStream>;
+    vi.spyOn(coreSafeFs, 'createReadStreamValidated').mockImplementation((p) => {
+      return origCreateReadStreamValidated(mapDistToTmp(p));
     });
 
     const { status, body } = await httpGet(`http://${listenHost}:${listenPort}/unknown-route`);
 
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    rmSyncValidated(tmpDir, { recursive: true, force: true });
 
     expect(status).toBe(200);
     expect(body).toContain('SPA');

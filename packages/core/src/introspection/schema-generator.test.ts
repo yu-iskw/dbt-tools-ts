@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { getCommandSchema, getAllSchemas } from './schema-generator';
 
 describe('SchemaGenerator', () => {
@@ -27,18 +28,16 @@ describe('SchemaGenerator', () => {
       expect(schema?.command).toBe('graph');
     });
 
-    it('should return schema for run-report command', () => {
-      const schema = getCommandSchema('run-report');
+    it('should return schema for query-executions command', () => {
+      const schema = getCommandSchema('query-executions');
       expect(schema).not.toBeNull();
-      expect(schema?.command).toBe('run-report');
-      expect(schema?.options?.some((o) => o.name === '--node-executions-limit')).toBe(true);
+      expect(schema?.command).toBe('query-executions');
     });
 
-    it('should return schema for failures command', () => {
-      const schema = getCommandSchema('failures');
+    it('should return schema for run-summary command', () => {
+      const schema = getCommandSchema('run-summary');
       expect(schema).not.toBeNull();
-      expect(schema?.command).toBe('failures');
-      expect(schema?.stability).toBe('evolving');
+      expect(schema?.command).toBe('run-summary');
     });
 
     it('should return schema for schema command', () => {
@@ -59,12 +58,12 @@ describe('SchemaGenerator', () => {
       expect(schemas).toHaveProperty('summary');
       expect(schemas).toHaveProperty('deps');
       expect(schemas).toHaveProperty('graph');
-      expect(schemas).toHaveProperty('run-report');
+      expect(schemas).toHaveProperty('query-executions');
+      expect(schemas).toHaveProperty('run-summary');
       expect(schemas).toHaveProperty('schema');
       expect(schemas).toHaveProperty('discover');
       expect(schemas).toHaveProperty('explain');
       expect(schemas).toHaveProperty('export');
-      expect(schemas).toHaveProperty('failures');
     });
 
     it('should have complete schema structure for all commands', () => {

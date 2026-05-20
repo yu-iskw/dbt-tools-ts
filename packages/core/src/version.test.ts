@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { loadTestManifest } from 'dbt-artifacts-parser/test-utils';
-import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
+import { describe, it, expect } from 'vitest';
+
 import {
   getManifestSchemaVersion,
   getDbtVersion,
@@ -12,6 +12,8 @@ import {
   MIN_SUPPORTED_SCHEMA_VERSION,
   MIN_SUPPORTED_DBT_VERSION,
 } from './version';
+
+import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 
 describe('Version Detection', () => {
   describe('getManifestSchemaVersion', () => {

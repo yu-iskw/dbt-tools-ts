@@ -1,5 +1,7 @@
 import appLogoUrl from '@web/assets/app-logo.svg';
 
+import type { ReactElement } from 'react';
+
 export function AppLogo({
   className,
   size,
@@ -10,7 +12,7 @@ export function AppLogo({
   size?: number;
   title?: string;
   testId?: string;
-}) {
+}): ReactElement {
   return (
     <img
       src={appLogoUrl}

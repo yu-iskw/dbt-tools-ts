@@ -1,5 +1,6 @@
-import type { LensLegendItem } from '@web/lib/analysis-workspace/lineageModel';
+import type { LensLegendItem } from '@web/lib/analysis-workspace/lineage-model';
 import type { LensMode } from '@web/lib/analysis-workspace/types';
+import type { ReactElement } from 'react';
 
 /** Lens legend + clear control (presentation layer for lineage graph). */
 export function LineageGraphLegendBar({
@@ -12,7 +13,7 @@ export function LineageGraphLegendBar({
   legendItems: LensLegendItem[];
   activeLegendKeys: Set<string>;
   onToggleLegendKey: (key: string) => void;
-}) {
+}): ReactElement {
   return (
     <div className="lineage-legend">
       <span className="lineage-legend__mode-label">

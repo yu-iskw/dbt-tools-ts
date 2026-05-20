@@ -1,9 +1,11 @@
-import type { NodeExecutionSemantics } from '@web/types';
 import {
   buildMaterializationTooltipText,
   materializationKindShortLabel,
   shouldShowMaterializationSemanticsBadge,
-} from '@web/lib/analysis-workspace/materializationSemanticsUi';
+} from '@web/lib/analysis-workspace/materialization-semantics-ui';
+
+import type { NodeExecutionSemantics } from '@web/types';
+import type { ReactElement } from 'react';
 
 /**
  * Compact materialization chip; distinct from status tones and resource-type pills
@@ -15,8 +17,8 @@ export function MaterializationSemanticsBadge({
 }: {
   semantics: NodeExecutionSemantics;
   /** `compact` trims padding for dense tables / explorer rows. */
-  variant?: 'default' | 'compact';
-}) {
+  variant?: 'compact' | 'default';
+}): ReactElement | null {
   if (!shouldShowMaterializationSemanticsBadge(semantics)) {
     return null;
   }

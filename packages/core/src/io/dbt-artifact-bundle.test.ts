@@ -1,13 +1,16 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
+
 import { ArtifactBundleResolutionError } from '../errors/artifact-bundle-resolution-error';
+
+import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from './artifact-filenames';
 import {
   parseDbtToolsArtifactTarget,
   resolveDbtToolsArtifactBundlePaths,
 } from './dbt-artifact-bundle';
-import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from './artifact-filenames';
+import { mkdtempValidated, resolveJoinedSafe, writeValidatedUtf8 } from './safe-fs';
 
 describe('parseDbtToolsArtifactTarget', () => {
   it('parses s3:// strictly', () => {
@@ -43,9 +46,9 @@ describe('parseDbtToolsArtifactTarget', () => {
 
 describe('resolveDbtToolsArtifactBundlePaths (local)', () => {
   it('returns paths when manifest and run_results exist', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-art-'));
-    await fs.writeFile(path.join(dir, DBT_MANIFEST_JSON), '{}', 'utf8');
-    await fs.writeFile(path.join(dir, DBT_RUN_RESULTS_JSON), '{}', 'utf8');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-art-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_MANIFEST_JSON), '{}');
+    await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_RUN_RESULTS_JSON), '{}');
 
     const paths = await resolveDbtToolsArtifactBundlePaths({
       dbtTargetRaw: dir,
@@ -56,8 +59,8 @@ describe('resolveDbtToolsArtifactBundlePaths (local)', () => {
   });
 
   it('supports manifest-only requirements', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-art-'));
-    await fs.writeFile(path.join(dir, DBT_MANIFEST_JSON), '{}', 'utf8');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-art-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_MANIFEST_JSON), '{}');
 
     const paths = await resolveDbtToolsArtifactBundlePaths({
       dbtTargetRaw: dir,
@@ -69,8 +72,8 @@ describe('resolveDbtToolsArtifactBundlePaths (local)', () => {
   });
 
   it('supports run-results-only requirements', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-art-'));
-    await fs.writeFile(path.join(dir, DBT_RUN_RESULTS_JSON), '{}', 'utf8');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-art-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_RUN_RESULTS_JSON), '{}');
 
     const paths = await resolveDbtToolsArtifactBundlePaths({
       dbtTargetRaw: dir,
@@ -82,8 +85,8 @@ describe('resolveDbtToolsArtifactBundlePaths (local)', () => {
   });
 
   it('throws ArtifactBundleResolutionError when manifest missing', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-art-'));
-    await fs.writeFile(path.join(dir, DBT_RUN_RESULTS_JSON), '{}', 'utf8');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-art-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_RUN_RESULTS_JSON), '{}');
 
     await expect(
       resolveDbtToolsArtifactBundlePaths({ dbtTargetRaw: dir, cwd: '/tmp' }),
@@ -91,8 +94,8 @@ describe('resolveDbtToolsArtifactBundlePaths (local)', () => {
   });
 
   it('throws only for required files', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-art-'));
-    await fs.writeFile(path.join(dir, DBT_MANIFEST_JSON), '{}', 'utf8');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-art-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_MANIFEST_JSON), '{}');
 
     await expect(
       resolveDbtToolsArtifactBundlePaths({

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import {
   countTimelineTestResources,
   formatRelationNameForDisplay,
@@ -11,8 +12,8 @@ import {
   getDefaultTimelineActiveTypes,
   timelineGanttHasCompileExecutePhases,
 } from './utils';
-import type { ResourceNode } from '@web/types';
-import type { ExecutionRow } from '@web/types';
+
+import type { ResourceNode, ExecutionRow } from '@web/types';
 
 // minimal stubs
 function makeResource(overrides: Partial<ResourceNode> = {}): ResourceNode {

@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { EmptyState } from '../../EmptyState';
+
 import {
   type LineageDisplayMode,
   type LineageGraphModel,
   collectHighlightedGraphIds,
   filterLineageGraphModel,
   getLensLegendItems,
-} from '@web/lib/analysis-workspace/lineageModel';
-import type { LensMode } from '@web/lib/analysis-workspace/types';
-import { getScrollToCenterSelectedNode } from './lineageViewportScroll';
+} from '@web/lib/analysis-workspace/lineage-model';
+
+import { EmptyState } from '../../EmptyState';
+
+import { getScrollToCenterSelectedNode } from './lineage-viewport-scroll';
 import { LineageGraphSurfaceView } from './LineageGraphSurfaceView';
-import { useLineageGraphTooltipPosition } from './useLineageGraphTooltipPosition';
+import { useLineageGraphTooltipPosition } from './use-lineage-graph-tooltip-position';
+
+import type { LensMode } from '@web/lib/analysis-workspace/types';
+import type { ReactElement } from 'react';
 
 /** Composes legend, viewport controls, SVG graph, hotspots, tooltip, and context menu. */
 export function LineageGraphSurface({
@@ -29,7 +34,7 @@ export function LineageGraphSurface({
   onToggleLegendKey: (key: string) => void;
   fullscreen?: boolean;
   displayMode?: LineageDisplayMode;
-}) {
+}): ReactElement {
   const { nodeLayouts, svgHeight, svgWidth, nodeWidth, nodeHeight, nodeRadius } = model;
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [tooltipNodeId, setTooltipNodeId] = useState<string | null>(null);

@@ -1,19 +1,30 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import {
+  DBT_MANIFEST_JSON,
+  DBT_RUN_RESULTS_JSON,
+  mkdtempValidated,
+  readValidatedUtf8,
+  resolveJoinedSafe,
+  rmValidated,
+  writeValidatedUtf8,
+} from '@dbt-tools/core';
+import { createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '@dbt-tools/core';
-import type { DbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
-import { registerDbtToolsTools } from './tools/registerTools.js';
+
 import {
   createDbtToolsMcpServer,
   createDbtToolsMcpStack,
   runDbtToolsMcpCli,
   startRefreshPolling,
 } from './server.js';
-import { createDbtToolsMcpToolHandlers } from './tools/toolHandlers.js';
-import { createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
+import { registerDbtToolsTools } from './tools/register-tools.js';
+import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
+
+import type { DbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 class RecordingMcpServer {
   readonly tools: Array<{ name: string; config: unknown; handler: unknown }> = [];
@@ -32,8 +43,10 @@ class RefreshingWorkspace {
 }
 
 async function readFixtureJson(relativePath: string): Promise<Record<string, unknown>> {
-  const fixtureUrl = new URL(`../../test-fixtures/${relativePath}`, import.meta.url);
-  return JSON.parse(await fs.readFile(fixtureUrl, 'utf8')) as Record<string, unknown>;
+  const fixturePath = fileURLToPath(
+    new URL(`../../test-fixtures/${relativePath}`, import.meta.url),
+  );
+  return JSON.parse(await readValidatedUtf8(fixturePath)) as Record<string, unknown>;
 }
 
 async function writeArtifacts(dir: string): Promise<void> {
@@ -43,19 +56,22 @@ async function writeArtifacts(dir: string): Promise<void> {
   const runResultsJson = await readFixtureJson(
     'dbt-artifacts-parser/resources/run_results/v6/jaffle_shop/run_results.json',
   );
-  await fs.writeFile(path.join(dir, DBT_MANIFEST_JSON), JSON.stringify(manifestJson), 'utf8');
-  await fs.writeFile(path.join(dir, DBT_RUN_RESULTS_JSON), JSON.stringify(runResultsJson), 'utf8');
+  await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_MANIFEST_JSON), JSON.stringify(manifestJson));
+  await writeValidatedUtf8(
+    resolveJoinedSafe(dir, DBT_RUN_RESULTS_JSON),
+    JSON.stringify(runResultsJson),
+  );
 }
 
 describe('dbt-tools MCP server wiring', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-mcp-'));
+    tempDir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-mcp-'));
   });
 
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await rmValidated(tempDir, { recursive: true, force: true });
     vi.useRealTimers();
   });
 
@@ -63,30 +79,26 @@ describe('dbt-tools MCP server wiring', () => {
     const server = new RecordingMcpServer();
     const handlers = {
       dbt_tools_status: async () => ({ content: [] }),
+      dbt_tools_set_target: async () => ({ content: [] }),
       dbt_tools_refresh: async () => ({ content: [] }),
-      dbt_tools_list_runs: async () => ({ content: [] }),
-      dbt_tools_select_run: async () => ({ content: [] }),
       dbt_tools_search_resources: async () => ({ content: [] }),
       dbt_tools_get_resource: async () => ({ content: [] }),
-      dbt_tools_lineage: async () => ({ content: [] }),
-      dbt_tools_impact: async () => ({ content: [] }),
-      dbt_tools_failures: async () => ({ content: [] }),
-      dbt_tools_run_report: async () => ({ content: [] }),
+      dbt_tools_query_dependencies: async () => ({ content: [] }),
+      dbt_tools_query_executions: async () => ({ content: [] }),
+      dbt_tools_get_run_summary: async () => ({ content: [] }),
     } satisfies DbtToolsMcpToolHandlers;
 
     registerDbtToolsTools(server as unknown as McpServer, handlers);
 
     expect(server.tools.map((tool) => tool.name)).toEqual([
       'dbt_tools_status',
+      'dbt_tools_set_target',
       'dbt_tools_refresh',
-      'dbt_tools_list_runs',
-      'dbt_tools_select_run',
       'dbt_tools_search_resources',
       'dbt_tools_get_resource',
-      'dbt_tools_lineage',
-      'dbt_tools_impact',
-      'dbt_tools_failures',
-      'dbt_tools_run_report',
+      'dbt_tools_query_dependencies',
+      'dbt_tools_query_executions',
+      'dbt_tools_get_run_summary',
     ]);
   });
 
@@ -96,6 +108,26 @@ describe('dbt-tools MCP server wiring', () => {
     const server = await createDbtToolsMcpServer(['--dbt-target', tempDir]);
 
     expect(server).toBeInstanceOf(Object);
+  });
+
+  it('loads artifacts after set_target when no startup target is configured', async () => {
+    await writeArtifacts(tempDir);
+
+    const { workspace } = await createDbtToolsMcpStack([]);
+    const statusBefore = await workspace.getStatus();
+    expect(statusBefore.target).toBeNull();
+    expect(statusBefore.loadedAtMs).toBeNull();
+
+    const useCases = createDbtToolsUseCases(workspace);
+    const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);
+    const setResult = await handlers.dbt_tools_set_target({ target: tempDir });
+    expect(setResult.isError).not.toBe(true);
+
+    await handlers.dbt_tools_search_resources({ query: 'orders' });
+
+    const statusAfter = await workspace.getStatus();
+    expect(statusAfter.target).toBe(tempDir);
+    expect(statusAfter.loadedAtMs).not.toBeNull();
   });
 
   it('defers artifact load until a tool needs the workspace (lazy init)', async () => {
@@ -119,7 +151,7 @@ describe('dbt-tools MCP server wiring', () => {
     process.env.DBT_TOOLS_DEBUG = '1';
     let stderr = '';
     const originalWrite = process.stderr.write.bind(process.stderr);
-    process.stderr.write = ((chunk: string | Uint8Array) => {
+    process.stderr.write = ((chunk: Uint8Array | string) => {
       stderr += String(chunk);
       return originalWrite(chunk);
     }) as typeof process.stderr.write;

@@ -34,7 +34,7 @@ They ship with the **dbt-tools-cli** agent plugin ([`plugins/dbt-tools-cli/`](..
 
 ## Authoring steps
 
-1. **Pick an id** — kebab-case folder name (e.g. `my-workflow`). Use the **same** string for YAML **`name:`** in `SKILL.md`. Avoid clashing with existing skills (for example [`dbt-artifacts-status`](../../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/SKILL.md)).
+1. **Pick an id** — kebab-case folder name matching the primary CLI command when possible (e.g. `discover`, `explain`). Use the **same** string for YAML **`name:`** in `SKILL.md`. Avoid clashing with existing skills (for example [`status`](../../../plugins/dbt-tools-cli/skills/status/SKILL.md)).
 
 2. **Create** `plugins/dbt-tools-cli/skills/<id>/SKILL.md` with frontmatter and body (see skeleton below).
 
@@ -42,8 +42,8 @@ They ship with the **dbt-tools-cli** agent plugin ([`plugins/dbt-tools-cli/`](..
    - **Triggers** and **when to use** — help agents discover the skill.
    - **Commands** — link to [`packages/cli/README.md`](../../../packages/cli/README.md) for flags and options; prefer `dbt-tools schema` for discovery and `--json` where appropriate.
    - **Workflow order** — e.g. artifact check → search → deps; do not paste the full CLI reference.
-   - **Artifact readiness** — if the workflow needs `manifest.json` / `run_results.json`, point to or compose with [`dbt-artifacts-status`](../../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/SKILL.md) instead of duplicating readiness rules.
-   - **Progressive disclosure** — long tables in `references/` under the same skill directory (see exemplar [`references/readiness.md`](../../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/references/readiness.md)).
+   - **Artifact readiness** — if the workflow needs `manifest.json` / `run_results.json`, point to the **Readiness gate** section in [`status`](../../../plugins/dbt-tools-cli/skills/status/SKILL.md) instead of duplicating readiness rules.
+   - **Progressive disclosure** — long tables in `references/` under the same skill directory (see exemplar [`status/references/readiness.md`](../../../plugins/dbt-tools-cli/skills/status/references/readiness.md)).
 
 4. **Link depth** — From `plugins/dbt-tools-cli/skills/<id>/SKILL.md`, the repo root is **four** levels up (`../../../../`). Example: `../../../../packages/cli/README.md` for flags and extended topics.
 
@@ -95,4 +95,4 @@ Link to [packages/cli/README.md](../../../../packages/cli/README.md) for flags; 
 
 - Plugin discovery (end users): [`plugins/README.md`](../../../plugins/README.md)
 - Verification and CI (contributors): [`plugins/CONTRIBUTING.md`](../../../plugins/CONTRIBUTING.md)
-- Exemplar skill: [`dbt-artifacts-status`](../../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/SKILL.md)
+- Exemplar skill: [`status`](../../../plugins/dbt-tools-cli/skills/status/SKILL.md)

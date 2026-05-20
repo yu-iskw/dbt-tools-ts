@@ -1,16 +1,18 @@
-import { useMemo } from 'react';
-import type { AnalysisState } from '@web/types';
+import { useMemo, type ReactElement } from 'react';
+
 import {
   buildInvocationResourceComparison,
   type InvocationResourceComparisonRow,
-} from '@web/lib/analysis-workspace/invocationResourceStats';
+} from '@web/lib/analysis-workspace/invocation-resource-stats';
 import { deriveProjectName, formatResourceTypeLabel } from '@web/lib/analysis-workspace/utils';
+
+import type { AnalysisState } from '@web/types';
 
 export function InvocationResourceStatsTable({
   rows,
 }: {
   rows: InvocationResourceComparisonRow[];
-}) {
+}): ReactElement | null {
   if (rows.length === 0) return null;
 
   return (
@@ -61,7 +63,7 @@ export function InvocationResourceStatsTable({
 }
 
 /** Shared invocation vs manifest vs timeline table; use on Health and Timeline. */
-export function InvocationResourceStats({ analysis }: { analysis: AnalysisState }) {
+export function InvocationResourceStats({ analysis }: { analysis: AnalysisState }): ReactElement {
   const projectName = analysis.projectName ?? deriveProjectName(analysis.executions);
 
   const rows = useMemo(

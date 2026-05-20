@@ -1,9 +1,10 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- Fixture discovery walks validated resource roots; paths are sanitized before fs use. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export type ArtifactType = 'manifest' | 'run_results' | 'sources' | 'catalog';
-export type ResourceLocation = 'tests' | 'resources';
+export type ArtifactType = 'catalog' | 'manifest' | 'run_results' | 'sources';
+export type ResourceLocation = 'resources' | 'tests';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const resourcesDir = path.resolve(__dirname, 'resources');
@@ -130,3 +131,4 @@ export function loadTestCatalog(
     fs.readFileSync(getTestResourcePath('catalog', version, 'tests', project, filename), 'utf-8'),
   );
 }
+/* eslint-enable security/detect-non-literal-fs-filename -- end fixture test-utils boundary */

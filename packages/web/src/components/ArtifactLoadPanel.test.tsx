@@ -3,6 +3,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { ArtifactLoadPanel } from './ArtifactLoadPanel';
 
 const { configureArtifactSourceFromApi, discoverArtifactSourceFromApi, refetchFromApi } =
@@ -12,7 +13,7 @@ const { configureArtifactSourceFromApi, discoverArtifactSourceFromApi, refetchFr
     refetchFromApi: vi.fn(),
   }));
 
-vi.mock('../services/artifactSourceApi', () => ({
+vi.mock('../services/artifact-source-api', () => ({
   configureArtifactSourceFromApi,
   discoverArtifactSourceFromApi,
   refetchFromApi,
@@ -101,7 +102,7 @@ function changeInput(input: HTMLInputElement, value: string) {
   });
 }
 
-function clickSourceTab(container: HTMLElement, kind: 'local' | 's3' | 'gcs') {
+function clickSourceTab(container: HTMLElement, kind: 'gcs' | 'local' | 's3') {
   const tab = container.querySelector(`#artifact-source-tab-${kind}`) as HTMLButtonElement;
   act(() => {
     tab.click();

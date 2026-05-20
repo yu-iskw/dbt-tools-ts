@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+  type ReactElement,
+} from 'react';
+
 import type { StatusTone } from '@web/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -23,7 +31,7 @@ const DISMISS_MS = 4000;
 
 // ─── Provider ───────────────────────────────────────────────────────────────
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children }: { children: ReactNode }): ReactElement {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const toast = useCallback((message: string, tone: StatusTone = 'neutral') => {

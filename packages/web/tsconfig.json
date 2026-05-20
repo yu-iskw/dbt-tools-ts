@@ -8,9 +8,9 @@
       "@dbt-tools/core/artifact-io": ["../core/src/artifact-io.ts"],
       "@dbt-tools/core/browser": ["../core/src/browser.ts"]
     },
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -24,8 +24,14 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "exclude": ["src/dbt-target-plugin.ts", "src/**/*.test.ts"],
+  "include": [
+    "src",
+    "e2e",
+    "coverage.policy.ts",
+    "playwright.config.ts",
+    "playwright.demo.config.ts"
+  ],
+  "exclude": ["src/dbt-target-plugin.ts"],
   "references": [
     {
       "path": "./tsconfig.node.json"

@@ -3,8 +3,10 @@
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { GanttItem } from '@web/types';
+
 import { GanttChart } from './GanttChart';
+
+import type { GanttItem } from '@web/types';
 
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: () => ({
@@ -14,15 +16,15 @@ vi.mock('@tanstack/react-virtual', () => ({
   }),
 }));
 
-vi.mock('@web/hooks/useTheme', () => ({
+vi.mock('@web/hooks/use-theme', () => ({
   useSyncedDocumentTheme: () => 'light',
 }));
 
-vi.mock('./useGanttCanvasDraw', () => ({
+vi.mock('./use-gantt-canvas-draw', () => ({
   useGanttCanvasDraw: () => {},
 }));
 
-vi.mock('./useGanttFocusEdges', () => ({
+vi.mock('./use-gantt-focus-edges', () => ({
   useGanttFocusEdges: () => ({
     edges: [],
   }),

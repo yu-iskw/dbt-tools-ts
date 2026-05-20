@@ -1,13 +1,23 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-// @ts-expect-error - workspace package, TypeScript resolves via package.json
+
 import { loadTestManifest, loadTestRunResults } from 'dbt-artifacts-parser/test-utils';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { ArtifactTargetNotConfiguredError } from '../errors/artifact-target-not-configured-error';
+// @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { DBT_MANIFEST_JSON, DBT_RUN_RESULTS_JSON } from '../io/artifact-filenames';
+import {
+  mkdtempValidated,
+  resolveJoinedSafe,
+  rmValidated,
+  writeValidatedUtf8,
+} from '../io/safe-fs';
+
+import { ArtifactWorkspace, createDbtToolsUseCases } from './index';
+
 import type { RemoteObjectMetadata } from '../io/artifact-discovery';
 import type { RemoteObjectStoreClient } from '../io/remote-object-store';
-import { ArtifactWorkspace, createDbtToolsUseCases } from './index';
 
 class FakeRemoteObjectStoreClient implements RemoteObjectStoreClient {
   readonly reads: string[] = [];
@@ -57,19 +67,22 @@ const manifestJson = loadTestManifest('v12', 'manifest_1.10.json') as Record<str
 const runResultsJson = loadTestRunResults('v6', 'run_results.json') as Record<string, unknown>;
 
 async function writeArtifacts(dir: string): Promise<void> {
-  await fs.writeFile(path.join(dir, DBT_MANIFEST_JSON), JSON.stringify(manifestJson), 'utf8');
-  await fs.writeFile(path.join(dir, DBT_RUN_RESULTS_JSON), JSON.stringify(runResultsJson), 'utf8');
+  await writeValidatedUtf8(resolveJoinedSafe(dir, DBT_MANIFEST_JSON), JSON.stringify(manifestJson));
+  await writeValidatedUtf8(
+    resolveJoinedSafe(dir, DBT_RUN_RESULTS_JSON),
+    JSON.stringify(runResultsJson),
+  );
 }
 
 describe('ArtifactWorkspace', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-workspace-'));
+    tempDir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-'));
   });
 
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await rmValidated(tempDir, { recursive: true, force: true });
   });
 
   it('loads a local target once and serves shared search/resource/lineage use cases', async () => {
@@ -98,13 +111,13 @@ describe('ArtifactWorkspace', () => {
     expect(resource?.uniqueId).toBe('model.jaffle_shop.customers');
     expect(resource?.name).toBe('customers');
 
-    const lineage = await useCases.getLineage({
+    const deps = await useCases.queryDependencies({
       uniqueId: 'model.jaffle_shop.customers',
       direction: 'upstream',
       depth: 1,
     });
-    expect(lineage.count).toBeGreaterThan(0);
-    expect(lineage.dependencies.some((dependency) => dependency.depth === 1)).toBe(true);
+    expect(deps.count).toBeGreaterThan(0);
+    expect(deps.dependencies.some((dependency) => dependency.depth === 1)).toBe(true);
   });
 
   it('skips remote artifact reads when the version token has not changed', async () => {
@@ -149,5 +162,53 @@ describe('ArtifactWorkspace', () => {
         total: expect.any(Number),
       },
     );
+  });
+
+  it('reports null target before configuration', async () => {
+    const workspace = new ArtifactWorkspace({ now: () => 123 });
+    const status = await workspace.getStatus();
+    expect(status.target).toBeNull();
+    expect(status.loadedAtMs).toBeNull();
+    await expect(workspace.getLoadedWorkspace()).rejects.toBeInstanceOf(
+      ArtifactTargetNotConfiguredError,
+    );
+    await expect(workspace.refreshIfChanged()).resolves.toMatchObject({ target: null });
+  });
+
+  it('loads artifacts after setTarget on an unconfigured workspace', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ now: () => 123 });
+    const status = await workspace.setTarget(tempDir);
+    expect(status.target).toBe(tempDir);
+    expect(status.loadedAtMs).toBe(123);
+
+    const useCases = createDbtToolsUseCases(workspace);
+    const search = await useCases.searchResources({ query: 'customers', limit: 5 });
+    expect(search.total).toBeGreaterThan(0);
+  });
+
+  it('replaces the loaded snapshot when setTarget changes path', async () => {
+    const dirA = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-a-'));
+    const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-b-'));
+    try {
+      await writeArtifacts(dirA);
+      await writeArtifacts(dirB);
+
+      const workspace = new ArtifactWorkspace({ now: () => 100 });
+      const first = await workspace.setTarget(dirA);
+      const second = await workspace.setTarget(dirB);
+
+      expect(first.target).toBe(dirA);
+      expect(second.target).toBe(dirB);
+      expect(second.loadedAtMs).toBe(100);
+
+      const useCases = createDbtToolsUseCases(workspace);
+      await expect(
+        useCases.searchResources({ query: 'customers', limit: 1 }),
+      ).resolves.toMatchObject({ total: expect.any(Number) });
+    } finally {
+      await rmValidated(dirA, { recursive: true, force: true });
+      await rmValidated(dirB, { recursive: true, force: true });
+    }
   });
 });

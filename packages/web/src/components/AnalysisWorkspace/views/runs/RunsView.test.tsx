@@ -1,23 +1,25 @@
 // @vitest-environment jsdom
-
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { useRunsResultsSource } from '@web/hooks/use-runs-results-source';
+
+import { RunsView } from './RunsView';
+
+import type { RunsViewState } from '@web/lib/analysis-workspace/types';
+import type { AnalysisState, ExecutionRow } from '@web/types';
 
 const actEnvironment = globalThis as typeof globalThis & {
   IS_REACT_ACT_ENVIRONMENT?: boolean;
 };
 actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
-import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import type { AnalysisState, ExecutionRow } from '@web/types';
-import type { RunsViewState } from '@web/lib/analysis-workspace/types';
-import { useRunsResultsSource } from '@web/hooks/useRunsResultsSource';
-import { RunsView } from './RunsView';
 
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: vi.fn(),
 }));
-vi.mock('@web/hooks/useRunsResultsSource');
+vi.mock('@web/hooks/use-runs-results-source');
 
 const mockUseVirtualizer = vi.mocked(useVirtualizer);
 const mockUseRunsResultsSource = vi.mocked(useRunsResultsSource);
@@ -42,8 +44,8 @@ function makeRow(over: Partial<ExecutionRow> = {}): ExecutionRow {
 function makeField(
   key: string,
   value: string,
-  kind: 'number' | 'string' | 'object' = 'string',
-  sortValue?: string | number,
+  kind: 'number' | 'object' | 'string' = 'string',
+  sortValue?: number | string,
 ) {
   return {
     key,

@@ -15,13 +15,15 @@ import {
   formatDeps,
   shouldOutputJSON,
 } from '@dbt-tools/core';
-import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
+
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
 
-type DepsOptions = {
+import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
+
+type DepsOptions = ArtifactRootCliOptions & {
   direction?: string;
   fields?: string;
   field?: string;
@@ -30,7 +32,7 @@ type DepsOptions = {
   buildOrder?: boolean;
   json?: boolean;
   noJson?: boolean;
-} & ArtifactRootCliOptions;
+};
 
 /** Add field-level lineage to graph and return targetId */
 function addFieldLevelLineage(
@@ -125,7 +127,7 @@ export async function depsAction(
     const result = DependencyService.getDependencies(
       graph,
       targetId,
-      direction as 'upstream' | 'downstream',
+      direction as 'downstream' | 'upstream',
       options.fields,
       options.depth,
       format as 'flat' | 'tree',

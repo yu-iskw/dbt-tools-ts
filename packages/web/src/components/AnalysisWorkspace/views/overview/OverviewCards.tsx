@@ -1,8 +1,12 @@
-import type { AnalysisState } from '@web/types';
-import type { OverviewDerivedState } from '@web/lib/analysis-workspace/overviewState';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
+
 import { EmptyState } from '../../../EmptyState';
+
 import { OverviewScopeBadge } from './OverviewPanel';
+
+import type { OverviewDerivedState } from '@web/lib/analysis-workspace/overview-state';
+import type { AnalysisState } from '@web/types';
+import type { ReactElement } from 'react';
 
 export function OverviewActionListCard({
   derived,
@@ -14,7 +18,7 @@ export function OverviewActionListCard({
   title?: string;
   subtitle?: string;
   embedded?: boolean;
-}) {
+}): ReactElement {
   const topRows = derived.topBottlenecks;
 
   return (
@@ -63,7 +67,7 @@ export function OverviewCriticalPathCard({
 }: {
   analysis: AnalysisState;
   filtered: boolean;
-}) {
+}): ReactElement {
   const criticalPathLength = analysis.summary.critical_path?.path.length ?? 0;
 
   return (
@@ -99,7 +103,7 @@ export function OverviewCoverageCard({
 }: {
   analysis: AnalysisState;
   filtered: boolean;
-}) {
+}): ReactElement {
   const documentedResources = analysis.resources.filter((resource) =>
     Boolean(resource.description?.trim()),
   ).length;

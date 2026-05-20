@@ -1,6 +1,7 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { PILL_ACTIVE, PILL_BASE } from '@web/lib/analysis-workspace/constants';
-import { clampDepth } from '@web/lib/analysis-workspace/lineageModel';
+import { clampDepth } from '@web/lib/analysis-workspace/lineage-model';
+
+import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
 export function DepthStepper({
   label,
@@ -12,7 +13,7 @@ export function DepthStepper({
   value: number;
   setValue: Dispatch<SetStateAction<number>>;
   disabled?: boolean;
-}) {
+}): ReactElement {
   return (
     <div className={`lineage-stepper${disabled ? ' lineage-stepper--disabled' : ''}`}>
       <span className="lineage-stepper__label">{label}</span>
@@ -65,7 +66,7 @@ export function SharedDepthSelector({
   setUpstreamDepth: Dispatch<SetStateAction<number>>;
   setDownstreamDepth: Dispatch<SetStateAction<number>>;
   setAllDepsMode: Dispatch<SetStateAction<boolean>>;
-}) {
+}): ReactElement {
   const sharedDepth = getSharedDepthValue(upstreamDepth, downstreamDepth, allDepsMode);
 
   const setDepth = (value: '1' | '2' | '3' | 'all') => {

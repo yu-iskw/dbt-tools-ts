@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 interface EmptyStateProps {
   /** An emoji or small icon element shown above the headline. */
-  icon?: string | ReactNode;
+  icon?: ReactNode | string;
   /** The primary message — short, specific, and actionable. */
   headline: string;
   /** Optional supporting text with more context. */
@@ -21,7 +21,7 @@ interface EmptyStateProps {
  *   subtext="Try adjusting the status filter or search query."
  * />
  */
-export function EmptyState({ icon, headline, subtext }: EmptyStateProps) {
+export function EmptyState({ icon, headline, subtext }: EmptyStateProps): ReactElement {
   return (
     <div className="empty-state-block">
       {icon !== undefined && (

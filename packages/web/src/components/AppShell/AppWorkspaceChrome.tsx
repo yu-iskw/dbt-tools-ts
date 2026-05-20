@@ -1,26 +1,29 @@
-import type { Dispatch, SetStateAction } from 'react';
-import type { WorkspaceSignal } from '../AnalysisWorkspace';
+import { useOmniboxResults } from '@web/hooks/use-omnibox-results';
+
 import { ErrorBanner } from '../ErrorBanner';
-import type { WorkspacePreferences } from '@web/hooks/useWorkspacePreferences';
-import type { ThemePreference } from '@web/lib/analysis-workspace/types';
-import type { UseWorkspaceUrlStateResult } from '@web/hooks/useWorkspaceUrlState';
-import { useOmniboxResults } from '@web/hooks/useOmniboxResults';
-import type { AnalysisLoadResult } from '@web/services/analysisLoader';
-import type { ArtifactLocationSnapshot } from '@web/lib/artifactSource';
-import type {
-  MissingOptionalArtifactsState,
-  RemoteArtifactRun,
-  WorkspaceArtifactSource,
-} from '@web/services/artifactSourceApi';
-import type { AnalysisState } from '@web/types';
-import { AppSidebar } from './AppSidebar';
-import { RemoteUpdateBanner } from './RemoteUpdateBanner';
+
 import {
   buildHeaderModel,
   HeaderIdentity,
   HeaderSearch,
   WorkspaceContent,
-} from './appWorkspaceChromeInternals';
+} from './app-workspace-chrome-internals';
+import { AppSidebar } from './AppSidebar';
+import { RemoteUpdateBanner } from './RemoteUpdateBanner';
+
+import type { WorkspaceSignal } from '../AnalysisWorkspace';
+import type { WorkspacePreferences } from '@web/hooks/use-workspace-preferences';
+import type { UseWorkspaceUrlStateResult } from '@web/hooks/use-workspace-url-state';
+import type { ThemePreference } from '@web/lib/analysis-workspace/types';
+import type { ArtifactLocationSnapshot } from '@web/lib/artifact-source';
+import type { AnalysisLoadResult } from '@web/services/analysis-loader';
+import type {
+  MissingOptionalArtifactsState,
+  RemoteArtifactRun,
+  WorkspaceArtifactSource,
+} from '@web/services/artifact-source-api';
+import type { AnalysisState } from '@web/types';
+import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
 export interface AppWorkspaceChromeProps {
   workspace: UseWorkspaceUrlStateResult;
@@ -62,7 +65,7 @@ export function AppWorkspaceChrome({
   preferences,
   setPreferences,
   workspaceSignals,
-}: AppWorkspaceChromeProps) {
+}: AppWorkspaceChromeProps): ReactElement {
   const {
     activeView,
     sidebarCollapsed,

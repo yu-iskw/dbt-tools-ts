@@ -13,20 +13,28 @@
     },
     "packages/core": {
       "entry": ["src/**/*.test.ts"],
-      "project": ["src/**/*.ts"]
+      "project": ["src/**/*.ts"],
+      "ignoreUnresolved": ["\\.js$"]
     },
     "packages/cli": {
       "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.ts"]
     },
     "packages/mcp": {
-      "entry": ["src/**/*.test.ts"],
+      "entry": ["src/server.ts", "src/**/*.test.ts"],
       "project": ["src/**/*.ts"]
     },
     "packages/web": {
-      "entry": ["e2e/**/*.ts", "src/**/*.test.ts", "src/**/*.test.tsx", "src/server/cli.ts"],
+      "entry": [
+        "e2e/**/*.ts",
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/server/cli.ts",
+        "src/workers/**/*.worker.ts"
+      ],
       "project": ["src/**/*.ts", "src/**/*.tsx"],
-      "ignoreFiles": ["src/constants/themeColors.generated.ts"],
+      "ignoreFiles": ["src/constants/theme-colors.generated.ts"],
+      "ignoreUnresolved": ["\\.js$"],
       "vite": true,
       "playwright": true
     },

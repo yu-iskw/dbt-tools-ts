@@ -4,25 +4,25 @@
 
 export const DISCOVER_SCHEMA_VERSION = 1;
 
-export type DiscoverConfidence = 'high' | 'medium' | 'low';
+export type DiscoverConfidence = 'high' | 'low' | 'medium';
 
 /** Machine-stable reason codes for ranking and explainability. */
 export type DiscoverReason =
+  | 'alias_match'
+  | 'description_match'
   | 'exact_name_match'
   | 'exact_unique_id_match'
+  | 'fuzzy_name_match'
+  | 'high_downstream_fanout'
+  | 'high_upstream_fanout'
+  | 'original_file_path_match'
+  | 'package_match'
+  | 'path_match'
   | 'substring_name_match'
   | 'substring_unique_id_match'
-  | 'path_match'
-  | 'original_file_path_match'
-  | 'tag_match'
-  | 'description_match'
-  | 'package_match'
-  | 'fuzzy_name_match'
-  | 'alias_match'
-  | 'high_downstream_fanout'
-  | 'high_upstream_fanout';
+  | 'tag_match';
 
-export type DiscoverRelatedRelation = 'test' | 'upstream' | 'downstream' | 'parent';
+export type DiscoverRelatedRelation = 'downstream' | 'parent' | 'test' | 'upstream';
 
 export interface DiscoverRelatedEntry {
   unique_id: string;
@@ -37,7 +37,7 @@ export interface DiscoverDisambiguationEntry {
   reason: string;
 }
 
-export type DiscoverNextAction = 'explain' | 'impact' | 'diagnose' | 'deps' | 'inventory';
+export type DiscoverNextAction = 'deps' | 'diagnose' | 'explain' | 'impact' | 'inventory';
 
 export interface DiscoverMatch {
   resource_type: string;
@@ -57,7 +57,7 @@ export interface DiscoverMatch {
 export interface InvestigationTranscript {
   intent?: string;
   input: string;
-  steps: Array<{ op: string; status: 'ok' | 'error'; detail?: string }>;
+  steps: Array<{ op: string; status: 'error' | 'ok'; detail?: string }>;
 }
 
 export interface DiscoverOutput {

@@ -1,7 +1,9 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
+import { mkdtempValidated, resolveJoinedSafe, writeValidatedUtf8 } from '@dbt-tools/core';
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { resolveCliArtifactPaths, resolveEffectiveDbtTarget } from './cli-artifact-resolve';
 
 describe('cli-artifact-resolve', () => {
@@ -31,17 +33,17 @@ describe('cli-artifact-resolve', () => {
   });
 
   it('resolveCliArtifactPaths loads fixed files from --dbt-target', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-cli-artifact-'));
-    await fs.writeFile(path.join(dir, 'manifest.json'), '{}');
-    await fs.writeFile(path.join(dir, 'run_results.json'), '{}');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-cli-artifact-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, 'manifest.json'), '{}');
+    await writeValidatedUtf8(resolveJoinedSafe(dir, 'run_results.json'), '{}');
     const paths = await resolveCliArtifactPaths({ dbtTarget: dir });
     expect(paths.manifest).toBe(path.join(dir, 'manifest.json'));
     expect(paths.runResults).toBe(path.join(dir, 'run_results.json'));
   });
 
   it('resolveCliArtifactPaths supports manifest-only requirements', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-cli-artifact-'));
-    await fs.writeFile(path.join(dir, 'manifest.json'), '{}');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-cli-artifact-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, 'manifest.json'), '{}');
 
     const paths = await resolveCliArtifactPaths(
       { dbtTarget: dir },
@@ -51,8 +53,8 @@ describe('cli-artifact-resolve', () => {
   });
 
   it('resolveCliArtifactPaths supports run-results-only requirements', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-cli-artifact-'));
-    await fs.writeFile(path.join(dir, 'run_results.json'), '{}');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-cli-artifact-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, 'run_results.json'), '{}');
 
     const paths = await resolveCliArtifactPaths(
       { dbtTarget: dir },
@@ -62,9 +64,9 @@ describe('cli-artifact-resolve', () => {
   });
 
   it('resolveCliArtifactPaths uses DBT_TOOLS_DBT_TARGET when flag omitted', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-cli-artifact-'));
-    await fs.writeFile(path.join(dir, 'manifest.json'), '{}');
-    await fs.writeFile(path.join(dir, 'run_results.json'), '{}');
+    const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-cli-artifact-'));
+    await writeValidatedUtf8(resolveJoinedSafe(dir, 'manifest.json'), '{}');
+    await writeValidatedUtf8(resolveJoinedSafe(dir, 'run_results.json'), '{}');
     process.env.DBT_TOOLS_DBT_TARGET = dir;
     const paths = await resolveCliArtifactPaths({});
     expect(paths.manifest).toBe(path.join(dir, 'manifest.json'));

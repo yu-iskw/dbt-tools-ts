@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import fs from 'fs';
 import path from 'path';
+
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
@@ -11,10 +10,14 @@ import {
   loadTestManifest,
   loadTestRunResults,
 } from 'dbt-artifacts-parser/test-utils';
-import { ManifestGraph } from './manifest-graph';
-import { DependencyService } from './dependency-service';
-import { ExecutionAnalyzer } from './execution-analyzer';
+import { describe, it, expect } from 'vitest';
+
+import { readValidatedUtf8Sync } from '../io/safe-fs';
 import { getManifestSchemaVersion } from '../version';
+
+import { DependencyService } from './dependencies/service';
+import { ExecutionAnalyzer } from './execution/analyzer';
+import { ManifestGraph } from './manifest/graph';
 
 const MIN_SUPPORTED_SCHEMA_VERSION = 10;
 
@@ -28,7 +31,7 @@ describe('tool compatibility matrix', () => {
         manifestPath,
       );
       it(`should work with ${relativePath}`, () => {
-        const content = fs.readFileSync(manifestPath, 'utf-8');
+        const content = readValidatedUtf8Sync(manifestPath);
         const parsed = JSON.parse(content) as Record<string, unknown>;
         const manifest = parseManifest(parsed);
 

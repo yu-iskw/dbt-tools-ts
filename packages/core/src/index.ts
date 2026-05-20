@@ -1,12 +1,16 @@
 // Analysis exports
-export * from './analysis/adapter-response-metrics';
-export * from './analysis/adapter-metric-descriptors';
-export * from './analysis/manifest-graph';
-export * from './analysis/execution-analyzer';
-export * from './analysis/dependency-service';
-export * from './analysis/sql-analyzer';
-export * from './analysis/run-results-search';
-export * from './analysis/analysis-snapshot';
+export * from './analysis/adapter/metrics';
+export * from './analysis/adapter/descriptors';
+export * from './analysis/manifest/graph';
+export * from './analysis/manifest/sql-analyzer';
+export * from './analysis/execution/analyzer';
+export * from './analysis/dependencies/service';
+export * from './analysis/search/run-results';
+export * from './analysis/search/warehouse';
+export * from './analysis/search/types';
+export * from './analysis/dependencies/query';
+export * from './analysis/snapshot/run-summary';
+export * from './analysis/snapshot';
 
 // Config exports (Node; not re-exported from browser entry)
 export {
@@ -37,6 +41,11 @@ export * from './io/artifact-loader';
 export * from './io/artifact-discovery';
 export * from './io/artifact-location';
 export * from './io/dbt-artifact-bundle';
+export * from './io/safe-fs';
+
+// Utilities (Map lookups, timing-safe compare)
+export * from './util/typed-map';
+export * from './util/timing-safe';
 
 // Long-lived artifact workspace (Node-safe)
 export * from './artifact-workspace/index';
@@ -51,6 +60,7 @@ export * from './formatting/graph-export';
 
 // Error handling exports
 export * from './errors/artifact-bundle-resolution-error';
+export * from './errors/artifact-target-not-configured-error';
 export * from './errors/error-handler';
 
 // Introspection exports

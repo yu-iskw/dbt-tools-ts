@@ -1,6 +1,9 @@
+import { getObjectProperty } from '@dbt-tools/core/browser';
 import { useState } from 'react';
+
 import { EXPLORER_MODE_LABELS } from '@web/lib/analysis-workspace/constants';
-import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
+
+import { buildExplorerTreeEmptySubtext, EXPLORER_UI_COPY } from './explorer-pane-copy';
 import {
   EXPLORER_FILTERS_STORAGE_KEY,
   ExplorerPaneFilters,
@@ -8,16 +11,18 @@ import {
 } from './ExplorerPaneFilters';
 import { ExplorerTreeList } from './ExplorerPaneTree';
 import { ExplorerModeIcon, ResourceTypeSummaryBar } from './ExplorerPaneWidgets';
-import { buildExplorerTreeEmptySubtext, EXPLORER_UI_COPY } from './explorerPaneCopy';
-import type { ExplorerPaneProps } from './explorerPaneTypes';
 
-export type { ExplorerPaneProps } from './explorerPaneTypes';
+import type { ExplorerPaneProps } from './explorer-pane-types';
+import type { AssetExplorerMode } from '@web/lib/analysis-workspace/types';
+import type { ReactElement } from 'react';
+
+export type { ExplorerPaneProps } from './explorer-pane-types';
 export {
   buildExplorerTreeEmptySubtext,
   EXPLORER_UI_COPY,
   executionStatusFilterButtonTitle,
   executionStatusPillLabel,
-} from './explorerPaneCopy';
+} from './explorer-pane-copy';
 export { ExplorerTreeTestStatsGroup } from './ExplorerPaneTree';
 export { ExplorerModeIcon, ResourceTypeSummaryBar } from './ExplorerPaneWidgets';
 
@@ -42,7 +47,7 @@ export function ExplorerPane({
   expandedNodeIds,
   toggleExpandedNode,
   setSelectedResourceId,
-}: ExplorerPaneProps) {
+}: ExplorerPaneProps): ReactElement {
   const [filtersExpanded, setFiltersExpanded] = useState<boolean>(getInitialFiltersExpanded);
   const setFiltersExpandedPersisted = (next: boolean) => {
     setFiltersExpanded(next);
@@ -92,7 +97,8 @@ export function ExplorerPane({
             <span className="explorer-mode-tab__icon" aria-hidden="true">
               <ExplorerModeIcon mode={mode} />
             </span>
-            {EXPLORER_MODE_LABELS[mode]}
+            {(getObjectProperty(EXPLORER_MODE_LABELS as Record<string, unknown>, mode) as string) ??
+              mode}
           </button>
         ))}
       </div>

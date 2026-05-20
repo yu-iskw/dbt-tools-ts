@@ -1,13 +1,15 @@
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Storage } from '@google-cloud/storage';
 import { GoogleAuth, Impersonated } from 'google-auth-library';
-import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
+
 import {
   dbtToolsDebugLog,
   dbtToolsDebugLogPhase,
   dbtToolsDebugNow,
 } from '../debug/dbt-tools-debug-log.js';
+
 import type { RemoteObjectMetadata } from './artifact-discovery';
+import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
 
 export interface RemoteObjectStoreClient {
   listObjects(bucket: string, prefix: string): Promise<RemoteObjectMetadata[]>;

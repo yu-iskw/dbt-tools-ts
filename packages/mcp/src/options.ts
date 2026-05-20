@@ -1,13 +1,18 @@
 import { getDbtToolsDbtTargetFromEnv, parseDbtToolsArtifactTarget } from '@dbt-tools/core';
 
 export interface McpServerOptions {
-  dbtTarget: string;
+  dbtTarget?: string;
   pollIntervalMs?: number;
   gcsProjectId?: string;
   gcsImpersonateServiceAccount?: string;
   s3Region?: string;
   s3Endpoint?: string;
 }
+
+export type McpRemoteClientFlagOptions = Pick<
+  McpServerOptions,
+  'gcsImpersonateServiceAccount' | 'gcsProjectId' | 's3Endpoint' | 's3Region'
+>;
 
 export class McpHelpRequested extends Error {
   constructor() {
@@ -156,7 +161,8 @@ const MCP_STRING_FLAGS: Array<{
 function parseMcpArgvFlags(args: string[]): ParsedMcpArgv {
   const parsed: ParsedMcpArgv = {};
   for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
+    const arg = args.at(i);
+    if (arg === undefined) continue;
     const stringFlag = MCP_STRING_FLAGS.find((entry) => entry.flag === arg);
     if (stringFlag != null) {
       applyMcpStringFlag(parsed, stringFlag.flag, args, i, (value) => {
@@ -178,11 +184,14 @@ function parseMcpArgvFlags(args: string[]): ParsedMcpArgv {
   return parsed;
 }
 
-function mcpOptionsFromParsedArgv(parsed: ParsedMcpArgv, resolvedTarget: string): McpServerOptions {
+function mcpOptionsFromParsedArgv(
+  parsed: ParsedMcpArgv,
+  resolvedTarget?: string,
+): McpServerOptions {
   const { pollIntervalMs, gcsProjectId, gcsImpersonateServiceAccount, s3Region, s3Endpoint } =
     parsed;
   return {
-    dbtTarget: resolvedTarget,
+    ...(resolvedTarget != null ? { dbtTarget: resolvedTarget } : {}),
     ...(pollIntervalMs !== undefined ? { pollIntervalMs } : {}),
     ...(gcsProjectId !== undefined && gcsProjectId !== '' ? { gcsProjectId } : {}),
     ...(gcsImpersonateServiceAccount !== undefined && gcsImpersonateServiceAccount !== ''
@@ -197,29 +206,26 @@ export function parseMcpServerOptions(args: string[], env: Env = process.env): M
   const parsed = parseMcpArgvFlags(args);
   const resolvedTarget =
     parsed.dbtTarget != null && parsed.dbtTarget !== '' ? parsed.dbtTarget : targetFromEnv(env);
-  if (resolvedTarget == null) {
-    throw new Error(
-      'dbt artifact target is required. Pass --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> or set DBT_TOOLS_DBT_TARGET.',
-    );
-  }
 
-  assertRemoteFlagsMatchTarget(resolvedTarget, {
-    gcsProjectId: parsed.gcsProjectId,
-    gcsImpersonateServiceAccount: parsed.gcsImpersonateServiceAccount,
-    s3Region: parsed.s3Region,
-    s3Endpoint: parsed.s3Endpoint,
-  });
+  if (resolvedTarget != null) {
+    assertRemoteFlagsMatchTarget(resolvedTarget, {
+      gcsProjectId: parsed.gcsProjectId,
+      gcsImpersonateServiceAccount: parsed.gcsImpersonateServiceAccount,
+      s3Region: parsed.s3Region,
+      s3Endpoint: parsed.s3Endpoint,
+    });
+  }
 
   return mcpOptionsFromParsedArgv(parsed, resolvedTarget);
 }
 
 export function helpText(): string {
   return [
-    'Usage: dbt-tools-mcp --dbt-target <path|s3://bucket/prefix|gs://bucket/prefix> [options]',
+    'Usage: dbt-tools-mcp [--dbt-target <path|s3://bucket/prefix|gs://bucket/prefix>] [options]',
     '',
     'Options (CLI flags override the env vars below when both are set):',
     '  --dbt-target <target>',
-    '      Artifact root (local path, s3://, or gs://).',
+    '      Optional artifact root (local path, s3://, or gs://). Omit to set via dbt_tools_set_target.',
     '      Env: DBT_TOOLS_DBT_TARGET',
     '  --poll-interval-ms <ms>',
     '      MCP background refresh interval; 0 disables. No env equivalent (use args).',

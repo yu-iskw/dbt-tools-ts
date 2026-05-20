@@ -1,16 +1,16 @@
-import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+
 import { getDbtToolsRemoteSourceConfigFromEnv } from '../config/dbt-tools-env';
 import { ArtifactBundleResolutionError } from '../errors/artifact-bundle-resolution-error';
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
+
 import {
   DBT_CATALOG_JSON,
   DBT_MANIFEST_JSON,
   DBT_RUN_RESULTS_JSON,
   DBT_SOURCES_JSON,
 } from './artifact-filenames';
-import type { ArtifactPaths } from './artifact-loader';
 import {
   joinObjectStorageKey,
   mergeRemoteSourceConfigWithParsedLocation,
@@ -18,6 +18,14 @@ import {
   type ParsedArtifactLocation,
 } from './artifact-location';
 import { createRemoteObjectStoreClient, type RemoteObjectStoreClient } from './remote-object-store';
+import {
+  existsValidated,
+  mkdtempValidated,
+  resolveJoinedSafe,
+  writeValidatedUtf8,
+} from './safe-fs';
+
+import type { ArtifactPaths } from './artifact-loader';
 
 export type DbtArtifactBundleRequirements = {
   manifest?: boolean;
@@ -108,13 +116,8 @@ export function parseDbtToolsArtifactTarget(
   return { kind: 'local', resolvedPath: resolved };
 }
 
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+function pathExists(filePath: string): boolean {
+  return existsValidated(filePath);
 }
 
 async function resolveLocalBundle(
@@ -130,14 +133,14 @@ async function resolveLocalBundle(
   const found: string[] = [];
   const missing: string[] = [];
 
-  if (await pathExists(manifest)) found.push(DBT_MANIFEST_JSON);
+  if (pathExists(manifest)) found.push(DBT_MANIFEST_JSON);
   else if (requirements.manifest) missing.push(DBT_MANIFEST_JSON);
 
-  if (await pathExists(runResults)) found.push(DBT_RUN_RESULTS_JSON);
+  if (pathExists(runResults)) found.push(DBT_RUN_RESULTS_JSON);
   else if (requirements.runResults) missing.push(DBT_RUN_RESULTS_JSON);
 
-  if (await pathExists(catalog)) found.push(DBT_CATALOG_JSON);
-  if (await pathExists(sources)) found.push(DBT_SOURCES_JSON);
+  if (pathExists(catalog)) found.push(DBT_CATALOG_JSON);
+  if (pathExists(sources)) found.push(DBT_SOURCES_JSON);
 
   if (missing.length > 0) {
     throw ArtifactBundleResolutionError.incomplete({
@@ -165,7 +168,7 @@ async function writeRemoteBytesToTemp(args: {
   client: RemoteObjectStoreClient;
   prefixNorm: string;
   displayTarget: string;
-  provider: 's3' | 'gcs';
+  provider: 'gcs' | 's3';
   requirements: Required<DbtArtifactBundleRequirements>;
 }): Promise<ArtifactPaths> {
   const { bucket, client, prefixNorm, displayTarget, provider, requirements } = args;
@@ -181,7 +184,7 @@ async function writeRemoteBytesToTemp(args: {
   const found: string[] = [];
   const missing: string[] = [];
 
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-artifacts-'));
+  const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-artifacts-'));
 
   const writeIfPresent = async (
     relative: string,
@@ -190,8 +193,8 @@ async function writeRemoteBytesToTemp(args: {
     const key = joinObjectStorageKey(prefixNorm, relative);
     try {
       const bytes = await client.readObjectBytes(bucket, key);
-      const filePath = path.join(dir, relative);
-      await fs.writeFile(filePath, bytes);
+      const filePath = resolveJoinedSafe(dir, relative);
+      await writeValidatedUtf8(filePath, new TextDecoder().decode(bytes));
       found.push(relative);
       return filePath;
     } catch {

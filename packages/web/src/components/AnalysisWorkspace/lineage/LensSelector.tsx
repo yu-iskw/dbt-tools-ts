@@ -1,5 +1,7 @@
 import { PILL_ACTIVE, PILL_BASE } from '@web/lib/analysis-workspace/constants';
+
 import type { LensMode } from '@web/lib/analysis-workspace/types';
+import type { ReactElement } from 'react';
 
 export function LensSelector({
   lensMode,
@@ -7,7 +9,7 @@ export function LensSelector({
 }: {
   lensMode: LensMode;
   setLensMode: (mode: LensMode) => void;
-}) {
+}): ReactElement {
   const modes: Array<{ value: LensMode; label: string }> = [
     { value: 'type', label: 'Type' },
     { value: 'status', label: 'Status' },

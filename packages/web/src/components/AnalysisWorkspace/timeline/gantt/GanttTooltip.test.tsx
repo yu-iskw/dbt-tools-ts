@@ -3,9 +3,11 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ResourceNode } from '@web/types';
-import type { HoverState } from './hitTest';
+
 import { GanttTooltip, computeTooltipPlacement } from './GanttTooltip';
+
+import type { HoverState } from './hit-test';
+import type { ResourceNode } from '@web/types';
 
 function renderTooltip({
   hover,

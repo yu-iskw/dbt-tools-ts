@@ -1,16 +1,20 @@
-import { type Dispatch, type SetStateAction, useEffect, useMemo } from 'react';
-import type { AnalysisState } from '@web/types';
-import type { InvestigationSelectionState, RunsViewState } from '@web/lib/analysis-workspace/types';
-import { useRunsResultsSource } from '@web/hooks/useRunsResultsSource';
+import { type Dispatch, type ReactElement, type SetStateAction, useEffect, useMemo } from 'react';
+
+import { useRunsResultsSource } from '@web/hooks/use-runs-results-source';
+import { collectMaterializationKindsFromSemantics } from '@web/lib/analysis-workspace/materialization-semantics-ui';
 import {
   getRunsAdapterColumnLayout,
   isRunsAdapterSortBy,
-} from '@web/lib/analysis-workspace/runsAdapterColumns';
+} from '@web/lib/analysis-workspace/runs-adapter-columns';
+
 import { WorkspaceScaffold } from '../../shared';
+
 import { RunsAdapterInspector } from './RunsViewAdapterInspector';
 import { RunsResultsTable } from './RunsViewResultsTable';
 import { RunsToolbar } from './RunsViewToolbar';
-import { collectMaterializationKindsFromSemantics } from '@web/lib/analysis-workspace/materializationSemanticsUi';
+
+import type { InvestigationSelectionState, RunsViewState } from '@web/lib/analysis-workspace/types';
+import type { AnalysisState } from '@web/types';
 
 export function RunsView({
   analysis,
@@ -28,11 +32,11 @@ export function RunsView({
     options?: {
       resourceId?: string;
       executionId?: string;
-      assetTab?: 'summary' | 'lineage';
+      assetTab?: 'lineage' | 'summary';
       rootResourceId?: string;
     },
   ) => void;
-}) {
+}): ReactElement {
   const adapterColumnLayout = useMemo(
     () => getRunsAdapterColumnLayout(analysis.executions),
     [analysis.executions],

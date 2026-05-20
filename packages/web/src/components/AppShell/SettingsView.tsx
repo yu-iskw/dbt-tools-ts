@@ -6,19 +6,23 @@ import {
   type Dispatch,
   type RefObject,
   type SetStateAction,
+  type ReactElement,
 } from 'react';
+
+import { sourceLabel, userArtifactSourceKindLabel } from '@web/lib/artifact-source';
+
+import { SectionCard, WorkspaceScaffold } from '../AnalysisWorkspace/shared';
+import { ArtifactLoadPanel } from '../ArtifactLoadPanel';
+
+import type { WorkspacePreferences } from '@web/hooks/use-workspace-preferences';
 import type { ThemePreference } from '@web/lib/analysis-workspace/types';
-import type { ArtifactLocationSnapshot } from '@web/lib/artifactSource';
-import { sourceLabel, userArtifactSourceKindLabel } from '@web/lib/artifactSource';
-import type { AnalysisLoadResult } from '@web/services/analysisLoader';
+import type { ArtifactLocationSnapshot } from '@web/lib/artifact-source';
+import type { AnalysisLoadResult } from '@web/services/analysis-loader';
 import type {
   MissingOptionalArtifactsState,
   RemoteArtifactRun,
   WorkspaceArtifactSource,
-} from '@web/services/artifactSourceApi';
-import { ArtifactLoadPanel } from '../ArtifactLoadPanel';
-import { SectionCard, WorkspaceScaffold } from '../AnalysisWorkspace/shared';
-import type { WorkspacePreferences } from '@web/hooks/useWorkspacePreferences';
+} from '@web/services/artifact-source-api';
 
 const ACTIVE_PILL_CLASS = 'workspace-pill workspace-pill--active';
 const INACTIVE_PILL_CLASS = 'workspace-pill';
@@ -550,7 +554,7 @@ export function SettingsView({
   pendingRemoteRun: RemoteArtifactRun | null;
   acceptingRemoteRun: boolean;
   onAcceptPendingRemoteRun: () => Promise<void>;
-}) {
+}): ReactElement {
   const [changeLocationOpen, setChangeLocationOpen] = useState(false);
   const changeLocationTriggerRef = useRef<HTMLButtonElement>(null);
 
