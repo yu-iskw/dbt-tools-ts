@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - docs/site
 
 # Supply-chain protection (pnpm 11 defaults, with 7-day quarantine)
 # https://pnpm.io/blog/releases/11.0

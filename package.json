@@ -40,6 +40,9 @@
     "tokens:check": "pnpm tokens:sync && git diff --exit-code packages/web/src/constants/theme-colors.generated.ts",
     "tokens:sync": "node scripts/sync-css-tokens-to-ts.mjs && prettier --write packages/web/src/constants/theme-colors.generated.ts",
     "trunk": "trunk",
+    "site:dev": "pnpm --filter @dbt-tools/site dev",
+    "site:build": "pnpm --filter @dbt-tools/site build",
+    "site:preview": "pnpm --filter @dbt-tools/site preview",
     "verify:normalize": "pnpm format && pnpm lint",
     "verify:plugins": "bash plugins/tests/verify-agent-plugins.sh"
   },
