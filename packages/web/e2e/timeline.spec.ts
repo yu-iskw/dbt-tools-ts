@@ -1,8 +1,8 @@
-import { getObjectProperty, setObjectProperty } from '@dbt-tools/core/browser';
 import { test, expect, type Page } from '@playwright/test';
 
-import seedManifest from './fixtures/dbt-artifacts/manifest_1.11.json';
-import seedRunResults from './fixtures/dbt-artifacts/run_results_1.11.json';
+import seedManifest from './fixtures/dbt-artifacts/manifest_1.11.json' with { type: 'json' };
+import seedRunResults from './fixtures/dbt-artifacts/run_results_1.11.json' with { type: 'json' };
+import { getObjectProperty, setObjectProperty } from './helpers/json-record-access';
 import { loadWorkspace, mockPreload } from './helpers/preload';
 
 const SEARCH_TIMELINE_LABEL = 'Search timeline nodes';
@@ -23,11 +23,11 @@ async function buildSeedAndSourceTimelineFixtures(): Promise<{
   };
 
   const cloneNode = (sourceId: string, overrides: JsonRecord) => {
-    const source = getObjectProperty(manifest.nodes, sourceId) as JsonRecord | undefined;
-    if (source == null) {
+    const source = getObjectProperty(manifest.nodes, sourceId);
+    if (source == null || typeof source !== 'object') {
       throw new Error(`Missing manifest node: ${sourceId}`);
     }
-    return { ...structuredClone(source), ...overrides };
+    return { ...structuredClone(source as JsonRecord), ...overrides };
   };
   const cloneResult = (matcher: (entry: JsonRecord) => boolean, overrides: JsonRecord) => {
     const source = runResults.results.find(matcher);
@@ -56,8 +56,10 @@ async function buildSeedAndSourceTimelineFixtures(): Promise<{
     }),
   );
   setObjectProperty(manifest.parent_map, sourceTestId, [sourceParentId]);
-  const existingChildren =
-    (getObjectProperty(manifest.child_map, sourceParentId) as string[] | undefined) ?? [];
+  const existingChildrenRaw = getObjectProperty(manifest.child_map, sourceParentId);
+  const existingChildren = Array.isArray(existingChildrenRaw)
+    ? (existingChildrenRaw as string[])
+    : [];
   setObjectProperty(manifest.child_map, sourceParentId, [...existingChildren, sourceTestId]);
 
   runResults.results.push(

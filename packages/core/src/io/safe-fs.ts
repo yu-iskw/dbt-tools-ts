@@ -1,5 +1,4 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- All paths validated via resolveSafePath before any fs syscall. */
-// trunk-ignore-all(eslint/security/detect-non-literal-fs-filename): audited dynamic-path boundary; see AGENTS.md
 import * as fs from 'node:fs';
 import { createReadStream } from 'node:fs';
 import * as fsp from 'node:fs/promises';

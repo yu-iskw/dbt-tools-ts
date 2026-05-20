@@ -1,13 +1,13 @@
-import { readValidatedUtf8Sync } from '@dbt-tools/core';
 import { expect, type Page } from '@playwright/test';
 
-import { MANIFEST_PATH, RUN_RESULTS_PATH } from './preload';
+import seedRunResults from '../fixtures/dbt-artifacts/run_results_1.11.json' with { type: 'json' };
+
+import { MANIFEST_PATH } from './preload';
 
 const PRODUCTS_UNIQUE_ID = 'model.jaffle_shop.products';
 
 export function buildRunResultsJsonWithAdapter(options: { includeExtraRawField: boolean }): string {
-  const raw = readValidatedUtf8Sync(RUN_RESULTS_PATH);
-  const data = JSON.parse(raw) as {
+  const data = structuredClone(seedRunResults) as {
     results: Array<{
       unique_id: string;
       adapter_response: Record<string, unknown>;
