@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="dbt-tools">
+  <rect width="64" height="64" rx="12" fill="#111827"/>
+  <path d="M18 42V22h8.5c5.2 0 8.5 2.8 8.5 7.4 0 4.1-2.6 6.6-6.4 7.1L38 42h-6.8l-6.9-10.2H26V42H18zm8-14.8h2.8c2.5 0 3.9-1.2 3.9-3.3S31.3 20 28.8 20H26v7.2z" fill="#34d399"/>
+</svg>

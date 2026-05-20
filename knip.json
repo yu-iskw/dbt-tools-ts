@@ -41,6 +41,11 @@
     "packages/test-fixtures": {
       "entry": ["dbt-artifacts-parser/test-utils.ts"],
       "project": ["dbt-artifacts-parser/**/*.ts"]
+    },
+    "docs/site": {
+      "entry": [".vitepress/config.ts"],
+      "project": [".vitepress/**/*.ts"],
+      "ignoreDependencies": ["vitepress"]
     }
   }
 }

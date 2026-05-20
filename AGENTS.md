@@ -97,3 +97,19 @@ Pack and `npx` smoke for the web package is documented in [`.claude/skills/dbt-t
 ## Secrets and suppressions
 
 Do not commit API keys, tokens, or passwords into docs, prompts, rules, or tracked config. Reference environment variable names only. Fix lint/static-analysis findings at the root cause; inline suppressions are a last resort and must be narrow and justified.
+
+## Learned User Preferences
+
+- Prefer simple, minimal scope in plans and implementations; avoid over-engineering when the user asks to keep work simple.
+- On follow-up code or security reviews, describe only remaining issues—do not rehash fixes already applied.
+- For large design questions, use structured problem-solving (intent, alternatives, scored recommendation) before implementation when the user invokes that workflow.
+- CLI and MCP surfaces should use warehouse-specific filter and sort shapes, not flat option bags that mix conditions across warehouses.
+
+## Learned Workspace Facts
+
+- `docs/adr/` is the only canonical ADR corpus; agents should read ADRs there directly rather than relying on the published site alone.
+- `docs/architecture/` holds non-ADR explanatory history; do not create new ADRs outside `docs/adr/`.
+- `docs/site/` is the VitePress documentation workspace (`@dbt-tools/site`, `base` `/dbt-tools-ts/`); build with `pnpm site:build` / `pnpm site:dev`; deploy via `.github/workflows/pages.yml`—separate from `docs/adr/`.
+- Published docs may link to GitHub for ADRs; do not treat the VitePress tree as a second ADR corpus.
+- Keep `@dbt-tools/mcp` package README isolated: do not add cross-links to CLI or web package docs from the MCP README.
+- Execution search APIs (CLI/MCP) should align with per-adapter response schemas in `packages/core` rather than mixing warehouse metrics in one shared options type.
