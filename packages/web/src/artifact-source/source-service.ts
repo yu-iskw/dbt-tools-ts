@@ -312,10 +312,7 @@ export class ArtifactSourceService {
     if (this.mode !== 'remote' || this.remoteProvider == null || latestRun == null) {
       return null;
     }
-    if (
-      this.loadedVersionToken == null ||
-      latestRun.versionToken === this.loadedVersionToken
-    ) {
+    if (this.loadedVersionToken == null || latestRun.versionToken === this.loadedVersionToken) {
       return null;
     }
     return runToUiRow('remote', this.remoteProvider, latestRun);
