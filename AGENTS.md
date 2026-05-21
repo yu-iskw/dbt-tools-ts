@@ -102,24 +102,26 @@ Do not commit API keys, tokens, or passwords into docs, prompts, rules, or track
 ## Learned User Preferences
 
 - Prefer simple, minimal scope in plans and implementations; avoid over-engineering when the user asks to keep work simple.
+- Do not create git commits or open/update pull requests unless the user explicitly asks.
 - On follow-up code or security reviews, describe only remaining issues—do not rehash fixes already applied.
 - For large design questions, use structured problem-solving (intent, alternatives, scored recommendation) before implementation when the user invokes that workflow.
 - CLI and MCP surfaces should use warehouse-specific filter and sort shapes, not flat option bags that mix conditions across warehouses.
 - Prefer `dbt-tools-mcp` for long, multi-step agent work over large artifacts; prefer `dbt-tools-cli` for one-shot shell/CI or manifest-only readiness before `run_results.json` exists.
 - For `docs/site/`, prefer task-oriented workflows and recipes (jobs users complete) over mirroring package READMEs; keep full CLI/MCP flag reference in `packages/*/README.md` with deliberate links from the site.
 - When growing the published docs, add a Workflows hub and shallow per-surface tours before package-first reference dumps; expand `guide/agents/` for plugins/skills rather than folding agent docs into MCP pages.
+- GitHub Pages (`docs/site/`) is for end users of CLI/MCP/Web/plugins—do not link to ADRs there; keep ADRs in `docs/adr/` for contributors and agents.
+- End-user docs use “coding agent” and “agent skills” wording; avoid generic “AI agent” phrasing on the published site.
 
 ## Learned Workspace Facts
 
 - `docs/adr/` is the only canonical ADR corpus; agents should read ADRs there directly rather than relying on the published site alone.
 - `docs/architecture/` holds non-ADR explanatory history; do not create new ADRs outside `docs/adr/`.
-- `docs/site/` is the VitePress end-user docs (`@dbt-tools/site`, base `/dbt-tools-ts/`): hub-and-spoke guide IA (`guide/overview`, `guide/{cli,mcp,web}/getting-started`, `guide/agents/` stub for `plugins/`); documents CLI, MCP, and Web only—not `@dbt-tools/core` (library detail stays in `packages/core/README.md`). Build with `pnpm site:build` / `pnpm site:dev`; deploy via `.github/workflows/pages.yml`; separate from `docs/adr/`.
-- Published docs may link to GitHub for ADRs; do not treat the VitePress tree as a second ADR corpus.
+- `docs/site/` is the VitePress end-user docs (`@dbt-tools/site`, base `/dbt-tools-ts/`): sidebar **Foundations** (overview, ecosystem, concepts including S3/GCS), per-surface **CLI / Web / MCP / Agents** guides with nested **Workflows**, and **Reference** (configuration env tables, CLI cheatsheet, MCP tools, deep links); documents CLI, MCP, Web, and agent plugins—not `@dbt-tools/core`. Build with `pnpm site:build` / `pnpm site:dev`; deploy via `.github/workflows/pages.yml`; separate from `docs/adr/`.
+- Remote artifacts do not use `DBT_TOOLS_REMOTE_SOURCE` (removed); use `--dbt-target` / `DBT_TOOLS_DBT_TARGET` with `s3://` or `gs://` URIs, granular `DBT_TOOLS_*` remote env vars, and the web **Load artifacts** UI for server-mediated buckets—see `docs/site/concepts/local-and-remote-artifacts.md`.
 - Keep `@dbt-tools/mcp` package README isolated: do not add cross-links to CLI or web package docs from the MCP README.
 - Execution search APIs (CLI/MCP) should align with per-adapter response schemas in `packages/core` rather than mixing warehouse metrics in one shared options type.
 - VitePress in this monorepo needs `vite.esbuild`, `vite.build`, and `optimizeDeps.esbuildOptions` all set to `esnext` in `docs/site/.vitepress/config.ts` or `pnpm site:dev` fails on legacy browser downlevel targets.
-- End-user plugin documentation belongs under `docs/site/guide/agents/` as its own lane (workflow skills on top of CLI/MCP); link to `plugins/README.md` until site pages exist—do not treat plugins as a fourth npm runtime like CLI/MCP/Web.
-- First-party plugins (`plugins/dbt-tools-cli`, `plugins/dbt-tools-mcp`) ship eight primitive skills with identical folder/YAML names (`bind-target` through `summarize-run`); compose workflows from handles like `dbt-tools-cli:bind-target`, not monolithic workflow skills.
-- Plugin `SKILL.md` files hold the stable contract; `references/implementation.md` in each skill maps to current CLI subcommands or MCP tools when surfaces change.
+- First-party plugins (`plugins/dbt-tools-cli`, `plugins/dbt-tools-mcp`) ship eight primitive skills with identical folder/YAML names (`bind-target` through `summarize-run`); compose workflows from handles like `dbt-tools-cli:bind-target`, not monolithic workflow skills. Plugin `SKILL.md` files hold the stable contract; `references/implementation.md` maps to current CLI subcommands or MCP tools when surfaces change.
 - Bundled [`plugins/dbt-tools-mcp/mcp.json`](plugins/dbt-tools-mcp/mcp.json) is spawn-only (`npx -y @dbt-tools/mcp`); per-session artifact roots use `dbt_tools_set_target`, not `DBT_TOOLS_*` env in the plugin bundle.
 - `@dbt-tools/mcp` loads `manifest.json` and `run_results.json` together; there is no manifest-only MCP session—use CLI `check-session` for manifest-only readiness.
+- Local CodeQL analysis: run [`dev/codeql.sh`](dev/codeql.sh) from the repo root (see [`.claude/skills/codeql-fix/SKILL.md`](.claude/skills/codeql-fix/SKILL.md)).

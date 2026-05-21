@@ -1,6 +1,6 @@
 {
   "name": "dbt-tools",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "Standalone monorepo for the @dbt-tools packages.",
   "keywords": [
