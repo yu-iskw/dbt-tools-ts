@@ -66,6 +66,6 @@ See [Discover and install plugins](https://code.claude.com/en/discover-plugins).
 
 ## Learn more
 
-- [Wire your coding agent](../../workflows/wire-your-ide-agent.md)
+- [Wire your coding agent](../../workflows/wire-your-coding-agent.md)
 - [Agents overview](./index.md)
 - [plugins README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/plugins/README.md)

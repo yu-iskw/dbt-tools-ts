@@ -108,7 +108,7 @@ export default defineConfig({
           {
             text: 'Workflows',
             collapsed: false,
-            items: [{ text: 'Wire your coding agent', link: '/workflows/wire-your-ide-agent' }],
+            items: [{ text: 'Wire your coding agent', link: '/workflows/wire-your-coding-agent' }],
           },
         ],
       },
