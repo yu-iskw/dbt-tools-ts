@@ -133,6 +133,8 @@ export class ArtifactSourceService {
   private runs: ResolvedArtifactRun[] = [];
   private discoveryResult: ArtifactDiscoveryResult | null = null;
   private selectedRunId: string | null = null;
+  /** Version token of artifacts the active investigation is using (ADR-0004 detect-notify-confirm). */
+  private loadedVersionToken: string | null = null;
 
   constructor(options: ArtifactSourceServiceOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
@@ -294,20 +296,50 @@ export class ArtifactSourceService {
     };
   }
 
+  private syncLoadedVersionToken(selectedRunId: string | null, runs: ResolvedArtifactRun[]): void {
+    if (selectedRunId == null) {
+      this.loadedVersionToken = null;
+      return;
+    }
+    const run = runs.find((candidate) => candidate.runId === selectedRunId);
+    this.loadedVersionToken = run?.versionToken ?? null;
+  }
+
   private pendingRunAfterLatest(
-    currentResolved: ResolvedArtifactRun | null,
+    _currentResolved: ResolvedArtifactRun | null,
   ): RemoteArtifactRun | null {
     const latestRun = this.runs[0] ?? null;
+    if (this.mode !== 'remote' || this.remoteProvider == null || latestRun == null) {
+      return null;
+    }
     if (
-      this.mode !== 'remote' ||
-      this.remoteProvider == null ||
-      latestRun == null ||
-      currentResolved == null ||
-      latestRun.runId === currentResolved.runId
+      this.loadedVersionToken == null ||
+      latestRun.versionToken === this.loadedVersionToken
     ) {
       return null;
     }
     return runToUiRow('remote', this.remoteProvider, latestRun);
+  }
+
+  /** Re-list the remote prefix so polling can detect newer artifact pairs (ADR-0004). */
+  private async refreshRemoteDiscovery(): Promise<void> {
+    if (this.mode !== 'remote' || this.remoteConfig == null || this.remoteClient == null) {
+      return;
+    }
+    try {
+      const discovery = await this.discoverRemoteConfiguration(
+        this.remoteConfig,
+        this.remoteClient,
+      );
+      if (!discovery.discoveryResult.ok) {
+        return;
+      }
+      this.applyDiscoveredArtifactSource(discovery, this.selectedRunId, {
+        syncLoadedVersion: false,
+      });
+    } catch (error) {
+      debugLog('Remote discovery refresh failed', error);
+    }
   }
 
   private async readPreloadArtifacts(run: ResolvedArtifactRun): Promise<CurrentArtifactPayload> {
@@ -384,6 +416,7 @@ export class ArtifactSourceService {
   private applyDiscoveredArtifactSource(
     discovery: DiscoveredArtifactSource,
     selectedRunId: string | null,
+    options?: { syncLoadedVersion?: boolean },
   ): void {
     this.mode = discovery.mode;
     this.localDir = discovery.localDir;
@@ -395,6 +428,9 @@ export class ArtifactSourceService {
     this.discoveryResult = discovery.discoveryResult;
     this.runs = discovery.runs;
     this.selectedRunId = selectedRunId;
+    if (options?.syncLoadedVersion !== false) {
+      this.syncLoadedVersionToken(selectedRunId, discovery.runs);
+    }
   }
 
   private async discoverLocalDirectory(resolvedDir: string): Promise<DiscoveredArtifactSource> {
@@ -528,6 +564,10 @@ export class ArtifactSourceService {
       return this.statusWhenNone();
     }
 
+    if (this.mode === 'remote') {
+      await this.refreshRemoteDiscovery();
+    }
+
     return toArtifactSourceStatus(this.buildActiveArtifactStatus());
   }
 
@@ -567,6 +607,7 @@ export class ArtifactSourceService {
       const found = this.runs.some((r) => r.runId === runId);
       if (found) {
         this.selectedRunId = runId;
+        this.syncLoadedVersionToken(this.selectedRunId, this.runs);
         debugLog('Selected artifact run', this.selectedRunId);
       }
     }
