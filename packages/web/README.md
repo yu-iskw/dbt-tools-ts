@@ -254,34 +254,28 @@ DBT_TOOLS_WATCH=0 DBT_TOOLS_TARGET_DIR=./target pnpm dev
 
 To smoke-test the published **`dbt-tools-web`** entrypoint and tarball layout **without publishing to the public npm registry**:
 
-- **Recommended (matches CI):** from the **repository root** after `pnpm install`, run Verdaccio, publish `@dbt-tools/core` → `@dbt-tools/web`, pack, then `npx` with `NPM_CONFIG_REGISTRY` pointing at that registry. `dbt-artifacts-parser` is resolved from npm:
+- **Recommended (matches CI):** from the **repository root** after `pnpm install`, run Verdaccio, publish **`@dbt-tools/core` first** (same semver as web), then `@dbt-tools/web`, pack, and smoke via `npm install` with `NPM_CONFIG_REGISTRY` pointing at that registry. `dbt-artifacts-parser` is resolved from npm:
 
 ```bash
 bash scripts/smoke-npx-with-verdaccio.sh
 ```
 
-This avoids **`No matching version found for @dbt-tools/core@…`** when those versions are not yet on npm (packed tarballs list concrete semver peers).
+This avoids **`No matching version found for @dbt-tools/core@…`** and stale **npmjs** `core@0.6.1` without entrypoint exports when your branch adds new `@dbt-tools/core` APIs (packed web lists `"@dbt-tools/core": "0.6.2"`).
 
-- **Manual pack only** (only reliable if peer versions already exist on the registry `npx` uses, or you set `NPM_CONFIG_REGISTRY` accordingly):
+- **Manual pack only** (only reliable if `@dbt-tools/core@<version>` exists on the registry you use, or set `NPM_CONFIG_REGISTRY` accordingly):
 
 ```bash
 pnpm --filter @dbt-tools/web pack
+export NPM_CONFIG_REGISTRY=http://127.0.0.1:4873   # if using local Verdaccio
+pnpm --filter @dbt-tools/web run smoke:npx-tgz
 ```
 
 `prepack` runs the full web build and writes **`dbt-tools-web-<version>.tgz` at the repo root** (the file is gitignored).
 
-- **Empty directory** so `npx` does not see the monorepo’s `node_modules`:
+- **Empty directory** (smoke script uses `npm install` + `node_modules/.bin/dbt-tools-web`, not bare `npx` on the tarball path):
 
 ```bash
-cd "$(mktemp -d)"
-# After copying the .tgz into this directory (adjust version to match package.json):
-npx -y ./dbt-tools-web-0.4.1.tgz -- --help
-```
-
-If you pass a **bare absolute path** to the tarball, some `npx` versions try to execute it as a shell script and fail (`Permission denied`). Prefer either a **relative** `./…tgz` path or an explicit package spec:
-
-```bash
-npx -y --package=/absolute/path/to/dbt-tools-web-0.4.1.tgz -- dbt-tools-web --help
+REPO_ROOT=/path/to/dbt-tools-ts bash packages/web/scripts/smoke-npx-packed-tarball.sh
 ```
 
 ### Project layout (abridged)

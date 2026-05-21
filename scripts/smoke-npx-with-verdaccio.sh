@@ -3,26 +3,27 @@
 # packed web tarball, while dbt-artifacts-parser resolves from npm through Verdaccio proxy.
 set -euo pipefail
 
-if [[ -n ${REPO_ROOT-} ]]; then
-	:
-elif [[ -n ${1-} ]]; then
-	REPO_ROOT="$1"
-else
-	if ! REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then
-		echo "smoke-npx-with-verdaccio.sh: set REPO_ROOT or pass the monorepo root as the first argument, or run inside a git repository." >&2
-		exit 1
-	fi
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/repo-root.sh"
+resolve_repo_root "smoke-npx-with-verdaccio.sh" "${1-}"
 
 cd "${REPO_ROOT}" || exit 1
 
 VERDACCIO_VERSION=${VERDACCIO_VERSION:-6.0.5}
 REGISTRY_URL=${REGISTRY_URL:-http://127.0.0.1:4873}
+REGISTRY_HOST_PORT="${REGISTRY_URL#*://}"
+REGISTRY_HOST_PORT="${REGISTRY_HOST_PORT%/}"
 
 verdaccio_pid=""
 npmrc_smoke=""
+smoke_home=""
 
 cleanup() {
+	if [[ -n ${smoke_home} ]]; then
+		rm -rf "${smoke_home}"
+		smoke_home=""
+	fi
 	if [[ -n ${npmrc_smoke} ]]; then
 		rm -f "${npmrc_smoke}"
 		npmrc_smoke=""
@@ -34,12 +35,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
+rm -rf /tmp/verdaccio-smoke-storage
 mkdir -p /tmp/verdaccio-smoke-storage
 
 # Do not set NPM_CONFIG_USERCONFIG before npx fetches Verdaccio (registry would point at localhost).
 npx --yes "verdaccio@${VERDACCIO_VERSION}" \
 	--config "${REPO_ROOT}/scripts/verdaccio-smoke.yaml" \
-	--listen 127.0.0.1:4873 >/tmp/verdaccio-smoke.log 2>&1 &
+	--listen "${REGISTRY_HOST_PORT}" >/tmp/verdaccio-smoke.log 2>&1 &
 verdaccio_pid=$!
 
 for i in $(seq 1 60); do
@@ -54,22 +56,36 @@ for i in $(seq 1 60); do
 	sleep 1
 done
 
-# npm 10+ may refuse publish without a token; Verdaccio accepts any token when publish is $all.
 npmrc_smoke="$(mktemp)"
 {
 	printf 'registry=%s/\n' "${REGISTRY_URL}"
-	printf '//127.0.0.1:4873/:_authToken=smoke-ci-placeholder\n'
+	printf '@dbt-tools:registry=%s/\n' "${REGISTRY_URL}"
+	printf '//%s/:_authToken=smoke-ci-placeholder\n' "${REGISTRY_HOST_PORT}"
 } >"${npmrc_smoke}"
+
+smoke_home="$(mktemp -d)"
+export HOME="${smoke_home}"
 export NPM_CONFIG_USERCONFIG="${npmrc_smoke}"
-
-pnpm --filter @dbt-tools/core run build
-
-pnpm publish --filter @dbt-tools/core --registry "${REGISTRY_URL}" --no-git-checks
-pnpm publish --filter @dbt-tools/web --registry "${REGISTRY_URL}" --no-git-checks
-
-rm -f "${REPO_ROOT}"/dbt-tools-web-*.tgz
-pnpm --filter @dbt-tools/web pack
-
 export NPM_CONFIG_REGISTRY="${REGISTRY_URL}"
+
+core_version="$(node -p "require('./packages/core/package.json').version")"
+web_version="$(node -p "require('./packages/web/package.json').version")"
+echo "smoke-npx-with-verdaccio: publishing @dbt-tools/core@${core_version} then @dbt-tools/web@${web_version}"
+
+publish_packed() {
+	local filter=$1
+	local tarball_prefix=$2
+	local version=$3
+	rm -f "${REPO_ROOT}"/"${tarball_prefix}"-*.tgz
+	pnpm --filter "${filter}" pack
+	npm publish "${REPO_ROOT}/${tarball_prefix}-${version}.tgz" \
+		--registry "${REGISTRY_URL}/" --access public
+}
+
+# Publish core before web: packed web depends on @dbt-tools/core at the same semver.
+# pnpm publish targets registry.npmjs.org for @dbt-tools/*; pack + npm publish honors --registry.
+publish_packed @dbt-tools/core dbt-tools-core "${core_version}"
+publish_packed @dbt-tools/web dbt-tools-web "${web_version}"
+
 export REPO_ROOT
 pnpm --filter @dbt-tools/web run smoke:npx-tgz
