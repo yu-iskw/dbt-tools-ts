@@ -274,4 +274,38 @@ describe('ArtifactSourceService', () => {
       spy.mockRestore();
     }
   });
+
+  it('seeds remote artifact root from DBT_TOOLS_DBT_TARGET at startup', async () => {
+    const client = new FakeRemoteClient([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 2_000,
+        etag: 'manifest-2',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-2"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 2_000,
+        etag: 'results-2',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-2"}}'),
+      },
+    ]);
+    const spy = vi.spyOn(artifactIo, 'createRemoteObjectStoreClient').mockResolvedValue(client);
+
+    const prev = process.env.DBT_TOOLS_DBT_TARGET;
+    process.env.DBT_TOOLS_DBT_TARGET = 's3://dbt-artifacts/scheduled';
+    try {
+      const service = new ArtifactSourceService({ seedFromEnv: true });
+      const status = await service.getStatus();
+      expect(status.mode).toBe('remote');
+      expect(status.remoteLocation).toContain('dbt-artifacts');
+    } finally {
+      spy.mockRestore();
+      if (prev === undefined) {
+        delete process.env.DBT_TOOLS_DBT_TARGET;
+      } else {
+        process.env.DBT_TOOLS_DBT_TARGET = prev;
+      }
+    }
+  });
 });

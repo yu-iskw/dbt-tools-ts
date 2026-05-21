@@ -1,18 +1,22 @@
-import { getDbtToolsDbtTargetFromEnv, parseDbtToolsArtifactTarget } from '@dbt-tools/core';
+import {
+  assertRemoteFlagsMatchTarget,
+  entrypointRemoteHelpLines,
+  normalizeEntrypointRemoteOptions,
+  parseEntrypointRemoteArgv,
+  resolveEntrypointDbtTarget,
+  type EntrypointRemoteOptions,
+} from '@dbt-tools/core';
 
-export interface McpServerOptions {
-  dbtTarget?: string;
+export interface McpServerOptions extends EntrypointRemoteOptions {
   pollIntervalMs?: number;
-  gcsProjectId?: string;
-  gcsImpersonateServiceAccount?: string;
-  s3Region?: string;
-  s3Endpoint?: string;
 }
 
 export type McpRemoteClientFlagOptions = Pick<
   McpServerOptions,
   'gcsImpersonateServiceAccount' | 'gcsProjectId' | 's3Endpoint' | 's3Region'
 >;
+
+export { assertRemoteFlagsMatchTarget };
 
 export class McpHelpRequested extends Error {
   constructor() {
@@ -39,184 +43,82 @@ function parsePositiveInteger(raw: string, flag: string): number {
   return parsed;
 }
 
-function targetFromEnv(env: Env): string | undefined {
-  const saved = process.env.DBT_TOOLS_DBT_TARGET;
-  try {
-    if (env.DBT_TOOLS_DBT_TARGET === undefined) {
-      delete process.env.DBT_TOOLS_DBT_TARGET;
-    } else {
-      process.env.DBT_TOOLS_DBT_TARGET = env.DBT_TOOLS_DBT_TARGET;
-    }
-    return getDbtToolsDbtTargetFromEnv();
-  } finally {
-    if (saved === undefined) {
-      delete process.env.DBT_TOOLS_DBT_TARGET;
-    } else {
-      process.env.DBT_TOOLS_DBT_TARGET = saved;
-    }
-  }
-}
-
-function hasRemoteClientFlags(options: {
-  gcsProjectId?: string;
-  gcsImpersonateServiceAccount?: string;
-  s3Region?: string;
-  s3Endpoint?: string;
-}): boolean {
-  return (
-    options.gcsProjectId != null ||
-    options.gcsImpersonateServiceAccount != null ||
-    options.s3Region != null ||
-    options.s3Endpoint != null
-  );
-}
-
-export function assertRemoteFlagsMatchTarget(
-  dbtTarget: string,
-  options: {
-    gcsProjectId?: string;
-    gcsImpersonateServiceAccount?: string;
-    s3Region?: string;
-    s3Endpoint?: string;
-  },
-  cwd: string = process.cwd(),
-): void {
-  if (!hasRemoteClientFlags(options)) return;
-
-  const parsed = parseDbtToolsArtifactTarget(dbtTarget, cwd);
-  if (parsed.kind === 'local') {
-    throw new Error(
-      'Remote client flags require an s3:// or gs:// --dbt-target (or a remote DBT_TOOLS_DBT_TARGET).',
-    );
-  }
-
-  const hasGcsFlags = options.gcsProjectId != null || options.gcsImpersonateServiceAccount != null;
-  const hasS3Flags = options.s3Region != null || options.s3Endpoint != null;
-
-  if (parsed.provider === 'gcs' && hasS3Flags) {
-    throw new Error('--s3-region and --s3-endpoint are only valid for s3:// targets.');
-  }
-  if (parsed.provider === 's3' && hasGcsFlags) {
-    throw new Error(
-      '--gcs-project-id and --gcs-impersonate-service-account are only valid for gs:// targets.',
-    );
-  }
-}
-
-interface ParsedMcpArgv {
-  dbtTarget?: string;
+interface ParsedMcpArgv extends EntrypointRemoteOptions {
   pollIntervalMs?: number;
-  gcsProjectId?: string;
-  gcsImpersonateServiceAccount?: string;
-  s3Region?: string;
-  s3Endpoint?: string;
 }
 
-function applyMcpStringFlag(
-  parsed: ParsedMcpArgv,
-  flag: string,
-  args: string[],
-  index: number,
-  assign: (value: string) => void,
-): void {
-  assign(readFlagValue(args, index, flag).trim());
-}
-
-const MCP_STRING_FLAGS: Array<{
-  flag: string;
-  assign: (parsed: ParsedMcpArgv, value: string) => void;
-}> = [
-  {
-    flag: '--dbt-target',
-    assign: (parsed, value) => {
-      parsed.dbtTarget = value;
-    },
-  },
-  {
-    flag: '--gcs-project-id',
-    assign: (parsed, value) => {
-      parsed.gcsProjectId = value;
-    },
-  },
-  {
-    flag: '--gcs-impersonate-service-account',
-    assign: (parsed, value) => {
-      parsed.gcsImpersonateServiceAccount = value;
-    },
-  },
-  {
-    flag: '--s3-region',
-    assign: (parsed, value) => {
-      parsed.s3Region = value;
-    },
-  },
-  {
-    flag: '--s3-endpoint',
-    assign: (parsed, value) => {
-      parsed.s3Endpoint = value;
-    },
-  },
-];
-
-function parseMcpArgvFlags(args: string[]): ParsedMcpArgv {
-  const parsed: ParsedMcpArgv = {};
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args.at(i);
+function partitionMcpArgv(args: string[]): { remoteArgs: string[]; pollIntervalMs?: number } {
+  const remoteArgs: string[] = [];
+  let pollIntervalMs: number | undefined;
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
     if (arg === undefined) continue;
-    const stringFlag = MCP_STRING_FLAGS.find((entry) => entry.flag === arg);
-    if (stringFlag != null) {
-      applyMcpStringFlag(parsed, stringFlag.flag, args, i, (value) => {
-        stringFlag.assign(parsed, value);
-      });
-      i += 1;
-      continue;
-    }
     if (arg === '--poll-interval-ms') {
-      parsed.pollIntervalMs = parsePositiveInteger(readFlagValue(args, i, arg), arg);
-      i += 1;
+      pollIntervalMs = parsePositiveInteger(readFlagValue(args, i, arg), arg);
+      i += 2;
       continue;
     }
     if (arg === '--help' || arg === '-h') {
       throw new McpHelpRequested();
     }
-    throw new Error(`Unknown option: ${arg}`);
+    if (arg === '--version' || arg === '-V') {
+      throw new McpVersionRequested();
+    }
+    remoteArgs.push(arg);
+    if (ENTRYPOINT_VALUE_FLAGS.has(arg)) {
+      remoteArgs.push(readFlagValue(args, i, arg));
+      i += 2;
+    } else {
+      i += 1;
+    }
   }
-  return parsed;
+  return { remoteArgs, pollIntervalMs };
 }
 
-function mcpOptionsFromParsedArgv(
-  parsed: ParsedMcpArgv,
+const ENTRYPOINT_VALUE_FLAGS = new Set([
+  '--dbt-target',
+  '--gcs-project-id',
+  '--gcs-impersonate-service-account',
+  '--s3-region',
+  '--s3-endpoint',
+]);
+
+export class McpVersionRequested extends Error {
+  constructor() {
+    super('');
+    this.name = 'McpVersionRequested';
+  }
+}
+
+function mcpOptionsFromParts(
+  remote: EntrypointRemoteOptions,
+  pollIntervalMs?: number,
   resolvedTarget?: string,
 ): McpServerOptions {
-  const { pollIntervalMs, gcsProjectId, gcsImpersonateServiceAccount, s3Region, s3Endpoint } =
-    parsed;
   return {
     ...(resolvedTarget != null ? { dbtTarget: resolvedTarget } : {}),
     ...(pollIntervalMs !== undefined ? { pollIntervalMs } : {}),
-    ...(gcsProjectId !== undefined && gcsProjectId !== '' ? { gcsProjectId } : {}),
-    ...(gcsImpersonateServiceAccount !== undefined && gcsImpersonateServiceAccount !== ''
-      ? { gcsImpersonateServiceAccount }
+    ...(remote.gcsProjectId != null ? { gcsProjectId: remote.gcsProjectId } : {}),
+    ...(remote.gcsImpersonateServiceAccount != null
+      ? { gcsImpersonateServiceAccount: remote.gcsImpersonateServiceAccount }
       : {}),
-    ...(s3Region !== undefined && s3Region !== '' ? { s3Region } : {}),
-    ...(s3Endpoint !== undefined && s3Endpoint !== '' ? { s3Endpoint } : {}),
+    ...(remote.s3Region != null ? { s3Region: remote.s3Region } : {}),
+    ...(remote.s3Endpoint != null ? { s3Endpoint: remote.s3Endpoint } : {}),
   };
 }
 
 export function parseMcpServerOptions(args: string[], env: Env = process.env): McpServerOptions {
-  const parsed = parseMcpArgvFlags(args);
-  const resolvedTarget =
-    parsed.dbtTarget != null && parsed.dbtTarget !== '' ? parsed.dbtTarget : targetFromEnv(env);
+  const { remoteArgs, pollIntervalMs } = partitionMcpArgv(args);
+  const explicit = parseEntrypointRemoteArgv(remoteArgs);
+  const resolvedTarget = resolveEntrypointDbtTarget(explicit, env);
 
   if (resolvedTarget != null) {
-    assertRemoteFlagsMatchTarget(resolvedTarget, {
-      gcsProjectId: parsed.gcsProjectId,
-      gcsImpersonateServiceAccount: parsed.gcsImpersonateServiceAccount,
-      s3Region: parsed.s3Region,
-      s3Endpoint: parsed.s3Endpoint,
-    });
+    assertRemoteFlagsMatchTarget(resolvedTarget, explicit);
   }
 
-  return mcpOptionsFromParsedArgv(parsed, resolvedTarget);
+  const remote = normalizeEntrypointRemoteOptions(explicit);
+  return mcpOptionsFromParts(remote, pollIntervalMs, resolvedTarget);
 }
 
 export function helpText(): string {
@@ -224,23 +126,11 @@ export function helpText(): string {
     'Usage: dbt-tools-mcp [--dbt-target <path|s3://bucket/prefix|gs://bucket/prefix>] [options]',
     '',
     'Options (CLI flags override the env vars below when both are set):',
-    '  --dbt-target <target>',
-    '      Optional artifact root (local path, s3://, or gs://). Omit to set via dbt_tools_set_target.',
-    '      Env: DBT_TOOLS_DBT_TARGET',
+    ...entrypointRemoteHelpLines(),
     '  --poll-interval-ms <ms>',
     '      MCP background refresh interval; 0 disables. No env equivalent (use args).',
-    '  --gcs-project-id <id>',
-    '      GCS client project (gs:// targets only).',
-    '      Env: DBT_TOOLS_GCS_PROJECT_ID',
-    '  --gcs-impersonate-service-account <email>',
-    '      GCS impersonation principal (gs:// targets only).',
-    '      Env: DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT',
-    '  --s3-region <region>',
-    '      S3 region (s3:// targets only).',
-    '      Env: DBT_TOOLS_S3_REGION (credentials may also use AWS_REGION)',
-    '  --s3-endpoint <url>',
-    '      S3-compatible endpoint (s3:// targets only).',
-    '      Env: DBT_TOOLS_S3_ENDPOINT',
+    '  -V, --version',
+    '      Print package version',
     '  -h, --help',
     '      Show this help',
     '',

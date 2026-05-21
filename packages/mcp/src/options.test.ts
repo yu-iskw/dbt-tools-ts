@@ -95,6 +95,13 @@ describe('parseMcpServerOptions', () => {
   });
 });
 
+describe('McpVersionRequested', () => {
+  it('is thrown for --version', async () => {
+    const { McpVersionRequested } = await import('./options.js');
+    expect(() => parseMcpServerOptions(['--version'], {})).toThrow(McpVersionRequested);
+  });
+});
+
 describe('assertRemoteFlagsMatchTarget', () => {
   it('allows GCS flags on gs:// targets', () => {
     expect(() => assertRemoteFlagsMatchTarget('gs://b/p', { gcsProjectId: 'proj' })).not.toThrow();

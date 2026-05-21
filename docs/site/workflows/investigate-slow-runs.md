@@ -21,7 +21,7 @@ You see which models or tests took the longest in a run and can explore executio
 ## Example
 
 ```bash
-npx @dbt-tools/web --target ./target
+npx @dbt-tools/web --dbt-target ./target
 ```
 
 ```bash

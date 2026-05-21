@@ -22,4 +22,4 @@
 
 Optional startup target: user may add `--dbt-target` in **their** `.cursor/mcp.json` / `.mcp.json` — not in the bundled plugin `mcp.json`.
 
-GCS impersonation: `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` at MCP startup only — see [packages/mcp/REFERENCE.md](../../../../../packages/mcp/REFERENCE.md).
+Remote client settings (GCS impersonation, S3 region/endpoint): pass **`--gcs-impersonate-service-account`**, **`--gcs-project-id`**, **`--s3-region`**, **`--s3-endpoint`** at MCP startup, or set matching `DBT_TOOLS_*` env vars. Not configurable via `dbt_tools_set_target`. Same flags exist on **`dbt-tools-web`** — see [packages/mcp/REFERENCE.md](../../../../../packages/mcp/REFERENCE.md) and [docs/site/reference/web-cli.md](../../../../../docs/site/reference/web-cli.md).

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseCliArgs, USAGE } from './cli-args';
+import { parseCliArgs, readWebPackageVersion, USAGE } from './cli-args';
 
 describe('parseCliArgs', () => {
   it('returns help for --help and -h', () => {
@@ -8,27 +8,54 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['-h'])).toEqual({ kind: 'help' });
   });
 
+  it('returns version for --version and -V', () => {
+    expect(parseCliArgs(['--version'])).toEqual({ kind: 'version' });
+    expect(parseCliArgs(['-V'])).toEqual({ kind: 'version' });
+  });
+
   it('defaults port 3000', () => {
     expect(parseCliArgs([])).toEqual({
       kind: 'ok',
-      targetDir: undefined,
       port: 3000,
+      explicit: {},
+      usedTargetAlias: false,
     });
   });
 
   it('accepts --no-open as a deprecated no-op', () => {
     expect(parseCliArgs(['--target', '/tmp/dbt', '--no-open'])).toEqual({
       kind: 'ok',
-      targetDir: '/tmp/dbt',
       port: 3000,
+      explicit: { dbtTarget: '/tmp/dbt' },
+      usedTargetAlias: true,
     });
   });
 
   it('parses -t and -p', () => {
     expect(parseCliArgs(['-t', './target', '-p', '8080'])).toEqual({
       kind: 'ok',
-      targetDir: './target',
       port: 8080,
+      explicit: { dbtTarget: './target' },
+      usedTargetAlias: true,
+    });
+  });
+
+  it('accepts remote client flags', () => {
+    expect(
+      parseCliArgs([
+        '--dbt-target',
+        'gs://bucket/prefix',
+        '--gcs-impersonate-service-account',
+        'reader@project.iam.gserviceaccount.com',
+      ]),
+    ).toEqual({
+      kind: 'ok',
+      port: 3000,
+      explicit: {
+        dbtTarget: 'gs://bucket/prefix',
+        gcsImpersonateServiceAccount: 'reader@project.iam.gserviceaccount.com',
+      },
+      usedTargetAlias: false,
     });
   });
 
@@ -42,6 +69,13 @@ describe('parseCliArgs', () => {
     expect(r).toEqual({
       kind: 'error',
       message: 'Unexpected argument: extra',
+    });
+  });
+
+  it('rejects both --dbt-target and --target', () => {
+    expect(parseCliArgs(['--dbt-target', './a', '--target', './b'])).toEqual({
+      kind: 'error',
+      message: 'Cannot use both --dbt-target and --target (or -t).',
     });
   });
 
@@ -81,8 +115,17 @@ describe('parseCliArgs', () => {
 
 describe('USAGE', () => {
   it('mentions core flags', () => {
+    expect(USAGE).toContain('--dbt-target');
+    expect(USAGE).toContain('--gcs-impersonate-service-account');
     expect(USAGE).toContain('--target');
     expect(USAGE).toContain('--port');
+    expect(USAGE).toContain('--version');
     expect(USAGE).toContain('--help');
+  });
+});
+
+describe('readWebPackageVersion', () => {
+  it('returns a non-empty semver-like string', () => {
+    expect(readWebPackageVersion()).toMatch(/^\d+\.\d+\.\d+/);
   });
 });

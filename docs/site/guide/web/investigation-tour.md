@@ -1,14 +1,16 @@
 # Investigation tour
 
-`dbt-tools-web` is a **browser UI** for exploring dbt artifacts—no LLM required. It reads `manifest.json` and `run_results.json` from a local `target/` directory (or configured remote sources on the server).
+`dbt-tools-web` is a **browser UI** for exploring dbt artifacts—no LLM required. It reads `manifest.json` and `run_results.json` from a local `target/` directory or preloads **`s3://`** / **`gs://`** roots when you pass **`--dbt-target`** at startup (same flags as MCP for GCS impersonation and S3 client settings).
 
 ## Start the UI
 
 ```bash
+npx @dbt-tools/web --dbt-target ./target
+# or local alias:
 npx @dbt-tools/web --target ./target
 ```
 
-Open the URL printed in the terminal.
+Open the URL printed in the terminal. See [Web server CLI](../../reference/web-cli.md) for remote and impersonation examples.
 
 ## What to explore
 

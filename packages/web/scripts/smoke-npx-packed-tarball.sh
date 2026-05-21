@@ -25,3 +25,4 @@ TGZ="${tgzs[0]}"
 tmpdir="$(mktemp -d)"
 cd "${tmpdir}" || exit 1
 npx -y --package="${TGZ}" -- dbt-tools-web --help
+npx -y --package="${TGZ}" -- dbt-tools-web --version

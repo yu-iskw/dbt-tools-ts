@@ -18,7 +18,7 @@ Symptom-first fixes for common setup issues. Package-specific detail remains in 
 
 ## Artifacts not found
 
-- Confirm `manifest.json` and `run_results.json` exist at the **root** of your `--dbt-target` / `--target` path.
+- Confirm `manifest.json` and `run_results.json` exist at the **root** of your `--dbt-target` path (web: `--target` is a local alias).
 - Run `dbt compile` or `dbt run` if artifacts are missing or stale.
 
 ## Wrong Node version
@@ -34,7 +34,7 @@ Published packages require **Node.js 20+**. Match [`.node-version`](https://gith
 ## Web UI shows empty views
 
 - Verify the target directory contains a complete manifest/run pair for the run you expect.
-- For remote sources, confirm credentials and bucket paths on the **Node server** (see [Web README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md)).
+- For remote sources, pass `--dbt-target s3://…` or `gs://…` with optional `--gcs-impersonate-service-account` (or env) on **`dbt-tools-web`** startup; see [Web server CLI](./web-cli.md).
 
 ## GitHub Pages site issues
 

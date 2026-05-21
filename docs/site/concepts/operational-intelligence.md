@@ -30,7 +30,7 @@ Ranked matches include `reasons` you can paste into tickets or agent context—s
 ### Investigate slow nodes in the browser
 
 ```bash
-npx @dbt-tools/web --target ./target
+npx @dbt-tools/web --dbt-target ./target
 ```
 
 Use execution and timeline views after artifacts are confirmed—see [Investigate slow runs](../workflows/investigate-slow-runs.md).

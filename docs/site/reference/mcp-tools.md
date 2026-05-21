@@ -29,6 +29,7 @@ Set **remote client flags** (GCS impersonation, S3 region/endpoint) at **server 
 | `--s3-region` / `DBT_TOOLS_S3_REGION`                                             | S3 region                                      |
 | `--s3-endpoint` / `DBT_TOOLS_S3_ENDPOINT`                                         | S3-compatible endpoint                         |
 | `--poll-interval-ms`                                                              | Background refresh interval (ms); `0` disables |
+| `-V`, `--version`                                                                 | Print package version and exit                 |
 
 Do not pass GCS/S3 client flags to `dbt_tools_set_target`—configure them when launching the MCP server.
 
@@ -37,4 +38,5 @@ Do not pass GCS/S3 client flags to `dbt_tools_set_target`—configure them when 
 - [Configuration](./configuration.md) — all `DBT_TOOLS_*` variables
 - [Local and remote artifacts](../concepts/local-and-remote-artifacts.md) — S3, GCS, impersonation
 - [MCP getting started](../guide/mcp/getting-started.md)
+- [Web server CLI](./web-cli.md) — same remote flags on `dbt-tools-web`
 - [packages/mcp/REFERENCE.md](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/REFERENCE.md) — per-tool inputs and examples
