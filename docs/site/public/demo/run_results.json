@@ -659,7 +659,7 @@
       "batch_results": null
     },
     {
-      "status": "success",
+      "status": "error",
       "timing": [
         {
           "name": "compile",
@@ -675,7 +675,7 @@
       "thread_id": "Thread-1 (worker)",
       "execution_time": 0.003125905990600586,
       "adapter_response": {},
-      "message": null,
+      "message": "Database Error in model orders (demo): synthetic failure for documentation examples",
       "failures": null,
       "unique_id": "model.jaffle_shop.orders",
       "compiled": true,
@@ -1036,7 +1036,11 @@
     "vars": {},
     "send_anonymous_usage_stats": true,
     "macro_debugging": false,
-    "warn_error_options": { "error": [], "warn": [], "silence": [] },
+    "warn_error_options": {
+      "error": [],
+      "warn": [],
+      "silence": []
+    },
     "require_ref_searches_node_package_before_root": false,
     "defer": false,
     "require_resource_names_without_spaces": true,

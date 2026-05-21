@@ -6,7 +6,7 @@ Start with the job you need to finish, then pick the interface that fits. Packag
 
 | Goal                                          | Best interface | Why                                                    | Start here                                                                                        |
 | --------------------------------------------- | -------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Check whether a run succeeded                 | CLI            | Fast, scriptable, JSON output                          | [Debug a failed run](../recipes/debug-failed-run.md)                                              |
+| Check whether a run succeeded                 | CLI            | Fast, scriptable, JSON output                          | [Check run health](../workflows/check-run-health.md)                                              |
 | Debug a failed model or test                  | CLI + Web      | CLI summarizes; Web adds lineage and execution context | [Debug a failed run](../recipes/debug-failed-run.md)                                              |
 | Investigate slow models                       | Web + CLI      | Web for timelines; CLI for ranked execution lists      | [Investigate slow models](../recipes/investigate-slow-models.md)                                  |
 | Understand upstream/downstream impact         | CLI + Web      | `discover`, `explain`, `deps`; Web for graph views     | [Find model impact](../recipes/find-model-impact.md)                                              |

@@ -4,34 +4,41 @@ Try dbt-tools in a few minutes using **synthetic** [jaffle_shop](https://github.
 
 ## Prerequisites
 
-- Node.js 20+ (see the repository [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version))
+- Node.js 20+ (see the repository [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) for local development; published packages support Node 20+)
 - npm, pnpm, or another Node package runner
 
-## Option A: Use your own dbt `target/` directory
+## Set your artifact root
 
-If you already ran dbt and have `manifest.json` and `run_results.json` under `target/`:
+Pick **one** target directory for the commands below.
+
+**Option A — your dbt project:**
 
 ```bash
-npx @dbt-tools/cli status --dbt-target ./target --json
+export DEMO=./target
 ```
 
-## Option B: Use the demo artifacts
+Requires `manifest.json` and `run_results.json` under that directory.
 
-From a clone of [dbt-tools-ts](https://github.com/yu-iskw/dbt-tools-ts), point at the bundled demo directory:
+**Option B — bundled demo artifacts** (from a clone of [dbt-tools-ts](https://github.com/yu-iskw/dbt-tools-ts)):
 
 ```bash
 export DEMO=./docs/site/public/demo
-npx @dbt-tools/cli status --dbt-target "$DEMO" --json
 ```
 
-Or copy the demo folder anywhere on disk:
+Or copy the demo folder anywhere:
 
 ```bash
 cp -r ./docs/site/public/demo ./dbt-tools-demo-target
-npx @dbt-tools/cli status --dbt-target ./dbt-tools-demo-target --json
+export DEMO=./dbt-tools-demo-target
 ```
 
-See [Demo artifacts](./demo-artifacts.md) for provenance and licensing of the sample files.
+See [Demo artifacts](./demo-artifacts.md) for provenance. The demo `run_results.json` includes a **synthetic** failure on `model.jaffle_shop.orders` for triage examples.
+
+## Check artifact health
+
+```bash
+npx @dbt-tools/cli status --dbt-target "$DEMO" --json
+```
 
 ### Expected output shape (`status`)
 
