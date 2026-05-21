@@ -23,6 +23,19 @@ class FakeRemoteClient implements RemoteObjectStoreClient {
     }>,
   ) {}
 
+  replaceObjects(
+    objects: Array<{
+      key: string;
+      updatedAtMs: number;
+      etag?: string;
+      generation?: string;
+      bytes?: Uint8Array;
+    }>,
+  ): void {
+    this.objects.length = 0;
+    this.objects.push(...objects);
+  }
+
   async listObjects(): Promise<
     Array<{
       key: string;
@@ -273,6 +286,58 @@ describe('ArtifactSourceService', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it('surfaces pendingRun after getStatus when remote root artifacts are overwritten in place', async () => {
+    const client = new FakeRemoteClient([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 2_000,
+        etag: 'manifest-v1',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v1"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 2_000,
+        etag: 'results-v1',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v1"}}'),
+      },
+    ]);
+
+    const service = new ArtifactSourceService({
+      remoteConfig: {
+        provider: 's3',
+        bucket: 'dbt-artifacts',
+        prefix: 'scheduled',
+        pollIntervalMs: 15_000,
+      },
+      remoteClient: client,
+    });
+
+    const initial = await service.getStatus();
+    expect(initial.pendingRun).toBeNull();
+    expect(initial.currentRun?.versionToken).toContain('manifest-v1');
+
+    client.replaceObjects([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 3_000,
+        etag: 'manifest-v2',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v2"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 3_000,
+        etag: 'results-v2',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v2"}}'),
+      },
+    ]);
+
+    const refreshed = await service.getStatus();
+    expect(refreshed.currentRun?.runId).toBe('current');
+    expect(refreshed.pendingRun?.runId).toBe('current');
+    expect(refreshed.pendingRun?.versionToken).not.toBe(initial.currentRun?.versionToken);
+    expect(refreshed.supportsSwitch).toBe(true);
   });
 
   it('seeds remote artifact root from DBT_TOOLS_DBT_TARGET at startup', async () => {
