@@ -14,4 +14,4 @@ dbt-tools status --dbt-target ./target --json
 dbt-tools status --dbt-target s3://my-bucket/dbt/prod --json
 ```
 
-Use the **same** target for the entire agent session. Remote credentials follow AWS/GCP client chains; optional `DBT_TOOLS_REMOTE_SOURCE` JSON for provider options — see [packages/cli/README.md](../../../../../packages/cli/README.md).
+Use the **same** target for the entire agent session. Remote credentials follow AWS/GCP client chains; optional `DBT_TOOLS_GCS_*` / `DBT_TOOLS_S3_*` for provider options — see [packages/cli/README.md](../../../../../packages/cli/README.md).

@@ -117,6 +117,7 @@ export default defineConfig({
         items: [
           { text: 'Configuration', link: '/reference/configuration' },
           { text: 'CLI cheatsheet', link: '/reference/cli-cheatsheet' },
+          { text: 'MCP tools', link: '/reference/mcp-tools' },
           { text: 'Deep links', link: '/reference/deep-links' },
           { text: 'Troubleshooting', link: '/reference/troubleshooting' },
         ],

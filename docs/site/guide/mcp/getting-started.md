@@ -23,6 +23,7 @@ Configure your MCP client to launch `dbt-tools-mcp` with the same `--dbt-target`
 
 ## Learn more
 
+- [MCP tools](../../reference/mcp-tools.md) — tool and startup-flag reference
 - [Configuration](../../reference/configuration.md) — environment variables and targets
+- [Local and remote artifacts](../../concepts/local-and-remote-artifacts.md) — S3, GCS, impersonation
 - [Package README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/README.md)
-- Remote artifacts: [Local and remote artifacts](../../concepts/local-and-remote-artifacts.md)

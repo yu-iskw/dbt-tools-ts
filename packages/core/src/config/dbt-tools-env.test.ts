@@ -11,11 +11,9 @@ import {
 import {
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteClientEnvFromEnv,
-  getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsTargetDirFromEnv,
   isDbtToolsDebugEnabled,
   isDbtToolsWatchEnabled,
-  parseDbtToolsRemoteSourceConfigJson,
   resetDbtToolsEnvDeprecationWarningsForTests,
 } from './dbt-tools-env';
 
@@ -23,7 +21,6 @@ const TARGET_KEYS = ['DBT_TOOLS_TARGET_DIR', 'DBT_TARGET_DIR', 'DBT_TARGET'] as 
 const DEBUG_KEYS = ['DBT_TOOLS_DEBUG', 'DBT_DEBUG'] as const;
 const WATCH_KEYS = ['DBT_TOOLS_WATCH', 'DBT_WATCH'] as const;
 const DEBOUNCE_KEYS = ['DBT_TOOLS_RELOAD_DEBOUNCE_MS', 'DBT_RELOAD_DEBOUNCE_MS'] as const;
-const REMOTE_KEYS = ['DBT_TOOLS_REMOTE_SOURCE'] as const;
 
 function clearKeys(keys: readonly string[]): Record<string, string | undefined> {
   const prev: Record<string, string | undefined> = {};
@@ -224,134 +221,6 @@ describe('dbt-tools-env', () => {
           endpoint: 'https://s3.local',
         },
       });
-    });
-  });
-
-  describe('parseDbtToolsRemoteSourceConfigJson', () => {
-    it('parses the same shape as env-backed happy path', () => {
-      const json = JSON.stringify({
-        provider: 's3',
-        bucket: 'dbt-artifacts',
-        prefix: '/prod/runs/',
-        pollIntervalMs: 15000,
-        region: 'ap-northeast-1',
-      });
-      expect(parseDbtToolsRemoteSourceConfigJson(json)).toEqual({
-        provider: 's3',
-        bucket: 'dbt-artifacts',
-        prefix: 'prod/runs',
-        pollIntervalMs: 15000,
-        region: 'ap-northeast-1',
-        endpoint: undefined,
-        forcePathStyle: false,
-        projectId: undefined,
-        impersonatedServiceAccount: undefined,
-      });
-    });
-
-    it('parses GCS impersonatedServiceAccount from JSON', () => {
-      const json = JSON.stringify({
-        provider: 'gcs',
-        bucket: 'b',
-        prefix: 'p',
-        impersonatedServiceAccount: '  reader@proj.iam.gserviceaccount.com  ',
-      });
-      expect(parseDbtToolsRemoteSourceConfigJson(json)?.impersonatedServiceAccount).toBe(
-        'reader@proj.iam.gserviceaccount.com',
-      );
-    });
-
-    it('normalizes many leading and trailing slashes without regex backtracking risk', () => {
-      const json = JSON.stringify({
-        provider: 'gcs',
-        bucket: 'b',
-        prefix: `${'/'.repeat(200)}runs${'/'.repeat(200)}`,
-      });
-      expect(parseDbtToolsRemoteSourceConfigJson(json)?.prefix).toBe('runs');
-    });
-
-    it('returns undefined for invalid JSON without reading env', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      expect(parseDbtToolsRemoteSourceConfigJson('{nope')).toBeUndefined();
-      expect(warn).toHaveBeenCalled();
-      warn.mockRestore();
-    });
-  });
-
-  describe('getDbtToolsRemoteSourceConfigFromEnv', () => {
-    let prev: Record<string, string | undefined>;
-
-    beforeEach(() => {
-      prev = clearKeys(REMOTE_KEYS);
-    });
-
-    afterEach(() => {
-      restoreKeys(prev);
-    });
-
-    it('returns undefined when unset', () => {
-      expect(getDbtToolsRemoteSourceConfigFromEnv()).toBeUndefined();
-    });
-
-    it('parses a canonical s3 config', () => {
-      process.env.DBT_TOOLS_REMOTE_SOURCE = JSON.stringify({
-        provider: 's3',
-        bucket: 'dbt-artifacts',
-        prefix: '/prod/runs/',
-        pollIntervalMs: 15000,
-        region: 'ap-northeast-1',
-      });
-
-      expect(getDbtToolsRemoteSourceConfigFromEnv()).toEqual({
-        provider: 's3',
-        bucket: 'dbt-artifacts',
-        prefix: 'prod/runs',
-        pollIntervalMs: 15000,
-        region: 'ap-northeast-1',
-        endpoint: undefined,
-        forcePathStyle: false,
-        projectId: undefined,
-        impersonatedServiceAccount: undefined,
-      });
-    });
-
-    it('defaults the poll interval when omitted', () => {
-      process.env.DBT_TOOLS_REMOTE_SOURCE = JSON.stringify({
-        provider: 'gcs',
-        bucket: 'analytics',
-        prefix: 'scheduled/dbt',
-      });
-
-      expect(getDbtToolsRemoteSourceConfigFromEnv()).toMatchObject({
-        provider: 'gcs',
-        bucket: 'analytics',
-        prefix: 'scheduled/dbt',
-        pollIntervalMs: 30000,
-      });
-    });
-
-    it('returns undefined for invalid JSON', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      process.env.DBT_TOOLS_REMOTE_SOURCE = '{nope';
-
-      expect(getDbtToolsRemoteSourceConfigFromEnv()).toBeUndefined();
-      expect(warn).toHaveBeenCalled();
-
-      warn.mockRestore();
-    });
-
-    it('returns undefined for incomplete configs', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      process.env.DBT_TOOLS_REMOTE_SOURCE = JSON.stringify({
-        provider: 's3',
-        bucket: '',
-        prefix: 'runs',
-      });
-
-      expect(getDbtToolsRemoteSourceConfigFromEnv()).toBeUndefined();
-      expect(warn).toHaveBeenCalled();
-
-      warn.mockRestore();
     });
   });
 });

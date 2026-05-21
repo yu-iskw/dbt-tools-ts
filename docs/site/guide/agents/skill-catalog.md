@@ -39,7 +39,7 @@ Skill bodies: [`plugins/dbt-tools-cli/skills/`](https://github.com/yu-iskw/dbt-t
 | `dbt-tools-mcp:query-executions`   | Filter/sort executions                | `dbt_tools_query_executions`   |
 | `dbt-tools-mcp:summarize-run`      | Run-level summary                     | `dbt_tools_get_run_summary`    |
 
-Skill bodies: [`plugins/dbt-tools-mcp/skills/`](https://github.com/yu-iskw/dbt-tools-ts/tree/main/plugins/dbt-tools-mcp/skills). Full tool reference: [`packages/mcp/REFERENCE.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/REFERENCE.md).
+Skill bodies: [`plugins/dbt-tools-mcp/skills/`](https://github.com/yu-iskw/dbt-tools-ts/tree/main/plugins/dbt-tools-mcp/skills). Full tool reference: [MCP tools](../../reference/mcp-tools.md) and [`packages/mcp/REFERENCE.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/REFERENCE.md).
 
 ## Suggested composition
 

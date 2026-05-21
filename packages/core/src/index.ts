@@ -18,9 +18,7 @@ export {
   getDbtToolsDbtTargetFromEnv,
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteClientEnvFromEnv,
-  getDbtToolsRemoteSourceConfigFromEnv,
   getDbtToolsWebBaseUrlFromEnv,
-  parseDbtToolsRemoteSourceConfigJson,
   isDbtToolsDebugEnabled,
   isDbtToolsWatchEnabled,
 } from './config/dbt-tools-env';

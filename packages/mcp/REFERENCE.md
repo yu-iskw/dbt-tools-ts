@@ -57,7 +57,7 @@ These apply to other dbt-tools surfaces, not `dbt-tools-mcp`:
 
 For `s3://` and `gs://` targets, **bucket and prefix come only from the URI** (or `DBT_TOOLS_DBT_TARGET`). Set client options via the env vars above or the matching CLI flags.
 
-Further remote semantics: [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md). The web app may still use `DBT_TOOLS_REMOTE_SOURCE` JSON; MCP does not.
+Further remote semantics: [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md). The web app configures remote sources via the **Load artifacts** UI; MCP uses URI + env vars only.
 
 ## MCP client configuration
 

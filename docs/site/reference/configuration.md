@@ -1,21 +1,52 @@
 # Configuration
 
-Configuration is **package-specific**. Use the variables and flags documented in each package README.
+Set the artifact root with **`--dbt-target`** or **`DBT_TOOLS_DBT_TARGET`** (local path, `s3://bucket/prefix`, or `gs://bucket/prefix`). On MCP, CLI flags override matching env vars when both are set.
 
-## Common patterns
+Remote setup details (including GCS impersonation): [Local and remote artifacts](../concepts/local-and-remote-artifacts.md).
 
-| Concern           | CLI / MCP                              | Web                                              |
-| ----------------- | -------------------------------------- | ------------------------------------------------ |
-| Artifact location | `--dbt-target`, `DBT_TOOLS_DBT_TARGET` | `--target`, env vars in package README           |
-| Remote S3/GCS     | `s3://` / `gs://` targets (see below)  | Server-side credentials; browser uses `/api/...` |
+## Environment variables
 
-## Environment
+| Variable                                    | CLI | MCP | Web | Purpose                                                            |
+| ------------------------------------------- | --- | --- | --- | ------------------------------------------------------------------ |
+| `DBT_TOOLS_DBT_TARGET`                      | yes | yes | —   | Default artifact root                                              |
+| `DBT_TOOLS_GCS_PROJECT_ID`                  | yes | yes | —   | GCS client project (`gs://` targets)                               |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | yes | yes | —   | GCS read-only impersonation principal                              |
+| `DBT_TOOLS_S3_REGION`                       | yes | yes | —   | S3 region                                                          |
+| `DBT_TOOLS_S3_ENDPOINT`                     | yes | yes | —   | S3-compatible endpoint URL                                         |
+| `DBT_TOOLS_TARGET_DIR`                      | —   | —   | yes | Local artifact directory for web server                            |
+| `DBT_TOOLS_WEB_BASE_URL`                    | yes | —   | —   | Base URL for `web_url` in CLI JSON ([deep links](./deep-links.md)) |
+| `DBT_TOOLS_DEBUG`                           | yes | yes | yes | Set `1` for debug/progress logs on stderr                          |
+| `DBT_TOOLS_WATCH`                           | —   | —   | dev | Vite dev file watch (`0` disables)                                 |
+| `DBT_TOOLS_RELOAD_DEBOUNCE_MS`              | —   | —   | dev | Vite dev reload debounce (ms)                                      |
 
-- **Node.js** — 20+ for published packages; monorepo development uses [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version).
-- **Monorepo** — clone the repository and run `pnpm install` for contributor workflows.
+Standard cloud auth (not dbt-tools-specific): `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`, `AWS_REGION`, `GOOGLE_APPLICATION_CREDENTIALS`, and GCP application default credentials.
+
+Deprecated aliases (`DBT_TARGET_DIR`, `DBT_DEBUG`, etc.) may still work; see package READMEs.
+
+## Remote client variables (S3 / GCS)
+
+Use with `s3://` or `gs://` in `DBT_TOOLS_DBT_TARGET` / `--dbt-target`:
+
+| Variable                                    | Purpose                                      |
+| ------------------------------------------- | -------------------------------------------- |
+| `DBT_TOOLS_GCS_PROJECT_ID`                  | GCP project for GCS                          |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | Impersonated service account (read-only GCS) |
+| `DBT_TOOLS_S3_REGION`                       | S3 region                                    |
+| `DBT_TOOLS_S3_ENDPOINT`                     | Custom S3-compatible endpoint                |
+
+MCP startup flags: `--gcs-project-id`, `--gcs-impersonate-service-account`, `--s3-region`, `--s3-endpoint` — see [MCP tools](./mcp-tools.md).
+
+For **web** remote S3/GCS, use the in-app **Load artifacts** panel (server-side credentials; see [Local and remote artifacts](../concepts/local-and-remote-artifacts.md)).
+
+## Node.js
+
+- **20+** for published packages; monorepo development uses [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version).
 
 ## Further reading
 
-- [`packages/cli/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md) — CLI flags and `DBT_TOOLS_*` variables
-- [`packages/mcp/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/README.md) — MCP launch and target options
-- [`packages/web/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md) — dev server, Docker, and remote sources
+- [CLI cheatsheet](./cli-cheatsheet.md)
+- [MCP tools](./mcp-tools.md)
+- [`packages/cli/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md)
+- [`packages/mcp/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/README.md)
+- [`packages/mcp/REFERENCE.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/REFERENCE.md) — full MCP tool inputs
+- [`packages/web/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md)

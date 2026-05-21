@@ -2,7 +2,15 @@
 
 Curated commands for daily use. Full flags and examples: [packages/cli/README.md](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md).
 
-Set `DBT_TOOLS_DBT_TARGET=./target` or pass `--dbt-target ./target` on every command.
+Set `DBT_TOOLS_DBT_TARGET=./target` or pass `--dbt-target ./target` on every command. Remote targets: [Local and remote artifacts](../concepts/local-and-remote-artifacts.md).
+
+## Remote targets
+
+```bash
+dbt-tools status --dbt-target ./target
+dbt-tools status --dbt-target s3://my-bucket/dbt/prod
+dbt-tools status --dbt-target gs://my-bucket/dbt/prod
+```
 
 ## Readiness and manifest
 
@@ -45,14 +53,16 @@ dbt-tools explain model.pkg.node --dbt-target ./target --json
 
 ## Execution
 
-| Command            | Purpose                     |
-| ------------------ | --------------------------- |
-| `query-executions` | Filter/sort run executions  |
-| `timeline`         | Per-node execution timeline |
-| `run-summary`      | Run-level aggregates        |
+| Command            | Purpose                          |
+| ------------------ | -------------------------------- |
+| `query-executions` | Filter/sort run executions       |
+| `timeline`         | Per-node execution timeline      |
+| `run-summary`      | Run-level aggregates             |
+| `run-report`       | Execution report + critical path |
 
 ```bash
 dbt-tools query-executions --dbt-target ./target --sort duration --limit 20 --json
+dbt-tools run-report --dbt-target ./target --json
 ```
 
 ## Introspection

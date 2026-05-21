@@ -1,6 +1,6 @@
 /** Node (Vite dev) service: configurable local path or remote S3/GCS; drives middleware routes. */
 import {
-  getDbtToolsRemoteSourceConfigFromEnv,
+  getDbtToolsRemoteClientEnvFromEnv,
   getDbtToolsTargetDirFromEnv,
   isDbtToolsDebugEnabled,
   mergeRemoteSourceConfigWithParsedLocation,
@@ -175,16 +175,6 @@ export class ArtifactSourceService {
   }
 
   private async seedFromEnvironment(): Promise<void> {
-    const remoteEnv = getDbtToolsRemoteSourceConfigFromEnv();
-    if (remoteEnv != null) {
-      await this.applyRemoteConfiguration(
-        remoteEnv,
-        await createRemoteObjectStoreClient(remoteEnv),
-        true,
-      );
-      return;
-    }
-
     const rawTarget = getDbtToolsTargetDirFromEnv();
     if (rawTarget == null) return;
 
@@ -441,11 +431,14 @@ export class ArtifactSourceService {
       return this.discoverLocalDirectory(parsed.resolvedPath);
     }
 
-    const env = getDbtToolsRemoteSourceConfigFromEnv();
+    const envClient = getDbtToolsRemoteClientEnvFromEnv();
+    const gcsRequestOptions =
+      kind === 'gcs' ? { ...envClient.gcsRequestOptions, ...providerOptions } : undefined;
     const merged = mergeRemoteSourceConfigWithParsedLocation(
-      env,
+      undefined,
       parsed,
-      kind === 'gcs' ? providerOptions : undefined,
+      gcsRequestOptions,
+      envClient.remoteClientOverrides,
     );
     const client = await createRemoteObjectStoreClient(merged);
     return this.discoverRemoteConfiguration(merged, client);

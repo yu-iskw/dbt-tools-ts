@@ -9,6 +9,8 @@ dbt-tools turns dbt artifacts under a **target directory** into structured, repe
 | **Web** (`dbt-tools-web`) | Browser investigation UI                                                 |
 | **Agents** (plugins)      | Primitive **skills** that invoke CLI or MCP (Cursor, Codex, Claude Code) |
 
+Remote artifact roots (`s3://`, `gs://`, including GCS service-account impersonation): [Local and remote artifacts](../concepts/local-and-remote-artifacts.md).
+
 ## Quick examples
 
 From the repository root, with `manifest.json` and `run_results.json` under `./target`:
