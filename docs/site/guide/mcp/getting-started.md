@@ -22,6 +22,10 @@ dbt-tools-mcp --dbt-target ./target
 
 Configure your MCP client to launch `dbt-tools-mcp` with the same `--dbt-target` (or `DBT_TOOLS_DBT_TARGET`).
 
+## Artifact requirements
+
+MCP loads **`manifest.json` and `run_results.json` together** when a target is set. There is no manifest-only MCP session. If you only ran `dbt compile`, use CLI `dbt-tools status` or **`dbt-tools-cli:check-session`** to inspect readiness, then run `dbt build` or `dbt run` before starting MCP. See [Troubleshooting](../../reference/troubleshooting.md) and the [check-session reference](https://github.com/yu-iskw/dbt-tools-ts/blob/main/plugins/dbt-tools-mcp/skills/check-session/references/session.md).
+
 ## Learn more
 
 - [MCP tools](../../reference/mcp-tools.md) — tool and startup-flag reference
