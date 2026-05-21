@@ -6,7 +6,7 @@ This page covers the risks and guardrails for using dbt-tools with AI agents thr
 
 The MCP server (`@dbt-tools/mcp`) is a tool surface that exposes parsed artifact data to an AI client. The architecture is:
 
-```
+```text
 AI client (Cursor, Claude, Codex, etc.)
     ↓ tool calls
 MCP server (dbt-tools-mcp)

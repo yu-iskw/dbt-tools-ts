@@ -47,13 +47,13 @@ Discover returns a list of matching resources. Each result includes a `web_url` 
 
 Navigate to the root of the Web UI to see the overall run health view:
 
-```
+```text
 http://localhost:3000/dbt-tools-ts/
 ```
 
 Or open the run results view directly:
 
-```
+```text
 http://localhost:3000/dbt-tools-ts/runs
 ```
 
@@ -77,19 +77,19 @@ npx @dbt-tools/cli explain model.my_project.orders --dbt-target ./target --json 
 
 ## Configuration reference
 
-| Variable | Description | Example |
-|---|---|---|
+| Variable                 | Description                             | Example                              |
+| ------------------------ | --------------------------------------- | ------------------------------------ |
 | `DBT_TOOLS_WEB_BASE_URL` | Base URL of the running Web UI instance | `http://localhost:3000/dbt-tools-ts` |
 
 The Web UI base path includes the VitePress base (`/dbt-tools-ts/`) when running locally. If you deploy the Web UI under a different path, adjust the variable accordingly.
 
 ## Common failure modes
 
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| `web_url` field missing from output | `DBT_TOOLS_WEB_BASE_URL` not set | Export the variable before running CLI commands |
-| Web UI not reachable | `dbt-tools-web` not running | Start it with `npx @dbt-tools/web --dbt-target ./target` |
-| Resource not found in Web UI | Different `--dbt-target` between CLI and Web | Use the same directory for both |
+| Symptom                             | Likely cause                                 | Fix                                                      |
+| ----------------------------------- | -------------------------------------------- | -------------------------------------------------------- |
+| `web_url` field missing from output | `DBT_TOOLS_WEB_BASE_URL` not set             | Export the variable before running CLI commands          |
+| Web UI not reachable                | `dbt-tools-web` not running                  | Start it with `npx @dbt-tools/web --dbt-target ./target` |
+| Resource not found in Web UI        | Different `--dbt-target` between CLI and Web | Use the same directory for both                          |
 
 ## Related
 

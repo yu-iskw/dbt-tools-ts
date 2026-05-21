@@ -41,4 +41,9 @@ Refer to the package README and TypeScript types for the full API surface.
 - [Choose by goal](../guide/choose-by-goal.md) — when to use Core vs CLI vs MCP
 - [Local and remote artifacts](../concepts/local-and-remote-artifacts.md)
 - [dbt Artifacts](../concepts/dbt-artifacts.md)
+
+<!-- markdown-link-check-disable -->
+
 - [@dbt-tools/core on npm](https://www.npmjs.com/package/@dbt-tools/core)
+
+<!-- markdown-link-check-enable -->

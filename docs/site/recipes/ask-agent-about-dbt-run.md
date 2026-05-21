@@ -11,11 +11,11 @@ Use this recipe when you want an AI assistant to query dbt artifacts on your beh
 
 ## Choose your integration path
 
-| Path | Best for | Setup effort |
-|---|---|---|
-| CLI commands via the agent | Ad-hoc questions in any AI chat | Low — no server needed |
-| MCP server | Many follow-up questions in one session | Medium — start `dbt-tools-mcp` |
-| Agent skills | Repeatable named operations in an IDE agent | Low — install skills once |
+| Path                       | Best for                                    | Setup effort                   |
+| -------------------------- | ------------------------------------------- | ------------------------------ |
+| CLI commands via the agent | Ad-hoc questions in any AI chat             | Low — no server needed         |
+| MCP server                 | Many follow-up questions in one session     | Medium — start `dbt-tools-mcp` |
+| Agent skills               | Repeatable named operations in an IDE agent | Low — install skills once      |
 
 ## Path A: CLI via the agent
 
@@ -23,7 +23,7 @@ Ask your AI assistant to run CLI commands on your behalf. This requires no addit
 
 Example prompt:
 
-```
+```text
 Run: npx @dbt-tools/cli status --dbt-target ./target --json
 Then explain what the output means for my dbt project health.
 ```
