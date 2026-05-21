@@ -65,4 +65,4 @@ Review the privacy policy and data handling documentation of your AI client befo
 
 - [Agent safety](./agent-safety.md)
 - [Production hardening](./production-hardening.md)
-- [Demo artifacts](../guide/demo-artifacts.md) — use synthetic fixtures for public examples
+- [Try with a sample project](../guide/try-with-sample-project.md) — use public sample projects (e.g. jaffle_shop_duckdb) for public examples

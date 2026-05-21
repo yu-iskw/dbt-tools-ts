@@ -56,7 +56,14 @@ export default defineConfig({
           { text: '5-minute quickstart', link: '/guide/quickstart' },
           { text: 'Choose by goal', link: '/guide/choose-by-goal' },
           { text: 'Ecosystem at a glance', link: '/guide/ecosystem' },
-          { text: 'Demo artifacts', link: '/guide/demo-artifacts' },
+          { text: 'Try with a sample project', link: '/guide/try-with-sample-project' },
+        ],
+      },
+      {
+        text: 'Foundations',
+        items: [
+          { text: 'New to dbt?', link: '/guide/foundations/new-to-dbt' },
+          { text: 'dbt artifacts & target/', link: '/concepts/dbt-artifacts' },
         ],
       },
       {
@@ -156,7 +163,6 @@ export default defineConfig({
       {
         text: 'Concepts',
         items: [
-          { text: 'dbt Artifacts', link: '/concepts/dbt-artifacts' },
           { text: 'Local and remote artifacts', link: '/concepts/local-and-remote-artifacts' },
           { text: 'Discovery parity', link: '/concepts/discovery-parity' },
           { text: 'Operational Intelligence', link: '/concepts/operational-intelligence' },

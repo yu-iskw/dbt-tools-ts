@@ -24,7 +24,7 @@ Use this recipe when a dbt run, test, or build has produced failures and you wan
 npx @dbt-tools/cli status --dbt-target ./target --json
 ```
 
-A `"status": "full"` confirms both manifest and run results are present. If `run_results.json` is missing, the status will be `"manifest-only"` and you will not have failure information.
+`readiness: "full"` confirms both manifest and run results are present. If `run_results.json` is missing, `readiness` will be `"manifest-only"` and you will not have failure information.
 
 ## Step 2: Get a run summary
 
@@ -79,13 +79,13 @@ See [Open CLI result in Web](./open-cli-result-in-web.md) for deep-link setup.
 
 ## Common failure modes
 
-| Symptom                     | Likely cause                                          | Fix                                                                              |
-| --------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `"status": "manifest-only"` | `run_results.json` not found                          | Point `--dbt-target` at the directory containing the artifacts, or run dbt first |
-| `"status": "unavailable"`   | Wrong `--dbt-target` path                             | Confirm the directory contains `manifest.json`                                   |
-| `explain` returns no error  | Run did not fail for this node                        | Check the `run_results.json` for which nodes actually failed                     |
-| `unique_id` not found       | Model name is wrong or belongs to a different project | Use `discover` to search by name                                                 |
-| Empty downstream deps       | Node has no dependents                                | The failure is a leaf; no blast radius                                           |
+| Readiness                  | Likely cause                                          | Fix                                                                              |
+| -------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `manifest-only`            | `run_results.json` not found                          | Point `--dbt-target` at the directory containing the artifacts, or run dbt first |
+| `unavailable`              | Wrong `--dbt-target` path                             | Confirm the directory contains `manifest.json`                                   |
+| `explain` returns no error | Run did not fail for this node                        | Check the `run_results.json` for which nodes actually failed                     |
+| `unique_id` not found      | Model name is wrong or belongs to a different project | Use `discover` to search by name                                                 |
+| Empty downstream deps      | Node has no dependents                                | The failure is a leaf; no blast radius                                           |
 
 ## Related
 

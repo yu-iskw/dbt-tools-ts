@@ -44,12 +44,13 @@ jobs:
 
 ## Gate on artifact health
 
-Use the exit code from `status` to gate subsequent steps:
+`status` exits non-zero on hard failures (missing target, parse errors). Exit code **0** does not prove `run_results.json` exists—check **`readiness`** when execution analysis is required:
 
 ```yaml
 - name: Check artifact health
-  run: npx @dbt-tools/cli status --dbt-target ./target --json
-  # Non-zero exit code fails the step; subsequent steps are skipped
+  run: |
+    npx @dbt-tools/cli status --dbt-target ./target --json > status.json
+    test "$(jq -r '.readiness' status.json)" = "full"
 ```
 
 ## Read artifacts from S3
@@ -138,7 +139,7 @@ Caching the npm package download reduces cold-start time:
 
 | Symptom                         | Likely cause                                   | Fix                                                             |
 | ------------------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
-| `status: unavailable`           | dbt did not produce artifacts before this step | Confirm dbt ran and `./target/manifest.json` exists             |
+| `readiness: unavailable`        | dbt did not produce artifacts before this step | Confirm dbt ran and `./target/manifest.json` exists             |
 | `npx` fails on private registry | Registry not configured                        | Set `NODE_AUTH_TOKEN` and `NPM_REGISTRY` for private registries |
 | Remote auth error               | Secrets not passed to the step                 | Check that the secrets are available in the job's `env` block   |
 

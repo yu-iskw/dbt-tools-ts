@@ -34,7 +34,11 @@ After this step, `manifest.json` and `run_results.json` are under `./target/`.
 npx @dbt-tools/cli status --dbt-target ./target --json
 ```
 
-Exit code 0 means the artifacts are readable. Exit code non-zero means something failed. Use this as a gate before further analysis.
+Exit code 0 means the `status` command completed (files found or readable). It does **not** guarantee `readiness: "full"`—`manifest-only` after `dbt compile` also exits 0. When you need run results, gate on JSON:
+
+```bash
+test "$(npx @dbt-tools/cli status --dbt-target ./target --json | jq -r '.readiness')" = "full"
+```
 
 ## Step 3: Generate a summary
 
@@ -114,8 +118,8 @@ Use `if [ $? -ne 0 ]; then ...` or GitHub Actions `if: failure()` steps to handl
 
 | Symptom                    | Likely cause                                   | Fix                                                                         |
 | -------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------- |
-| `status: unavailable`      | `--dbt-target` path does not contain artifacts | Confirm dbt ran before this step and produced output in `./target/`         |
-| `status: manifest-only`    | dbt command did not produce `run_results.json` | Use `dbt run`, `dbt test`, or `dbt build` rather than `dbt compile`         |
+| `readiness: unavailable`   | `--dbt-target` path does not contain artifacts | Confirm dbt ran before this step and produced output in `./target/`         |
+| `readiness: manifest-only` | dbt command did not produce `run_results.json` | Use `dbt run`, `dbt test`, or `dbt build` rather than `dbt compile`         |
 | Remote auth failure        | Missing cloud credentials                      | See [Credentials](../deploy/credentials.md)                                 |
 | `npx` slow on cold runners | Package download time                          | Pin the package version or pre-install with `npm install -g @dbt-tools/cli` |
 

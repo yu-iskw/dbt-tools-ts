@@ -20,6 +20,7 @@ Symptom-first fixes for common setup issues. Package-specific detail remains in 
 
 - Confirm `manifest.json` and `run_results.json` exist at the **root** of your `--dbt-target` path (web: `--target` is a local alias).
 - Run `dbt compile` or `dbt run` if artifacts are missing or stale.
+- See [dbt artifacts & target/](../concepts/dbt-artifacts.md) for **manifest-only** (`dbt compile`) vs **full** (`dbt run` / `dbt build` / `dbt test`) and what each file is used for.
 
 ## Wrong Node version
 
@@ -34,6 +35,7 @@ Published packages require **Node.js 20+**. Match [`.node-version`](https://gith
 ## Web UI shows empty views
 
 - Verify the target directory contains a complete manifest/run pair for the run you expect.
+- Execution views need `run_results.json`—a **manifest-only** target after `dbt compile` is not enough. See [dbt artifacts & target/](../concepts/dbt-artifacts.md#when-artifacts-appear).
 - For remote sources, pass `--dbt-target s3://…` or `gs://…` with optional `--gcs-impersonate-service-account` (or env) on **`dbt-tools-web`** startup; see [Web server CLI](./web-cli.md).
 
 ## GitHub Pages site issues

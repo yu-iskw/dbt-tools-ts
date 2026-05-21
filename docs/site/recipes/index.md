@@ -20,7 +20,7 @@ Recipes are end-to-end task guides. Each one starts from a user goal, shows whic
 
 Run `npx @dbt-tools/cli status --dbt-target ./target --json` first to confirm artifacts are readable.
 
-> **No real dbt project?** Use [demo artifacts](../guide/demo-artifacts.md) to try any recipe without a warehouse.
+> **No real dbt project?** Use [Try with a sample project](../guide/try-with-sample-project.md) to generate artifacts with a public sample repo, then run any recipe against `./target`.
 
 ## How recipes relate to existing workflows
 

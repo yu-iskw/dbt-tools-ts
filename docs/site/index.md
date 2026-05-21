@@ -51,6 +51,8 @@ features:
 
 ## Artifact sources
 
+[New to dbt?](guide/foundations/new-to-dbt.md) · [dbt artifacts & target/](concepts/dbt-artifacts.md)
+
 dbt-tools reads `manifest.json` and `run_results.json` from:
 
 - A **local** `target/` directory — [local setup](deploy/local-target.md)

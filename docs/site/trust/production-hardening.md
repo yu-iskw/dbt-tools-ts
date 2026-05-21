@@ -20,7 +20,7 @@ See [Credentials](../deploy/credentials.md) for provider-specific guidance.
 
 **Do not commit real artifacts to source control.** `manifest.json` and `run_results.json` may contain project metadata, column names, and error messages. Use `.gitignore` to exclude `target/` from version control.
 
-**Use synthetic artifacts for demos.** Never use real production artifacts for screenshots, blog posts, or documentation examples. Use [demo artifacts](../guide/demo-artifacts.md).
+**Use sample-project artifacts for demos.** Never use real production artifacts for screenshots, blog posts, or documentation examples. Use a [public sample project](../guide/try-with-sample-project.md) (e.g. jaffle_shop_duckdb).
 
 **Clean up old artifact copies.** If you archive artifacts to S3 or GCS, apply a lifecycle policy to delete old prefixes after a retention period.
 

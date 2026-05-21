@@ -45,5 +45,5 @@ Full workflow index: [Workflows](../workflows/index.md).
 - [5-minute quickstart](./quickstart.md) — run your first command
 - [Choose by goal](./choose-by-goal.md) — route to the right interface for your job
 - [Choose your interface](overview.md) — CLI, MCP, Web, or agent skills
-- [dbt Artifacts](../concepts/dbt-artifacts.md) — what files dbt-tools expects
+- [Foundations: New to dbt?](./foundations/new-to-dbt.md) · [dbt artifacts & target/](../concepts/dbt-artifacts.md) — artifact literacy for dbt-tools
 - [Trust & Safety](../trust/) — data boundaries, agent safety, and licensing

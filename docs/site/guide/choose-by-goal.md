@@ -34,6 +34,8 @@ Use this page to route to the right dbt-tools interface for your job. If you alr
 - `manifest.json` and `run_results.json` under a dbt target directory
 - Node.js 20+
 
+> **New to dbt?** See [New to dbt?](./foundations/new-to-dbt.md) and [dbt artifacts](../concepts/dbt-artifacts.md).
+
 Remote targets (`s3://`, `gs://`) require additional environment variables. See [Deploy](../deploy/).
 
 ## Related pages

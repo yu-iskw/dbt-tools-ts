@@ -17,7 +17,7 @@ Set **remote client flags** (GCS impersonation, S3 region/endpoint) at **server 
 | `dbt_tools_query_executions`   | Filter and sort executions                           |
 | `dbt_tools_get_run_summary`    | Run-level summary (no per-node list)                 |
 
-**Typical chain:** `dbt_tools_status` → `dbt_tools_set_target` → triage tools (`query_executions`, `get_resource`, …).
+**Typical chain:** `dbt_tools_set_target` (or `--dbt-target` at server startup) → `dbt_tools_status` → triage tools (`query_executions`, `get_resource`, …).
 
 ## Server startup flags
 

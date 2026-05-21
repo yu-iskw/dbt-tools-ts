@@ -40,7 +40,7 @@ The AI client controls what happens next. The client may:
 
 **Use read-only artifact roots.** The MCP server and CLI only need read access to artifact files. Grant least-privilege credentials on the artifact prefix. See [Credentials](../deploy/credentials.md).
 
-**Use demo artifacts for public examples.** Never share screenshots, blog posts, or recordings of sessions where production artifacts are visible. Use [demo artifacts](../guide/demo-artifacts.md) for all public-facing content.
+**Use sample-project artifacts for public examples.** Never share screenshots, blog posts, or recordings of sessions where production artifacts are visible. Use a [public sample project](../guide/try-with-sample-project.md) (e.g. jaffle_shop_duckdb) for all public-facing content.
 
 **Separate dev and prod artifact roots.** Use different target roots for development and production runs. Avoid pointing an agent at production artifacts during development workflows.
 

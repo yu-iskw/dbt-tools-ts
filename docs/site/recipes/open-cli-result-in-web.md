@@ -1,5 +1,7 @@
 # Open CLI result in Web
 
+See [Deep links](../reference/deep-links.md) for the canonical URL shapes. This recipe walks through the handoff.
+
 ## When to use this
 
 Use this recipe to move from a CLI JSON result directly to the Web UI for the same resource. The Web UI provides lineage graphs, execution timelines, and visual context that are hard to interpret from JSON alone.
@@ -11,19 +13,16 @@ Use this recipe to move from a CLI JSON result directly to the Web UI for the sa
 
 ## How deep links work
 
-When `DBT_TOOLS_WEB_BASE_URL` is set, CLI JSON output includes a `web_url` field that links directly to the corresponding resource or view in the Web UI.
+When `DBT_TOOLS_WEB_BASE_URL` is set, CLI JSON output includes a top-level `web_url` that opens the web workspace with query parameters (`view`, `resource`, `q`, and so on)—not path-style `/resources/...` URLs.
 
-Set the base URL before running CLI commands:
-
-```bash
-export DBT_TOOLS_WEB_BASE_URL=http://localhost:3000/dbt-tools-ts
-```
-
-Then open the Web UI in another terminal:
+Start the web app and export its origin (no trailing path; use the URL the server prints):
 
 ```bash
 npx @dbt-tools/web --dbt-target ./target
+export DBT_TOOLS_WEB_BASE_URL=http://127.0.0.1:3000
 ```
+
+Default **serve** port is **3000**. Vite **dev** (`pnpm dev:web` from the monorepo) often uses **5173**—set the variable to match your running instance.
 
 ## Step 1: Get the web_url from explain output
 
@@ -32,29 +31,31 @@ npx @dbt-tools/cli explain model.my_project.orders --dbt-target ./target --json 
   | jq -r '.web_url'
 ```
 
-This returns a URL such as `http://localhost:3000/dbt-tools-ts/resources/model.my_project.orders`. Open it in your browser.
+Example shape:
+
+```text
+http://127.0.0.1:3000/?view=inventory&resource=model.my_project.orders&assetTab=summary
+```
 
 ## Step 2: Get the web_url from discover output
 
 ```bash
 npx @dbt-tools/cli discover --dbt-target ./target "orders" --json \
-  | jq -r '.results[0].web_url'
+  | jq -r '.web_url'
 ```
 
-Discover returns a list of matching resources. Each result includes a `web_url` if the base URL is configured.
+Discover puts `web_url` on the **top-level** JSON object (inventory view with the discover query), not on each match in `matches`.
 
-## Step 3: Open the run status view
-
-Navigate to the root of the Web UI to see the overall run health view:
+Example shape:
 
 ```text
-http://localhost:3000/dbt-tools-ts/
+http://127.0.0.1:3000/?view=inventory&q=orders
 ```
 
-Or open the run results view directly:
+## Step 3: Open the runs view
 
 ```text
-http://localhost:3000/dbt-tools-ts/runs
+http://127.0.0.1:3000/?view=runs
 ```
 
 ## Step 4 (optional): Automate the handoff
@@ -77,23 +78,24 @@ npx @dbt-tools/cli explain model.my_project.orders --dbt-target ./target --json 
 
 ## Configuration reference
 
-| Variable                 | Description                             | Example                              |
-| ------------------------ | --------------------------------------- | ------------------------------------ |
-| `DBT_TOOLS_WEB_BASE_URL` | Base URL of the running Web UI instance | `http://localhost:3000/dbt-tools-ts` |
+| Variable                 | Description                            | Example                 |
+| ------------------------ | -------------------------------------- | ----------------------- |
+| `DBT_TOOLS_WEB_BASE_URL` | Origin of the running Web UI (no path) | `http://127.0.0.1:3000` |
 
-The Web UI base path includes the VitePress base (`/dbt-tools-ts/`) when running locally. If you deploy the Web UI under a different path, adjust the variable accordingly.
+This is the **web app** origin, not the GitHub Pages docs base (`/dbt-tools-ts/` on the published site).
 
 ## Common failure modes
 
-| Symptom                             | Likely cause                                 | Fix                                                      |
-| ----------------------------------- | -------------------------------------------- | -------------------------------------------------------- |
-| `web_url` field missing from output | `DBT_TOOLS_WEB_BASE_URL` not set             | Export the variable before running CLI commands          |
-| Web UI not reachable                | `dbt-tools-web` not running                  | Start it with `npx @dbt-tools/web --dbt-target ./target` |
-| Resource not found in Web UI        | Different `--dbt-target` between CLI and Web | Use the same directory for both                          |
+| Symptom                             | Likely cause                                 | Fix                                                                           |
+| ----------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------- |
+| `web_url` field missing from output | `DBT_TOOLS_WEB_BASE_URL` not set             | Export the variable before running CLI commands                               |
+| Web UI not reachable                | `dbt-tools-web` not running                  | Start it with `npx @dbt-tools/web --dbt-target ./target`                      |
+| Resource not found in Web UI        | Different `--dbt-target` between CLI and Web | Use the same directory for both                                               |
+| Broken link after click             | Base URL includes `/dbt-tools-ts` or a path  | Use the web server origin only (see [Deep links](../reference/deep-links.md)) |
 
 ## Related
 
 - [Debug a failed run](./debug-failed-run.md) — jump from failure JSON to visual context
 - [Investigation tour](../guide/web/investigation-tour.md) — what the Web UI shows
-- [Deep links reference](../reference/deep-links.md) — full deep link URL patterns
+- [Deep links](../reference/deep-links.md) — full deep link URL patterns
 - [Configuration reference](../reference/configuration.md)

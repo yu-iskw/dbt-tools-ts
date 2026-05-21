@@ -34,7 +34,7 @@ This works in Claude Code, Cursor, and any AI assistant with shell tool access.
 
 ## Path B: MCP server
 
-The MCP server parses the artifacts once and keeps them in memory for the session. This is faster for many follow-up queries and avoids re-reading files on each question.
+The MCP server parses the artifacts once and keeps them in memory for the session. This is faster for many follow-up queries and avoids re-reading files on each question. MCP requires **`manifest.json` and `run_results.json`** at the target root (no manifest-only session)—see [MCP getting started](../guide/mcp/getting-started.md#artifact-requirements).
 
 Start the server:
 
@@ -76,7 +76,7 @@ Before pointing an agent at dbt artifacts, review [Agent safety](../trust/agent-
 - AI clients may persist, summarize, or transmit returned metadata depending on their own settings.
 - Use read-only artifact paths. Do not expose credentials in artifact environment metadata.
 - Treat model names, error messages, and metadata as potentially sensitive in agent contexts.
-- Use [demo artifacts](../guide/demo-artifacts.md) for public examples or shared sessions.
+- Use artifacts from a [public sample project](../guide/try-with-sample-project.md) for public examples or shared sessions.
 
 ## Safe example prompts
 

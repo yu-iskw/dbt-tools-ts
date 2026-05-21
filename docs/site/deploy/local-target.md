@@ -46,11 +46,11 @@ The MCP server reads the artifacts at startup and holds them in memory for the s
 
 ## Troubleshooting
 
-| Symptom                 | Likely cause                           | Fix                                                                |
-| ----------------------- | -------------------------------------- | ------------------------------------------------------------------ |
-| `status: unavailable`   | Path does not contain `manifest.json`  | Confirm you ran dbt and that `./target/manifest.json` exists       |
-| `status: manifest-only` | `run_results.json` not present         | Run `dbt run`, `dbt test`, or `dbt build` — not just `dbt compile` |
-| Stale results           | Previous run's artifacts still on disk | Re-run dbt; artifacts are overwritten on each run                  |
+| Symptom                    | Likely cause                           | Fix                                                                |
+| -------------------------- | -------------------------------------- | ------------------------------------------------------------------ |
+| `readiness: unavailable`   | Path does not contain `manifest.json`  | Confirm you ran dbt and that `./target/manifest.json` exists       |
+| `readiness: manifest-only` | `run_results.json` not present         | Run `dbt run`, `dbt test`, or `dbt build` — not just `dbt compile` |
+| Stale results              | Previous run's artifacts still on disk | Re-run dbt; artifacts are overwritten on each run                  |
 
 ## Related
 
