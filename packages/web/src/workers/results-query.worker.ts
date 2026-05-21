@@ -7,14 +7,14 @@ import {
   type RunsResultsSummary,
 } from '@web/lib/analysis-workspace/results-data-source';
 
+import { isTrustedDedicatedWorkerMessage } from './worker-message-guard';
+
 import type {
   DashboardStatusFilter,
   RunsKind,
   RunsViewState,
 } from '@web/lib/analysis-workspace/types';
 import type { ExecutionRow, MaterializationKind } from '@web/types';
-
-import { isTrustedDedicatedWorkerMessage } from './worker-message-guard';
 
 interface InitMessage {
   type: 'init';
