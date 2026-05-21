@@ -29,22 +29,22 @@ Replace `model.my_project.my_model` with a `unique_id` from discover output.
 
 **Recipes** (sidebar: **Recipes**) are the primary task-oriented entry points:
 
-| Job                 | Recipe                                                                                    |
-| ------------------- | ----------------------------------------------------------------------------------------- |
-| Debug failures      | [Debug a failed run](../recipes/debug-failed-run.md)                                      |
-| Slow models         | [Investigate slow models](../recipes/investigate-slow-models.md)                          |
-| Lineage / impact    | [Find model impact](../recipes/find-model-impact.md)                                      |
+| Job              | Recipe                                                           |
+| ---------------- | ---------------------------------------------------------------- |
+| Debug failures   | [Debug a failed run](../recipes/debug-failed-run.md)             |
+| Slow models      | [Investigate slow models](../recipes/investigate-slow-models.md) |
+| Lineage / impact | [Find model impact](../recipes/find-model-impact.md)             |
 
 Full index: [Recipes](../recipes/).
 
 Legacy **workflows** pages keep stable URLs and are linked from package sidebars:
 
-| Job                 | Workflow                                                                                                                                |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| CI / health         | [Check run health](../workflows/check-run-health.md)                                                                                    |
-| Find / explain      | [Find a model](../workflows/find-a-model.md), [Explain a failure](../workflows/explain-failure.md)                                      |
-| Slow runs / browser | [Investigate slow runs](../workflows/investigate-slow-runs.md), [Open in web](../workflows/open-in-web.md)                              |
-| Coding agent        | [Wire your coding agent](../workflows/wire-your-coding-agent.md)                                                                        |
+| Job                 | Workflow                                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| CI / health         | [Check run health](../workflows/check-run-health.md)                                                       |
+| Find / explain      | [Find a model](../workflows/find-a-model.md), [Explain a failure](../workflows/explain-failure.md)         |
+| Slow runs / browser | [Investigate slow runs](../workflows/investigate-slow-runs.md), [Open in web](../workflows/open-in-web.md) |
+| Coding agent        | [Wire your coding agent](../workflows/wire-your-coding-agent.md)                                           |
 
 Workflow index: [Workflows](../workflows/index.md).
 

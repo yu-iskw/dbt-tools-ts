@@ -4,10 +4,10 @@ The docs site ships **synthetic** dbt artifacts so you can run CLI, Web, and MCP
 
 ## Location
 
-| Context | Path |
-| ------- | ---- |
-| In this repository | `docs/site/public/demo/` |
-| After site build | Served as static files under `/demo/` (not a substitute for `--dbt-target`) |
+| Context            | Path                                                                        |
+| ------------------ | --------------------------------------------------------------------------- |
+| In this repository | `docs/site/public/demo/`                                                    |
+| After site build   | Served as static files under `/demo/` (not a substitute for `--dbt-target`) |
 
 For commands, always pass a **directory** that contains `manifest.json` and `run_results.json`, for example:
 
@@ -17,10 +17,10 @@ npx @dbt-tools/cli status --dbt-target ./docs/site/public/demo --json
 
 ## Contents
 
-| File | Description |
-| ---- | ----------- |
-| `manifest.json` | jaffle_shop manifest (schema v10, synthetic project metadata) |
-| `run_results.json` | Matching run results fixture (dbt 1.11-shaped sample) |
+| File               | Description                                                   |
+| ------------------ | ------------------------------------------------------------- |
+| `manifest.json`    | jaffle_shop manifest (schema v10, synthetic project metadata) |
+| `run_results.json` | Matching run results fixture (dbt 1.11-shaped sample)         |
 
 `catalog.json` is optional and not bundled in the demo set.
 

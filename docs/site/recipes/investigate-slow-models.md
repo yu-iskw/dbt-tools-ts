@@ -11,11 +11,11 @@ Use this recipe when you need to find which models or tests consumed the most ti
 
 ## Recommended interface
 
-| Interface | Use when |
-| --------- | -------- |
-| Web | Primary surface—timelines, execution views, bottlenecks |
-| CLI | Scripted top-N lists and JSON export |
-| MCP | Skip unless an agent runs many execution queries |
+| Interface | Use when                                                |
+| --------- | ------------------------------------------------------- |
+| Web       | Primary surface—timelines, execution views, bottlenecks |
+| CLI       | Scripted top-N lists and JSON export                    |
+| MCP       | Skip unless an agent runs many execution queries        |
 
 ## Step 1: Confirm artifacts
 
@@ -50,20 +50,20 @@ Open execution and timeline views for interactive drill-down. See [Investigation
 
 ## Interpretation notes
 
-| Situation | What to expect |
-| --------- | -------------- |
-| Partial run | Only executed nodes appear in `run_results.json` |
-| Retries | Timing may reflect final attempt; compare invocation metadata |
-| Failed node with short duration | Failure may be fast; read error message in `explain` |
-| Tests vs models | Both appear as executions; check `resource_type` |
-| Ephemeral models | May not have table materialization rows; still can appear in timing |
+| Situation                       | What to expect                                                      |
+| ------------------------------- | ------------------------------------------------------------------- |
+| Partial run                     | Only executed nodes appear in `run_results.json`                    |
+| Retries                         | Timing may reflect final attempt; compare invocation metadata       |
+| Failed node with short duration | Failure may be fast; read error message in `explain`                |
+| Tests vs models                 | Both appear as executions; check `resource_type`                    |
+| Ephemeral models                | May not have table materialization rows; still can appear in timing |
 
 ## Common failure modes
 
-| Symptom | Likely cause | Fix |
-| ------- | ------------ | --- |
-| `sort duration requires a warehouse criteria block` | Wrong sort flag | Use `--sort execution_time_desc` or an adapter subcommand |
-| No executions | Empty run results | Re-run dbt with the models you need |
+| Symptom                                             | Likely cause      | Fix                                                       |
+| --------------------------------------------------- | ----------------- | --------------------------------------------------------- |
+| `sort duration requires a warehouse criteria block` | Wrong sort flag   | Use `--sort execution_time_desc` or an adapter subcommand |
+| No executions                                       | Empty run results | Re-run dbt with the models you need                       |
 
 ## Related docs
 

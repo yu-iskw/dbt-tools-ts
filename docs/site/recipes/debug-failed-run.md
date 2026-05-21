@@ -13,11 +13,11 @@ Optional: [demo artifacts](../guide/demo-artifacts.md) for a walkthrough without
 
 ## Recommended interface
 
-| Interface | Use when |
-| --------- | -------- |
-| CLI | CI gates, shell triage, JSON for scripts |
-| Web | Visual lineage and execution after you have a `unique_id` |
-| MCP | A coding agent will run many follow-up queries on the same run |
+| Interface | Use when                                                       |
+| --------- | -------------------------------------------------------------- |
+| CLI       | CI gates, shell triage, JSON for scripts                       |
+| Web       | Visual lineage and execution after you have a `unique_id`      |
+| MCP       | A coding agent will run many follow-up queries on the same run |
 
 ## Step 1: Check artifact health
 
@@ -69,12 +69,12 @@ Install [agent skills](../guide/agents/install.md) or connect [MCP](../guide/mcp
 
 ## Common failure modes
 
-| Symptom | Likely cause | Fix |
-| ------- | ------------ | --- |
-| Missing manifest | Wrong `--dbt-target` | Point at the dbt `target/` directory that contains `manifest.json` |
-| Empty or missing run results | dbt did not execute nodes yet | Run `dbt run`, `dbt test`, or the job that produces `run_results.json` |
-| `UNSUPPORTED_VERSION` | Manifest schema older than v10 | Regenerate artifacts with dbt 1.10+ |
-| Remote auth errors | Cloud credentials | [Local and remote artifacts](../concepts/local-and-remote-artifacts.md) |
+| Symptom                      | Likely cause                   | Fix                                                                     |
+| ---------------------------- | ------------------------------ | ----------------------------------------------------------------------- |
+| Missing manifest             | Wrong `--dbt-target`           | Point at the dbt `target/` directory that contains `manifest.json`      |
+| Empty or missing run results | dbt did not execute nodes yet  | Run `dbt run`, `dbt test`, or the job that produces `run_results.json`  |
+| `UNSUPPORTED_VERSION`        | Manifest schema older than v10 | Regenerate artifacts with dbt 1.10+                                     |
+| Remote auth errors           | Cloud credentials              | [Local and remote artifacts](../concepts/local-and-remote-artifacts.md) |
 
 ## Related docs
 

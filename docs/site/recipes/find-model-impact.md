@@ -11,11 +11,11 @@ Use this recipe when you need upstream dependencies, downstream blast radius, or
 
 ## Recommended interface
 
-| Interface | Use when |
-| --------- | -------- |
-| CLI | Resolve names, `explain`, `deps`, JSON for automation |
-| Web | Interactive lineage graph after you know the `unique_id` |
-| MCP | Repeated dependency queries in an agent session |
+| Interface | Use when                                                 |
+| --------- | -------------------------------------------------------- |
+| CLI       | Resolve names, `explain`, `deps`, JSON for automation    |
+| Web       | Interactive lineage graph after you know the `unique_id` |
+| MCP       | Repeated dependency queries in an agent session          |
 
 ## Step 1: Resolve the model name
 
@@ -57,10 +57,10 @@ Navigate to the same `unique_id` for graph and dependency panels.
 
 ## Common failure modes
 
-| Symptom | Likely cause | Fix |
-| ------- | ------------ | --- |
-| No matches from discover | Typo or wrong package | Try `type:model` tokens; see [Find a model](../workflows/find-a-model.md) |
-| Empty downstream set | Leaf model or snapshot-only dependency | Confirm `unique_id` in manifest |
+| Symptom                  | Likely cause                           | Fix                                                                       |
+| ------------------------ | -------------------------------------- | ------------------------------------------------------------------------- |
+| No matches from discover | Typo or wrong package                  | Try `type:model` tokens; see [Find a model](../workflows/find-a-model.md) |
+| Empty downstream set     | Leaf model or snapshot-only dependency | Confirm `unique_id` in manifest                                           |
 
 ## Related docs
 

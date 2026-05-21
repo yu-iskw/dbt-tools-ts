@@ -41,12 +41,12 @@ features:
 
 ## Interfaces
 
-| Surface | Best for |
-| ------- | -------- |
-| [CLI](guide/cli/getting-started.md) | One-shot shell, CI, JSON automation |
-| [Web](guide/web/getting-started.md) | Browser investigation and timelines |
-| [MCP](guide/mcp/getting-started.md) | Long-lived agent sessions |
-| [Agent skills](guide/agents/) | Cursor, Codex, Claude Code primitives |
+| Surface                             | Best for                              |
+| ----------------------------------- | ------------------------------------- |
+| [CLI](guide/cli/getting-started.md) | One-shot shell, CI, JSON automation   |
+| [Web](guide/web/getting-started.md) | Browser investigation and timelines   |
+| [MCP](guide/mcp/getting-started.md) | Long-lived agent sessions             |
+| [Agent skills](guide/agents/)       | Cursor, Codex, Claude Code primitives |
 
 Not sure which to pick? Use [Choose by goal](guide/choose-by-goal.md) or [Choose your interface](guide/overview.md).
 
