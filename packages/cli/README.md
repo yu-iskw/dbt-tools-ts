@@ -725,6 +725,7 @@ dbt-tools schema deps | jq '.options[] | select(.name == "--direction")'
 
 - **`DBT_TOOLS_DBT_TARGET`**: default artifact root for the CLI when **`--dbt-target`** is omitted (local path, or `s3://…` / `gs://…` with a strict scheme).
 - **Remote credentials / endpoint style** for `s3://` and `gs://` still follow **`DBT_TOOLS_REMOTE_SOURCE`** (see the artifact root section above).
+- **Agent workflows** (granular remote client flags, env vars, GCS impersonation): [plugins/dbt-tools-cli/skills/dbt-artifacts-status/references/remote-client.md](../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/references/remote-client.md).
 
 ---
 

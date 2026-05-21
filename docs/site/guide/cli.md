@@ -19,6 +19,16 @@ Or without a global install:
 npx @dbt-tools/cli status --dbt-target ./target
 ```
 
+## Remote targets
+
+For `s3://` or `gs://` prefixes and GCS impersonation, pass global remote flags **before** the subcommand. See [Configuration: Remote client flags](../reference/configuration.md#remote-client-flags).
+
+```bash
+dbt-tools \
+  --gcs-impersonate-service-account svc@proj.iam.gserviceaccount.com \
+  summary --dbt-target gs://my-bucket/dbt/prod/run --json
+```
+
 ## Learn more
 
 - Package README: [`packages/cli/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md)

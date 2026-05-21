@@ -38,6 +38,8 @@ npx @dbt-tools/web --target /path/to/your/dbt/target
 | `--port <n>` / `-p`     | Listen port (default **3000**)                       |
 | `--help` / `-h`         | Usage                                                |
 
+**Agent workflows** (remote client flags shared with CLI/MCP): [plugins/dbt-tools-cli/skills/dbt-artifacts-status/references/remote-client.md](../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/references/remote-client.md).
+
 The server listens on **127.0.0.1** and prints the URL (e.g. `http://127.0.0.1:3000`). Open that URL in your browser manually (`open`, `xdg-open`, or your desktop environment).
 
 ### Security note (capabilities / Socket-style auditing)

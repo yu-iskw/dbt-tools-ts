@@ -15,6 +15,14 @@ dbt-tools-mcp --dbt-target ./target
 
 Configure your MCP client to launch `dbt-tools-mcp` with the same `--dbt-target` (or `DBT_TOOLS_DBT_TARGET`).
 
+For remote client options and GCS impersonation, see [Configuration: Remote client flags](../reference/configuration.md#remote-client-flags).
+
+```bash
+dbt-tools-mcp \
+  --dbt-target gs://my-bucket/dbt/prod/run \
+  --gcs-impersonate-service-account svc@proj.iam.gserviceaccount.com
+```
+
 ## Learn more
 
 - Package README: [`packages/mcp/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/README.md)

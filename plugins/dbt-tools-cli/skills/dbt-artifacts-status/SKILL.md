@@ -28,6 +28,8 @@ export DBT_TOOLS_DBT_TARGET=./target
 dbt-tools status --json
 ```
 
+For **`s3://`** / **`gs://`** targets and GCS impersonation, see [references/remote-client.md](references/remote-client.md).
+
 ## Interpret `readiness`
 
 Parse the JSON object printed to stdout. The gate depends on **`readiness`** and on **`manifest.path`**, **`run_results.path`**, and **`target_dir`** (resolved directory or temp download directory for remote targets).
@@ -41,14 +43,14 @@ Parse the JSON object printed to stdout. The gate depends on **`readiness`** and
 - If **`readiness` is `manifest-only`**: you may run commands that need only the manifest. Do **not** run **`timeline`** or **`run-report`** (they require `run_results.json`). See the matrix in [references/readiness.md](references/readiness.md).
 - If **`readiness` is `full`**: manifest and run-result based commands are allowed, subject to normal CLI validation and parsing errors.
 
-**Caveat:** for **local** `--dbt-target`, `status` only **stats** files in that directory. For **`s3://`** / **`gs://`** targets it **downloads** the same fixed keys as other commands, then reports stats on the temp files (see CLI README).
+**Caveat:** for **local** `--dbt-target`, `status` only **stats** files in that directory. For **`s3://`** / **`gs://`** targets it **downloads** the same fixed keys as other commands, then reports stats on the temp files. For GCS impersonation and other remote client flags, place global flags **before** the subcommand (see [references/remote-client.md](references/remote-client.md)).
 
 ## Sub-agent contract
 
 When delegating to a sub-agent whose job is **only** readiness:
 
 1. Run `dbt-tools status --json` with the same **`--dbt-target`** / **`DBT_TOOLS_DBT_TARGET`** you will use for downstream commands.
-2. Return the **parsed JSON** (or the raw stdout line) to the parent. The parent should pass at least **`readiness`**, **`target_dir`**, **`manifest.path`**, and **`run_results.path`** into downstream steps.
+2. Return the **parsed JSON** (or the raw stdout line) to the parent. The parent should pass at least **`readiness`**, **`target_dir`**, **`manifest.path`**, and **`run_results.path`** into downstream steps. Note whether remote impersonation env or flags were used so downstream commands stay consistent.
 
 Downstream sub-agents (search, deps, run forensics) should assume this contract and **not** re-guess artifact locations.
 

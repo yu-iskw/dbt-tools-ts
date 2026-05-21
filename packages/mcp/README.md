@@ -26,6 +26,8 @@ You can also set `DBT_TOOLS_DBT_TARGET` and omit `--dbt-target`.
 
 Remote credentials stay in the Node process and use the normal AWS SDK / Google Cloud client chains. `DBT_TOOLS_REMOTE_SOURCE` can provide provider-specific options such as AWS region, S3 endpoint, or GCS project id.
 
+Optional remote client flags and env equivalents (`--gcs-impersonate-service-account`, `--gcs-project-id`, `--s3-region`, `--s3-endpoint`) are documented in **Agent workflows:** [plugins/dbt-tools-cli/skills/dbt-artifacts-status/references/remote-client.md](../../plugins/dbt-tools-cli/skills/dbt-artifacts-status/references/remote-client.md).
+
 Pass `--poll-interval-ms <ms>` to enable best-effort periodic refresh for the selected run. The `dbt_tools_refresh` tool remains available when an agent needs an immediate refresh after a known artifact update.
 
 ## MCP Client Example

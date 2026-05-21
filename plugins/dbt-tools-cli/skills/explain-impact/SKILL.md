@@ -49,6 +49,8 @@ Identify the following before running:
 - **`--dbt-target`** — artifact directory or remote prefix; required unless
   `DBT_TOOLS_DBT_TARGET` is set.
 
+For `gs://` / `s3://` targets and GCS impersonation, use the same `--dbt-target` and remote flags documented in [dbt-artifacts-status/references/remote-client.md](../dbt-artifacts-status/references/remote-client.md).
+
 ## Workflow
 
 1. **Check availability** with `dbt-tools schema explain` and `dbt-tools schema impact`.

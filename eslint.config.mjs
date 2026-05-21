@@ -89,6 +89,7 @@ export default [
       '**/*.generated.ts',
       '**/playwright-report/**',
       '**/test-results/**',
+      'docs/site/**',
     ],
   },
   {

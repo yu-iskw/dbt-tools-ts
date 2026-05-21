@@ -18,6 +18,8 @@ npx @dbt-tools/web --target ./target
 
 Set `DBT_TOOLS_DBT_TARGET` (CLI/MCP) or point `--dbt-target` / `--target` at your dbt `target/` directory.
 
+Remote S3/GCS and GCS impersonation: [Configuration](../reference/configuration.md#remote-client-flags).
+
 ## Next steps
 
 - [CLI](./cli.md) — one-shot commands, JSON output, and CI workflows

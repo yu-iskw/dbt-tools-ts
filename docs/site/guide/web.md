@@ -14,6 +14,8 @@ npx @dbt-tools/web --target ./target
 
 Open the URL printed in the terminal (default port is shown in the CLI help).
 
+Server-side credentials and optional startup flags are documented under [Configuration: Remote client flags](../reference/configuration.md#remote-client-flags). The **Load artifacts** panel can still set impersonation when configuring a GCS source in the UI.
+
 ## Learn more
 
 - Package README: [`packages/web/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md)

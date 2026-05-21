@@ -31,4 +31,8 @@ dbt-tools-cli:<skill-directory>
 | `dbt-tools-cli:deps`                 | [`deps`](skills/deps/SKILL.md)                                 | Trace upstream and downstream dependencies for a dbt resource with `dbt-tools deps`.                                                                                                    |
 | `dbt-tools-cli:explain-impact`       | [`explain-impact`](skills/explain-impact/SKILL.md)             | Explain a resource and reason about change impact using `dbt-tools explain` and `dbt-tools impact`.                                                                                     |
 
+### Remote client flags (GCS / S3)
+
+For **`s3://`** / **`gs://`** artifact targets and **GCS service-account impersonation**, see [`skills/dbt-artifacts-status/references/remote-client.md`](skills/dbt-artifacts-status/references/remote-client.md). The same flag names apply to **`dbt-tools`** (global flags before subcommands), **`dbt-tools-mcp`**, and **`dbt-tools-web`** startup.
+
 See [plugins/README.md](../README.md) for marketplace layout and discovery. For verification, CI commands, and per-engine manifest maintenance, see [plugins/CONTRIBUTING.md](../CONTRIBUTING.md).

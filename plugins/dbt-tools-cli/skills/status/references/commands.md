@@ -12,6 +12,11 @@ dbt-tools status --dbt-target s3://my-bucket/dbt/prod --json
 # Remote GCS target
 dbt-tools status --dbt-target gs://my-bucket/dbt/prod --json
 
+# Remote GCS with impersonation (global flags before subcommand)
+dbt-tools \
+  --gcs-impersonate-service-account svc@proj.iam.gserviceaccount.com \
+  status --dbt-target gs://my-bucket/dbt/prod/run --json
+
 # Using environment variable (omit --dbt-target)
 export DBT_TOOLS_DBT_TARGET=./target
 dbt-tools status --json
@@ -56,12 +61,13 @@ dbt-tools freshness --dbt-target ./target --json
 
 ## Failure responses
 
-| Symptom                                            | Likely cause                          | Response                                                         |
-| -------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------- |
-| `readiness: unavailable`                           | `manifest.json` absent at target path | Report `target_dir`; suggest running `dbt compile` or `dbt run`. |
-| JSON error on stderr: `ARTIFACT_BUNDLE_INCOMPLETE` | Target dir exists but files missing   | Same as above; show `details.missing`.                           |
-| Error: `--dbt-target` required                     | Neither flag nor env var was set      | Ask user to provide the artifact directory path.                 |
-| Remote fetch error (`s3://`/`gs://`)               | Credentials or path wrong             | Check `error.message`; verify bucket/prefix and credentials.     |
+| Symptom                                            | Likely cause                          | Response                                                                        |
+| -------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
+| `readiness: unavailable`                           | `manifest.json` absent at target path | Report `target_dir`; suggest running `dbt compile` or `dbt run`.                |
+| JSON error on stderr: `ARTIFACT_BUNDLE_INCOMPLETE` | Target dir exists but files missing   | Same as above; show `details.missing`.                                          |
+| Error: `--dbt-target` required                     | Neither flag nor env var was set      | Ask user to provide the artifact directory path.                                |
+| Remote fetch error (`s3://`/`gs://`)               | Credentials or path wrong             | Check `error.message`; verify bucket/prefix and credentials.                    |
+| GCS impersonation not permitted                    | Allowlist env blocks principal        | See [remote-client.md](../../dbt-artifacts-status/references/remote-client.md). |
 
 ## Notes
 

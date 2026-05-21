@@ -31,6 +31,8 @@ Identify the following before running:
 - **`--dbt-target`** — local directory path, `s3://bucket/prefix`, or `gs://bucket/prefix`;
   use the `DBT_TOOLS_DBT_TARGET` environment variable when it is already set in the
   user's environment.
+- **Remote client flags** — for `gs://` impersonation and S3/GCS tuning, see
+  [`../dbt-artifacts-status/references/remote-client.md`](../dbt-artifacts-status/references/remote-client.md).
 
 ## Recommended pattern
 
@@ -84,6 +86,9 @@ For a full matrix of which CLI commands are safe to run by readiness level, see
   user which path was checked (`target_dir` field) and suggest running `dbt` to generate artifacts.
 - **Remote fetch error** (`s3://` / `gs://`): structured JSON on stderr when `--json` is passed;
   check `error.code` (typically `ARTIFACT_BUNDLE_INCOMPLETE` or `UNKNOWN_ERROR`).
+- **GCS impersonation denied**: error mentions allowlist configuration; see
+  `DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST` / `DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES` in
+  [remote-client.md](../dbt-artifacts-status/references/remote-client.md).
 - **Missing `--dbt-target` and env var not set**: the CLI exits with a validation error asking
   you to pass `--dbt-target`.
 

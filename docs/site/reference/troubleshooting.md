@@ -19,6 +19,14 @@ Published packages require **Node.js 20+**. Match [`.node-version`](https://gith
 
 - Verify the target directory contains a complete manifest/run pair for the run you expect.
 - For remote sources, confirm credentials and bucket paths on the **Node server** (see package README).
+- Credentials and impersonation stay in the **Node process** (CLI, MCP, or web server)—not in the browser.
+
+## Remote artifacts
+
+| Symptom                                                       | Response                                                                                                                                                                          |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GCS impersonation not permitted                               | Check `DBT_TOOLS_GCS_IMPERSONATION_ALLOWLIST` and `DBT_TOOLS_GCS_IMPERSONATION_ALLOWED_SUFFIXES`; see [Configuration: Remote client flags](configuration.md#remote-client-flags). |
+| GCS flags used with `s3://` target (or S3 flags with `gs://`) | Provider-specific flags only (`--gcs-*` for `gs://`, `--s3-*` for `s3://`); see [Configuration](configuration.md#remote-client-flags).                                            |
 
 ## GitHub Pages site issues
 
