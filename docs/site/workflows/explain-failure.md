@@ -17,7 +17,7 @@ You understand what a resource does, why a run may have failed, and which downst
 1. Resolve the resource with [Find a model](find-a-model.md) if you only have a partial name.
 2. Run `explain` with the full `unique_id`.
 3. Run `deps` with `--direction downstream` for blast radius (replaces the removed `impact` command).
-4. Optionally ask your agent to use the skill `dbt-tools-cli:explain`.
+4. Optionally ask your agent to use `dbt-tools-cli:describe-resource` and `dbt-tools-cli:trace-dependencies` (downstream).
 
 ## Example
 

@@ -7,7 +7,7 @@ Configuration is **package-specific**. Use the variables and flags documented in
 | Concern           | CLI / MCP                              | Web                                              |
 | ----------------- | -------------------------------------- | ------------------------------------------------ |
 | Artifact location | `--dbt-target`, `DBT_TOOLS_DBT_TARGET` | `--target`, env vars in package README           |
-| Remote S3/GCS     | Supported per ADR-0004                 | Server-side credentials; browser uses `/api/...` |
+| Remote S3/GCS     | `s3://` / `gs://` targets (see below)  | Server-side credentials; browser uses `/api/...` |
 
 ## Environment
 

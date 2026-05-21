@@ -4,6 +4,8 @@
 
 Use `dbt-tools-mcp` when an MCP client (Cursor, Claude Desktop, etc.) needs **many queries** over the same artifact run—especially for large artifacts or remote S3/GCS targets where parse cost dominates.
 
+Step-by-step jobs (status, discover, explain) live under **CLI → Workflows** in the sidebar. Use MCP when the same artifact run needs many tool calls without re-parsing each time.
+
 ## Install and run
 
 ```bash
@@ -23,4 +25,4 @@ Configure your MCP client to launch `dbt-tools-mcp` with the same `--dbt-target`
 
 - [Configuration](../../reference/configuration.md) — environment variables and targets
 - [Package README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/README.md)
-- Remote artifacts: [ADR-0004](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)
+- Remote artifacts: [Local and remote artifacts](../../concepts/local-and-remote-artifacts.md)

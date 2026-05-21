@@ -9,7 +9,7 @@
 | IDE or agent issues many tool calls on the same run  | One-shot shell or CI command       |
 | Parse cost dominates (large manifest, remote target) | Simple `status` or `summary` check |
 
-Skills from [agent plugins](../agents/install.md) run the **CLI** on your machine. MCP is optional for native IDE tool integration.
+Skills from [Install agent skills](../agents/install.md) run the **CLI** on your machine. MCP is optional for native MCP tool integration.
 
 ## Launch
 

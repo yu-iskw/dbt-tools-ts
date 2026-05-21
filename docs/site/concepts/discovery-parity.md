@@ -5,7 +5,7 @@ dbt-tools uses **one ranking contract** for resource discovery across the CLI an
 ## Shared behavior
 
 - **CLI** `dbt-tools discover` returns ranked matches with scores, `reasons`, and optional disambiguation hints.
-- **Web** discover/inventory views apply the same ranking entry point in the analysis worker ([ADR-0010](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/adr/0010-shared-discovery-ranker-intent-commands-and-cli-web-deep-links.md)).
+- **Web** discover/inventory views use the same ranking contract as the CLI, so terminal and browser results stay aligned.
 - **Query tokens** such as `type:model`, `tag:`, and package filters align between CLI flags and inline tokens.
 
 ## Why it matters

@@ -276,8 +276,8 @@ function compareRows(
 function summarize(entries: RunsResultsIndexEntry[]): RunsResultsSummary {
   const status = createEmptyCounts();
   const facets = createEmptyFacetCounts();
-  const resourceTypes: Record<string, number> = {};
-  const threadIds: Record<string, number> = {};
+  const resourceTypeCounts = new Map<string, number>();
+  const threadIdCounts = new Map<string, number>();
 
   status.all = entries.length;
   facets.all = entries.length;
@@ -298,13 +298,18 @@ function summarize(entries: RunsResultsIndexEntry[]): RunsResultsSummary {
     }
 
     facets[getKindForRow(row)] += 1;
-    resourceTypes[row.resourceType] = (resourceTypes[row.resourceType] ?? 0) + 1;
+    resourceTypeCounts.set(row.resourceType, (resourceTypeCounts.get(row.resourceType) ?? 0) + 1);
     if (row.threadId) {
-      threadIds[row.threadId] = (threadIds[row.threadId] ?? 0) + 1;
+      threadIdCounts.set(row.threadId, (threadIdCounts.get(row.threadId) ?? 0) + 1);
     }
   }
 
-  return { status, facets, resourceTypes, threadIds };
+  return {
+    status,
+    facets,
+    resourceTypes: Object.fromEntries(resourceTypeCounts),
+    threadIds: Object.fromEntries(threadIdCounts),
+  };
 }
 
 export function createRunsResultsIndex(rows: ExecutionRow[]): RunsResultsIndex {

@@ -1,8 +1,10 @@
 # Choose your interface
 
+How the pieces fit together: [Ecosystem at a glance](./ecosystem.md).
+
 | If you want to…                                  | Use                                        |
 | ------------------------------------------------ | ------------------------------------------ |
-| Follow a step-by-step job                        | [Workflows](../workflows/index.md)         |
+| Follow a step-by-step job                        | [Ecosystem at a glance](./ecosystem.md)    |
 | Run one-shot commands in CI or shell             | [@dbt-tools/cli](./cli/getting-started.md) |
 | Let a coding agent query the same run many times | [@dbt-tools/mcp](./mcp/getting-started.md) |
 | Explore lineage and runs in a browser            | [@dbt-tools/web](./web/getting-started.md) |

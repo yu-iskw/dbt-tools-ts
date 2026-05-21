@@ -23,6 +23,5 @@ dbt-tools is **local-first**: the default path is a dbt `target/` directory on d
 
 ## Learn more
 
-- [ADR-0004 — remote object storage](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)
 - [Configuration](../reference/configuration.md)
 - [Troubleshooting](../reference/troubleshooting.md) — remote and empty target issues

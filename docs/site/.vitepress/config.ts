@@ -33,7 +33,6 @@ export default defineConfig({
     logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/guide/overview' },
-      { text: 'Workflows', link: '/workflows/' },
       { text: 'Concepts', link: '/concepts/dbt-artifacts' },
       { text: 'Reference', link: '/reference/configuration' },
       {
@@ -42,25 +41,23 @@ export default defineConfig({
           { text: '@dbt-tools/cli', link: '/guide/cli/getting-started' },
           { text: '@dbt-tools/mcp', link: '/guide/mcp/getting-started' },
           { text: '@dbt-tools/web', link: '/guide/web/getting-started' },
-          { text: 'Agents (plugins)', link: '/guide/agents/' },
+          { text: 'Agent skills', link: '/guide/agents/' },
         ],
       },
     ],
     sidebar: [
       {
-        text: 'Start',
-        items: [{ text: 'Choose your interface', link: '/guide/overview' }],
-      },
-      {
-        text: 'Workflows',
+        text: 'Foundations',
         items: [
-          { text: 'Overview', link: '/workflows/' },
-          { text: 'Check run health', link: '/workflows/check-run-health' },
-          { text: 'Find a model', link: '/workflows/find-a-model' },
-          { text: 'Explain a failure', link: '/workflows/explain-failure' },
-          { text: 'Investigate slow runs', link: '/workflows/investigate-slow-runs' },
-          { text: 'Open in web', link: '/workflows/open-in-web' },
-          { text: 'Wire your IDE agent', link: '/workflows/wire-your-ide-agent' },
+          { text: 'Choose your interface', link: '/guide/overview' },
+          { text: 'Ecosystem at a glance', link: '/guide/ecosystem' },
+          { text: 'dbt Artifacts', link: '/concepts/dbt-artifacts' },
+          { text: 'Local and remote artifacts', link: '/concepts/local-and-remote-artifacts' },
+          { text: 'Discovery parity', link: '/concepts/discovery-parity' },
+          {
+            text: 'Operational Intelligence',
+            link: '/concepts/operational-intelligence',
+          },
         ],
       },
       {
@@ -68,6 +65,30 @@ export default defineConfig({
         items: [
           { text: 'Getting started', link: '/guide/cli/getting-started' },
           { text: 'Common tasks', link: '/guide/cli/common-tasks' },
+          {
+            text: 'Workflows',
+            collapsed: false,
+            items: [
+              { text: 'Check run health', link: '/workflows/check-run-health' },
+              { text: 'Find a model', link: '/workflows/find-a-model' },
+              { text: 'Explain a failure', link: '/workflows/explain-failure' },
+            ],
+          },
+        ],
+      },
+      {
+        text: 'Web',
+        items: [
+          { text: 'Getting started', link: '/guide/web/getting-started' },
+          { text: 'Investigation tour', link: '/guide/web/investigation-tour' },
+          {
+            text: 'Workflows',
+            collapsed: false,
+            items: [
+              { text: 'Investigate slow runs', link: '/workflows/investigate-slow-runs' },
+              { text: 'Open in web', link: '/workflows/open-in-web' },
+            ],
+          },
         ],
       },
       {
@@ -78,33 +99,16 @@ export default defineConfig({
         ],
       },
       {
-        text: 'Web',
-        items: [
-          { text: 'Getting started', link: '/guide/web/getting-started' },
-          { text: 'Investigation tour', link: '/guide/web/investigation-tour' },
-        ],
-      },
-      {
         text: 'Agents',
         items: [
           { text: 'Overview', link: '/guide/agents/' },
-          { text: 'Install plugins', link: '/guide/agents/install' },
+          { text: 'Install agent skills', link: '/guide/agents/install' },
           { text: 'CLI vs MCP vs skills', link: '/guide/agents/cli-vs-mcp-vs-skills' },
           { text: 'Skill catalog', link: '/guide/agents/skill-catalog' },
-        ],
-      },
-      {
-        text: 'Concepts',
-        items: [
-          { text: 'dbt Artifacts', link: '/concepts/dbt-artifacts' },
           {
-            text: 'Operational Intelligence',
-            link: '/concepts/operational-intelligence',
-          },
-          { text: 'Discovery parity', link: '/concepts/discovery-parity' },
-          {
-            text: 'Local and remote artifacts',
-            link: '/concepts/local-and-remote-artifacts',
+            text: 'Workflows',
+            collapsed: false,
+            items: [{ text: 'Wire your coding agent', link: '/workflows/wire-your-ide-agent' }],
           },
         ],
       },

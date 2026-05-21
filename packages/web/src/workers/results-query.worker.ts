@@ -14,6 +14,8 @@ import type {
 } from '@web/lib/analysis-workspace/types';
 import type { ExecutionRow, MaterializationKind } from '@web/types';
 
+import { isTrustedDedicatedWorkerMessage } from './worker-message-guard';
+
 interface InitMessage {
   type: 'init';
   rows: ExecutionRow[];
@@ -63,6 +65,9 @@ function postError(message: string) {
 }
 
 self.onmessage = (event: MessageEvent<WorkerMessage>) => {
+  if (!isTrustedDedicatedWorkerMessage(event)) {
+    return;
+  }
   const payload = event.data;
 
   if (payload.type === 'init') {

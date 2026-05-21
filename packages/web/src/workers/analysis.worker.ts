@@ -21,6 +21,7 @@ import {
   type LoadAnalysisMessage,
   type SearchResourcesMessage,
 } from './analysis-protocol';
+import { isTrustedDedicatedWorkerMessage } from './worker-message-guard';
 
 function now() {
   return performance.now();
@@ -228,6 +229,9 @@ export function handleAnalysisWorkerRequest(
 
 if (typeof self !== 'undefined') {
   self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
+    if (!isTrustedDedicatedWorkerMessage(event)) {
+      return;
+    }
     void handleAnalysisWorkerRequest(event.data).then((response) => {
       self.postMessage(response);
     });

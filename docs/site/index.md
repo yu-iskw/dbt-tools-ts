@@ -29,9 +29,9 @@ dbt-tools helps operators and automation systems reason about dbt projects throu
 ## Pick your path
 
 - [I run dbt in CI](guide/cli/getting-started.md) — one-shot CLI and JSON
-- [I use AI in the IDE](guide/agents/install.md) — plugins and skills
+- [I use AI in the IDE](guide/agents/install.md) — agent skills (Cursor, Codex, Claude)
 - [I explore runs in the browser](guide/web/investigation-tour.md) — investigation UI
-- [Follow a step-by-step workflow](workflows/index.md) — job-oriented recipes
+- [Follow a step-by-step workflow](guide/ecosystem.md) — job-oriented recipes
 
 ## Packages
 

@@ -37,8 +37,7 @@ Use execution and timeline views after artifacts are confirmed—see [Investigat
 
 ## Where to read more
 
-- [ADR-0008 — positioning and boundaries](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/adr/0008-dbt-tools-operational-intelligence-and-positioning-boundaries.md)
-- [ADR-0010 — shared discovery and deep links](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/adr/0010-shared-discovery-ranker-intent-commands-and-cli-web-deep-links.md)
 - [Discovery parity](./discovery-parity.md)
-- [Local-first and remote artifacts](./local-and-remote-artifacts.md)
-- Engineering ADRs: [`docs/adr/`](https://github.com/yu-iskw/dbt-tools-ts/tree/main/docs/adr)
+- [Deep links](../reference/deep-links.md)
+- [Local and remote artifacts](./local-and-remote-artifacts.md)
+- [Ecosystem at a glance](../guide/ecosystem.md)

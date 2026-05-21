@@ -47,6 +47,5 @@ See [Open the same context in the browser](../workflows/open-in-web.md).
 
 ## Learn more
 
-- [ADR-0010 — shared discovery and deep links](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/adr/0010-shared-discovery-ranker-intent-commands-and-cli-web-deep-links.md)
 - [Discovery parity](../concepts/discovery-parity.md)
 - [CLI README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md) — discover section
