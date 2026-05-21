@@ -91,14 +91,20 @@ See [GCS](./gcs.md) for credential setup details.
 
 ## Use dbt-tools output in a PR comment
 
-Capture the JSON output and post it as a PR comment using the GitHub CLI:
+Capture the JSON output and post it as a PR comment using the GitHub CLI.
+
+`--json` produces pretty-printed multiline JSON, so use the GitHub Actions heredoc delimiter syntax for step outputs instead of `name=value`:
 
 ```yaml
 - name: Generate summary
   id: summary
   run: |
     OUTPUT=$(npx @dbt-tools/cli summary --dbt-target ./target --json)
-    echo "summary=$OUTPUT" >> $GITHUB_OUTPUT
+    {
+      echo "summary<<EOF"
+      echo "$OUTPUT"
+      echo "EOF"
+    } >> "$GITHUB_OUTPUT"
 
 - name: Comment on PR
   if: github.event_name == 'pull_request'
@@ -108,6 +114,8 @@ Capture the JSON output and post it as a PR comment using the GitHub CLI:
     gh pr comment ${{ github.event.pull_request.number }} \
       --body "dbt-tools summary: ${{ steps.summary.outputs.summary }}"
 ```
+
+> The `name<<EOF` / `EOF` delimiter form is required whenever the value contains newlines. Using `echo "name=$VALUE" >> $GITHUB_OUTPUT` with multiline JSON will silently produce a malformed output file and cause downstream step failures.
 
 ## Cache npx downloads between runs
 
