@@ -1,7 +1,7 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { getDbtToolsRemoteSourceConfigFromEnv } from '../config/dbt-tools-env';
+import { getDbtToolsRemoteClientEnvFromEnv } from '../config/dbt-tools-env';
 import { ArtifactBundleResolutionError } from '../errors/artifact-bundle-resolution-error';
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
 
@@ -251,8 +251,13 @@ export async function resolveDbtToolsArtifactBundlePaths(options: {
     return resolveLocalBundle(parsed.resolvedPath, displayTarget, requirements);
   }
 
-  const env = getDbtToolsRemoteSourceConfigFromEnv();
-  const merged = mergeRemoteSourceConfigWithParsedLocation(env, parsed);
+  const { gcsRequestOptions, remoteClientOverrides } = getDbtToolsRemoteClientEnvFromEnv();
+  const merged = mergeRemoteSourceConfigWithParsedLocation(
+    undefined,
+    parsed,
+    gcsRequestOptions,
+    remoteClientOverrides,
+  );
   const client = await createRemoteObjectStoreClient(merged);
   const prefixNorm = normalizeArtifactPrefix(merged.prefix);
 

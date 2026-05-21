@@ -48,7 +48,7 @@ The server listens on **127.0.0.1** and prints the URL (e.g. `http://127.0.0.1:3
 
 For **supply-chain and capability** tooling (e.g. [Socket.dev alerts](https://socket.dev)):
 
-- **`networkAccess` — expected.** The published app is a **local HTTP server** (`node:http` on loopback), the UI uses **`fetch`** to same-origin `/api/...` routes, and **optional** remote artifact mode uses **AWS S3** and **Google Cloud Storage** client libraries when you configure `DBT_TOOLS_REMOTE_SOURCE` (see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)). There is no separate telemetry channel.
+- **`networkAccess` — expected.** The published app is a **local HTTP server** (`node:http` on loopback), the UI uses **`fetch`** to same-origin `/api/...` routes, and **optional** remote artifact mode uses **AWS S3** and **Google Cloud Storage** client libraries via the **Load artifacts** UI (see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)). There is no separate telemetry channel.
 - **`shellAccess` (first-party) — none.** The CLI does **not** spawn a shell or external `open`/`xdg-open` helpers; it only starts the server and prints the URL.
 - **`usesEval` — not in our shipped `dist` / `dist-serve` bundles** from this repository’s build. If a scanner still flags `usesEval`, it is usually from **transitive dependencies** in the full npm graph rather than first-party TypeScript.
 
@@ -61,7 +61,7 @@ You can also set **`DBT_TOOLS_TARGET_DIR`** in the environment instead of `--tar
 - **Dependency graph** — interactive lineage and blast-radius style exploration
 - **Execution timeline** — Gantt-style `run_results` with critical path and bottleneck-oriented views
 - **Local artifacts** — read `manifest.json` / `run_results.json` from a target directory via server-side routes (local-first default)
-- **Remote sources (S3 / GCS)** — optional `DBT_TOOLS_REMOTE_SOURCE`; server-side credentials; UI prompts before switching runs ([ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md))
+- **Remote sources (S3 / GCS)** — **Load artifacts** in the UI; server-side credentials; UI prompts before switching runs ([ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md))
 - **Large manifests** — web workers and virtualization for very large projects
 
 ---
@@ -96,11 +96,10 @@ Heavy analysis runs in a **web worker** (browser-safe shared library). The same 
 
 Set these in the environment for the **Node process** that runs `dbt-tools-web` (not in the browser):
 
-| Variable                  | Description                                                                                                                                                                                                                      |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DBT_TOOLS_TARGET_DIR`    | Directory containing `manifest.json` and `run_results.json` (unless using remote source)                                                                                                                                         |
-| `DBT_TOOLS_REMOTE_SOURCE` | JSON config for S3/GCS discovery (server-side only); semantics in [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md) (see also [Remote artifact sources](#remote-artifact-sources) below) |
-| `DBT_TOOLS_DEBUG`         | Set to `1` for server-side debug logs                                                                                                                                                                                            |
+| Variable               | Description                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `DBT_TOOLS_TARGET_DIR` | Directory containing `manifest.json` and `run_results.json` at startup (remote via [Load artifacts](#remote-artifact-sources)) |
+| `DBT_TOOLS_DEBUG`      | Set to `1` for server-side debug logs                                                                                          |
 
 **Client:** add **`?debug=1`** to the URL for browser console debug logging.
 
@@ -108,26 +107,18 @@ Set these in the environment for the **Node process** that runs `dbt-tools-web` 
 
 ### Remote artifact sources
 
-**Variable:** `DBT_TOOLS_REMOTE_SOURCE`. The dev server and **`dbt-tools-web`** can list keys under a bucket prefix that points at a **single run** (root-level `manifest.json` and `run_results.json`), **poll** for changes, and surface newer artifact versions in the UI **without switching your selected location automatically**. Credentials stay in the **Node process** (AWS default chain, GCS ADC / `GOOGLE_APPLICATION_CREDENTIALS`), not in the browser.
-
-Example (shape only — adjust bucket/prefix):
-
-```bash
-export DBT_TOOLS_REMOTE_SOURCE='{"provider":"s3","bucket":"my-bucket","prefix":"dbt/runs","pollIntervalMs":30000}'
-pnpm dev
-```
+Use the in-app **Load artifacts** panel (local path, `s3://bucket/prefix`, or `gs://bucket/prefix`). The dev server and **`dbt-tools-web`** list keys under the prefix, **poll** for changes, and surface newer artifact versions **without switching your selected location automatically**. Credentials stay in the **Node process** (AWS default chain, GCS ADC / `GOOGLE_APPLICATION_CREDENTIALS`), not in the browser. Optional **`DBT_TOOLS_GCS_*`** / **`DBT_TOOLS_S3_*`** on the Node process apply when discovering remote sources.
 
 ### Vite dev environment reference (monorepo)
 
 When **`DBT_TOOLS_TARGET_DIR`** is set, Vite serves `/api/...` like the published server. Extra variables:
 
-| Variable                       | Default | Description                                                                                                                                   |
-| ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DBT_TOOLS_TARGET_DIR`         | —       | Enables serving artifacts via `/api/*` middleware                                                                                             |
-| `DBT_TOOLS_REMOTE_SOURCE`      | —       | JSON for S3/GCS bucket + prefix (server-side only); [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md) |
-| `DBT_TOOLS_DEBUG`              | unset   | `1` enables server-side debug logging                                                                                                         |
-| `DBT_TOOLS_WATCH`              | on      | `0` disables file watching (Vite dev); see [Vite dev server](#vite-dev-server-monorepo)                                                       |
-| `DBT_TOOLS_RELOAD_DEBOUNCE_MS` | `300`   | Reload debounce (Vite dev)                                                                                                                    |
+| Variable                       | Default | Description                                                                             |
+| ------------------------------ | ------- | --------------------------------------------------------------------------------------- |
+| `DBT_TOOLS_TARGET_DIR`         | —       | Enables serving local artifacts via `/api/*` middleware at startup                      |
+| `DBT_TOOLS_DEBUG`              | unset   | `1` enables server-side debug logging                                                   |
+| `DBT_TOOLS_WATCH`              | on      | `0` disables file watching (Vite dev); see [Vite dev server](#vite-dev-server-monorepo) |
+| `DBT_TOOLS_RELOAD_DEBOUNCE_MS` | `300`   | Reload debounce (Vite dev)                                                              |
 
 ---
 
@@ -135,7 +126,7 @@ When **`DBT_TOOLS_TARGET_DIR`** is set, Vite serves `/api/...` like the publishe
 
 ### Published server vs static Docker image
 
-- **`dbt-tools-web`** (npm): Node HTTP server + static `dist/` + artifact middleware. Honors **`DBT_TOOLS_TARGET_DIR`**, **`DBT_TOOLS_REMOTE_SOURCE`**, **`DBT_TOOLS_DEBUG`**. Does **not** use Vite file-watch env vars.
+- **`dbt-tools-web`** (npm): Node HTTP server + static `dist/` + artifact middleware. Honors **`DBT_TOOLS_TARGET_DIR`**, **`DBT_TOOLS_DEBUG`**. Remote S3/GCS via **Load artifacts** in the UI. Does **not** use Vite file-watch env vars.
 - **Dockerfile (nginx):** builds static **`dist/`** and serves it with **nginx**. There is **no** Node artifact middleware in that image unless you change the deployment shape, so the same **`DBT_TOOLS_*`** server env vars **do not apply** to that container as shipped.
 
 ### Build static image (monorepo)
@@ -174,8 +165,8 @@ Set package visibility under the repository **Packages** settings if needed.
 
 | Symptom                                        | What to check                                                                                                                                                                                           |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Blank UI / no artifacts                        | Pass **`--target`** or set **`DBT_TOOLS_TARGET_DIR`** to a folder that contains **`manifest.json`** (and ideally `run_results.json`). For remote mode, set **`DBT_TOOLS_REMOTE_SOURCE`**.               |
-| Blank page / “No artifacts found”              | Same as above: confirm **`DBT_TOOLS_TARGET_DIR`** or **`DBT_TOOLS_REMOTE_SOURCE`** resolves to a complete artifact pair.                                                                                |
+| Blank UI / no artifacts                        | Pass **`--target`** or set **`DBT_TOOLS_TARGET_DIR`** for local startup. For remote, use **Load artifacts** with a complete `manifest.json` + `run_results.json` pair.                                  |
+| Blank page / “No artifacts found”              | Same as above: confirm local **`DBT_TOOLS_TARGET_DIR`** or remote discovery found a complete artifact pair.                                                                                             |
 | `GET /api/...` or `GET /api/manifest.json` 404 | **`DBT_TOOLS_TARGET_DIR`** unset, wrong path, or (remote) no complete pair discovered.                                                                                                                  |
 | Auto-reload not triggering (Vite)              | Ensure **`DBT_TOOLS_WATCH`** is not `0`; confirm read access to the target directory. See [Vite dev server (monorepo)](#vite-dev-server-monorepo).                                                      |
 | Expected “hot reload” after `dbt run`          | The **npm** server re-reads files when the app fetches them; refresh the browser. **File watch + auto-reload** is a **Vite dev** feature — see [Vite dev server (monorepo)](#vite-dev-server-monorepo). |
@@ -225,7 +216,7 @@ DBT_TOOLS_TARGET_DIR=./target pnpm dev
 
 When you run `pnpm dev` / `pnpm dev:web` from the repository, **Vite** serves the app with middleware that mirrors the same **`/api/...`** artifact routes as the published **`dbt-tools-web`** server. Additional **file watching** and auto-reload apply only here.
 
-Without env prefill, use the in-app **Load artifacts** panel: choose **local**, **S3**, or **GCS**, enter a **location** (directory path or `s3://` / `gs://` bucket prefix), run **Discover**, then **select a run** when more than one complete `manifest.json` + `run_results.json` pair exists. Cloud credentials never enter the browser—they stay in the Node server (same model as `DBT_TOOLS_REMOTE_SOURCE` in [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
+Use the in-app **Load artifacts** panel: choose **local**, **S3**, or **GCS**, enter a **location** (directory path or `s3://` / `gs://` bucket prefix), run **Discover**, then **select a run** when more than one complete `manifest.json` + `run_results.json` pair exists. Cloud credentials never enter the browser—they stay in the Node server ([ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
 
 #### Debug logging
 

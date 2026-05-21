@@ -10,7 +10,7 @@ dbt-tools analyzes structured outputs from dbt runs. The primary inputs are:
 
 ## Target layout
 
-Tools expect a **dbt target directory** (typically `./target`) with `manifest.json` and `run_results.json` at the root of that location. Remote object storage follows the same one-pair-per-location contract—see [ADR-0004](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
+Tools expect a **dbt target directory** (typically `./target`) with `manifest.json` and `run_results.json` at the root of that location. Remote object storage follows the same one-pair-per-location contract—see [Local and remote artifacts](./local-and-remote-artifacts.md).
 
 ## Parsing boundary
 

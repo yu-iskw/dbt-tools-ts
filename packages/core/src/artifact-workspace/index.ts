@@ -10,7 +10,6 @@ import { buildAnalysisSnapshotFromParsedArtifactBundle } from '../analysis/snaps
 import { getRunSummaryFromSnapshot, type RunSummaryOutput } from '../analysis/snapshot/run-summary';
 import {
   getDbtToolsRemoteClientEnvFromEnv,
-  getDbtToolsRemoteSourceConfigFromEnv,
   type DbtToolsRemoteClientEnv,
 } from '../config/dbt-tools-env';
 import {
@@ -464,7 +463,7 @@ export class ArtifactWorkspace {
       },
     );
     const config = mergeRemoteSourceConfigWithParsedLocation(
-      getDbtToolsRemoteSourceConfigFromEnv(),
+      undefined,
       parsed,
       gcsRequestOptions,
       remoteClientOverrides,

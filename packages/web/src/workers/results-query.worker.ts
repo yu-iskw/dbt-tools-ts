@@ -7,6 +7,8 @@ import {
   type RunsResultsSummary,
 } from '@web/lib/analysis-workspace/results-data-source';
 
+import { isTrustedDedicatedWorkerMessage } from './worker-message-guard';
+
 import type {
   DashboardStatusFilter,
   RunsKind,
@@ -63,6 +65,9 @@ function postError(message: string) {
 }
 
 self.onmessage = (event: MessageEvent<WorkerMessage>) => {
+  if (!isTrustedDedicatedWorkerMessage(event)) {
+    return;
+  }
   const payload = event.data;
 
   if (payload.type === 'init') {

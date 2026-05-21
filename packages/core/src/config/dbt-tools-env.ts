@@ -23,24 +23,6 @@ function trimEnv(value: string | undefined): string | undefined {
   return t === '' ? undefined : t;
 }
 
-const SLASH = 47;
-
-/**
- * Removes leading and trailing `/` in linear time. Used for object-storage
- * prefix normalization; avoids polynomial-time regex on untrusted JSON/env input.
- */
-function trimAffixSlashes(value: string): string {
-  let start = 0;
-  let end = value.length;
-  while (start < end && value.charCodeAt(start) === SLASH) {
-    start += 1;
-  }
-  while (end > start && value.charCodeAt(end - 1) === SLASH) {
-    end -= 1;
-  }
-  return value.slice(start, end);
-}
-
 /**
  * Directory containing dbt artifacts (typically the dbt `target/` folder).
  * Precedence: `DBT_TOOLS_TARGET_DIR`, then `DBT_TARGET_DIR`, then `DBT_TARGET`.
@@ -84,7 +66,7 @@ export interface DbtToolsRemoteClientEnv {
 }
 
 /**
- * Optional per-field remote client env (preferred over `DBT_TOOLS_REMOTE_SOURCE` JSON for MCP).
+ * Optional per-field remote client env for `s3://` / `gs://` targets.
  * CLI flags passed into {@link ArtifactWorkspace} override these when both are set.
  */
 export function getDbtToolsRemoteClientEnvFromEnv(): DbtToolsRemoteClientEnv {
@@ -144,7 +126,6 @@ export function isDbtToolsWatchEnabled(): boolean {
 }
 
 const DEFAULT_RELOAD_DEBOUNCE_MS = 300;
-const DEFAULT_REMOTE_POLL_INTERVAL_MS = 30_000;
 
 export type DbtToolsRemoteSourceProvider = 'gcs' | 's3';
 
@@ -181,64 +162,6 @@ export function getDbtToolsReloadDebounceMs(): number {
     return parseNonNegativeInt(leg);
   }
   return DEFAULT_RELOAD_DEBOUNCE_MS;
-}
-
-/**
- * Parse `DBT_TOOLS_REMOTE_SOURCE` JSON (without reading `process.env`).
- * Returns `undefined` when JSON is invalid or required fields are missing.
- */
-export function parseDbtToolsRemoteSourceConfigJson(
-  rawJson: string,
-): DbtToolsRemoteSourceConfig | undefined {
-  try {
-    const parsed = JSON.parse(rawJson) as Partial<DbtToolsRemoteSourceConfig>;
-    if (parsed.provider !== 's3' && parsed.provider !== 'gcs') {
-      console.warn("[dbt-tools] DBT_TOOLS_REMOTE_SOURCE provider must be 's3' or 'gcs'.");
-      return undefined;
-    }
-    const bucket = trimEnv(parsed.bucket);
-    const prefix = trimEnv(parsed.prefix);
-    if (bucket === undefined || prefix === undefined) {
-      console.warn(
-        '[dbt-tools] DBT_TOOLS_REMOTE_SOURCE must include non-empty bucket and prefix values.',
-      );
-      return undefined;
-    }
-
-    return {
-      provider: parsed.provider,
-      bucket,
-      prefix: trimAffixSlashes(prefix),
-      pollIntervalMs:
-        typeof parsed.pollIntervalMs === 'number' && parsed.pollIntervalMs > 0
-          ? Math.floor(parsed.pollIntervalMs)
-          : DEFAULT_REMOTE_POLL_INTERVAL_MS,
-      region: trimEnv(parsed.region),
-      endpoint: trimEnv(parsed.endpoint),
-      forcePathStyle: parsed.forcePathStyle === true,
-      projectId: trimEnv(parsed.projectId),
-      impersonatedServiceAccount: trimEnv(parsed.impersonatedServiceAccount),
-    };
-  } catch (error) {
-    console.warn('[dbt-tools] Failed to parse DBT_TOOLS_REMOTE_SOURCE as JSON.', error);
-    return undefined;
-  }
-}
-
-/**
- * Optional remote artifact source configuration for managed object storage.
- * Expected format:
- * {
- *   "provider": "s3" | "gcs",
- *   "bucket": "bucket-name",
- *   "prefix": "path/to/runs",
- *   "pollIntervalMs": 30000
- * }
- */
-export function getDbtToolsRemoteSourceConfigFromEnv(): DbtToolsRemoteSourceConfig | undefined {
-  const raw = trimEnv(process.env.DBT_TOOLS_REMOTE_SOURCE);
-  if (raw === undefined) return undefined;
-  return parseDbtToolsRemoteSourceConfigJson(raw);
 }
 
 /**

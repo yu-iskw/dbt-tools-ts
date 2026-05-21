@@ -170,9 +170,9 @@ export function startServer(port: number): Promise<void> {
         }
 
         serveStaticFile(resolveStaticPath(req.url ?? '/'), res);
-      } catch (err) {
+      } catch {
         sendInternalError(res, false);
-        console.error('[dbt-tools-web]', err);
+        console.error('[dbt-tools-web] request failed');
       }
     })();
   });

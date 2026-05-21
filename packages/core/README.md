@@ -104,9 +104,9 @@ import {
 
 ## Environment helpers (Node)
 
-The Node entry re-exports configuration readers from [`src/config/dbt-tools-env.ts`](./src/config/dbt-tools-env.ts), including `getDbtToolsTargetDirFromEnv`, `getDbtToolsReloadDebounceMs`, `isDbtToolsWatchEnabled`, and **`getDbtToolsRemoteSourceConfigFromEnv`** with types **`DbtToolsRemoteSourceConfig`** / **`DbtToolsRemoteSourceProvider`**.
+The Node entry re-exports configuration readers from [`src/config/dbt-tools-env.ts`](./src/config/dbt-tools-env.ts), including `getDbtToolsTargetDirFromEnv`, `getDbtToolsDbtTargetFromEnv`, `getDbtToolsRemoteClientEnvFromEnv`, `getDbtToolsReloadDebounceMs`, and `isDbtToolsWatchEnabled`, with types **`DbtToolsRemoteSourceConfig`** / **`DbtToolsRemoteSourceProvider`** for remote object-store clients.
 
-`DBT_TOOLS_REMOTE_SOURCE` is consumed by the **`@dbt-tools/web`** Vite middleware (not the browser). For operators, see [`@dbt-tools/web`](../web/README.md) and [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
+Remote targets use `s3://` / `gs://` URIs plus granular **`DBT_TOOLS_GCS_*`** / **`DBT_TOOLS_S3_*`**. For operators, see [`@dbt-tools/web`](../web/README.md) and [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md).
 
 ---
 

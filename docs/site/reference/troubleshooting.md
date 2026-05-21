@@ -1,5 +1,21 @@
 # Troubleshooting
 
+Symptom-first fixes for common setup issues. Package-specific detail remains in [`packages/*/README.md`](https://github.com/yu-iskw/dbt-tools-ts/tree/main/packages).
+
+## Symptom → fix
+
+| Symptom                                             | Likely cause                           | What to do                                                                                                                                                                          |
+| --------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `manifest.json not found` / readiness `unavailable` | Wrong or empty `--dbt-target`          | Point at dbt `target/` root; run `dbt compile` or `dbt run`                                                                                                                         |
+| Commands work locally but fail in CI                | Artifacts not uploaded to CI workspace | Publish `target/` (or remote URI) before `dbt-tools` step                                                                                                                           |
+| `dbt-tools-mcp` fails to start                      | Wrong binary or missing target         | Use `dbt-tools-mcp`; set `--dbt-target` or `DBT_TOOLS_DBT_TARGET`; stdio only (not HTTP)                                                                                            |
+| MCP works once then stale data                      | New dbt run wrote fresh artifacts      | Restart MCP or point at updated target path                                                                                                                                         |
+| Web UI empty / no graph                             | `manifest-only` or missing run results | Run [Check run health](../workflows/check-run-health.md); need `run_results.json` for execution views                                                                               |
+| Remote S3/GCS errors                                | Credentials or path on server          | Configure env on **Node** (CLI/MCP/web server), not in browser; see [Local and remote artifacts](../concepts/local-and-remote-artifacts.md) and [Configuration](./configuration.md) |
+| No `web_url` in CLI JSON                            | `DBT_TOOLS_WEB_BASE_URL` unset         | Export base URL of running web app; see [Deep links](./deep-links.md)                                                                                                               |
+| `pnpm site:dev` esbuild errors                      | Legacy browser target in monorepo      | Keep `esnext` in `docs/site/.vitepress/config.ts` (see [AGENTS.md](https://github.com/yu-iskw/dbt-tools-ts/blob/main/AGENTS.md))                                                    |
+| Published docs missing CSS                          | Wrong VitePress `base`                 | Confirm `base: '/dbt-tools-ts/'` in `docs/site/.vitepress/config.ts`                                                                                                                |
+
 ## Artifacts not found
 
 - Confirm `manifest.json` and `run_results.json` exist at the **root** of your `--dbt-target` / `--target` path.
@@ -18,7 +34,7 @@ Published packages require **Node.js 20+**. Match [`.node-version`](https://gith
 ## Web UI shows empty views
 
 - Verify the target directory contains a complete manifest/run pair for the run you expect.
-- For remote sources, confirm credentials and bucket paths on the **Node server** (see package README).
+- For remote sources, confirm credentials and bucket paths on the **Node server** (see [Web README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md)).
 
 ## GitHub Pages site issues
 
@@ -27,4 +43,5 @@ If CSS or assets fail to load on the published docs site, confirm VitePress `bas
 ## Get help
 
 - [GitHub issues](https://github.com/yu-iskw/dbt-tools-ts/issues)
+- [Configuration](./configuration.md)
 - Package READMEs under `packages/*/README.md`

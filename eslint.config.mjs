@@ -170,6 +170,8 @@ export default [
       '**/*.generated.ts',
       '**/playwright-report/**',
       '**/test-results/**',
+      'docs/site/.vitepress/cache/**',
+      'docs/site/.vitepress/dist/**',
       '**/vitest.config.ts',
       'vitest.config.ts',
       'vitest.coverage.ts',

@@ -1,7 +1,7 @@
 export type DbtArtifactBundleProvider = 'gcs' | 'local' | 's3';
 
 const REMOTE_HINT =
-  'Remote: use s3://bucket/prefix or gs://bucket/prefix; ensure cloud credentials and optional DBT_TOOLS_REMOTE_SOURCE JSON (region, endpoint, projectId) are set.';
+  'Remote: use s3://bucket/prefix or gs://bucket/prefix; set cloud credentials and optional DBT_TOOLS_GCS_* / DBT_TOOLS_S3_* (region, endpoint, projectId, impersonation).';
 
 const LOCAL_HINT =
   'Local: pass a directory that contains manifest.json and run_results.json (catalog.json and sources.json are optional).';

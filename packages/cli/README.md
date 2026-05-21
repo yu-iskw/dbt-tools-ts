@@ -62,7 +62,7 @@ pnpm add -g @dbt-tools/cli
 - **Paging**: `inventory` and `search` support `--limit` / `--offset` (max 200); `query-executions` defaults to limit 10 (max 50)
 - **Status / Freshness**: Check if artifacts are present and how recent they are
 - **Subgraph focus**: Export a focused subgraph for any node via `graph --focus`
-- **Remote prefixes**: Use **`s3://bucket/prefix`** or **`gs://bucket/prefix`** (scheme required). Objects are downloaded to a temp directory for the duration of the command. **Credentials** use the normal AWS / GCP client chains; optional JSON in **`DBT_TOOLS_REMOTE_SOURCE`** supplies region, endpoint, GCS project id, etc. (see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
+- **Remote prefixes**: Use **`s3://bucket/prefix`** or **`gs://bucket/prefix`** (scheme required). Objects are downloaded to a temp directory for the duration of the command. **Credentials** use the normal AWS / GCP client chains; optional **`DBT_TOOLS_GCS_*`** / **`DBT_TOOLS_S3_*`** supply region, endpoint, GCS project id, impersonation, etc. (see [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md)).
 
 ---
 
@@ -691,7 +691,7 @@ dbt-tools schema deps | jq '.options[] | select(.name == "--direction")'
 ## Environment variables
 
 - **`DBT_TOOLS_DBT_TARGET`**: default artifact root for the CLI when **`--dbt-target`** is omitted (local path, or `s3://…` / `gs://…` with a strict scheme).
-- **Remote credentials / endpoint style** for `s3://` and `gs://` still follow **`DBT_TOOLS_REMOTE_SOURCE`** (see the artifact root section above).
+- **Remote credentials / endpoint style** for `s3://` and `gs://` use **`DBT_TOOLS_GCS_*`** / **`DBT_TOOLS_S3_*`** (see the artifact root section above).
 
 ---
 

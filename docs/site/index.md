@@ -7,7 +7,7 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /guide/getting-started
+      link: /guide/overview
     - theme: alt
       text: View on GitHub
       link: https://github.com/yu-iskw/dbt-tools-ts
@@ -26,9 +26,15 @@ features:
 
 dbt-tools helps operators and automation systems reason about dbt projects through structured artifact analysis.
 
+## Pick your path
+
+- [I run dbt in CI](guide/cli/getting-started.md) — one-shot CLI and JSON
+- [I use AI in the IDE](guide/agents/install.md) — agent skills (Cursor, Codex, Claude)
+- [I explore runs in the browser](guide/web/investigation-tour.md) — investigation UI
+- [Follow a step-by-step workflow](guide/ecosystem.md) — job-oriented recipes
+
 ## Packages
 
-- `@dbt-tools/core` — analysis engine and shared discovery logic
 - `@dbt-tools/cli` — `dbt-tools` for scripts, CI, and one-shot automation
 - `@dbt-tools/mcp` — `dbt-tools-mcp` for long-lived agent sessions
 - `@dbt-tools/web` — `dbt-tools-web` for browser-based investigation
