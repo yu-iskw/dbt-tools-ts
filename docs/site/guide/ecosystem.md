@@ -34,7 +34,7 @@ Step-by-step workflows are grouped in the sidebar under each surface (URLs stay 
 | CI / health         | [Check run health](../workflows/check-run-health.md) (sidebar: **CLI → Workflows**)                                                       |
 | Find / explain      | [Find a model](../workflows/find-a-model.md), [Explain a failure](../workflows/explain-failure.md)                                        |
 | Slow runs / browser | [Investigate slow runs](../workflows/investigate-slow-runs.md), [Open in web](../workflows/open-in-web.md) (sidebar: **Web → Workflows**) |
-| Coding agent        | [Wire your coding agent](../workflows/wire-your-ide-agent.md) (sidebar: **Agents → Workflows**)                                           |
+| Coding agent        | [Wire your coding agent](../workflows/wire-your-coding-agent.md) (sidebar: **Agents → Workflows**)                                        |
 
 Full index: [Workflows](../workflows/index.md).
 

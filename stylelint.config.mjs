@@ -9,6 +9,8 @@ export default {
     '**/coverage/**',
     '**/playwright-report/**',
     '**/test-results/**',
+    // VitePress theme overrides third-party PascalCase selectors (VPHero, VPFeature, …).
+    'docs/site/**',
   ],
   rules: {
     // App uses kebab-case blocks with BEM __element / --modifier; not literal single-segment kebab-case.

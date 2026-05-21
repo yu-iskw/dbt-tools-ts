@@ -2,13 +2,17 @@
 
 How the pieces fit together: [Ecosystem at a glance](./ecosystem.md).
 
-| If you want to…                                  | Use                                        |
-| ------------------------------------------------ | ------------------------------------------ |
-| Follow a step-by-step job                        | [Ecosystem at a glance](./ecosystem.md)    |
-| Run one-shot commands in CI or shell             | [@dbt-tools/cli](./cli/getting-started.md) |
-| Let a coding agent query the same run many times | [@dbt-tools/mcp](./mcp/getting-started.md) |
-| Explore lineage and runs in a browser            | [@dbt-tools/web](./web/getting-started.md) |
-| Install agent skills (Cursor, Codex, Claude)     | [Agents](./agents/install.md)              |
+<!-- markdown-link-check-disable -->
+
+| If you want to…                                  | Use                                                                                                |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| Follow a step-by-step job                        | [Ecosystem at a glance](./ecosystem.md)                                                            |
+| Run one-shot commands in CI or shell             | [@dbt-tools/cli](https://www.npmjs.com/package/@dbt-tools/cli) · [guide](./cli/getting-started.md) |
+| Let a coding agent query the same run many times | [@dbt-tools/mcp](https://www.npmjs.com/package/@dbt-tools/mcp) · [guide](./mcp/getting-started.md) |
+| Explore lineage and runs in a browser            | [@dbt-tools/web](https://www.npmjs.com/package/@dbt-tools/web) · [guide](./web/getting-started.md) |
+| Install agent skills (Cursor, Codex, Claude)     | [Agents](./agents/install.md)                                                                      |
+
+<!-- markdown-link-check-enable -->
 
 ## Prerequisites
 

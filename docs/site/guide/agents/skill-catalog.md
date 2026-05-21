@@ -64,7 +64,7 @@ Use the same skill **names** with the `dbt-tools-mcp:` prefix when the host call
 - [Check run health](../../workflows/check-run-health.md)
 - [Find a model](../../workflows/find-a-model.md)
 - [Explain a failure](../../workflows/explain-failure.md)
-- [Wire your coding agent](../../workflows/wire-your-ide-agent.md)
+- [Wire your coding agent](../../workflows/wire-your-coding-agent.md)
 
 ## Learn more
 
