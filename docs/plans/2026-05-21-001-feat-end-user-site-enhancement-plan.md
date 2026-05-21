@@ -4,11 +4,12 @@ type: feat
 status: active
 date: 2026-05-21
 origin: user RFC (end-user site enhancement for docs/site)
+deepened: 2026-05-21
 ---
 
 ## Summary
 
-Evolve the existing VitePress site at `docs/site/` by adding a goal-oriented layer—Start Here, Recipes, Deploy, and Trust & Safety—above the current package-oriented Guide/Concepts/Reference structure. Preserve all `/workflows/*` URLs, use synthetic demo artifacts for a five-minute quickstart, and land the work in phased PRs aligned with the user RFC.
+Evolve the existing VitePress site at `docs/site/` by adding a goal-oriented layer—Start Here, Recipes, Deploy, and Trust & Safety—above the current package-oriented Guide/Concepts/Reference structure. Preserve all `/workflows/*` URLs, ship a trimmed synthetic demo target under `public/demo/` (v11 manifest + v6 run_results, with injected failure rows), and land the work in phased PRs with mandatory quickstart verification.
 
 ---
 
@@ -22,13 +23,14 @@ End users arrive with job questions (“why did my run fail?”, “can I use S3
 
 _This plan was authored without synchronous user confirmation. Review these bets before implementation._
 
-- **Recipes vs workflows:** First iteration adds full content at `recipes/*.md` for RFC job titles while keeping `workflows/*.md` unchanged with reciprocal cross-links (Option B+), accepting short-term overlap until a later dedup pass—rather than hub-only stubs with no new recipe bodies.
-- **Demo artifacts:** A minimal `manifest.json` + `run_results.json` pair is copied from `packages/test-fixtures/dbt-artifacts-parser/resources/*/jaffle_shop/` into `docs/site/public/demo/`, with project/metadata names sanitized for public docs per `concepts/dbt-artifacts.md`.
-- **Quickstart commands:** Examples use `dbt-tools` / `npx @dbt-tools/cli` interchangeably where both work; success criterion is `readiness: "full"` JSON from `status --json` against the demo target.
-- **Debug-failed-run recipe:** Canonical CLI sequence includes `query-executions` for failure triage (aligned with `guide/agents/skill-catalog.md`), not only the existing `explain-failure` workflow steps.
-- **CLI→Web handoff recipe:** Documents `web_url` only for commands that implement handoff today (`discover`, `explain`, `deps`/`impact`); execution triage without `web_url` is called out explicitly.
-- **Generated reference (Phase 4):** Deferred to follow-up unless an implementer already has a low-cost generator; hand-maintained reference updates are in scope for U6.
-- **PR CI:** Adding `pnpm site:build` on PRs touching `docs/site/**` is recommended but may ship in U7 as a separate small change (workflow file edit requires explicit CI ownership).
+- **Recipes vs workflows (Option B+):** `recipes/*.md` owns goal-oriented prose; `workflows/*.md` keeps stable URLs with a short footer linking to the matching recipe (not full duplicate bodies long-term). Bookmarks stay on `/workflows/*` until a redirect pass.
+- **Demo artifacts:** U0 builds `docs/site/public/demo/` as a **single artifact root** (both files at the directory root). Source pair: `manifest/v11/jaffle_shop/manifest.json` + `run_results/v6/jaffle_shop/run_results.json` (there is **no** `manifest.json` under `manifest/v12/jaffle_shop/`). The sync step **trims** large graphs if needed, **sanitizes** project/env metadata per `concepts/dbt-artifacts.md`, and **injects** at least one `error`/`fail`/`skipped` result so `debug-failed-run` is runnable (stock jaffle `run_results` is all `success`).
+- **Quickstart commands:** Examples use `dbt-tools` / `npx @dbt-tools/cli`. Success criterion: `dbt-tools status --dbt-target <demo> --json` → `readiness: "full"`. Prerequisites: Node **20+** for published packages; repo development uses `.node-version` (currently 24.x).
+- **Readiness gate naming:** Human docs use `dbt-tools status --json` and `readiness` values. Agent docs map skill handle `dbt-tools-cli:check-session` → same `status` JSON (no `dbt-tools check-session` subcommand).
+- **Debug-failed-run recipe:** `status` → `query-executions` (failure filters) → `discover`/`explain` on a failing `unique_id`; `deps` for lineage without promising `web_url`. Branch on `manifest-only` before execution commands.
+- **CLI→Web handoff recipe:** `web_url` / `review_url` only for **`discover`**, **`explain`**, and **`impact`** (per `packages/cli/README.md`). `query-executions` and `deps` have no `web_url`—document manual Web steps for execution/lineage views.
+- **Generated reference (Phase 4):** Deferred unless a low-cost generator exists; U6 is hand-maintained.
+- **Phase 1 verification:** `scripts/verify-docs-quickstart.sh` (U7) is **required** before the first site content PR merges; PR-time `pnpm site:build` on `docs/site/**` is strongly recommended in the same PR that adds U7.
 
 ---
 
@@ -41,7 +43,8 @@ _This plan was authored without synchronous user confirmation. Review these bets
 - R5. `trust/` documents data boundaries, agent/MCP safety, production hardening, and licensing in plain language; no links to `docs/adr/` on the published site.
 - R6. All existing URLs under `guide/`, `workflows/`, `concepts/`, and `reference/` remain reachable; `/workflows/*` paths are not moved without VitePress `redirect` frontmatter.
 - R7. `pnpm site:build` succeeds; new internal links pass Trunk `markdown-link-check` (use disable comments only for npm/GitHub URLs per existing pattern).
-- R8. Public examples use synthetic data only; command examples are verifiable against `public/demo/`.
+- R8. Public examples use synthetic data only; command examples are verifiable against `public/demo/` via the U7 verify script.
+- R11. Human-facing docs use `dbt-tools status --json` for readiness; agent skill sections may reference `dbt-tools-cli:check-session` with an explicit CLI mapping.
 - R9. Wording follows AGENTS.md: “coding agent” and “agent skills”; avoid generic “AI agent” on the site.
 - R10. Full CLI/MCP flag reference remains in `packages/*/README.md`; site pages link deliberately rather than mirroring reference dumps.
 
@@ -63,7 +66,7 @@ _This plan was authored without synchronous user confirmation. Review these bets
 - Bundled downloadable `.zip` of demo artifacts (if `public/demo/` path is insufficient)
 - Product work to add `web_url` on `query-executions` / `diagnose` for execution deep links
 - Screenshots under `public/screenshots/` (annotate sparingly per release)
-- PR workflow change in `.github/workflows/build.yml` if this task does not own CI
+- PR workflow `site:build` gate only when explicitly out of scope for the implementing PR
 
 ---
 
@@ -79,7 +82,7 @@ _This plan was authored without synchronous user confirmation. Review these bets
 - Deep links: `docs/site/reference/deep-links.md`, `DBT_TOOLS_WEB_BASE_URL`
 - Redirect precedent: `docs/site/workflows/wire-your-ide-agent.md` → `wire-your-coding-agent`
 - Site scripts: root `pnpm site:build` → `@dbt-tools/site` → `vitepress build .`
-- Fixture source: `packages/test-fixtures/dbt-artifacts-parser/resources/manifest/v12/jaffle_shop/` + matching `run_results/v6/jaffle_shop/`
+- Fixture source (copy **into one target dir**): `packages/test-fixtures/dbt-artifacts-parser/resources/manifest/v11/jaffle_shop/manifest.json` + `run_results/v6/jaffle_shop/run_results.json`; U0 script writes `docs/site/public/demo/{manifest.json,run_results.json}`
 
 ### Institutional Learnings
 
@@ -97,8 +100,8 @@ _This plan was authored without synchronous user confirmation. Review these bets
 ## Key Technical Decisions
 
 - **Layered IA, not rewrite:** Add top nav entries Start Here (quickstart), Recipes, Deploy, Trust & Safety; keep Packages dropdown and per-surface guide depth.
-- **Option B+ for recipes:** New `recipes/*.md` job pages plus unchanged `workflows/*.md` with bidirectional cross-links; canonical URLs for bookmarks remain `/workflows/*` until a later redirect pass.
-- **Demo artifact delivery:** Checked-in `docs/site/public/demo/` directory used as `--dbt-target` path in quickstart (e.g. relative path documented from repo clone or copy instructions)—not “clone monorepo to run.”
+- **Option B+ for recipes:** `recipes/*` is the promoted learning path in nav; `workflows/*` keeps legacy URLs with footers pointing to recipes. Avoid maintaining two full copies—recipes are content owners after Phase 1.
+- **Demo artifact delivery:** `docs/site/public/demo/` is a filesystem `--dbt-target` root (not a URL). Quickstart documents clone path `docs/site/public/demo` and `npx` users copy that folder or run from a repo checkout; optional `.zip` remains deferred.
 - **Deploy hub defers duplication:** `deploy/*` pages are procedural; env matrices stay in `reference/configuration.md` and `concepts/local-and-remote-artifacts.md`.
 - **Trust before MCP install:** Reorder funnel links in `guide/mcp/getting-started.md` and `guide/agents/install.md` to surface `trust/` first.
 - **Reference filename:** Use existing `reference/web-cli.md` (RFC’s `web-server-cli.md` does not exist).
@@ -111,14 +114,14 @@ _This plan was authored without synchronous user confirmation. Review these bets
 
 - **Recipes vs workflows naming?** Add `recipes/` as promoted job layer; keep `workflows/` URLs (RFC Option B).
 - **Where do demo artifacts live?** `docs/site/public/demo/` served under `/demo/` with VitePress `base`.
-- **Debug failed run commands?** `status` → `query-executions` (failures) → `discover`/`explain`/`deps` on top failure; branch on `manifest-only` readiness.
-- **MCP manifest-only?** Document in trust + MCP getting started: MCP requires manifest and run_results; CLI `check-session` for manifest-only readiness.
+- **Debug failed run commands?** `status` → `query-executions` → `discover`/`explain` on failure `unique_id`; demo `run_results` must include ≥1 non-success node (U0).
+- **MCP manifest-only?** MCP requires manifest + run_results; human gate is `dbt-tools status --json` (`manifest-only` vs `full`); agents use `dbt-tools-cli:check-session` → same command.
 
 ### Deferred to Implementation
 
 - Exact JSON field excerpts for quickstart (capture once against demo target during U1 verification)
-- Whether `recipes/debug-failed-run.md` subsumes content updates to `workflows/explain-failure.md` or only cross-links
-- Size budget for committed JSON under `public/demo/` (may need minified fixture vs full jaffle_shop)
+- Whether `workflows/explain-failure.md` gains a short redirect-style intro or only a recipe footer link
+- Target size budget for `public/demo/` after trim (aim under 500KB combined unless trim script cannot reach that)
 
 ---
 
@@ -208,11 +211,13 @@ docs/site/
 **Approach:**
 
 - Template headings match existing workflow shape plus RFC fields (symptom table, expected output JSON block).
-- Script copies v12 manifest + v6 run_results from test-fixtures; implementer sanitizes `project_name` / env metadata strings if needed.
+- `scripts/sync-docs-demo-artifacts.mjs` copies v11 manifest + v6 run_results into `docs/site/public/demo/`, sanitizes metadata, trims node count if needed, and ensures ≥1 failed/skipped execution for debug recipes. Script is the single source of truth for demo refresh.
 
 **Test scenarios:**
 
-- Test expectation: none — scaffolding and copy script only; verify script exits 0 and output files exist.
+- Happy path: sync script exits 0; `public/demo/manifest.json` and `run_results.json` parse as JSON
+- Happy path: `dbt-tools status --dbt-target docs/site/public/demo --json` reports `readiness: "full"`
+- Happy path: demo `run_results` contains at least one non-`success` execution status
 
 **Verification:**
 
@@ -237,19 +242,20 @@ docs/site/
 
 **Approach:**
 
-- Quickstart: prerequisites (Node 20+), Option A own `target/`, Option B demo path, minimal `status`, `discover`, `explain`, `dbt-tools-web`, `dbt-tools-mcp` invocations with expected `readiness` / output shape notes.
-- Document demo path relative to clone: e.g. `docs/site/public/demo` or copy to a temp dir.
+- Quickstart: prerequisites (Node 20+; link `.node-version` for repo dev), Option A own `target/`, Option B `--dbt-target` pointing at `docs/site/public/demo` (after U0), minimal `status`, `discover`, `explain`; optional one-liner Web/MCP.
+- `demo-artifacts.md`: how to refresh via sync script, synthetic-only policy, and copy path for `npx` users without full monorepo context.
 
 **Test scenarios:**
 
 - Happy path: `dbt-tools status --dbt-target <demo> --json` returns `readiness: "full"` with manifest and run_results present
 - Edge case: wrong `--dbt-target` → `unavailable`; quickstart documents fix
-- Error path: Node &lt; 20 called out with link to `.node-version`
+- Error path: Node below 20 called out with link to published package engines and `.node-version`
 - Integration: quickstart links to `recipes/`, `deploy/`, `trust/`, and package getting-started pages
 
 **Verification:**
 
 - Commands in quickstart run against `public/demo/` in a clean environment
+- `scripts/verify-docs-quickstart.sh` passes (add in U7; required before Phase 1 PR merge)
 - `pnpm site:build` passes
 
 ---
@@ -265,12 +271,13 @@ docs/site/
 **Files:**
 
 - Create: `docs/site/guide/choose-by-goal.md`
+- Create (if nav/homepage links ahead of U4/U5): `docs/site/deploy/index.md`, `docs/site/trust/index.md` as minimal stubs (“coming soon” sections with links to `concepts/` and `reference/configuration` only)
 - Modify: `docs/site/index.md`, `docs/site/.vitepress/config.ts`, `docs/site/guide/overview.md`, `docs/site/guide/ecosystem.md`
 
 **Approach:**
 
 - Homepage hero copy per RFC; primary CTA → `/guide/quickstart`; goal cards linking to recipes/deploy/trust.
-- Nav (Phase 1): add Start Here → quickstart, Recipes → `/recipes/`; full Deploy/Trust nav can land in U4/U5 or stub links if pages not ready.
+- Nav (Phase 1): add Start Here → quickstart, Recipes → `/recipes/`. Do **not** add Deploy/Trust top-nav entries until U4/U5 unless minimal stub index pages (`deploy/index.md`, `trust/index.md`) ship in the same PR—homepage goal cards must not 404.
 - `choose-by-goal.md`: decision table (goal → best interface → start link); distinguish from `overview.md` (interface) vs `ecosystem.md` (package map).
 - Fix homepage wording: “coding agent” not “AI coding agents” where applicable.
 
@@ -306,14 +313,15 @@ docs/site/
 
 - Follow `_templates/recipe.md` and existing workflow structure.
 - Map goals to legacy workflows: debug ↔ check-run-health + explain-failure; slow ↔ investigate-slow-runs; impact ↔ find-a-model; CI ↔ check-run-health + summary; web handoff ↔ open-in-web; agent ↔ wire-your-coding-agent.
-- `debug-failed-run`: include `query-executions` and manifest-only branch; link trust for agents.
-- `open-cli-result-in-web`: document `DBT_TOOLS_WEB_BASE_URL` and which commands emit `web_url`.
-- `ask-agent-about-dbt-run`: MCP vs skills vs CLI; link trust/agent-safety (stub ok until U5).
+- `debug-failed-run`: requires U0 failure injection; `query-executions` with `--status error,fail,skipped`; manifest-only branch; agent section cites `dbt-tools-cli:check-session` → `status --json`.
+- `open-cli-result-in-web`: `DBT_TOOLS_WEB_BASE_URL`; only `discover`/`explain`/`impact` emit `web_url`; `deps` + manual Web for lineage.
+- `ask-agent-about-dbt-run`: MCP vs skills vs CLI; trust links required once U5 lands (U5 can follow in next PR).
 
 **Test scenarios:**
 
 - Happy path: recipes index table links to all six recipe pages
 - Happy path: each recipe includes CLI example block runnable against demo target where applicable
+- Happy path: `debug-failed-run` `query-executions --json` returns ≥1 failed/skipped row against demo target
 - Edge case: recipe documents `manifest-only` stopping before execution commands
 - Error path: symptom → cause → fix table (missing manifest, empty run_results, remote auth)
 - Integration: reciprocal link from `workflows/check-run-health.md` to `recipes/debug-failed-run.md` (and siblings)
@@ -405,13 +413,14 @@ docs/site/
 
 **Files:**
 
-- Create: `docs/site/reference/json-output.md`, `version-compatibility.md`, `glossary.md` (optional `core.md` stub pointing to GitHub only if no end-user core docs)
+- Create: `docs/site/reference/json-output.md`, `version-compatibility.md`, `glossary.md`
+- Optional: `reference/core.md` — one paragraph + link to GitHub `@dbt-tools/core` only (no on-site API reference; satisfies scope boundary)
 - Modify: `docs/site/reference/cli-cheatsheet.md`, `mcp-tools.md`, `troubleshooting.md`, `docs/site/.vitepress/config.ts` (Reference sidebar items)
 
 **Approach:**
 
-- json-output: common CLI JSON fields (`readiness`, `web_url`, intent blocks) with link to deep-links.
-- version-compatibility: Node 20+, artifact schema assumptions, package version pinning for `npx -y`.
+- json-output: `readiness`, `web_url`/`review_url` on discover/explain/impact only; link to deep-links.
+- version-compatibility: Node 20+ (24+ for monorepo dev per `.node-version`), artifact schema assumptions, `npx -y` pinning.
 - Defer generator scripts to Deferred to Follow-Up Work unless low effort discovered during implementation.
 
 **Test scenarios:**
@@ -436,13 +445,13 @@ docs/site/
 
 **Files:**
 
-- Create: `docs/site/guide/quickstart.verify.sh` or root script `scripts/verify-docs-quickstart.sh` (optional)
+- Create: `scripts/verify-docs-quickstart.sh` (required gate; invoked locally and in CI)
 - Modify: `.github/workflows/build.yml` or `trunk_check.yml` (if task owns CI) to run `pnpm site:build` when `docs/site/**` changes
 
 **Approach:**
 
-- Minimal shell script: run status/discover against `public/demo/` with `--json` and assert `readiness`/`ok` via `jq` or node -e.
-- Document verification in plan handoff for `ce-work` / `pnpm lint:report` on doc edits.
+- Shell script: `status --json` → assert `readiness: full`; optional `discover` smoke; assert demo `run_results` has ≥1 non-success if testing debug docs.
+- Same PR (or immediate follow-up) adds `pnpm site:build` when `docs/site/**` changes in `build.yml` or `trunk_check.yml` if task owns CI.
 
 **Test scenarios:**
 
@@ -452,7 +461,8 @@ docs/site/
 
 **Verification:**
 
-- Script runs in repo root CI or documented local gate
+- `scripts/verify-docs-quickstart.sh` is required in Phase 1 Definition of Done
+- Script runs in CI when workflow change is in scope; otherwise documented mandatory local gate before merge
 - Agent completion: `pnpm lint:report`, `pnpm knip`, `pnpm coverage:report` per AGENTS.md for doc-only changes
 
 ---
@@ -462,7 +472,7 @@ docs/site/
 - **Interaction graph:** Homepage, nav, sidebar, ecosystem tables, workflow footers, MCP/agents install order, and reference cross-links all gain new edges; search index includes new sections.
 - **Error propagation:** Incorrect demo paths break quickstart and all recipes using demo; remote deploy misconfig surfaces in troubleshooting cross-links.
 - **State lifecycle risks:** Stale MCP cache and mismatched CLI/Web `--dbt-target` called out in trust and open-cli-result recipe.
-- **API surface parity:** No CLI/MCP/Web code changes; docs must reflect actual commands (`status`, `query-executions`, `discover`, `explain`, `deps`) and handoff support in `packages/core/src/intent/web-handoff.ts`.
+- **API surface parity:** No CLI/MCP/Web code changes; docs must reflect actual commands (`status`, `query-executions`, `discover`, `explain`, `deps`, `impact`) and `web_url` only on discover/explain/impact.
 - **Integration coverage:** U1 command smoke + U7 script prove docs/examples against real binaries; site build proves VitePress graph.
 - **Unchanged invariants:** Package READMEs remain authoritative for flags; `workflows/*` URLs; `base: '/dbt-tools-ts/'`; VitePress `esnext` config; no ADR links on site.
 
@@ -473,9 +483,11 @@ docs/site/
 | Risk                                       | Mitigation                                                             |
 | ------------------------------------------ | ---------------------------------------------------------------------- |
 | Docs drift from CLI/MCP/Web                | Link to package READMEs; U6 json-output; defer generators to follow-up |
-| Demo artifacts too large or “real-looking” | Sanitize names; minimal fixture pair; document synthetic provenance    |
-| Duplicate recipes vs workflows             | Option B+ cross-links; later dedup/redirect pass                       |
-| Broken internal links at scale             | `pnpm site:build`; Trunk markdown-link-check; U7 optional script       |
+| Demo artifacts too large or “real-looking” | U0 trim + sanitize; document provenance in `demo-artifacts.md`         |
+| Duplicate recipes vs workflows             | Recipes own prose; workflows footers only; dedup in follow-up          |
+| Debug recipe with all-success fixture      | U0 inject ≥1 failure; verify script asserts non-success row            |
+| Broken internal links at scale             | `pnpm site:build`; Trunk link-check; U7 required verify script         |
+| `check-session` documented as CLI command  | Map skill handle → `status --json` in trust/agent/recipe pages         |
 | Agent safety expectations                  | U5 trust pages; MCP manifest-only invariant                            |
 | PR merges broken site                      | U7 CI `site:build` on `docs/site/**`                                   |
 | RFC command names wrong                    | Verify every bash block in U1/U3 against demo target                   |
@@ -496,9 +508,9 @@ docs/site/
 
 ### Phase 1 — Onboarding PR (RFC “Recommended First PR”)
 
-Land **U0 (minimal) + U1 + U2 + U3** (recipes index + three core recipes minimum if scope trimming needed: debug, slow, impact).
+Land **U0 + U1 + U2 + U3 + U7** (verify script is part of Phase 1, not a later optional add-on).
 
-**MVP slice:** New user runs quickstart against `public/demo/` and reaches a recipe from homepage goal card; `pnpm site:build` green.
+**MVP slice:** New user runs quickstart against `public/demo/` (`readiness: full`), `scripts/verify-docs-quickstart.sh` passes, and homepage/recipe routes build without 404.
 
 ### Phase 2 — Deployment PR
 
