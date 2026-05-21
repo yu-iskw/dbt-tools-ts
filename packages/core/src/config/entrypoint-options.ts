@@ -3,6 +3,8 @@
  */
 
 import { parseDbtToolsArtifactTarget } from '../io/dbt-artifact-bundle';
+import { argvElementAt } from '../util/typed-map';
+
 import { getDbtToolsDbtTargetFromEnv } from './dbt-tools-env';
 
 export interface EntrypointRemoteOptions {
@@ -21,7 +23,7 @@ export type EntrypointRemoteClientFlagOptions = Pick<
 type Env = Record<string, string | undefined>;
 
 function readFlagValue(args: string[], index: number, flag: string): string {
-  const value = args[index + 1];
+  const value = argvElementAt(args, index + 1);
   if (value == null || value.startsWith('--')) {
     throw new Error(`${flag} requires a value.`);
   }
@@ -139,7 +141,7 @@ const ENTRYPOINT_STRING_FLAGS: Array<{
 export function parseEntrypointRemoteArgv(args: string[]): EntrypointRemoteOptions {
   const parsed: ParsedEntrypointArgv = {};
   for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
+    const arg = argvElementAt(args, i);
     if (arg === undefined) continue;
     const stringFlag = ENTRYPOINT_STRING_FLAGS.find((entry) => entry.flag === arg);
     if (stringFlag != null) {

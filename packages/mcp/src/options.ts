@@ -1,4 +1,5 @@
 import {
+  argvElementAt,
   assertRemoteFlagsMatchTarget,
   entrypointRemoteHelpLines,
   normalizeEntrypointRemoteOptions,
@@ -28,7 +29,7 @@ export class McpHelpRequested extends Error {
 type Env = Record<string, string | undefined>;
 
 function readFlagValue(args: string[], index: number, flag: string): string {
-  const value = args[index + 1];
+  const value = argvElementAt(args, index + 1);
   if (value == null || value.startsWith('--')) {
     throw new Error(`${flag} requires a value.`);
   }
@@ -43,17 +44,13 @@ function parsePositiveInteger(raw: string, flag: string): number {
   return parsed;
 }
 
-interface ParsedMcpArgv extends EntrypointRemoteOptions {
-  pollIntervalMs?: number;
-}
-
 function partitionMcpArgv(args: string[]): { remoteArgs: string[]; pollIntervalMs?: number } {
   const remoteArgs: string[] = [];
   let pollIntervalMs: number | undefined;
   let i = 0;
   while (i < args.length) {
-    const arg = args[i];
-    if (arg === undefined) continue;
+    const arg = argvElementAt(args, i);
+    if (arg === undefined) break;
     if (arg === '--poll-interval-ms') {
       pollIntervalMs = parsePositiveInteger(readFlagValue(args, i, arg), arg);
       i += 2;

@@ -1,6 +1,7 @@
 /** Pure CLI argument parsing for `dbt-tools-web` (testable without starting the server). */
 
 import {
+  argvElementAt,
   entrypointRemoteHelpLines,
   parseEntrypointRemoteArgv,
   type EntrypointRemoteOptions,
@@ -43,8 +44,8 @@ const ENTRYPOINT_VALUE_FLAGS = new Set([
   '--s3-endpoint',
 ]);
 
-function readRequiredValue(argv: string[], i: number, flagDesc: string): RequiredValue {
-  const next = argv[i + 1];
+function readRequiredValue(argv: readonly string[], i: number, flagDesc: string): RequiredValue {
+  const next = argvElementAt(argv, i + 1);
   if (!next || next.startsWith('-')) {
     return { ok: false, message: `Missing value for ${flagDesc}` };
   }
@@ -59,62 +60,84 @@ function parsePortString(s: string): number | null {
   return parsed;
 }
 
+type WebPartitionBody = {
+  remoteArgs: string[];
+  port: number;
+  targetAlias?: string;
+};
+
+function parseEarlyWebFlag(arg: string): ParsedCli | undefined {
+  if (arg === '--help' || arg === '-h') {
+    return { kind: 'help' };
+  }
+  if (arg === '--version' || arg === '-V') {
+    return { kind: 'version' };
+  }
+  return undefined;
+}
+
+function advanceWebArgv(
+  argv: readonly string[],
+  i: number,
+  arg: string,
+  body: WebPartitionBody,
+): ParsedCli | { nextIndex: number } {
+  if (arg === '--no-open') {
+    return { nextIndex: i + 1 };
+  }
+  if (arg === '--target' || arg === '-t') {
+    const r = readRequiredValue(argv, i, '--target (or -t)');
+    if (!r.ok) {
+      return { kind: 'error', message: r.message };
+    }
+    body.targetAlias = r.value;
+    return { nextIndex: r.nextIndex + 1 };
+  }
+  if (arg === '--port' || arg === '-p') {
+    const r = readRequiredValue(argv, i, '--port (or -p)');
+    if (!r.ok) {
+      return { kind: 'error', message: r.message };
+    }
+    const p = parsePortString(r.value);
+    if (p === null) {
+      return { kind: 'error', message: `Invalid port: ${r.value}` };
+    }
+    body.port = p;
+    return { nextIndex: r.nextIndex + 1 };
+  }
+  if (!arg.startsWith('-')) {
+    return { kind: 'error', message: `Unexpected argument: ${arg}` };
+  }
+  if (!ENTRYPOINT_VALUE_FLAGS.has(arg)) {
+    return { kind: 'error', message: `Unknown option: ${arg}` };
+  }
+  const value = argvElementAt(argv, i + 1);
+  if (value == null || value.startsWith('-')) {
+    return { kind: 'error', message: `${arg} requires a value.` };
+  }
+  body.remoteArgs.push(arg, value);
+  return { nextIndex: i + 2 };
+}
+
 function partitionWebArgv(
-  argv: string[],
+  argv: readonly string[],
 ): ParsedCli | { remoteArgs: string[]; port: number; targetAlias?: string } {
-  const remoteArgs: string[] = [];
-  let port = 3000;
-  let targetAlias: string | undefined;
+  const body: WebPartitionBody = { remoteArgs: [], port: 3000 };
   let i = 0;
   while (i < argv.length) {
-    const arg = argv[i]!;
-    if (arg === '--help' || arg === '-h') {
-      return { kind: 'help' };
+    const arg = argvElementAt(argv, i);
+    if (arg === undefined) break;
+    const early = parseEarlyWebFlag(arg);
+    if (early !== undefined) {
+      return early;
     }
-    if (arg === '--version' || arg === '-V') {
-      return { kind: 'version' };
+    const step = advanceWebArgv(argv, i, arg, body);
+    if ('kind' in step) {
+      return step;
     }
-    if (arg === '--no-open') {
-      i += 1;
-      continue;
-    }
-    if (arg === '--target' || arg === '-t') {
-      const r = readRequiredValue(argv, i, '--target (or -t)');
-      if (!r.ok) {
-        return { kind: 'error', message: r.message };
-      }
-      targetAlias = r.value;
-      i = r.nextIndex + 1;
-      continue;
-    }
-    if (arg === '--port' || arg === '-p') {
-      const r = readRequiredValue(argv, i, '--port (or -p)');
-      if (!r.ok) {
-        return { kind: 'error', message: r.message };
-      }
-      const p = parsePortString(r.value);
-      if (p === null) {
-        return { kind: 'error', message: `Invalid port: ${r.value}` };
-      }
-      port = p;
-      i = r.nextIndex + 1;
-      continue;
-    }
-    if (!arg.startsWith('-')) {
-      return { kind: 'error', message: `Unexpected argument: ${arg}` };
-    }
-    if (!ENTRYPOINT_VALUE_FLAGS.has(arg)) {
-      return { kind: 'error', message: `Unknown option: ${arg}` };
-    }
-    remoteArgs.push(arg);
-    const value = argv[i + 1];
-    if (value == null || value.startsWith('-')) {
-      return { kind: 'error', message: `${arg} requires a value.` };
-    }
-    remoteArgs.push(value);
-    i += 2;
+    i = step.nextIndex;
   }
-  return { remoteArgs, port, targetAlias };
+  return body;
 }
 
 export function parseCliArgs(argv: string[]): ParsedCli {
