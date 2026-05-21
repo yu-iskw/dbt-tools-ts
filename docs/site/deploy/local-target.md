@@ -12,9 +12,9 @@ npx @dbt-tools/cli status --dbt-target ./target --json
 
 ## Configuration
 
-| Method | Example |
-|---|---|
-| Flag | `--dbt-target ./target` |
+| Method               | Example                         |
+| -------------------- | ------------------------------- |
+| Flag                 | `--dbt-target ./target`         |
 | Environment variable | `DBT_TOOLS_DBT_TARGET=./target` |
 
 The path can be relative (resolved from the current working directory) or absolute.
@@ -46,11 +46,11 @@ The MCP server reads the artifacts at startup and holds them in memory for the s
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| `status: unavailable` | Path does not contain `manifest.json` | Confirm you ran dbt and that `./target/manifest.json` exists |
-| `status: manifest-only` | `run_results.json` not present | Run `dbt run`, `dbt test`, or `dbt build` — not just `dbt compile` |
-| Stale results | Previous run's artifacts still on disk | Re-run dbt; artifacts are overwritten on each run |
+| Symptom                 | Likely cause                           | Fix                                                                |
+| ----------------------- | -------------------------------------- | ------------------------------------------------------------------ |
+| `status: unavailable`   | Path does not contain `manifest.json`  | Confirm you ran dbt and that `./target/manifest.json` exists       |
+| `status: manifest-only` | `run_results.json` not present         | Run `dbt run`, `dbt test`, or `dbt build` — not just `dbt compile` |
+| Stale results           | Previous run's artifacts still on disk | Re-run dbt; artifacts are overwritten on each run                  |
 
 ## Related
 

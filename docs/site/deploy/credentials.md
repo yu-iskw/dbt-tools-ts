@@ -19,9 +19,9 @@ dbt-tools inherits the AWS SDK for JavaScript credential chain in this order:
 
 ### dbt-tools-specific S3 variables
 
-| Variable | Purpose |
-|---|---|
-| `DBT_TOOLS_S3_REGION` | AWS region of the bucket (required) |
+| Variable                | Purpose                                      |
+| ----------------------- | -------------------------------------------- |
+| `DBT_TOOLS_S3_REGION`   | AWS region of the bucket (required)          |
 | `DBT_TOOLS_S3_ENDPOINT` | Custom S3-compatible endpoint URL (optional) |
 
 ### Least-privilege S3 policy
@@ -33,10 +33,7 @@ dbt-tools inherits the AWS SDK for JavaScript credential chain in this order:
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:ListBucket"],
-      "Resource": [
-        "arn:aws:s3:::my-bucket",
-        "arn:aws:s3:::my-bucket/dbt/prod/latest/*"
-      ]
+      "Resource": ["arn:aws:s3:::my-bucket", "arn:aws:s3:::my-bucket/dbt/prod/latest/*"]
     }
   ]
 }
@@ -55,9 +52,9 @@ dbt-tools inherits the Google Cloud SDK Application Default Credentials (ADC) ch
 
 ### dbt-tools-specific GCS variables
 
-| Variable | Purpose |
-|---|---|
-| `DBT_TOOLS_GCS_PROJECT_ID` | GCP project ID for billing and quota (required) |
+| Variable                                    | Purpose                                         |
+| ------------------------------------------- | ----------------------------------------------- |
+| `DBT_TOOLS_GCS_PROJECT_ID`                  | GCP project ID for billing and quota (required) |
 | `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | Service account email to impersonate (optional) |
 
 ### Least-privilege GCS IAM

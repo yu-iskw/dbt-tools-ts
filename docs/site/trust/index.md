@@ -4,12 +4,12 @@ dbt-tools reads dbt artifacts and turns them into operational signals for humans
 
 ## Start here
 
-| Topic | Read this if… |
-|---|---|
-| [Data boundaries](./data-boundaries.md) | You want to know what files are read and what data may appear in output |
-| [Agent safety](./agent-safety.md) | You are pointing MCP or agent skills at production artifacts |
-| [Production hardening](./production-hardening.md) | You are deploying in CI, cloud storage, or shared environments |
-| [Licensing](./licensing.md) | You are evaluating dbt-tools for commercial or internal platform use |
+| Topic                                             | Read this if…                                                           |
+| ------------------------------------------------- | ----------------------------------------------------------------------- |
+| [Data boundaries](./data-boundaries.md)           | You want to know what files are read and what data may appear in output |
+| [Agent safety](./agent-safety.md)                 | You are pointing MCP or agent skills at production artifacts            |
+| [Production hardening](./production-hardening.md) | You are deploying in CI, cloud storage, or shared environments          |
+| [Licensing](./licensing.md)                       | You are evaluating dbt-tools for commercial or internal platform use    |
 
 ## Core principles
 

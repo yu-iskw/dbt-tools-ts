@@ -40,12 +40,12 @@ features:
 
 ## Choose your interface
 
-| Interface | Use when |
-|---|---|
-| **CLI** (`@dbt-tools/cli`) | Shell, CI, scripts, JSON output |
-| **Web** (`@dbt-tools/web`) | Browser-based lineage and run investigation |
-| **MCP** (`@dbt-tools/mcp`) | Long-lived AI agent sessions |
-| **Agent skills** | Named operations for Cursor, Codex, Claude Code |
+| Interface                  | Use when                                        |
+| -------------------------- | ----------------------------------------------- |
+| **CLI** (`@dbt-tools/cli`) | Shell, CI, scripts, JSON output                 |
+| **Web** (`@dbt-tools/web`) | Browser-based lineage and run investigation     |
+| **MCP** (`@dbt-tools/mcp`) | Long-lived AI agent sessions                    |
+| **Agent skills**           | Named operations for Cursor, Codex, Claude Code |
 
 [Choose by goal →](guide/choose-by-goal.md) · [Ecosystem at a glance →](guide/ecosystem.md)
 

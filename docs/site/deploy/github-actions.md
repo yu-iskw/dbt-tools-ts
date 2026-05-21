@@ -128,11 +128,11 @@ Caching the npm package download reduces cold-start time:
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| `status: unavailable` | dbt did not produce artifacts before this step | Confirm dbt ran and `./target/manifest.json` exists |
-| `npx` fails on private registry | Registry not configured | Set `NODE_AUTH_TOKEN` and `NPM_REGISTRY` for private registries |
-| Remote auth error | Secrets not passed to the step | Check that the secrets are available in the job's `env` block |
+| Symptom                         | Likely cause                                   | Fix                                                             |
+| ------------------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
+| `status: unavailable`           | dbt did not produce artifacts before this step | Confirm dbt ran and `./target/manifest.json` exists             |
+| `npx` fails on private registry | Registry not configured                        | Set `NODE_AUTH_TOKEN` and `NPM_REGISTRY` for private registries |
+| Remote auth error               | Secrets not passed to the step                 | Check that the secrets are available in the job's `env` block   |
 
 ## Related
 

@@ -4,14 +4,14 @@ Recipes are end-to-end task guides. Each one starts from a user goal, shows whic
 
 ## Choose a recipe
 
-| Goal | Recipe |
-|---|---|
-| Check whether a dbt run succeeded and identify failed nodes | [Debug a failed run](./debug-failed-run.md) |
-| Rank slow models and find timing bottlenecks | [Investigate slow models](./investigate-slow-models.md) |
-| Understand which models would break if you changed one | [Find model impact](./find-model-impact.md) |
-| Produce a dbt health summary in GitHub Actions or CI | [Generate CI health summary](./generate-ci-health-summary.md) |
-| Move from CLI JSON output to visual browser investigation | [Open CLI result in Web](./open-cli-result-in-web.md) |
-| Let an AI agent query dbt artifacts safely | [Ask an agent about a dbt run](./ask-agent-about-dbt-run.md) |
+| Goal                                                        | Recipe                                                        |
+| ----------------------------------------------------------- | ------------------------------------------------------------- |
+| Check whether a dbt run succeeded and identify failed nodes | [Debug a failed run](./debug-failed-run.md)                   |
+| Rank slow models and find timing bottlenecks                | [Investigate slow models](./investigate-slow-models.md)       |
+| Understand which models would break if you changed one      | [Find model impact](./find-model-impact.md)                   |
+| Produce a dbt health summary in GitHub Actions or CI        | [Generate CI health summary](./generate-ci-health-summary.md) |
+| Move from CLI JSON output to visual browser investigation   | [Open CLI result in Web](./open-cli-result-in-web.md)         |
+| Let an AI agent query dbt artifacts safely                  | [Ask an agent about a dbt run](./ask-agent-about-dbt-run.md)  |
 
 ## Prerequisites for all recipes
 

@@ -11,11 +11,11 @@ Use this recipe when a dbt run is taking longer than expected and you want to id
 
 ## Recommended interface
 
-| Interface | Use when |
-|---|---|
-| CLI | You need timing data as JSON for scripts or CI reporting |
-| Web | You want a visual execution timeline and can compare runs interactively |
-| MCP | An AI agent needs to correlate timing, lineage, and failure data |
+| Interface | Use when                                                                |
+| --------- | ----------------------------------------------------------------------- |
+| CLI       | You need timing data as JSON for scripts or CI reporting                |
+| Web       | You want a visual execution timeline and can compare runs interactively |
+| MCP       | An AI agent needs to correlate timing, lineage, and failure data        |
 
 ## Step 1: Confirm the run has timing data
 
@@ -67,14 +67,14 @@ The Web UI provides an execution timeline view. Open it and look for the longest
 
 ## Interpreting results
 
-| Observation | What it means |
-|---|---|
-| One model dominates total time | Direct optimization candidate |
-| Many models with similar duration | Parallelism may help; check `threads` in dbt profile |
-| Tests slower than models | Complex test expressions or large table scans |
-| Ephemeral models show zero execution time | Expected — they are inlined into queries, not run separately |
-| Short duration on a failed node | The node may have failed before completing; timing does not reflect full potential runtime |
-| Partial run with some nodes skipped | Only completed nodes have reliable timing; skipped nodes show zero |
+| Observation                               | What it means                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| One model dominates total time            | Direct optimization candidate                                                              |
+| Many models with similar duration         | Parallelism may help; check `threads` in dbt profile                                       |
+| Tests slower than models                  | Complex test expressions or large table scans                                              |
+| Ephemeral models show zero execution time | Expected — they are inlined into queries, not run separately                               |
+| Short duration on a failed node           | The node may have failed before completing; timing does not reflect full potential runtime |
+| Partial run with some nodes skipped       | Only completed nodes have reliable timing; skipped nodes show zero                         |
 
 ## Edge cases
 

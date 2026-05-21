@@ -11,11 +11,11 @@ Use this recipe before changing a dbt model to understand which downstream model
 
 ## Recommended interface
 
-| Interface | Use when |
-|---|---|
-| CLI | You need dependency lists as JSON for scripting or pre-change review |
-| Web | You want to visually explore the lineage graph around a model |
-| MCP | An AI agent needs to reason about impact scope and suggest test coverage |
+| Interface | Use when                                                                 |
+| --------- | ------------------------------------------------------------------------ |
+| CLI       | You need dependency lists as JSON for scripting or pre-change review     |
+| Web       | You want to visually explore the lineage graph around a model            |
+| MCP       | An AI agent needs to reason about impact scope and suggest test coverage |
 
 ## Step 1: Find the model by name
 
@@ -61,12 +61,12 @@ The Web UI shows the lineage graph visually. Search for the model by name and cl
 
 ## Reading the output
 
-| Field in deps output | What it means |
-|---|---|
-| Direct downstream nodes | Models or tests that directly reference this model |
-| Transitive downstream nodes | Models that depend on direct dependents |
-| Exposures | BI reports, dashboards, or other downstream consumers declared in `exposure` blocks |
-| Tests | Tests that run against this model or its columns |
+| Field in deps output        | What it means                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| Direct downstream nodes     | Models or tests that directly reference this model                                  |
+| Transitive downstream nodes | Models that depend on direct dependents                                             |
+| Exposures                   | BI reports, dashboards, or other downstream consumers declared in `exposure` blocks |
+| Tests                       | Tests that run against this model or its columns                                    |
 
 ## Common questions
 

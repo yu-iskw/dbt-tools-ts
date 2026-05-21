@@ -4,10 +4,10 @@ dbt-tools reads dbt artifacts from a **target root**. The same target root confi
 
 ## Supported target roots
 
-| Type | Format | Example |
-|---|---|---|
-| Local directory | Filesystem path | `./target` |
-| Amazon S3 | `s3://bucket/prefix` | `s3://my-bucket/dbt/prod/latest` |
+| Type                 | Format               | Example                          |
+| -------------------- | -------------------- | -------------------------------- |
+| Local directory      | Filesystem path      | `./target`                       |
+| Amazon S3            | `s3://bucket/prefix` | `s3://my-bucket/dbt/prod/latest` |
 | Google Cloud Storage | `gs://bucket/prefix` | `gs://my-bucket/dbt/prod/latest` |
 
 ## How to specify the target root
@@ -29,12 +29,12 @@ All three surfaces (CLI, Web, MCP) accept the same `--dbt-target` flag and envir
 
 Every target root must contain:
 
-| File | Required |
-|---|---|
-| `manifest.json` | Yes |
-| `run_results.json` | Yes (for run-related commands) |
-| `catalog.json` | No (enables column-level metadata) |
-| `sources.json` | No (enables source freshness data) |
+| File               | Required                           |
+| ------------------ | ---------------------------------- |
+| `manifest.json`    | Yes                                |
+| `run_results.json` | Yes (for run-related commands)     |
+| `catalog.json`     | No (enables column-level metadata) |
+| `sources.json`     | No (enables source freshness data) |
 
 ## Deployment guides
 

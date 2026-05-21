@@ -6,34 +6,34 @@ This page explains what files dbt-tools reads, what data may appear in its outpu
 
 dbt-tools reads dbt artifact files from the configured target root. It does not connect to your warehouse, dbt Cloud, or any external service unless you explicitly provide a remote target root.
 
-| File | Read by dbt-tools | Purpose |
-|---|---|---|
-| `manifest.json` | Yes | Model definitions, test definitions, dependencies, metadata |
-| `run_results.json` | Yes | Execution status, timing, error messages |
-| `catalog.json` | Yes (optional) | Column-level type and description metadata |
-| `sources.json` | Yes (optional) | Source freshness results |
-| `semantic_manifest.json` | No | Not currently used |
-| Warehouse credentials | No | Never read by dbt-tools |
-| dbt profiles (`~/.dbt/profiles.yml`) | No | Never read by dbt-tools |
-| dbt Cloud API | No | Not accessed |
+| File                                 | Read by dbt-tools | Purpose                                                     |
+| ------------------------------------ | ----------------- | ----------------------------------------------------------- |
+| `manifest.json`                      | Yes               | Model definitions, test definitions, dependencies, metadata |
+| `run_results.json`                   | Yes               | Execution status, timing, error messages                    |
+| `catalog.json`                       | Yes (optional)    | Column-level type and description metadata                  |
+| `sources.json`                       | Yes (optional)    | Source freshness results                                    |
+| `semantic_manifest.json`             | No                | Not currently used                                          |
+| Warehouse credentials                | No                | Never read by dbt-tools                                     |
+| dbt profiles (`~/.dbt/profiles.yml`) | No                | Never read by dbt-tools                                     |
+| dbt Cloud API                        | No                | Not accessed                                                |
 
 ## What may appear in output
 
 CLI JSON output, Web UI views, and MCP tool responses may include any data that is present in the artifact files. This includes:
 
-| Data type | Source | Example |
-|---|---|---|
-| Model names and paths | `manifest.json` | `model.my_project.fct_orders`, `models/core/fct_orders.sql` |
-| Test names | `manifest.json` | `test.my_project.not_null_orders_id` |
-| Column names and types | `manifest.json`, `catalog.json` | `order_id`, `VARCHAR(256)` |
-| Model descriptions | `manifest.json` | Free-text descriptions from `schema.yml` |
-| Execution error messages | `run_results.json` | SQL errors, schema errors, assertion failures |
-| Execution timing | `run_results.json` | Start time, end time, duration |
-| dbt version and schema version | Both | `1.8.0`, `v11` |
-| Project name and invocation ID | `manifest.json` | `my_project`, UUID |
-| Adapter type | `manifest.json` | `bigquery`, `snowflake` |
-| Generated timestamps | Both | ISO 8601 timestamps |
-| Environment metadata | `manifest.json` | Any `DBT_ENV_CUSTOM_ENV_*` variables set at dbt run time |
+| Data type                      | Source                          | Example                                                     |
+| ------------------------------ | ------------------------------- | ----------------------------------------------------------- |
+| Model names and paths          | `manifest.json`                 | `model.my_project.fct_orders`, `models/core/fct_orders.sql` |
+| Test names                     | `manifest.json`                 | `test.my_project.not_null_orders_id`                        |
+| Column names and types         | `manifest.json`, `catalog.json` | `order_id`, `VARCHAR(256)`                                  |
+| Model descriptions             | `manifest.json`                 | Free-text descriptions from `schema.yml`                    |
+| Execution error messages       | `run_results.json`              | SQL errors, schema errors, assertion failures               |
+| Execution timing               | `run_results.json`              | Start time, end time, duration                              |
+| dbt version and schema version | Both                            | `1.8.0`, `v11`                                              |
+| Project name and invocation ID | `manifest.json`                 | `my_project`, UUID                                          |
+| Adapter type                   | `manifest.json`                 | `bigquery`, `snowflake`                                     |
+| Generated timestamps           | Both                            | ISO 8601 timestamps                                         |
+| Environment metadata           | `manifest.json`                 | Any `DBT_ENV_CUSTOM_ENV_*` variables set at dbt run time    |
 
 ## Environment metadata
 

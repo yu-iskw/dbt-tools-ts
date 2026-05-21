@@ -11,11 +11,11 @@ Use this recipe in CI pipelines to produce a machine-readable dbt artifact healt
 
 ## Recommended interface
 
-| Interface | Use when |
-|---|---|
-| CLI | Always — the CLI is designed for shell and CI usage with deterministic JSON output and reliable exit codes |
-| MCP | Not recommended for one-shot CI use; MCP is designed for long-lived agent sessions |
-| Web | Not applicable in CI; use the Web UI for local investigation |
+| Interface | Use when                                                                                                   |
+| --------- | ---------------------------------------------------------------------------------------------------------- |
+| CLI       | Always — the CLI is designed for shell and CI usage with deterministic JSON output and reliable exit codes |
+| MCP       | Not recommended for one-shot CI use; MCP is designed for long-lived agent sessions                         |
+| Web       | Not applicable in CI; use the Web UI for local investigation                                               |
 
 ## Step 1: Run dbt and make artifacts available
 
@@ -103,21 +103,21 @@ See [S3](../deploy/s3.md) and [GCS](../deploy/gcs.md) for credential setup.
 
 ## Exit code reference
 
-| Exit code | Meaning |
-|---|---|
-| 0 | Command completed successfully |
-| 1 | Command failed (artifact missing, parse error, or node not found) |
+| Exit code | Meaning                                                           |
+| --------- | ----------------------------------------------------------------- |
+| 0         | Command completed successfully                                    |
+| 1         | Command failed (artifact missing, parse error, or node not found) |
 
 Use `if [ $? -ne 0 ]; then ...` or GitHub Actions `if: failure()` steps to handle failures.
 
 ## Common failure modes
 
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| `status: unavailable` | `--dbt-target` path does not contain artifacts | Confirm dbt ran before this step and produced output in `./target/` |
-| `status: manifest-only` | dbt command did not produce `run_results.json` | Use `dbt run`, `dbt test`, or `dbt build` rather than `dbt compile` |
-| Remote auth failure | Missing cloud credentials | See [Credentials](../deploy/credentials.md) |
-| `npx` slow on cold runners | Package download time | Pin the package version or pre-install with `npm install -g @dbt-tools/cli` |
+| Symptom                    | Likely cause                                   | Fix                                                                         |
+| -------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------- |
+| `status: unavailable`      | `--dbt-target` path does not contain artifacts | Confirm dbt ran before this step and produced output in `./target/`         |
+| `status: manifest-only`    | dbt command did not produce `run_results.json` | Use `dbt run`, `dbt test`, or `dbt build` rather than `dbt compile`         |
+| Remote auth failure        | Missing cloud credentials                      | See [Credentials](../deploy/credentials.md)                                 |
+| `npx` slow on cold runners | Package download time                          | Pin the package version or pre-install with `npm install -g @dbt-tools/cli` |
 
 ## Related
 

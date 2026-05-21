@@ -4,18 +4,18 @@ Use this page to route to the right dbt-tools interface for your job. If you alr
 
 ## Decision table
 
-| Goal | Best interface | Why | Start here |
-|---|---|---|---|
-| Check whether a run succeeded | CLI | Fast, scriptable, JSON output | [Debug a failed run](../recipes/debug-failed-run.md) |
-| Debug a failed model or test | CLI + Web | CLI summarizes; Web gives lineage context | [Debug a failed run](../recipes/debug-failed-run.md) |
-| Investigate slow models | Web + CLI | Web for visual exploration; CLI for automation | [Investigate slow models](../recipes/investigate-slow-models.md) |
-| Understand model impact | CLI + Web | Trace upstream and downstream dependencies | [Find model impact](../recipes/find-model-impact.md) |
-| Automate checks in CI | CLI | Deterministic JSON output, reliable exit codes | [Generate CI health summary](../recipes/generate-ci-health-summary.md) |
-| Move from CLI JSON to browser view | Web | Deep-link from JSON output directly to the UI | [Open CLI result in Web](../recipes/open-cli-result-in-web.md) |
-| Let an AI assistant query artifacts | MCP | Long-lived server with resident parsed cache | [Ask an agent about a dbt run](../recipes/ask-agent-about-dbt-run.md) |
-| Use agent skills in your IDE | Agent skills | Cursor, Codex, Claude Code primitive skills | [Install agent skills](./agents/install.md) |
-| Build custom TypeScript tooling | Core | Programmatic API | [Core reference](../reference/core.md) |
-| Read artifacts from object storage | CLI / Web / MCP | Shared `--dbt-target` config | [S3](../deploy/s3.md) or [GCS](../deploy/gcs.md) |
+| Goal                                | Best interface  | Why                                            | Start here                                                             |
+| ----------------------------------- | --------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
+| Check whether a run succeeded       | CLI             | Fast, scriptable, JSON output                  | [Debug a failed run](../recipes/debug-failed-run.md)                   |
+| Debug a failed model or test        | CLI + Web       | CLI summarizes; Web gives lineage context      | [Debug a failed run](../recipes/debug-failed-run.md)                   |
+| Investigate slow models             | Web + CLI       | Web for visual exploration; CLI for automation | [Investigate slow models](../recipes/investigate-slow-models.md)       |
+| Understand model impact             | CLI + Web       | Trace upstream and downstream dependencies     | [Find model impact](../recipes/find-model-impact.md)                   |
+| Automate checks in CI               | CLI             | Deterministic JSON output, reliable exit codes | [Generate CI health summary](../recipes/generate-ci-health-summary.md) |
+| Move from CLI JSON to browser view  | Web             | Deep-link from JSON output directly to the UI  | [Open CLI result in Web](../recipes/open-cli-result-in-web.md)         |
+| Let an AI assistant query artifacts | MCP             | Long-lived server with resident parsed cache   | [Ask an agent about a dbt run](../recipes/ask-agent-about-dbt-run.md)  |
+| Use agent skills in your IDE        | Agent skills    | Cursor, Codex, Claude Code primitive skills    | [Install agent skills](./agents/install.md)                            |
+| Build custom TypeScript tooling     | Core            | Programmatic API                               | [Core reference](../reference/core.md)                                 |
+| Read artifacts from object storage  | CLI / Web / MCP | Shared `--dbt-target` config                   | [S3](../deploy/s3.md) or [GCS](../deploy/gcs.md)                       |
 
 ## Interface overview
 
