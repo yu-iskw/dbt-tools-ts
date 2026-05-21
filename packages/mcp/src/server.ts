@@ -5,7 +5,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 import { isCliEntrypoint } from './entrypoint.js';
-import { McpHelpRequested, helpText, parseMcpServerOptions } from './options.js';
+import {
+  McpHelpRequested,
+  McpVersionRequested,
+  helpText,
+  parseMcpServerOptions,
+} from './options.js';
 import { readMcpPackageVersion } from './package-version.js';
 import { registerDbtToolsTools } from './tools/register-tools.js';
 import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
@@ -94,6 +99,10 @@ export async function runDbtToolsMcpCli(
   } catch (error) {
     if (error instanceof McpHelpRequested) {
       io.stdout.write(`${helpText()}\n`);
+      return 0;
+    }
+    if (error instanceof McpVersionRequested) {
+      io.stdout.write(`${readMcpPackageVersion()}\n`);
       return 0;
     }
     io.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

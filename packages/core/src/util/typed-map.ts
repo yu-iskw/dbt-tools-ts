@@ -2,6 +2,17 @@
  * Map-based lookups to avoid dynamic object property access (eslint security/detect-object-injection).
  */
 
+/** Read `argv[index]` without computed bracket access (security lint). */
+export function argvElementAt(argv: readonly string[], index: number): string | undefined {
+  if (index < 0) return undefined;
+  let cursor = 0;
+  for (const element of argv) {
+    if (cursor === index) return element;
+    cursor += 1;
+  }
+  return undefined;
+}
+
 /** Read an own property without computed bracket access (security lint). */
 export function getObjectProperty(obj: Record<string, unknown>, key: string): unknown {
   if (!Object.prototype.hasOwnProperty.call(obj, key)) {

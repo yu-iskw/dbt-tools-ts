@@ -23,6 +23,19 @@ export {
   isDbtToolsWatchEnabled,
 } from './config/dbt-tools-env';
 export {
+  applyEntrypointRemoteOptionsToEnv,
+  assertRemoteFlagsMatchTarget,
+  entrypointRemoteHelpLines,
+  normalizeEntrypointRemoteOptions,
+  parseEntrypointRemoteArgv,
+  resolveEntrypointDbtTarget,
+  resolveEntrypointRemoteOptions,
+} from './config/entrypoint-options';
+export type {
+  EntrypointRemoteClientFlagOptions,
+  EntrypointRemoteOptions,
+} from './config/entrypoint-options';
+export {
   dbtToolsDebugLog,
   dbtToolsDebugLogPhase,
   dbtToolsDebugNow,

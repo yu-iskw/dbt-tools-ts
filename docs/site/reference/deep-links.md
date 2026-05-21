@@ -7,7 +7,7 @@ When the CLI and web UI run against the same project, you can jump from terminal
 1. Start the web app and note its origin (for example `http://127.0.0.1:5173`).
 
 ```bash
-npx @dbt-tools/web --target ./target
+npx @dbt-tools/web --dbt-target ./target
 ```
 
 2. Export the base URL (no trailing path required):

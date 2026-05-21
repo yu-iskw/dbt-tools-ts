@@ -1,10 +1,12 @@
 /** Node (Vite dev) service: configurable local path or remote S3/GCS; drives middleware routes. */
 import {
+  getDbtToolsDbtTargetFromEnv,
   getDbtToolsRemoteClientEnvFromEnv,
   getDbtToolsTargetDirFromEnv,
   isDbtToolsDebugEnabled,
   mergeRemoteSourceConfigWithParsedLocation,
   parseArtifactSourceLocation,
+  parseDbtToolsArtifactTarget,
   readValidatedUtf8,
   type ArtifactDiscoveryResult,
   type ArtifactSourceKind,
@@ -175,6 +177,22 @@ export class ArtifactSourceService {
   }
 
   private async seedFromEnvironment(): Promise<void> {
+    const rawDbtTarget = getDbtToolsDbtTargetFromEnv();
+    if (rawDbtTarget != null) {
+      const parsed = parseDbtToolsArtifactTarget(rawDbtTarget, this.cwd);
+      if (parsed.kind === 'remote') {
+        const discovery = await this.discoverArtifactSourceInternal(parsed.provider, rawDbtTarget);
+        const selectedRunId =
+          discovery.discoveryResult.ok && discovery.mode === 'remote'
+            ? this.pickBootstrapRunId(discovery.runs)
+            : null;
+        this.applyDiscoveredArtifactSource(discovery, selectedRunId);
+        return;
+      }
+      await this.applyLocalDirectory(parsed.resolvedPath, true);
+      return;
+    }
+
     const rawTarget = getDbtToolsTargetDirFromEnv();
     if (rawTarget == null) return;
 

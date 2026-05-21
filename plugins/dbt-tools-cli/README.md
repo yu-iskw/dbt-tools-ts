@@ -34,4 +34,6 @@ Change impact: bind-target → find-resources → describe-resource → trace-de
 
 Same eight skill **names** ship in [`plugins/dbt-tools-mcp`](../dbt-tools-mcp/README.md) with MCP tool implementations. Use MCP for long sessions over large artifacts; use this CLI plugin for one-shot shell/CI or manifest-only `status`.
 
+When you also run **`dbt-tools-web`**, use the same `--dbt-target` and remote client startup flags as MCP ([Web server CLI](../../docs/site/reference/web-cli.md)).
+
 See [plugins/README.md](../README.md) and [plugins/CONTRIBUTING.md](../CONTRIBUTING.md).

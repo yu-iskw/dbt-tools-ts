@@ -14,6 +14,9 @@ else
 	pnpm install
 fi
 
+# Generated E2E artifacts are not product source; exclude them from extraction.
+rm -rf packages/web/playwright-report packages/web/test-results
+
 codeql database create .codeql_db \
 	--language=javascript-typescript \
 	--source-root . \

@@ -17,6 +17,7 @@ Usage: dbt-tools-mcp [--dbt-target <path|s3://bucket/prefix|gs://bucket/prefix>]
 | `--s3-region <region>`                      | No       | `DBT_TOOLS_S3_REGION` (credentials may also use `AWS_REGION`) | S3 region (`s3://` targets only)                                                                                                                           |
 | `--s3-endpoint <url>`                       | No       | `DBT_TOOLS_S3_ENDPOINT`                                       | S3-compatible endpoint URL (`s3://` targets only)                                                                                                          |
 | `-h`, `--help`                              | No       | —                                                             | Print usage to **stdout** and exit **0**                                                                                                                   |
+| `-V`, `--version`                           | No       | —                                                             | Print package version to **stdout** and exit **0**                                                                                                         |
 
 CLI flag values override the matching `DBT_TOOLS_*` env vars when both are set. The `--dbt-target` URI always supplies `bucket`, `prefix`, and provider.
 

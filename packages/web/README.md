@@ -34,13 +34,16 @@ Or without a global install:
 npx @dbt-tools/web --target /path/to/your/dbt/target
 ```
 
-`npx` invokes the package’s binary (`dbt-tools-web`). Useful flags:
+`npx` invokes the package’s binary (`dbt-tools-web`). Run **`dbt-tools-web --help`** for the full list. Common flags:
 
-| Flag                    | Description                                          |
-| ----------------------- | ---------------------------------------------------- |
-| `--target <dir>` / `-t` | dbt `target` directory (sets `DBT_TOOLS_TARGET_DIR`) |
-| `--port <n>` / `-p`     | Listen port (default **3000**)                       |
-| `--help` / `-h`         | Usage                                                |
+| Flag                                                                                    | Description                                                                  |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `--dbt-target <target>`                                                                 | Artifact root: local path, `s3://`, or `gs://` (env: `DBT_TOOLS_DBT_TARGET`) |
+| `--target <dir>` / `-t`                                                                 | Alias for **local** `--dbt-target` (also sets `DBT_TOOLS_TARGET_DIR`)        |
+| `--gcs-impersonate-service-account`, `--gcs-project-id`, `--s3-region`, `--s3-endpoint` | Remote client settings (provider must match target URI)                      |
+| `--port <n>` / `-p`                                                                     | Listen port (default **3000**)                                               |
+| `--version` / `-V`                                                                      | Print package version                                                        |
+| `--help` / `-h`                                                                         | Usage                                                                        |
 
 The server listens on **127.0.0.1** and prints the URL (e.g. `http://127.0.0.1:3000`). Open that URL in your browser manually (`open`, `xdg-open`, or your desktop environment).
 
@@ -94,12 +97,18 @@ Heavy analysis runs in a **web worker** (browser-safe shared library). The same 
 
 ## Configuration (`dbt-tools-web` and production server)
 
+**CLI flags** (see `dbt-tools-web --help`) mirror **`dbt-tools-mcp`** for artifact root and remote client settings: `--dbt-target`, `--gcs-project-id`, `--gcs-impersonate-service-account`, `--s3-region`, `--s3-endpoint`, plus `--port`, `-V` / `--version`. **`--target`** remains an alias for a **local** directory (sets `DBT_TOOLS_TARGET_DIR`). Flags override matching env vars when both are set.
+
 Set these in the environment for the **Node process** that runs `dbt-tools-web` (not in the browser):
 
-| Variable               | Description                                                                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `DBT_TOOLS_TARGET_DIR` | Directory containing `manifest.json` and `run_results.json` at startup (remote via [Load artifacts](#remote-artifact-sources)) |
-| `DBT_TOOLS_DEBUG`      | Set to `1` for server-side debug logs                                                                                          |
+| Variable                                        | Description                                                                        |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `DBT_TOOLS_DBT_TARGET`                          | Artifact root at startup (local path, `s3://`, or `gs://`); same as `--dbt-target` |
+| `DBT_TOOLS_TARGET_DIR`                          | Local directory alias (legacy; use `--target` or local `--dbt-target`)             |
+| `DBT_TOOLS_GCS_PROJECT_ID`                      | GCS client project (`gs://` targets)                                               |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`     | GCS impersonation principal (`gs://` targets)                                      |
+| `DBT_TOOLS_S3_REGION` / `DBT_TOOLS_S3_ENDPOINT` | S3 client settings (`s3://` targets)                                               |
+| `DBT_TOOLS_DEBUG`                               | Set to `1` for server-side debug logs                                              |
 
 **Client:** add **`?debug=1`** to the URL for browser console debug logging.
 
@@ -107,7 +116,7 @@ Set these in the environment for the **Node process** that runs `dbt-tools-web` 
 
 ### Remote artifact sources
 
-Use the in-app **Load artifacts** panel (local path, `s3://bucket/prefix`, or `gs://bucket/prefix`). The dev server and **`dbt-tools-web`** list keys under the prefix, **poll** for changes, and surface newer artifact versions **without switching your selected location automatically**. Credentials stay in the **Node process** (AWS default chain, GCS ADC / `GOOGLE_APPLICATION_CREDENTIALS`), not in the browser. Optional **`DBT_TOOLS_GCS_*`** / **`DBT_TOOLS_S3_*`** on the Node process apply when discovering remote sources.
+Use **`--dbt-target`** / **`DBT_TOOLS_DBT_TARGET`** at startup to preload local or remote (`s3://`, `gs://`) artifacts, or use the in-app **Load artifacts** panel to switch later. The dev server and **`dbt-tools-web`** list keys under remote prefixes, **poll** for changes, and surface newer artifact versions **without switching your selected location automatically**. Credentials stay in the **Node process** (AWS default chain, GCS ADC / `GOOGLE_APPLICATION_CREDENTIALS`), not in the browser.
 
 ### Vite dev environment reference (monorepo)
 
@@ -126,7 +135,7 @@ When **`DBT_TOOLS_TARGET_DIR`** is set, Vite serves `/api/...` like the publishe
 
 ### Published server vs static Docker image
 
-- **`dbt-tools-web`** (npm): Node HTTP server + static `dist/` + artifact middleware. Honors **`DBT_TOOLS_TARGET_DIR`**, **`DBT_TOOLS_DEBUG`**. Remote S3/GCS via **Load artifacts** in the UI. Does **not** use Vite file-watch env vars.
+- **`dbt-tools-web`** (npm): Node HTTP server + static `dist/` + artifact middleware. Honors **`DBT_TOOLS_DBT_TARGET`** / **`DBT_TOOLS_TARGET_DIR`**, remote client env vars, and **`DBT_TOOLS_DEBUG`**. Does **not** use Vite file-watch env vars.
 - **Dockerfile (nginx):** builds static **`dist/`** and serves it with **nginx**. There is **no** Node artifact middleware in that image unless you change the deployment shape, so the same **`DBT_TOOLS_*`** server env vars **do not apply** to that container as shipped.
 
 ### Build static image (monorepo)
@@ -245,34 +254,28 @@ DBT_TOOLS_WATCH=0 DBT_TOOLS_TARGET_DIR=./target pnpm dev
 
 To smoke-test the published **`dbt-tools-web`** entrypoint and tarball layout **without publishing to the public npm registry**:
 
-- **Recommended (matches CI):** from the **repository root** after `pnpm install`, run Verdaccio, publish `@dbt-tools/core` → `@dbt-tools/web`, pack, then `npx` with `NPM_CONFIG_REGISTRY` pointing at that registry. `dbt-artifacts-parser` is resolved from npm:
+- **Recommended (matches CI):** from the **repository root** after `pnpm install`, run Verdaccio, publish **`@dbt-tools/core` first** (same semver as web), then `@dbt-tools/web`, pack, and smoke via `npm install` with `NPM_CONFIG_REGISTRY` pointing at that registry. `dbt-artifacts-parser` is resolved from npm:
 
 ```bash
 bash scripts/smoke-npx-with-verdaccio.sh
 ```
 
-This avoids **`No matching version found for @dbt-tools/core@…`** when those versions are not yet on npm (packed tarballs list concrete semver peers).
+This avoids **`No matching version found for @dbt-tools/core@…`** and stale **npmjs** `core@0.6.1` without entrypoint exports when your branch adds new `@dbt-tools/core` APIs (packed web lists `"@dbt-tools/core": "0.6.2"`).
 
-- **Manual pack only** (only reliable if peer versions already exist on the registry `npx` uses, or you set `NPM_CONFIG_REGISTRY` accordingly):
+- **Manual pack only** (only reliable if `@dbt-tools/core@<version>` exists on the registry you use, or set `NPM_CONFIG_REGISTRY` accordingly):
 
 ```bash
 pnpm --filter @dbt-tools/web pack
+export NPM_CONFIG_REGISTRY=http://127.0.0.1:4873   # if using local Verdaccio
+pnpm --filter @dbt-tools/web run smoke:npx-tgz
 ```
 
 `prepack` runs the full web build and writes **`dbt-tools-web-<version>.tgz` at the repo root** (the file is gitignored).
 
-- **Empty directory** so `npx` does not see the monorepo’s `node_modules`:
+- **Empty directory** (smoke script uses `npm install` + `node_modules/.bin/dbt-tools-web`, not bare `npx` on the tarball path):
 
 ```bash
-cd "$(mktemp -d)"
-# After copying the .tgz into this directory (adjust version to match package.json):
-npx -y ./dbt-tools-web-0.4.1.tgz -- --help
-```
-
-If you pass a **bare absolute path** to the tarball, some `npx` versions try to execute it as a shell script and fail (`Permission denied`). Prefer either a **relative** `./…tgz` path or an explicit package spec:
-
-```bash
-npx -y --package=/absolute/path/to/dbt-tools-web-0.4.1.tgz -- dbt-tools-web --help
+REPO_ROOT=/path/to/dbt-tools-ts bash packages/web/scripts/smoke-npx-packed-tarball.sh
 ```
 
 ### Project layout (abridged)

@@ -42,30 +42,40 @@ Full tool reference: [`packages/mcp/REFERENCE.md`](../../packages/mcp/REFERENCE.
 
 Bundled config is intentionally minimal. Customize in **your** project MCP file (Cursor [`.cursor/mcp.json`](https://cursor.com/docs/mcp.md), Claude [`.mcp.json`](https://code.claude.com/docs/en/mcp), Codex `~/.codex/config.toml`).
 
-| Need                       | Where                                                                                                |
-| -------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Artifact root each session | **`dbt_tools_set_target`** (skill `bind-target`)                                                     |
-| Same target every session  | User overlay: `"args": ["-y","@dbt-tools/mcp","--dbt-target","./target"]`                            |
-| GCS impersonation          | User overlay `env`: `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` (startup only; not via `set_target`) |
-| S3 region / GCS project    | `DBT_TOOLS_S3_REGION`, `DBT_TOOLS_GCS_PROJECT_ID`, etc.                                              |
+| Need                       | Where                                                                                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Artifact root each session | **`dbt_tools_set_target`** (skill `bind-target`)                                                                                          |
+| Same target every session  | User overlay: `"args": ["-y","@dbt-tools/mcp","--dbt-target","./target"]`                                                                 |
+| GCS impersonation          | User overlay: `--gcs-impersonate-service-account` and/or `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` (startup only; not via `set_target`) |
+| S3 region / GCS project    | `--s3-region`, `--s3-endpoint`, `--gcs-project-id`, or matching `DBT_TOOLS_*` env vars                                                    |
+| Package version            | `-V` / `--version` on `dbt-tools-mcp`                                                                                                     |
 
-Example user overlay (GCS):
+Example user overlay (GCS, flags preferred):
 
 ```json
 {
   "mcpServers": {
     "dbt-tools": {
       "command": "npx",
-      "args": ["-y", "@dbt-tools/mcp"],
+      "args": [
+        "-y",
+        "@dbt-tools/mcp",
+        "--dbt-target",
+        "gs://my-bucket/dbt/prod",
+        "--gcs-impersonate-service-account",
+        "reader@my-project.iam.gserviceaccount.com"
+      ],
       "env": {
-        "DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT": "${env:DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT}"
+        "DBT_TOOLS_GCS_PROJECT_ID": "my-gcp-project"
       }
     }
   }
 }
 ```
 
-Then call `dbt_tools_set_target` with `gs://bucket/prefix`.
+Or set the target at runtime: omit `--dbt-target` from `args` and call `dbt_tools_set_target` with `gs://bucket/prefix` (impersonation must still be configured at MCP startup).
+
+The same `--dbt-target` and remote client flags apply to **`dbt-tools-web`** when running the investigation UI alongside agents ([docs/site/reference/web-cli.md](../../docs/site/reference/web-cli.md)).
 
 ## When to use CLI plugin instead
 

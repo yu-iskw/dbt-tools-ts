@@ -9,6 +9,7 @@ Step-by-step jobs (status, discover, explain) live under **CLI → Workflows** i
 ## Install and run
 
 ```bash
+npx @dbt-tools/mcp --help
 npx @dbt-tools/mcp --dbt-target ./target
 ```
 

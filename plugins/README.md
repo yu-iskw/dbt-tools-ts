@@ -8,7 +8,8 @@ This monorepo ships **first-party agent plugins** under `plugins/<plugin-id>/`. 
 
 - **Clone this repository** and use the **repository root** as the working directory for local marketplace commands below.
 - **`dbt-tools-cli` plugin:** [`@dbt-tools/cli`](../packages/cli/README.md) on `PATH` when skills invoke CLI commands.
-- **`dbt-tools-mcp` plugin:** Node.js and `npx` for the bundled MCP server; after install, set artifact roots with `dbt_tools_set_target` (see [dbt-tools-mcp README](dbt-tools-mcp/README.md) and [packages/mcp/REFERENCE.md](../packages/mcp/REFERENCE.md)). User-specific MCP env (GCS impersonation, etc.) belongs in your host MCP config, not in the plugin bundle.
+- **`dbt-tools-mcp` plugin:** Node.js and `npx` for the bundled MCP server; after install, set artifact roots with `dbt_tools_set_target` (see [dbt-tools-mcp README](dbt-tools-mcp/README.md) and [packages/mcp/REFERENCE.md](../packages/mcp/REFERENCE.md)). User-specific MCP env and startup flags (`--dbt-target`, `--gcs-impersonate-service-account`, `--s3-region`, etc.) belong in your host MCP config, not in the plugin bundle.
+- **`dbt-tools-web` (npm, not a plugin):** When pairing the browser UI with agents, use the same artifact root and remote client flags on `dbt-tools-web` as on MCP ([Web server CLI](../docs/site/reference/web-cli.md)).
 
 ## Installation
 

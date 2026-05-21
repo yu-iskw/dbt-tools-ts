@@ -4,11 +4,11 @@ dbt-tools is **local-first**: the default path is a dbt `target/` directory on d
 
 ## Modes
 
-| Mode                     | Typical use                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------- |
-| **Local `target/`**      | Developer loop, CI artifact download, `dbt-tools-web --target`                  |
-| **Remote S3/GCS**        | Investigating scheduled runs in a bucket (`s3://…`, `gs://…` as `--dbt-target`) |
-| **Web upload / preload** | Ad hoc files or trusted local preload in the UI (server-mediated)               |
+| Mode                     | Typical use                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| **Local `target/`**      | Developer loop, CI artifact download, `dbt-tools-web --dbt-target` or `--target` |
+| **Remote S3/GCS**        | Investigating scheduled runs in a bucket (`s3://…`, `gs://…` as `--dbt-target`)  |
+| **Web upload / preload** | Ad hoc files or trusted local preload in the UI (server-mediated)                |
 
 ## Target URIs (CLI and MCP)
 
@@ -38,11 +38,11 @@ Configure the **CLI**, **MCP**, or **web server** process—not the browser.
 
 For `gs://` targets, use a dedicated service account via impersonation (read-only access):
 
-| Setting                                      | CLI / MCP                                                                   |
-| -------------------------------------------- | --------------------------------------------------------------------------- |
-| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`  | Service account email to impersonate (`gs://` only)                         |
-| `DBT_TOOLS_GCS_PROJECT_ID`                   | GCP project ID for the GCS client                                           |
-| MCP flag `--gcs-impersonate-service-account` | Same as env; set at **MCP server startup** (not via `dbt_tools_set_target`) |
+| Setting                                     | CLI / MCP / Web                                                              |
+| ------------------------------------------- | ---------------------------------------------------------------------------- |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | Service account email to impersonate (`gs://` only)                          |
+| `DBT_TOOLS_GCS_PROJECT_ID`                  | GCP project ID for the GCS client                                            |
+| `--gcs-impersonate-service-account`         | Same as env; set at **MCP or web server startup** (not via MCP `set_target`) |
 
 **MCP client example:**
 
@@ -69,14 +69,24 @@ For `gs://` targets, use a dedicated service account via impersonation (read-onl
 - `status` checks filesystem or downloaded copies before parse-heavy commands.
 - Large remote manifests benefit from **MCP** resident cache when agents issue many queries.
 
-## Web (different model)
+## Web
 
-The web app does not use `gs://` on the CLI one-shot model for server polling:
+**`dbt-tools-web`** uses the same startup flags as MCP for artifact root and remote clients (`--dbt-target`, `--gcs-impersonate-service-account`, `--s3-region`, etc.). See [Web server CLI](../reference/web-cli.md).
 
-- **`DBT_TOOLS_TARGET_DIR`** — local folder for `dbt-tools-web` at startup.
-- **Load artifacts** (in-app) — S3/GCS via `s3://` or `gs://` location; optional GCS options in the UI. Granular `DBT_TOOLS_GCS_*` / `DBT_TOOLS_S3_*` on the Node process apply when discovering remote sources.
+- **`--dbt-target`** / **`DBT_TOOLS_DBT_TARGET`** — preload local, `s3://`, or `gs://` at server start.
+- **`--target`** / **`DBT_TOOLS_TARGET_DIR`** — local directory alias (backward compatible).
+- **Load artifacts** (in-app) — switch or add sources after startup; UI can pass GCS impersonation per request. Env `DBT_TOOLS_GCS_*` / `DBT_TOOLS_S3_*` also apply when discovering remote sources.
 
-Local paths are served by the Node process; remote sources use server-side credentials and `/api/...` routes. See [Web getting started](../guide/web/getting-started.md).
+Credentials stay on the Node process; the browser uses `/api/...` routes only. See [Web getting started](../guide/web/getting-started.md).
+
+**Web server example (GCS):**
+
+```bash
+npx @dbt-tools/web \
+  --dbt-target gs://my-bucket/dbt/prod \
+  --gcs-project-id my-gcp-project \
+  --gcs-impersonate-service-account reader@my-project.iam.gserviceaccount.com
+```
 
 ## Learn more
 

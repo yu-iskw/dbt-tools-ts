@@ -2,12 +2,12 @@
 
 dbt-tools turns dbt artifacts under a **target directory** into structured, repeatable analysis. Four surfaces share the same artifact contract:
 
-| Surface                   | Role                                                                     |
-| ------------------------- | ------------------------------------------------------------------------ |
-| **CLI** (`dbt-tools`)     | One-shot shell commands—CI, scripts, operators                           |
-| **MCP** (`dbt-tools-mcp`) | Long-lived server; many tool calls on one parsed run                     |
-| **Web** (`dbt-tools-web`) | Browser investigation UI                                                 |
-| **Agents** (plugins)      | Primitive **skills** that invoke CLI or MCP (Cursor, Codex, Claude Code) |
+| Surface                   | Role                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| **CLI** (`dbt-tools`)     | One-shot shell commands—CI, scripts, operators                                               |
+| **MCP** (`dbt-tools-mcp`) | Long-lived server; many tool calls on one parsed run                                         |
+| **Web** (`dbt-tools-web`) | Browser investigation UI; startup flags align with MCP (`--dbt-target`, remote client flags) |
+| **Agents** (plugins)      | Primitive **skills** that invoke CLI or MCP (Cursor, Codex, Claude Code)                     |
 
 Remote artifact roots (`s3://`, `gs://`, including GCS service-account impersonation): [Local and remote artifacts](../concepts/local-and-remote-artifacts.md).
 

@@ -31,12 +31,12 @@ dbt-tools exposes three complementary layers. They are not interchangeable—pic
 
 ## Typical combinations
 
-| You are…                                          | Start with                                                                          |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Running CI checks                                 | CLI only                                                                            |
-| Using Cursor/Codex/Claude in this repo            | [Install agent skills](./install.md) — `dbt-tools-cli` (+ optional `dbt-tools-mcp`) |
-| Building a custom agent with dozens of tool calls | MCP (+ CLI for one-offs)                                                            |
-| Exploring visually after terminal work            | CLI + `DBT_TOOLS_WEB_BASE_URL` ([deep links](../../reference/deep-links.md))        |
+| You are…                                          | Start with                                                                                     |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Running CI checks                                 | CLI only                                                                                       |
+| Using Cursor/Codex/Claude in this repo            | [Install agent skills](./install.md) — `dbt-tools-cli` (+ optional `dbt-tools-mcp`)            |
+| Building a custom agent with dozens of tool calls | MCP (+ CLI for one-offs)                                                                       |
+| Exploring visually after terminal work            | CLI + `dbt-tools-web` + `DBT_TOOLS_WEB_BASE_URL` ([deep links](../../reference/deep-links.md)) |
 
 ## Learn more
 
