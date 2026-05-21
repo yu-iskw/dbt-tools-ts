@@ -6,10 +6,10 @@ uplinks:
     url: https://registry.npmjs.org/
 
 packages:
+  # Local-only: workspace packages are published in smoke; do not proxy npm (same semver blocks publish).
   '@dbt-tools/*':
     access: $all
     publish: $all
-    proxy: npmjs
   'dbt-artifacts-parser':
     access: $all
     publish: $all
