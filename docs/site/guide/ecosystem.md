@@ -9,7 +9,7 @@ dbt-tools turns dbt artifacts under a **target directory** into structured, repe
 | **Web** (`dbt-tools-web`) | Browser investigation UI; startup flags align with MCP (`--dbt-target`, remote client flags) |
 | **Agents** (plugins)      | Primitive **skills** that invoke CLI or MCP (Cursor, Codex, Claude Code)                     |
 
-Remote artifact roots (`s3://`, `gs://`, including GCS service-account impersonation): [Local and remote artifacts](../concepts/local-and-remote-artifacts.md).
+Remote artifact roots (`s3://`, `gs://`, including GCS service-account impersonation): [Local and remote artifacts](../concepts/local-and-remote-artifacts.md) · [S3](../deploy/s3.md) · [GCS](../deploy/gcs.md).
 
 ## Quick examples
 
@@ -25,20 +25,25 @@ Replace `model.my_project.my_model` with a `unique_id` from discover output.
 
 **Coding agents:** use stable handles such as `dbt-tools-cli:check-session` and `dbt-tools-cli:find-resources`—see [Skill catalog](agents/skill-catalog.md) and [Install agent skills](agents/install.md).
 
-## Where job recipes live
+## Where recipes and job workflows live
 
-Step-by-step workflows are grouped in the sidebar under each surface (URLs stay under `workflows/`):
+**Recipes** (goal-first): [recipes/](../recipes/) — start with what you want to accomplish.
+
+**Workflows** (interface-first, existing pages): grouped in the sidebar under each surface (URLs stay under `workflows/`):
 
 | Job                 | Doc                                                                                                                                       |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| CI / health         | [Check run health](../workflows/check-run-health.md) (sidebar: **CLI → Workflows**)                                                       |
+| CI / health         | [Check run health](../workflows/check-run-health.md) (sidebar: **Interfaces → CLI → Workflows**)                                          |
 | Find / explain      | [Find a model](../workflows/find-a-model.md), [Explain a failure](../workflows/explain-failure.md)                                        |
 | Slow runs / browser | [Investigate slow runs](../workflows/investigate-slow-runs.md), [Open in web](../workflows/open-in-web.md) (sidebar: **Web → Workflows**) |
 | Coding agent        | [Wire your coding agent](../workflows/wire-your-coding-agent.md) (sidebar: **Agents → Workflows**)                                        |
 
-Full index: [Workflows](../workflows/index.md).
+Full workflow index: [Workflows](../workflows/index.md).
 
 ## Next
 
-- [Choose your interface](overview.md) — pick CLI, MCP, Web, or agent skills
+- [5-minute quickstart](./quickstart.md) — run your first command
+- [Choose by goal](./choose-by-goal.md) — route to the right interface for your job
+- [Choose your interface](overview.md) — CLI, MCP, Web, or agent skills
 - [dbt Artifacts](../concepts/dbt-artifacts.md) — what files dbt-tools expects
+- [Trust & Safety](../trust/) — data boundaries, agent safety, and licensing
