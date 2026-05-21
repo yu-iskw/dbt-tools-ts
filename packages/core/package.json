@@ -17,7 +17,7 @@
   "bugs": {
     "url": "https://github.com/yu-iskw/dbt-tools-ts/issues"
   },
-  "homepage": "https://github.com/yu-iskw/dbt-tools-ts#readme",
+  "homepage": "https://yu-iskw.github.io/dbt-tools-ts/",
   "engines": {
     "node": ">=20"
   },
