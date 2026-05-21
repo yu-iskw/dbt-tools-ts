@@ -2,6 +2,9 @@
 layout: home
 hero:
   name: dbt-tools
+  image:
+    src: /logo.svg
+    alt: dbt-tools logo
   text: Operational intelligence for dbt artifacts
   tagline: Turn dbt manifests, run results, and metadata into deterministic insights for operators, automation, and agents.
   actions:

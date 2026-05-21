@@ -1,0 +1,11 @@
+<!-- Canonical: keep in sync with docs/site/public/favicon.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="dbt-tools">
+  <rect width="64" height="64" rx="12" fill="#000000" />
+  <g transform="translate(4 8.375) scale(0.0875)">
+    <rect x="108" y="34" width="270" height="68" rx="34" fill="#635BFF" />
+    <rect x="276" y="142" width="318" height="68" rx="34" fill="#635BFF" />
+    <rect x="24" y="246" width="430" height="72" rx="36" fill="#635BFF" />
+    <rect x="220" y="352" width="292" height="68" rx="34" fill="#635BFF" />
+    <rect x="108" y="458" width="236" height="68" rx="34" fill="#635BFF" />
+  </g>
+</svg>

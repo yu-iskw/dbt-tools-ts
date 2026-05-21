@@ -28,6 +28,7 @@ export default defineConfig({
           'Structured, deterministic operational intelligence for dbt artifacts, operators, and automation.',
       },
     ],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
   ],
   themeConfig: {
     logo: '/logo.svg',
