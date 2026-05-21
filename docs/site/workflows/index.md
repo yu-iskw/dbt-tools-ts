@@ -1,6 +1,8 @@
 # Workflows
 
-Job-focused recipes are grouped in the sidebar under each surface:
+Task-oriented guides also live under [Recipes](../recipes/) (recommended for new readers). The pages below keep stable URLs and appear under each package in the sidebar.
+
+Job-focused steps are grouped by surface:
 
 | Surface    | Recipes                                                                                                           |
 | ---------- | ----------------------------------------------------------------------------------------------------------------- |

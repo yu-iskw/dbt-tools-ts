@@ -25,7 +25,7 @@ npx @dbt-tools/web --dbt-target ./target
 ```
 
 ```bash
-dbt-tools query-executions --dbt-target ./target --sort duration --limit 20 --json
+dbt-tools query-executions --dbt-target ./target --sort execution_time_desc --limit 20 --json
 ```
 
 ## Next

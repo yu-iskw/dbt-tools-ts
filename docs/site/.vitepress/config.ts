@@ -33,7 +33,8 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     nav: [
-      { text: 'Guide', link: '/guide/overview' },
+      { text: 'Start Here', link: '/guide/quickstart' },
+      { text: 'Recipes', link: '/recipes/' },
       { text: 'Concepts', link: '/concepts/dbt-artifacts' },
       { text: 'Reference', link: '/reference/configuration' },
       {
@@ -48,10 +49,28 @@ export default defineConfig({
     ],
     sidebar: [
       {
-        text: 'Foundations',
+        text: 'Start Here',
         items: [
+          { text: '5-minute quickstart', link: '/guide/quickstart' },
+          { text: 'Choose by goal', link: '/guide/choose-by-goal' },
           { text: 'Choose your interface', link: '/guide/overview' },
           { text: 'Ecosystem at a glance', link: '/guide/ecosystem' },
+          { text: 'Demo artifacts', link: '/guide/demo-artifacts' },
+        ],
+      },
+      {
+        text: 'Recipes',
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/recipes/' },
+          { text: 'Debug a failed run', link: '/recipes/debug-failed-run' },
+          { text: 'Investigate slow models', link: '/recipes/investigate-slow-models' },
+          { text: 'Find model impact', link: '/recipes/find-model-impact' },
+        ],
+      },
+      {
+        text: 'Foundations',
+        items: [
           { text: 'dbt Artifacts', link: '/concepts/dbt-artifacts' },
           { text: 'Local and remote artifacts', link: '/concepts/local-and-remote-artifacts' },
           { text: 'Discovery parity', link: '/concepts/discovery-parity' },

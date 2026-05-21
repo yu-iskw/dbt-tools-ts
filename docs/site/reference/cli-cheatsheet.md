@@ -61,7 +61,7 @@ dbt-tools explain model.pkg.node --dbt-target ./target --json
 | `run-report`       | Execution report + critical path |
 
 ```bash
-dbt-tools query-executions --dbt-target ./target --sort duration --limit 20 --json
+dbt-tools query-executions --dbt-target ./target --sort execution_time_desc --limit 20 --json
 dbt-tools run-report --dbt-target ./target --json
 ```
 
