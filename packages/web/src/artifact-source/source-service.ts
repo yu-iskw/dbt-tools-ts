@@ -184,10 +184,7 @@ export class ArtifactSourceService {
 
   private async bootstrapFromExplicitOptions(options: ArtifactSourceServiceOptions): Promise<void> {
     if (options.remoteConfig != null) {
-      const client = await this.remoteClientForConfig(
-        options.remoteConfig,
-        options.remoteClient,
-      );
+      const client = await this.remoteClientForConfig(options.remoteConfig, options.remoteClient);
       await this.applyRemoteConfiguration(options.remoteConfig, client, true);
       return;
     }
@@ -442,9 +439,7 @@ export class ArtifactSourceService {
     this.remoteConfig = discovery.remoteConfig;
     this.remoteClient = discovery.remoteClient;
     this.remoteClientCacheKey =
-      discovery.remoteConfig != null
-        ? this.remoteConfigCacheKey(discovery.remoteConfig)
-        : null;
+      discovery.remoteConfig != null ? this.remoteConfigCacheKey(discovery.remoteConfig) : null;
     this.remoteProvider = discovery.remoteProvider;
     this.discoveryResult = discovery.discoveryResult;
     this.runs = discovery.runs;

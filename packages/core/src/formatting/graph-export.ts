@@ -106,17 +106,13 @@ function exportGraphDot(graph: DirectedGraph<GraphNodeAttributes, GraphEdgeAttri
       }
       lines.push('  }');
     } else {
-      lines.push(
-        `  "${escapeDotString(nodeId)}" [label="${escapeDotString(name)}"];`,
-      );
+      lines.push(`  "${escapeDotString(nodeId)}" [label="${escapeDotString(name)}"];`);
     }
   }
 
   graph.forEachEdge((_edgeId, attributes, source, target) => {
     if (attributes.dependency_type !== 'internal') {
-      lines.push(
-        `  "${escapeDotString(source)}" -> "${escapeDotString(target)}";`,
-      );
+      lines.push(`  "${escapeDotString(source)}" -> "${escapeDotString(target)}";`);
     }
   });
   lines.push('}');
