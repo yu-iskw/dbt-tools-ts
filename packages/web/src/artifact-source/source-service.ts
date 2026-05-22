@@ -135,6 +135,7 @@ export class ArtifactSourceService {
   private selectedRunId: string | null = null;
   /** Version token of artifacts the active investigation is using (ADR-0004 detect-notify-confirm). */
   private loadedVersionToken: string | null = null;
+  private remoteDiscoveryRefreshPromise: Promise<void> | null = null;
 
   constructor(options: ArtifactSourceServiceOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
@@ -320,6 +321,19 @@ export class ArtifactSourceService {
 
   /** Re-list the remote prefix so polling can detect newer artifact pairs (ADR-0004). */
   private async refreshRemoteDiscovery(): Promise<void> {
+    if (this.mode !== 'remote' || this.remoteConfig == null || this.remoteClient == null) {
+      return;
+    }
+    if (this.remoteDiscoveryRefreshPromise != null) {
+      return this.remoteDiscoveryRefreshPromise;
+    }
+    this.remoteDiscoveryRefreshPromise = this.refreshRemoteDiscoveryInternal().finally(() => {
+      this.remoteDiscoveryRefreshPromise = null;
+    });
+    return this.remoteDiscoveryRefreshPromise;
+  }
+
+  private async refreshRemoteDiscoveryInternal(): Promise<void> {
     if (this.mode !== 'remote' || this.remoteConfig == null || this.remoteClient == null) {
       return;
     }

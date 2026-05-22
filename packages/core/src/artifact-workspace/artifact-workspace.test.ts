@@ -306,6 +306,80 @@ describe('ArtifactWorkspace', () => {
     );
   });
 
+  it('serializes setTarget with an in-flight background refresh when poll is enabled', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`prefix/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+    const workspace = new ArtifactWorkspace({
+      dbtTarget: 's3://bucket/prefix',
+      remoteClient,
+    });
+    await workspace.initialize();
+
+    const refreshStarted = new Promise<void>((resolve) => {
+      const originalList = remoteClient.listObjects.bind(remoteClient);
+      remoteClient.listObjects = async (bucket, prefix) => {
+        resolve();
+        await new Promise<void>((done) => {
+          setTimeout(done, 30);
+        });
+        return originalList(bucket, prefix);
+      };
+    });
+
+    const refreshPromise = workspace.refreshIfChanged();
+    await refreshStarted;
+
+    const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-poll-b-'));
+    try {
+      await writeArtifacts(dirB);
+      const switched = await workspace.setTarget(dirB);
+
+      await refreshPromise;
+      expect(switched.target).toBe(dirB);
+      expect(switched.loadedAtMs).not.toBeNull();
+
+      const useCases = createDbtToolsUseCases(workspace);
+      await expect(
+        useCases.searchResources({ query: 'customers', limit: 1 }),
+      ).resolves.toMatchObject({ total: expect.any(Number) });
+    } finally {
+      await rmValidated(dirB, { recursive: true, force: true });
+    }
+  });
+
+  it('serializes overlapping setTarget calls so the last target wins', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-a/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+    remoteClient.put(`prefix-b/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-b/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+
+    let releaseSlowList: (() => void) | undefined;
+    const slowListGate = new Promise<void>((resolve) => {
+      releaseSlowList = resolve;
+    });
+    const originalList = remoteClient.listObjects.bind(remoteClient);
+    let listCalls = 0;
+    remoteClient.listObjects = async (bucket, prefix) => {
+      listCalls += 1;
+      if (listCalls === 1) {
+        await slowListGate;
+      }
+      return originalList(bucket, prefix);
+    };
+
+    const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, remoteClient });
+    const firstSet = workspace.setTarget('s3://bucket/prefix-a');
+    const secondSet = workspace.setTarget('s3://bucket/prefix-b');
+    releaseSlowList?.();
+    const [firstStatus, secondStatus] = await Promise.all([firstSet, secondSet]);
+
+    expect(firstStatus.target).toBe('s3://bucket/prefix-a');
+    expect(secondStatus.target).toBe('s3://bucket/prefix-b');
+    expect(await workspace.getStatus()).toMatchObject({ target: 's3://bucket/prefix-b' });
+  });
+
   it('clearCachedTargets drops cache and active loaded state', async () => {
     await writeArtifacts(tempDir);
     const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 123 });
