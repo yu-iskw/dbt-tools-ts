@@ -5,6 +5,7 @@ import { getDbtToolsRemoteClientEnvFromEnv } from '../config/dbt-tools-env';
 import { ArtifactBundleResolutionError } from '../errors/artifact-bundle-resolution-error';
 import { validateSafePath, resolveSafePath } from '../validation/input-validator';
 
+import { trackArtifactBundleTempDir } from './artifact-bundle-temp';
 import {
   DBT_CATALOG_JSON,
   DBT_MANIFEST_JSON,
@@ -185,6 +186,7 @@ async function writeRemoteBytesToTemp(args: {
   const missing: string[] = [];
 
   const dir = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-artifacts-'));
+  trackArtifactBundleTempDir(dir);
 
   const writeIfPresent = async (
     relative: string,
@@ -225,6 +227,7 @@ async function writeRemoteBytesToTemp(args: {
   return {
     manifest: manifest ?? path.join(dir, DBT_MANIFEST_JSON),
     runResults: runResults ?? path.join(dir, DBT_RUN_RESULTS_JSON),
+    bundleTempDir: dir,
     ...(catalog != null ? { catalog } : {}),
     ...(sources != null ? { sources } : {}),
   };

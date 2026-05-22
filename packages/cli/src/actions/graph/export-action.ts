@@ -44,6 +44,53 @@ export type ExportOutput = {
 };
 
 const CONTRACT_VERSION = 1;
+/** Omit embedded graph body in JSON when larger than this (512 KiB). */
+const EXPORT_GRAPH_JSON_MAX_BYTES = 512 * 1024;
+
+function normalizeExportFormat(format: string | undefined): string {
+  const normalized = (format ?? 'json').toLowerCase();
+  if (!['json', 'dot', 'gexf'].includes(normalized)) {
+    throw new Error(`Unsupported --format for export: ${format}`);
+  }
+  return normalized;
+}
+
+function normalizeFocusDirection(
+  direction: string | undefined,
+): 'both' | 'downstream' | 'upstream' {
+  const normalized = (direction ?? 'both').toLowerCase();
+  if (!['upstream', 'downstream', 'both'].includes(normalized)) {
+    throw new Error(`--focus-direction must be upstream, downstream, or both`);
+  }
+  return normalized as 'both' | 'downstream' | 'upstream';
+}
+
+function buildExportPrimitiveCommands(format: string, options: ExportCliOptions): string[] {
+  return [
+    `dbt-tools graph --dbt-target <target> --format ${format}${
+      options.focus ? ` --focus ${JSON.stringify(options.focus)}` : ''
+    }${options.output ? ` --output ${JSON.stringify(options.output)}` : ''}`,
+  ];
+}
+
+function buildExportOutputMeta(
+  format: string,
+  body: string,
+  options: ExportCliOptions,
+  primitive_commands: string[],
+): ExportOutput {
+  const graphExportBytes = Buffer.byteLength(body, 'utf8');
+  return {
+    intent: 'export',
+    contract_version: CONTRACT_VERSION,
+    format,
+    ...(options.output ? { output_path: options.output } : {}),
+    graph_export_bytes: graphExportBytes,
+    ...(graphExportBytes <= EXPORT_GRAPH_JSON_MAX_BYTES ? { graph_export: body } : {}),
+    provenance: { steps: [{ op: 'graph.export', status: 'ok' }] },
+    primitive_commands,
+  };
+}
 
 export async function exportAction(
   options: ExportCliOptions,
@@ -59,30 +106,20 @@ export async function exportAction(
       validateSafePath(options.output);
     }
 
-    const format = (options.format ?? 'json').toLowerCase();
-    if (!['json', 'dot', 'gexf'].includes(format)) {
-      throw new Error(`Unsupported --format for export: ${options.format}`);
-    }
-
-    const focusDirection = (options.focusDirection ?? 'both').toLowerCase();
-    if (!['upstream', 'downstream', 'both'].includes(focusDirection)) {
-      throw new Error(`--focus-direction must be upstream, downstream, or both`);
-    }
-
+    const format = normalizeExportFormat(options.format);
+    const focusDirection = normalizeFocusDirection(options.focusDirection);
     if (options.focusDepth !== undefined) {
       validateDepth(options.focusDepth);
     }
 
     const manifest = loadManifest(paths.manifest);
     const graph = new ManifestGraph(manifest);
-
     let targetGraph = graph.getGraph();
-
     if (options.focus) {
       validateResourceId(options.focus);
       targetGraph = graph.buildSubgraph(
         options.focus,
-        focusDirection as 'both' | 'downstream' | 'upstream',
+        focusDirection,
         options.focusDepth,
         undefined,
       );
@@ -93,38 +130,26 @@ export async function exportAction(
       output: options.output,
       fields: options.fields,
     });
-
-    const primitive_commands = [
-      `dbt-tools graph --dbt-target <target> --format ${format}${
-        options.focus ? ` --focus ${JSON.stringify(options.focus)}` : ''
-      }${options.output ? ` --output ${JSON.stringify(options.output)}` : ''}`,
-    ];
-
+    const primitive_commands = buildExportPrimitiveCommands(format, options);
     const useJson = shouldOutputJSON(options.json, options.noJson);
 
     if (useJson) {
       if (options.output) {
         writeValidatedUtf8Sync(options.output, body);
       }
-      const meta: ExportOutput = {
-        intent: 'export',
-        contract_version: CONTRACT_VERSION,
-        format,
-        ...(options.output ? { output_path: options.output } : {}),
-        graph_export_bytes: Buffer.byteLength(body, 'utf8'),
-        graph_export: body,
-        provenance: { steps: [{ op: 'graph.export', status: 'ok' }] },
-        primitive_commands,
-      };
-      let out: unknown = meta;
-      if (options.fields) {
-        out = FieldFilter.filterFields(meta as unknown as Record<string, unknown>, options.fields);
-      }
+      const meta = buildExportOutputMeta(format, body, options, primitive_commands);
+      const out = options.fields
+        ? FieldFilter.filterFields(meta as unknown as Record<string, unknown>, options.fields)
+        : meta;
       console.log(formatOutput(out, true));
       return;
     }
 
-    writeGraphOutput(body, options.output);
+    if (options.output) {
+      writeGraphOutput(body, options.output);
+    } else {
+      console.log(body);
+    }
   } catch (error) {
     handleError(error, shouldOutputJSON(options.json, options.noJson));
   }

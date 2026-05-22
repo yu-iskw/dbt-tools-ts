@@ -2,11 +2,16 @@
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
 import { loadTestManifest } from 'dbt-artifacts-parser/test-utils';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import { ManifestGraph } from '../analysis/manifest/graph';
 
-import { exportGraphToFormat, writeGraphOutput } from './graph-export';
+import {
+  escapeDotString,
+  escapeXmlAttribute,
+  exportGraphToFormat,
+  writeGraphOutput,
+} from './graph-export';
 
 describe('graph-export', () => {
   function createTestGraph() {
@@ -37,6 +42,26 @@ describe('graph-export', () => {
       expect(output).toContain('digraph DbtGraph {');
       expect(output).toContain('compound=true;');
       expect(output).toContain('node [shape=box');
+    });
+
+    it('escapes quotes in DOT labels', () => {
+      const graph = createTestGraph();
+      const nodeId = 'model.test."weird"';
+      if (!graph.hasNode(nodeId)) {
+        graph.addNode(nodeId, {
+          resource_type: 'model',
+          name: 'Say "hi"',
+          package_name: 'test',
+        });
+      }
+      const output = exportGraphToFormat(graph, { format: 'dot' });
+      expect(output).toContain('Say \\"hi\\"');
+      expect(output).toContain('model.test.\\"weird\\"');
+    });
+
+    it('escapes XML entities in GEXF attributes', () => {
+      expect(escapeXmlAttribute('a&b"c')).toBe('a&amp;b&quot;c');
+      expect(escapeDotString('line\nbreak')).toBe('line\\nbreak');
     });
 
     it('exports GEXF format with XML root', () => {
@@ -74,20 +99,11 @@ describe('graph-export', () => {
   });
 
   describe('writeGraphOutput', () => {
-    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
-
-    beforeEach(() => {
-      consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    });
-
-    afterEach(() => {
+    it('does not write to stdout when no outputPath is provided', () => {
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      writeGraphOutput('test graph output');
+      expect(consoleLogSpy).not.toHaveBeenCalled();
       consoleLogSpy.mockRestore();
-    });
-
-    it('logs output when no outputPath is provided', () => {
-      const output = 'test graph output';
-      writeGraphOutput(output);
-      expect(consoleLogSpy).toHaveBeenCalledWith(output);
     });
   });
 });

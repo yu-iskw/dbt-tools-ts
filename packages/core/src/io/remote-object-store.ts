@@ -11,6 +11,22 @@ import {
 import type { RemoteObjectMetadata } from './artifact-discovery';
 import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
 
+/** Default max bytes per remote object read (64 MiB). */
+export const DEFAULT_MAX_REMOTE_OBJECT_BYTES = 64 * 1024 * 1024;
+
+export function assertRemoteObjectWithinByteLimit(
+  bytes: Uint8Array,
+  key: string,
+  maxBytes: number = DEFAULT_MAX_REMOTE_OBJECT_BYTES,
+): void {
+  if (bytes.byteLength > maxBytes) {
+    throw new Error(
+      `Remote object "${key}" is ${bytes.byteLength} bytes (limit ${maxBytes}). ` +
+        'Use a narrower artifact prefix or a smaller run.',
+    );
+  }
+}
+
 export interface RemoteObjectStoreClient {
   listObjects(bucket: string, prefix: string): Promise<RemoteObjectMetadata[]>;
   readObjectBytes(bucket: string, key: string): Promise<Uint8Array>;
@@ -70,6 +86,7 @@ class S3RemoteObjectStoreClient implements RemoteObjectStoreClient {
 
     const bytes = await response.Body?.transformToByteArray();
     if (bytes == null) throw new Error(`Missing S3 object body for ${key}`);
+    assertRemoteObjectWithinByteLimit(bytes, key);
     dbtToolsDebugLogPhase('S3 readObject done', startedAt, `bytes=${bytes.byteLength}`);
     return bytes;
   }
@@ -107,6 +124,7 @@ class GcsRemoteObjectStoreClient implements RemoteObjectStoreClient {
     const startedAt = dbtToolsDebugNow();
     dbtToolsDebugLog(`GCS readObject start bucket=${bucket} key=${key}`);
     const [bytes] = await this.storage.bucket(bucket).file(key).download();
+    assertRemoteObjectWithinByteLimit(bytes, key);
     dbtToolsDebugLogPhase('GCS readObject done', startedAt, `bytes=${bytes.byteLength}`);
     return bytes;
   }

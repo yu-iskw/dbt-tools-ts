@@ -3,6 +3,8 @@
  */
 export type { RemoteObjectMetadata } from './io/artifact-discovery';
 export {
+  assertRemoteObjectWithinByteLimit,
   createRemoteObjectStoreClient,
+  DEFAULT_MAX_REMOTE_OBJECT_BYTES,
   type RemoteObjectStoreClient,
 } from './io/remote-object-store';

@@ -12,6 +12,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 export const ARTIFACT_SOURCE_UNSUPPORTED_OPTIONS_ERROR =
   'Service account impersonation is only supported for Google Cloud Storage. Options are not supported for local or S3 artifact sources.';
 
+/** Max JSON body size for artifact-source configure/discover routes. */
+export const ARTIFACT_SOURCE_MAX_JSON_BODY_BYTES = 64 * 1024;
+
 function parseArtifactSourceRequestOptions(
   kind: ArtifactSourceKind,
   body: Record<string, unknown>,
@@ -46,10 +49,19 @@ function parseArtifactSourceRequestOptions(
   };
 }
 
-async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown>> {
+async function readJsonBody(
+  request: IncomingMessage,
+  maxBytes: number = ARTIFACT_SOURCE_MAX_JSON_BODY_BYTES,
+): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
+  let total = 0;
   for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.byteLength;
+    if (total > maxBytes) {
+      throw new Error(`Request body exceeds ${maxBytes} bytes`);
+    }
+    chunks.push(buf);
   }
   if (chunks.length === 0) return {};
 
@@ -120,12 +132,28 @@ async function respondArtifactStatus(
   sendJson(res, 200, await service.getStatus());
 }
 
+async function readJsonBodyForRoute(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<Record<string, unknown> | null> {
+  try {
+    return await readJsonBody(req);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('exceeds')) {
+      sendJson(res, 413, { error: error.message });
+      return null;
+    }
+    throw error;
+  }
+}
+
 async function respondArtifactSwitch(
   req: IncomingMessage,
   res: ServerResponse,
   service: ArtifactSourceService,
 ): Promise<void> {
-  const body = await readJsonBody(req);
+  const body = await readJsonBodyForRoute(req, res);
+  if (body == null) return;
   const runId = typeof body.runId === 'string' && body.runId.trim() !== '' ? body.runId : undefined;
   sendJson(res, 200, await service.switchToRun(runId));
 }
@@ -135,7 +163,8 @@ async function respondArtifactConfigure(
   res: ServerResponse,
   service: ArtifactSourceService,
 ): Promise<void> {
-  const body = await readJsonBody(req);
+  const body = await readJsonBodyForRoute(req, res);
+  if (body == null) return;
   const typeRaw = body.type;
   const locationRaw = body.location;
   const runIdRaw = body.runId;
@@ -173,7 +202,8 @@ async function respondArtifactDiscover(
   res: ServerResponse,
   service: ArtifactSourceService,
 ): Promise<void> {
-  const body = await readJsonBody(req);
+  const body = await readJsonBodyForRoute(req, res);
+  if (body == null) return;
   const typeRaw = body.type;
   const locationRaw = body.location;
   const location = typeof locationRaw === 'string' ? locationRaw.trim() : '';

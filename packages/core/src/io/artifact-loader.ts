@@ -29,6 +29,8 @@ export interface ArtifactPaths {
   runResults: string;
   catalog?: string;
   sources?: string;
+  /** Set when artifacts were materialized under a temp dir (remote targets). */
+  bundleTempDir?: string;
 }
 
 const DEFAULT_TARGET_DIR = './target';

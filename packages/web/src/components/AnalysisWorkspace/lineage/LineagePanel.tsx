@@ -59,7 +59,8 @@ export function LineagePanel({
   fullscreenScope?: 'container' | 'viewport';
 }): ReactElement {
   const [isFullscreenOpen, setFullscreenOpen] = useState(false);
-  const ALL_DEPS_DEPTH = 20;
+  /** Align with `clampDepth` max in lineage-model (ADR-0003 guardrail). */
+  const ALL_DEPS_DEPTH = 10;
 
   useEffect(() => {
     setFullscreenOpen(openFullscreen);

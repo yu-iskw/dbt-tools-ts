@@ -10,6 +10,24 @@ import { FieldFilter } from './field-filter';
 import type { GraphNodeAttributes, GraphEdgeAttributes } from '../types';
 import type { DirectedGraph } from 'graphology';
 
+/** Escape a string for use inside DOT double-quoted identifiers/labels. */
+export function escapeDotString(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
+
+/** Escape a string for use inside XML/GEXF double-quoted attributes. */
+export function escapeXmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export interface GraphExportOptions {
   format?: string;
   output?: string;
@@ -74,23 +92,31 @@ function exportGraphDot(graph: DirectedGraph<GraphNodeAttributes, GraphEdgeAttri
     const fields = fieldNodesByParent.get(nodeId);
 
     if (fields && fields.length > 0) {
-      lines.push(`  subgraph "cluster_${nodeId}" {`);
-      lines.push(`    label = "${name}";`);
+      lines.push(`  subgraph "cluster_${escapeDotString(nodeId)}" {`);
+      lines.push(`    label = "${escapeDotString(name)}";`);
       lines.push('    style = filled;');
       lines.push('    fillcolor = lightgrey;');
       for (const fieldId of fields) {
         const fieldAttr = graph.getNodeAttributes(fieldId);
-        lines.push(`    "${fieldId}" [label="${fieldAttr.name}", fillcolor=white];`);
+        const fieldLabel =
+          typeof fieldAttr.name === 'string' ? fieldAttr.name : String(fieldAttr.name ?? fieldId);
+        lines.push(
+          `    "${escapeDotString(fieldId)}" [label="${escapeDotString(fieldLabel)}", fillcolor=white];`,
+        );
       }
       lines.push('  }');
     } else {
-      lines.push(`  "${nodeId}" [label="${name}"];`);
+      lines.push(
+        `  "${escapeDotString(nodeId)}" [label="${escapeDotString(name)}"];`,
+      );
     }
   }
 
   graph.forEachEdge((_edgeId, attributes, source, target) => {
     if (attributes.dependency_type !== 'internal') {
-      lines.push(`  "${source}" -> "${target}";`);
+      lines.push(
+        `  "${escapeDotString(source)}" -> "${escapeDotString(target)}";`,
+      );
     }
   });
   lines.push('}');
@@ -116,20 +142,21 @@ function exportGraphGexf(graph: DirectedGraph<GraphNodeAttributes, GraphEdgeAttr
 <gexf xmlns="http://www.gexf.net/1.2draft" version="1.2">
   <graph mode="static" defaultedgetype="directed">
     <nodes>
-${nodes.map((n) => `      <node id="${n.id}" label="${n.label}"/>`).join('\n')}
+${nodes.map((n) => `      <node id="${escapeXmlAttribute(n.id)}" label="${escapeXmlAttribute(n.label)}"/>`).join('\n')}
     </nodes>
     <edges>
-${edges.map((e, i) => `      <edge id="${i}" source="${e.source}" target="${e.target}"/>`).join('\n')}
+${edges.map((e, i) => `      <edge id="${i}" source="${escapeXmlAttribute(e.source)}" target="${escapeXmlAttribute(e.target)}"/>`).join('\n')}
     </edges>
   </graph>
 </gexf>`;
 }
 
+/**
+ * Write graph export to a file when `outputPath` is set.
+ * Callers should print `output` to stdout when no path is provided (library-safe: no stdout).
+ */
 export function writeGraphOutput(output: string, outputPath?: string): void {
   if (outputPath) {
     writeValidatedUtf8Sync(outputPath, output);
-    console.log(`Graph exported to ${outputPath}`);
-  } else {
-    console.log(output);
   }
 }

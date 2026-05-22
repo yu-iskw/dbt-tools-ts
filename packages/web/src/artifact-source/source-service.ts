@@ -128,6 +128,7 @@ export class ArtifactSourceService {
 
   private remoteConfig: DbtToolsRemoteSourceConfig | null = null;
   private remoteClient: RemoteObjectStoreClient | null = null;
+  private remoteClientCacheKey: string | null = null;
   private remoteProvider: RemoteArtifactProvider | null = null;
 
   private runs: ResolvedArtifactRun[] = [];
@@ -162,13 +163,32 @@ export class ArtifactSourceService {
     }
   }
 
+  private remoteConfigCacheKey(config: DbtToolsRemoteSourceConfig): string {
+    return `${config.provider}|${config.bucket}|${config.prefix ?? ''}`;
+  }
+
+  private async remoteClientForConfig(
+    config: DbtToolsRemoteSourceConfig,
+    injected?: RemoteObjectStoreClient,
+  ): Promise<RemoteObjectStoreClient> {
+    if (injected != null) return injected;
+    const cacheKey = this.remoteConfigCacheKey(config);
+    if (this.remoteClient != null && this.remoteClientCacheKey === cacheKey) {
+      return this.remoteClient;
+    }
+    const client = await createRemoteObjectStoreClient(config);
+    this.remoteClient = client;
+    this.remoteClientCacheKey = cacheKey;
+    return client;
+  }
+
   private async bootstrapFromExplicitOptions(options: ArtifactSourceServiceOptions): Promise<void> {
     if (options.remoteConfig != null) {
-      await this.applyRemoteConfiguration(
+      const client = await this.remoteClientForConfig(
         options.remoteConfig,
-        options.remoteClient ?? (await createRemoteObjectStoreClient(options.remoteConfig)),
-        true,
+        options.remoteClient,
       );
+      await this.applyRemoteConfiguration(options.remoteConfig, client, true);
       return;
     }
 
@@ -421,6 +441,10 @@ export class ArtifactSourceService {
     this.sourceKind = discovery.sourceKind;
     this.remoteConfig = discovery.remoteConfig;
     this.remoteClient = discovery.remoteClient;
+    this.remoteClientCacheKey =
+      discovery.remoteConfig != null
+        ? this.remoteConfigCacheKey(discovery.remoteConfig)
+        : null;
     this.remoteProvider = discovery.remoteProvider;
     this.discoveryResult = discovery.discoveryResult;
     this.runs = discovery.runs;
@@ -491,7 +515,7 @@ export class ArtifactSourceService {
       gcsRequestOptions,
       envClient.remoteClientOverrides,
     );
-    const client = await createRemoteObjectStoreClient(merged);
+    const client = await this.remoteClientForConfig(merged);
     return this.discoverRemoteConfiguration(merged, client);
   }
 

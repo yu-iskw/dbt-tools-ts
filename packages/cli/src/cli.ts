@@ -289,7 +289,11 @@ program
           output: options.output,
           fields: options.fields,
         });
-        writeGraphOutput(output, options.output);
+        if (options.output) {
+          writeGraphOutput(output, options.output);
+        } else {
+          console.log(output);
+        }
       } catch (error) {
         handleCliError(error, shouldOutputJSON(undefined, undefined));
       }
