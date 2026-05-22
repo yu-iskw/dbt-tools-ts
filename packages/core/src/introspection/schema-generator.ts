@@ -317,6 +317,11 @@ function getFailuresSchema(): CommandSchema {
       { name: '--message-max-chars', type: TYPE_NUMBER, description: 'Truncate message fields' },
       { name: '--include-path', type: TYPE_BOOLEAN, description: 'Include resource path fields' },
       { name: '--include-compiled', type: TYPE_BOOLEAN, description: 'Include compiled_code' },
+      {
+        name: '--compiled-max-chars',
+        type: TYPE_NUMBER,
+        description: 'Truncate compiled_code when --include-compiled (default 8000)',
+      },
       { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
       { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
       ...getArtifactRootCliSchemaOptions(),

@@ -76,7 +76,7 @@ export function getAdapterMetricSortValue(
   return ADAPTER_METRIC_SORT_FNS.get(sortKey)?.(execution);
 }
 
-const ADAPTER_HEAVY_DESC_KEYS = [
+export const ADAPTER_HEAVY_METRICS = [
   'bytes_processed',
   'bytes_billed',
   'slot_ms',
@@ -86,6 +86,22 @@ const ADAPTER_HEAVY_DESC_KEYS = [
   'rows_deleted',
   'rows_duplicated',
 ] as const satisfies readonly AdapterHeavyMetric[];
+
+const ADAPTER_HEAVY_DESC_KEYS = ADAPTER_HEAVY_METRICS;
+
+/** Validates CLI `--adapter-top-by`; rejects unknown metrics with a clear error. */
+export function parseAdapterHeavyMetric(value: string | undefined): AdapterHeavyMetric | undefined {
+  if (value == null || value.trim() === '') {
+    return undefined;
+  }
+  const metric = value.trim();
+  if ((ADAPTER_HEAVY_METRICS as readonly string[]).includes(metric)) {
+    return metric as AdapterHeavyMetric;
+  }
+  throw new Error(
+    `--adapter-top-by must be one of: ${ADAPTER_HEAVY_METRICS.join(', ')} (got "${metric}")`,
+  );
+}
 
 function adapterNumericHeavyOrZero(execution: NodeExecution, metric: AdapterHeavyMetric): number {
   const v = getAdapterMetricSortValue(execution, metric);

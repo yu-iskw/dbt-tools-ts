@@ -631,7 +631,7 @@ export class ArtifactWorkspace {
       remoteClientOverrides,
     );
     const prefix = normalizeArtifactPrefix(config.prefix);
-    const cacheKey = remoteObjectStoreClientCacheKey(config.provider, config.bucket, prefix);
+    const cacheKey = remoteObjectStoreClientCacheKey(config);
     let client = this.injectedRemoteClient;
     if (client == null) {
       if (this.cachedRemoteClient != null && this.cachedRemoteClientKey === cacheKey) {

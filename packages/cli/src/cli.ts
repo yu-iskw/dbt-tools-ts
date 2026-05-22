@@ -17,7 +17,7 @@ import {
   getAllSchemas,
   exportGraphToFormat,
   writeGraphOutput,
-  type AdapterHeavyMetric,
+  parseAdapterHeavyMetric,
 } from '@dbt-tools/core';
 import { Command } from 'commander';
 
@@ -396,7 +396,7 @@ program
           bottlenecksTop: options.bottlenecksTop,
           bottlenecksThreshold: options.bottlenecksThreshold,
           adapterSummary: options.adapterSummary,
-          adapterTopBy: options.adapterTopBy as AdapterHeavyMetric | undefined,
+          adapterTopBy: parseAdapterHeavyMetric(options.adapterTopBy),
           adapterTopN: options.adapterTopN,
           adapterMinBytes: options.adapterMinBytes,
           adapterMinSlotMs: options.adapterMinSlotMs,

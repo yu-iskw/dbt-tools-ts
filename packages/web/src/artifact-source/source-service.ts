@@ -165,11 +165,7 @@ export class ArtifactSourceService {
   }
 
   private remoteConfigCacheKey(config: DbtToolsRemoteSourceConfig): string {
-    return remoteObjectStoreClientCacheKey(
-      config.provider,
-      config.bucket,
-      normalizeArtifactPrefix(config.prefix),
-    );
+    return remoteObjectStoreClientCacheKey(config);
   }
 
   private async remoteClientForConfig(

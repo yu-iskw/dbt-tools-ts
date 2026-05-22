@@ -8,19 +8,26 @@ import {
   dbtToolsDebugNow,
 } from '../debug/dbt-tools-debug-log.js';
 
+import { normalizeArtifactPrefix } from './artifact-location.js';
+
 import type { RemoteObjectMetadata } from './artifact-discovery';
 import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
 
 /** Default max bytes per remote object read (64 MiB). */
 export const DEFAULT_MAX_REMOTE_OBJECT_BYTES = 64 * 1024 * 1024;
 
-/** Cache key for reusing SDK clients; must include provider to avoid s3/gcs collisions. */
-export function remoteObjectStoreClientCacheKey(
-  provider: 'gcs' | 's3',
-  bucket: string,
-  prefix: string,
-): string {
-  return `${provider}\0${bucket}\0${prefix}`;
+/**
+ * Cache key for reusing SDK clients. Includes provider, bucket/prefix, and
+ * client-construction fields (S3 region/endpoint/path-style; GCS project/impersonation).
+ */
+export function remoteObjectStoreClientCacheKey(config: DbtToolsRemoteSourceConfig): string {
+  const prefix = normalizeArtifactPrefix(config.prefix);
+  const base = `${config.provider}\0${config.bucket}\0${prefix}`;
+  if (config.provider === 's3') {
+    const forcePathStyle = config.forcePathStyle === true ? '1' : '0';
+    return `${base}\0${config.region ?? ''}\0${config.endpoint ?? ''}\0${forcePathStyle}`;
+  }
+  return `${base}\0${config.projectId ?? ''}\0${config.impersonatedServiceAccount ?? ''}`;
 }
 
 export function assertRemoteObjectWithinByteLimit(

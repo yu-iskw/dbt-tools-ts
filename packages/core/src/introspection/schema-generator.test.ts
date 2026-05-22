@@ -53,6 +53,7 @@ describe('SchemaGenerator', () => {
       const schema = getCommandSchema('failures');
       expect(schema).not.toBeNull();
       expect(schema?.command).toBe('failures');
+      expect(schema?.options?.some((o) => o.name === '--compiled-max-chars')).toBe(true);
     });
 
     it('should return schema for impact command', () => {

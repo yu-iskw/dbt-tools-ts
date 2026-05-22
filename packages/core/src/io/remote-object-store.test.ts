@@ -9,9 +9,57 @@ import {
 describe('remote-object-store', () => {
   describe('remoteObjectStoreClientCacheKey', () => {
     it('distinguishes provider for the same bucket and prefix', () => {
-      const s3 = remoteObjectStoreClientCacheKey('s3', 'artifacts', 'runs/prod');
-      const gcs = remoteObjectStoreClientCacheKey('gcs', 'artifacts', 'runs/prod');
+      const s3 = remoteObjectStoreClientCacheKey({
+        provider: 's3',
+        bucket: 'artifacts',
+        prefix: 'runs/prod',
+        pollIntervalMs: 0,
+      });
+      const gcs = remoteObjectStoreClientCacheKey({
+        provider: 'gcs',
+        bucket: 'artifacts',
+        prefix: 'runs/prod',
+        pollIntervalMs: 0,
+      });
       expect(s3).not.toBe(gcs);
+    });
+
+    it('distinguishes S3 region and endpoint for the same bucket and prefix', () => {
+      const west = remoteObjectStoreClientCacheKey({
+        provider: 's3',
+        bucket: 'artifacts',
+        prefix: 'runs/prod',
+        pollIntervalMs: 0,
+        region: 'us-west-2',
+      });
+      const east = remoteObjectStoreClientCacheKey({
+        provider: 's3',
+        bucket: 'artifacts',
+        prefix: 'runs/prod',
+        pollIntervalMs: 0,
+        region: 'us-east-1',
+        endpoint: 'https://s3.example.com',
+        forcePathStyle: true,
+      });
+      expect(west).not.toBe(east);
+    });
+
+    it('distinguishes GCS project and impersonation for the same bucket and prefix', () => {
+      const defaultProject = remoteObjectStoreClientCacheKey({
+        provider: 'gcs',
+        bucket: 'artifacts',
+        prefix: 'runs/prod',
+        pollIntervalMs: 0,
+      });
+      const impersonated = remoteObjectStoreClientCacheKey({
+        provider: 'gcs',
+        bucket: 'artifacts',
+        prefix: 'runs/prod',
+        pollIntervalMs: 0,
+        projectId: 'my-project',
+        impersonatedServiceAccount: 'reader@my-project.iam.gserviceaccount.com',
+      });
+      expect(defaultProject).not.toBe(impersonated);
     });
   });
 

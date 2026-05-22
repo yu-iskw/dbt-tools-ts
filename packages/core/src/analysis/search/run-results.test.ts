@@ -13,6 +13,7 @@ import {
   applyWarehouseSearchBlock,
   detectAdapterHeavyNodes,
   detectBottlenecks,
+  parseAdapterHeavyMetric,
   searchRunResults,
   sortByExecutionSortKey,
 } from './run-results';
@@ -291,6 +292,23 @@ describe('search/run-results', () => {
       );
       expect(result.total_metric).toBe(20);
       expect(result.nodes.map((entry) => entry.unique_id)).toEqual(['model.b', 'model.a']);
+    });
+  });
+
+  describe('parseAdapterHeavyMetric', () => {
+    it('returns undefined for empty input', () => {
+      expect(parseAdapterHeavyMetric(undefined)).toBeUndefined();
+      expect(parseAdapterHeavyMetric('')).toBeUndefined();
+    });
+
+    it('accepts known metrics', () => {
+      expect(parseAdapterHeavyMetric('slot_ms')).toBe('slot_ms');
+    });
+
+    it('rejects unknown metrics', () => {
+      expect(() => parseAdapterHeavyMetric('bytes_procesed')).toThrow(
+        /--adapter-top-by must be one of/,
+      );
     });
   });
 });
