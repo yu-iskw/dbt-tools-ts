@@ -14,6 +14,15 @@ import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
 /** Default max bytes per remote object read (64 MiB). */
 export const DEFAULT_MAX_REMOTE_OBJECT_BYTES = 64 * 1024 * 1024;
 
+/** Cache key for reusing SDK clients; must include provider to avoid s3/gcs collisions. */
+export function remoteObjectStoreClientCacheKey(
+  provider: 'gcs' | 's3',
+  bucket: string,
+  prefix: string,
+): string {
+  return `${provider}\0${bucket}\0${prefix}`;
+}
+
 export function assertRemoteObjectWithinByteLimit(
   bytes: Uint8Array,
   key: string,

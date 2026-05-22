@@ -44,6 +44,9 @@ describe('SchemaGenerator', () => {
       const schema = getCommandSchema('run-report');
       expect(schema).not.toBeNull();
       expect(schema?.command).toBe('run-report');
+      expect(schema?.options?.some((o) => o.name === '--adapter-min-bytes')).toBe(true);
+      expect(schema?.options?.some((o) => o.name === '--adapter-min-slot-ms')).toBe(true);
+      expect(schema?.options?.some((o) => o.name === '--adapter-min-rows-affected')).toBe(true);
     });
 
     it('should return schema for failures command', () => {

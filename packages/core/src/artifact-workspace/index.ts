@@ -40,6 +40,7 @@ import {
 import { parseDbtToolsArtifactTarget } from '../io/dbt-artifact-bundle';
 import {
   createRemoteObjectStoreClient,
+  remoteObjectStoreClientCacheKey,
   type RemoteObjectStoreClient,
 } from '../io/remote-object-store';
 import { readValidatedUtf8 } from '../io/safe-fs';
@@ -326,6 +327,7 @@ export class ArtifactWorkspace {
       this.runs = cached.runs;
       this.selectedRunId = cached.selectedRunId;
       this.loaded = cached.loaded;
+      this.clearRemoteClientCache();
       return this.status({ fromCache: true });
     }
     this.selectedRunId = null;
@@ -517,10 +519,6 @@ export class ArtifactWorkspace {
     this.cachedRemoteClientKey = null;
   }
 
-  private remoteClientCacheKey(bucket: string, prefix: string): string {
-    return `${bucket}\0${prefix}`;
-  }
-
   private buildCachedTargetsList(): ArtifactWorkspaceCachedTargetRef[] {
     return [...this.targetCache.entries()].map(([target, entry]) => ({
       target,
@@ -633,7 +631,7 @@ export class ArtifactWorkspace {
       remoteClientOverrides,
     );
     const prefix = normalizeArtifactPrefix(config.prefix);
-    const cacheKey = this.remoteClientCacheKey(config.bucket, prefix);
+    const cacheKey = remoteObjectStoreClientCacheKey(config.provider, config.bucket, prefix);
     let client = this.injectedRemoteClient;
     if (client == null) {
       if (this.cachedRemoteClient != null && this.cachedRemoteClientKey === cacheKey) {

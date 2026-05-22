@@ -271,6 +271,21 @@ function getRunReportSchema(): CommandSchema {
         description: 'Top N nodes for --adapter-top-by',
       },
       {
+        name: '--adapter-min-bytes',
+        type: TYPE_NUMBER,
+        description: 'Filter adapter metrics by minimum bytes (processed/billed)',
+      },
+      {
+        name: '--adapter-min-slot-ms',
+        type: TYPE_NUMBER,
+        description: 'Filter adapter metrics by minimum slot_ms (BigQuery)',
+      },
+      {
+        name: '--adapter-min-rows-affected',
+        type: TYPE_NUMBER,
+        description: 'Filter adapter metrics by minimum rows_affected',
+      },
+      {
         name: '--node-executions-limit',
         type: TYPE_NUMBER,
         description: 'Cap node_executions in JSON',

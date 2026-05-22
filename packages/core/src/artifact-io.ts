@@ -6,5 +6,6 @@ export {
   assertRemoteObjectWithinByteLimit,
   createRemoteObjectStoreClient,
   DEFAULT_MAX_REMOTE_OBJECT_BYTES,
+  remoteObjectStoreClientCacheKey,
   type RemoteObjectStoreClient,
 } from './io/remote-object-store';

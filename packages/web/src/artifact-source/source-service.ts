@@ -15,6 +15,7 @@ import {
 } from '@dbt-tools/core';
 import {
   createRemoteObjectStoreClient,
+  remoteObjectStoreClientCacheKey,
   type RemoteObjectStoreClient,
 } from '@dbt-tools/core/artifact-io';
 
@@ -164,7 +165,11 @@ export class ArtifactSourceService {
   }
 
   private remoteConfigCacheKey(config: DbtToolsRemoteSourceConfig): string {
-    return `${config.provider}|${config.bucket}|${config.prefix ?? ''}`;
+    return remoteObjectStoreClientCacheKey(
+      config.provider,
+      config.bucket,
+      normalizeArtifactPrefix(config.prefix),
+    );
   }
 
   private async remoteClientForConfig(
