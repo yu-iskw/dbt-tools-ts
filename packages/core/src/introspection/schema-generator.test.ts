@@ -40,6 +40,24 @@ describe('SchemaGenerator', () => {
       expect(schema?.command).toBe('run-summary');
     });
 
+    it('should return schema for run-report command', () => {
+      const schema = getCommandSchema('run-report');
+      expect(schema).not.toBeNull();
+      expect(schema?.command).toBe('run-report');
+    });
+
+    it('should return schema for failures command', () => {
+      const schema = getCommandSchema('failures');
+      expect(schema).not.toBeNull();
+      expect(schema?.command).toBe('failures');
+    });
+
+    it('should return schema for impact command', () => {
+      const schema = getCommandSchema('impact');
+      expect(schema).not.toBeNull();
+      expect(schema?.command).toBe('impact');
+    });
+
     it('should return schema for schema command', () => {
       const schema = getCommandSchema('schema');
       expect(schema).not.toBeNull();
@@ -60,6 +78,9 @@ describe('SchemaGenerator', () => {
       expect(schemas).toHaveProperty('graph');
       expect(schemas).toHaveProperty('query-executions');
       expect(schemas).toHaveProperty('run-summary');
+      expect(schemas).toHaveProperty('run-report');
+      expect(schemas).toHaveProperty('failures');
+      expect(schemas).toHaveProperty('impact');
       expect(schemas).toHaveProperty('schema');
       expect(schemas).toHaveProperty('discover');
       expect(schemas).toHaveProperty('explain');

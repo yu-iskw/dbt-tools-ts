@@ -42,6 +42,9 @@ describe('CLI Integration', () => {
       expect(schemas).toHaveProperty('graph');
       expect(schemas).toHaveProperty('query-executions');
       expect(schemas).toHaveProperty('run-summary');
+      expect(schemas).toHaveProperty('run-report');
+      expect(schemas).toHaveProperty('failures');
+      expect(schemas).toHaveProperty('impact');
       expect(schemas).toHaveProperty('schema');
       expect(schemas).toHaveProperty('inventory');
       expect(schemas).toHaveProperty('timeline');
@@ -73,6 +76,8 @@ describe('CLI Integration', () => {
       expect(schema?.command).toBe('timeline');
       const sortOpt = schema?.options?.find((o) => o.name === '--sort');
       expect(sortOpt?.type).toBe('enum');
+      expect(sortOpt?.values).toContain('slot_ms');
+      expect(sortOpt?.values).toContain('duration');
       const topOpt = schema?.options?.find((o) => o.name === '--top');
       expect(topOpt?.type).toBe('number');
     });

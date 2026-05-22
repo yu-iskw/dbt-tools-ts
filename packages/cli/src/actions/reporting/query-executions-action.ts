@@ -3,6 +3,7 @@ import {
   formatOutput,
   FieldFilter,
   queryExecutions,
+  QueryExecutionsValidationError,
   readValidatedUtf8,
   shouldOutputJSON,
   validateSafePath,
@@ -108,6 +109,27 @@ function formatQueryExecutionsHuman(output: QueryExecutionsOutput): string {
   return lines.join('\n');
 }
 
+function exitQueryExecutionsValidationError(
+  error: QueryExecutionsValidationError,
+  preferStructured: boolean,
+): never {
+  const payload = {
+    error: error.message,
+    ...(error.hint != null ? { hint: error.hint } : {}),
+    ...(error.allowed_sorts != null ? { allowed_sorts: error.allowed_sorts } : {}),
+    ...(error.allowed_min_filters != null
+      ? { allowed_min_filters: error.allowed_min_filters }
+      : {}),
+  };
+  if (preferStructured) {
+    console.error(JSON.stringify(payload, null, 2));
+  } else {
+    console.error(error.message);
+    if (error.hint) console.error(error.hint);
+  }
+  process.exit(1);
+}
+
 export async function queryExecutionsAction(
   options: QueryExecutionsOptions,
   handleError: (error: unknown, preferStructuredErrors: boolean) => void,
@@ -151,6 +173,10 @@ export async function queryExecutionsAction(
       console.log(formatQueryExecutionsHuman(output));
     }
   } catch (error) {
-    handleError(error, shouldOutputJSON(options.json, options.noJson));
+    const preferStructured = shouldOutputJSON(options.json, options.noJson);
+    if (error instanceof QueryExecutionsValidationError) {
+      exitQueryExecutionsValidationError(error, preferStructured);
+    }
+    handleError(error, preferStructured);
   }
 }

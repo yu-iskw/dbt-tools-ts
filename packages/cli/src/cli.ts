@@ -17,6 +17,7 @@ import {
   getAllSchemas,
   exportGraphToFormat,
   writeGraphOutput,
+  type AdapterHeavyMetric,
 } from '@dbt-tools/core';
 import { Command } from 'commander';
 
@@ -33,6 +34,9 @@ import {
   statusAction,
   queryExecutionsAction,
   runSummaryAction,
+  runReportAction,
+  failuresAction,
+  impactAction,
 } from './cli-actions';
 import { resolveCliArtifactPaths } from './internal/cli-artifact-resolve';
 import { registerQueryExecutionsCommand } from './internal/cli-query-executions-register';
@@ -327,6 +331,135 @@ program
       },
     ) => {
       await runSummaryAction(options, handleCliError);
+    },
+  );
+
+program
+  .command('run-report')
+  .description(
+    'Execution summary with optional bottlenecks, adapter metrics, and paginated node_executions',
+  )
+  .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_FIELDS, DESC_FIELDS)
+  .option('--bottlenecks', 'Include slow-node bottleneck section')
+  .option('--bottlenecks-top <n>', 'Top N slow nodes when using --bottlenecks', parseInt)
+  .option(
+    '--bottlenecks-threshold <seconds>',
+    'Nodes slower than threshold (seconds) when using --bottlenecks',
+    parseFloat,
+  )
+  .option('--adapter-summary', 'Include adapter_totals in output')
+  .option(
+    '--adapter-top-by <metric>',
+    'Rank nodes by adapter metric: bytes_billed, bytes_processed, slot_ms, rows_affected, rows_inserted, rows_updated, rows_deleted, rows_duplicated',
+  )
+  .option('--adapter-top-n <n>', 'Top N nodes for --adapter-top-by', parseInt)
+  .option('--adapter-min-bytes <n>', 'Filter adapter metrics by minimum bytes', parseInt)
+  .option('--adapter-min-slot-ms <n>', 'Filter adapter metrics by minimum slot_ms', parseInt)
+  .option(
+    '--adapter-min-rows-affected <n>',
+    'Filter adapter metrics by minimum rows_affected',
+    parseInt,
+  )
+  .option('--node-executions-limit <n>', 'Cap node_executions rows in JSON output', parseInt)
+  .option('--node-executions-offset <n>', 'Skip rows when using --node-executions-limit', parseInt)
+  .option(OPT_JSON, DESC_JSON)
+  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .action(
+    async (
+      options: ArtifactRootFlags & {
+        fields?: string;
+        bottlenecks?: boolean;
+        bottlenecksTop?: number;
+        bottlenecksThreshold?: number;
+        adapterSummary?: boolean;
+        adapterTopBy?: string;
+        adapterTopN?: number;
+        adapterMinBytes?: number;
+        adapterMinSlotMs?: number;
+        adapterMinRowsAffected?: number;
+        nodeExecutionsLimit?: number;
+        nodeExecutionsOffset?: number;
+        json?: boolean;
+        noJson?: boolean;
+      },
+    ) => {
+      await runReportAction(
+        {
+          dbtTarget: options.dbtTarget,
+          fields: options.fields,
+          bottlenecks: options.bottlenecks,
+          bottlenecksTop: options.bottlenecksTop,
+          bottlenecksThreshold: options.bottlenecksThreshold,
+          adapterSummary: options.adapterSummary,
+          adapterTopBy: options.adapterTopBy as AdapterHeavyMetric | undefined,
+          adapterTopN: options.adapterTopN,
+          adapterMinBytes: options.adapterMinBytes,
+          adapterMinSlotMs: options.adapterMinSlotMs,
+          adapterMinRowsAffected: options.adapterMinRowsAffected,
+          nodeExecutionsLimit: options.nodeExecutionsLimit,
+          nodeExecutionsOffset: options.nodeExecutionsOffset,
+          json: options.json,
+          noJson: options.noJson,
+        },
+        handleCliError,
+      );
+    },
+  );
+
+program
+  .command('failures')
+  .description('Bounded list of non-successful run_results rows for triage and agents')
+  .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_FIELDS, DESC_FIELDS)
+  .option('--status <status>', 'Filter by status (comma-separated, e.g. error,warn)')
+  .option(OPT_LIMIT_N, 'Max failures to return (default 50, max 200)', parseInt)
+  .option(OPT_OFFSET_N, DESC_OFFSET_REQUIRES_LIMIT, parseInt)
+  .option('--message-max-chars <n>', 'Truncate message fields (default 4000)', parseInt)
+  .option('--include-path', 'Include resource path fields in output')
+  .option('--include-compiled', 'Include compiled_code in output')
+  .option('--compiled-max-chars <n>', 'Truncate compiled_code (default 8000)', parseInt)
+  .option(OPT_JSON, DESC_JSON)
+  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .action(
+    async (
+      options: ArtifactRootFlags & {
+        fields?: string;
+        status?: string;
+        limit?: number;
+        offset?: number;
+        messageMaxChars?: number;
+        includePath?: boolean;
+        includeCompiled?: boolean;
+        compiledMaxChars?: number;
+        json?: boolean;
+        noJson?: boolean;
+      },
+    ) => {
+      await failuresAction(options, handleCliError);
+    },
+  );
+
+program
+  .command('impact')
+  .description('Intent: upstream/downstream impact counts and critical dependents for a resource')
+  .argument(ARG_RESOURCE, DESC_ARG_RESOURCE_OR_DISCOVER)
+  .option(OPT_FIELDS, DESC_FIELDS)
+  .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_JSON, DESC_JSON)
+  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_TRACE, DESC_TRACE)
+  .action(
+    async (
+      resource: string,
+      options: ArtifactRootFlags & {
+        fields?: string;
+        json?: boolean;
+        noJson?: boolean;
+        trace?: boolean;
+      },
+    ) => {
+      await impactAction(resource, options, handleCliError);
     },
   );
 

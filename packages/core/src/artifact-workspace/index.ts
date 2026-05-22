@@ -192,7 +192,12 @@ function resolveOptionalSearchLimit(limit: number | undefined): number | undefin
 }
 
 function decodeJson(bytes: Uint8Array): Record<string, unknown> {
-  return JSON.parse(Buffer.from(bytes).toString('utf8')) as Record<string, unknown>;
+  try {
+    return JSON.parse(Buffer.from(bytes).toString('utf8')) as Record<string, unknown>;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse artifact JSON: ${detail}`);
+  }
 }
 
 function optionalDecodeJson(bytes: Uint8Array | null): Record<string, unknown> | undefined {
@@ -286,7 +291,9 @@ export class ArtifactWorkspace {
   private loaded: LoadedArtifactWorkspace | null = null;
   private stale = false;
   private lastRefreshError: string | undefined;
-  private refreshPromise: Promise<ArtifactWorkspaceStatus> | null = null;
+  private exclusiveTail: Promise<void> = Promise.resolve();
+  private cachedRemoteClient: RemoteObjectStoreClient | null = null;
+  private cachedRemoteClientKey: string | null = null;
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -300,11 +307,14 @@ export class ArtifactWorkspace {
   }
 
   async setTarget(target: string): Promise<ArtifactWorkspaceStatus> {
+    return this.runExclusive(async () => this.setTargetInternal(target));
+  }
+
+  private async setTargetInternal(target: string): Promise<ArtifactWorkspaceStatus> {
     const trimmed = target.trim();
     if (trimmed === '') {
       throw new Error('target is required.');
     }
-    await this.awaitIdleRefresh();
     this.evictExpired();
     const cacheKey = trimmed;
     const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
@@ -321,31 +331,36 @@ export class ArtifactWorkspace {
     this.selectedRunId = null;
     this.runs = [];
     this.loaded = null;
+    this.clearRemoteClientCache();
     await this.initialize();
     this.syncActiveToCache();
     return this.status();
   }
 
   async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
-    await this.awaitIdleRefresh();
-    this.dbtTarget = null;
-    this.selectedRunId = null;
-    this.runs = [];
-    this.loaded = null;
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    return this.status();
+    return this.runExclusive(async () => {
+      this.dbtTarget = null;
+      this.selectedRunId = null;
+      this.runs = [];
+      this.loaded = null;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      this.clearRemoteClientCache();
+      return this.status();
+    });
   }
 
   async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
-    await this.awaitIdleRefresh();
-    this.targetCache.clear();
-    this.loaded = null;
-    this.runs = [];
-    this.selectedRunId = null;
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    return this.status();
+    return this.runExclusive(async () => {
+      this.targetCache.clear();
+      this.loaded = null;
+      this.runs = [];
+      this.selectedRunId = null;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      this.clearRemoteClientCache();
+      return this.status();
+    });
   }
 
   async initialize(): Promise<void> {
@@ -383,11 +398,7 @@ export class ArtifactWorkspace {
     if (this.dbtTarget == null) {
       return this.status();
     }
-    if (this.refreshPromise != null) return this.refreshPromise;
-    this.refreshPromise = this.refreshIfChangedInternal().finally(() => {
-      this.refreshPromise = null;
-    });
-    return this.refreshPromise;
+    return this.runExclusive(() => this.refreshIfChangedInternal());
   }
 
   async getStatus(): Promise<ArtifactWorkspaceStatus> {
@@ -403,24 +414,31 @@ export class ArtifactWorkspace {
   }
 
   async selectRun(runId: string): Promise<ArtifactWorkspaceStatus> {
-    const source = await this.discoverSource();
-    this.runs = source.runs;
-    const run = this.runs.find((candidate) => candidate.runId === runId);
-    if (run == null) {
-      throw new Error(`Unknown artifact run id: ${runId}`);
-    }
-    this.selectedRunId = runId;
-    this.loaded = await this.loadRun(source, run);
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    this.syncActiveToCache();
-    return this.status();
+    return this.runExclusive(async () => {
+      const source = await this.discoverSource();
+      this.runs = source.runs;
+      const run = this.runs.find((candidate) => candidate.runId === runId);
+      if (run == null) {
+        throw new Error(`Unknown artifact run id: ${runId}`);
+      }
+      this.selectedRunId = runId;
+      this.loaded = await this.loadRun(source, run);
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      this.syncActiveToCache();
+      return this.status();
+    });
   }
 
   async getLoadedWorkspace(): Promise<LoadedArtifactWorkspace> {
-    if (this.loaded == null) {
-      await this.initialize();
+    if (this.loaded != null) {
+      return this.loaded;
     }
+    await this.runExclusive(async () => {
+      if (this.loaded == null) {
+        await this.initialize();
+      }
+    });
     return this.loaded!;
   }
 
@@ -475,11 +493,32 @@ export class ArtifactWorkspace {
     };
   }
 
-  private async awaitIdleRefresh(): Promise<void> {
-    if (this.refreshPromise != null) {
-      await this.refreshPromise;
-      this.refreshPromise = null;
-    }
+  private async runExclusive<T>(operation: () => Promise<T>): Promise<T> {
+    const previous = this.exclusiveTail;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    this.exclusiveTail = previous.then(
+      () => gate,
+      () => gate,
+    );
+    return previous.then(async () => {
+      try {
+        return await operation();
+      } finally {
+        release();
+      }
+    });
+  }
+
+  private clearRemoteClientCache(): void {
+    this.cachedRemoteClient = null;
+    this.cachedRemoteClientKey = null;
+  }
+
+  private remoteClientCacheKey(bucket: string, prefix: string): string {
+    return `${bucket}\0${prefix}`;
   }
 
   private buildCachedTargetsList(): ArtifactWorkspaceCachedTargetRef[] {
@@ -593,8 +632,18 @@ export class ArtifactWorkspace {
       gcsRequestOptions,
       remoteClientOverrides,
     );
-    const client = this.injectedRemoteClient ?? (await createRemoteObjectStoreClient(config));
     const prefix = normalizeArtifactPrefix(config.prefix);
+    const cacheKey = this.remoteClientCacheKey(config.bucket, prefix);
+    let client = this.injectedRemoteClient;
+    if (client == null) {
+      if (this.cachedRemoteClient != null && this.cachedRemoteClientKey === cacheKey) {
+        client = this.cachedRemoteClient;
+      } else {
+        client = await createRemoteObjectStoreClient(config);
+        this.cachedRemoteClient = client;
+        this.cachedRemoteClientKey = cacheKey;
+      }
+    }
     const objects = await client.listObjects(config.bucket, prefix);
     const discovery = discoverArtifactCandidates(remoteKeysToListedArtifacts(objects, prefix));
     dbtToolsDebugLog(`discoverSource remote listed=${objects.length} discoveryOk=${discovery.ok}`);

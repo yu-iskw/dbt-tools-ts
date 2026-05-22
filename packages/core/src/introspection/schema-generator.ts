@@ -222,6 +222,118 @@ function getRunSummarySchema(): CommandSchema {
   };
 }
 
+function getRunReportSchema(): CommandSchema {
+  return {
+    command: 'run-report',
+    description:
+      'Execution summary with optional bottlenecks, adapter metrics, and paginated node_executions',
+    arguments: [],
+    options: [
+      { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
+      {
+        name: '--bottlenecks',
+        type: TYPE_BOOLEAN,
+        description: 'Include slow-node bottleneck section',
+      },
+      {
+        name: '--bottlenecks-top',
+        type: TYPE_NUMBER,
+        description: 'Top N slow nodes when using --bottlenecks',
+      },
+      {
+        name: '--bottlenecks-threshold',
+        type: 'number',
+        description: 'Nodes slower than threshold (seconds) when using --bottlenecks',
+      },
+      {
+        name: '--adapter-summary',
+        type: TYPE_BOOLEAN,
+        description: 'Include adapter_totals in output',
+      },
+      {
+        name: '--adapter-top-by',
+        type: 'enum',
+        values: [
+          'bytes_billed',
+          'bytes_processed',
+          'slot_ms',
+          'rows_affected',
+          'rows_inserted',
+          'rows_updated',
+          'rows_deleted',
+          'rows_duplicated',
+        ],
+        description: 'Rank nodes by adapter metric',
+      },
+      {
+        name: '--adapter-top-n',
+        type: TYPE_NUMBER,
+        description: 'Top N nodes for --adapter-top-by',
+      },
+      {
+        name: '--node-executions-limit',
+        type: TYPE_NUMBER,
+        description: 'Cap node_executions in JSON',
+      },
+      {
+        name: '--node-executions-offset',
+        type: TYPE_NUMBER,
+        description: 'Skip rows with --node-executions-limit',
+      },
+      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
+      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getArtifactRootCliSchemaOptions(),
+    ],
+    output_format: OUTPUT_JSON_OR_HUMAN,
+    example: 'dbt-tools run-report --dbt-target ./target --bottlenecks --json',
+  };
+}
+
+function getFailuresSchema(): CommandSchema {
+  return {
+    command: 'failures',
+    description: 'Bounded list of non-successful run_results rows for triage and agents',
+    arguments: [],
+    options: [
+      { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
+      { name: '--status', type: TYPE_STRING, description: 'Filter by status (comma-separated)' },
+      { name: '--limit', type: TYPE_NUMBER, description: 'Max failures (default 50, max 200)' },
+      { name: '--offset', type: TYPE_NUMBER, description: 'Skip N rows (requires --limit)' },
+      { name: '--message-max-chars', type: TYPE_NUMBER, description: 'Truncate message fields' },
+      { name: '--include-path', type: TYPE_BOOLEAN, description: 'Include resource path fields' },
+      { name: '--include-compiled', type: TYPE_BOOLEAN, description: 'Include compiled_code' },
+      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
+      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getArtifactRootCliSchemaOptions(),
+    ],
+    output_format: OUTPUT_JSON_OR_HUMAN,
+    example: 'dbt-tools failures --dbt-target ./target --limit 20 --json',
+  };
+}
+
+function getImpactSchema(): CommandSchema {
+  return {
+    command: 'impact',
+    description: 'Intent: upstream/downstream impact counts and critical dependents for a resource',
+    arguments: [
+      {
+        name: 'resource',
+        required: true,
+        description: DESC_SCHEMA_ARG_UNIQUE_DISCOVER,
+      },
+    ],
+    options: [
+      { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
+      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
+      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      { name: OPT_TRACE, type: TYPE_BOOLEAN, description: DESC_TRACE },
+      ...getArtifactRootCliSchemaOptions(),
+    ],
+    output_format: OUTPUT_JSON_OR_HUMAN,
+    example: 'dbt-tools impact --dbt-target ./target model.my_pkg.orders --json',
+  };
+}
+
 function getDepsSchemaOptions(): SchemaOption[] {
   return [
     {
@@ -374,9 +486,29 @@ function getTimelineSchema(): CommandSchema {
       {
         name: '--sort',
         type: 'enum',
-        values: ['duration', 'start'],
+        values: [
+          'duration',
+          'start',
+          'query_id',
+          'adapter_code',
+          'adapter_message',
+          'bytes_processed',
+          'bytes_billed',
+          'slot_ms',
+          'rows_affected',
+          'rows_inserted',
+          'rows_updated',
+          'rows_deleted',
+          'rows_duplicated',
+        ],
         default: 'duration',
-        description: 'Sort order for entries',
+        description: 'Sort key for timeline entries',
+      },
+      {
+        name: '--adapter-text',
+        type: TYPE_STRING,
+        description:
+          'Filter by normalized adapter text (query ID, code, message, location, project)',
       },
       {
         name: '--top',
@@ -661,6 +793,9 @@ export function getAllSchemas(): Record<string, CommandSchema> {
     graph: getGraphSchema(),
     'query-executions': getQueryExecutionsSchema(),
     'run-summary': getRunSummarySchema(),
+    'run-report': getRunReportSchema(),
+    failures: getFailuresSchema(),
+    impact: getImpactSchema(),
     deps: getDepsSchema(),
     inventory: getInventorySchema(),
     timeline: getTimelineSchema(),

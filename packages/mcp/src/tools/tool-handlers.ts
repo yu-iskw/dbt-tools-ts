@@ -245,6 +245,11 @@ function targetNotConfiguredResult(): McpJsonToolResult {
   );
 }
 
+function unexpectedToolErrorResult(error: unknown): McpJsonToolResult {
+  const message = error instanceof Error ? error.message : String(error);
+  return jsonResult({ error: message }, { isError: true });
+}
+
 async function withLoadedUseCases(
   useCases: DbtToolsUseCases,
   run: (uc: DbtToolsUseCases) => Promise<unknown>,
@@ -255,7 +260,10 @@ async function withLoadedUseCases(
     if (error instanceof ArtifactTargetNotConfiguredError) {
       return targetNotConfiguredResult();
     }
-    throw error;
+    if (error instanceof QueryExecutionsValidationError) {
+      return validationErrorResult(error);
+    }
+    return unexpectedToolErrorResult(error);
   }
 }
 
@@ -323,18 +331,8 @@ export function createDbtToolsMcpToolHandlers(
     dbt_tools_query_dependencies: async (input: ToolInput): Promise<McpJsonToolResult> =>
       withLoadedUseCases(useCases, (uc) => uc.queryDependencies(queryDependenciesInput(input))),
 
-    dbt_tools_query_executions: async (input: ToolInput): Promise<McpJsonToolResult> => {
-      try {
-        return await withLoadedUseCases(useCases, (uc) =>
-          uc.queryExecutions(queryExecutionsInput(input)),
-        );
-      } catch (error) {
-        if (error instanceof QueryExecutionsValidationError) {
-          return validationErrorResult(error);
-        }
-        throw error;
-      }
-    },
+    dbt_tools_query_executions: async (input: ToolInput): Promise<McpJsonToolResult> =>
+      withLoadedUseCases(useCases, (uc) => uc.queryExecutions(queryExecutionsInput(input))),
 
     dbt_tools_get_run_summary: async (_input: ToolInput): Promise<McpJsonToolResult> =>
       withLoadedUseCases(useCases, (uc) => uc.getRunSummary()),

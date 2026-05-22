@@ -185,6 +185,39 @@ dbt-tools run-summary --dbt-target ./target --json
 
 ---
 
+### run-report
+
+Full **execution summary** including `node_executions`, with optional bottlenecks, adapter metric sections, and JSON pagination via `--node-executions-limit` / `--node-executions-offset`. Works with `run_results.json` alone; manifest enriches node metadata.
+
+```bash
+dbt-tools run-report --dbt-target ./target --json
+dbt-tools run-report --dbt-target ./target --bottlenecks --json
+dbt-tools run-report --dbt-target ./target --adapter-summary --json
+```
+
+---
+
+### failures
+
+Bounded bundle of **non-successful** `run_results` rows for triage (`schema_version`, `next_commands`, paging). Default limit 50 (max 200).
+
+```bash
+dbt-tools failures --dbt-target ./target --json
+dbt-tools failures --dbt-target ./target --status error,warn --limit 20 --json
+```
+
+---
+
+### impact
+
+**Intent** command: upstream/downstream counts and critical dependents for a resource (resolves short names like `discover`). Supports `--trace` and web deep links when `DBT_TOOLS_WEB_BASE_URL` is set.
+
+```bash
+dbt-tools impact --dbt-target ./target model.my_project.customers --json
+```
+
+---
+
 ### deps
 
 Get upstream or downstream dependencies for a dbt resource.

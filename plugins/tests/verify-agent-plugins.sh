@@ -60,6 +60,52 @@ run_structural_verification() {
 	done
 }
 
+verify_primitive_skill_parity() {
+	local -a expected=(
+		bind-target
+		check-session
+		refresh-snapshot
+		find-resources
+		describe-resource
+		trace-dependencies
+		query-executions
+		summarize-run
+	)
+	local cli_skills="${PLUGINS_ROOT}/dbt-tools-cli/skills"
+	local mcp_skills="${PLUGINS_ROOT}/dbt-tools-mcp/skills"
+	local skill name
+
+	for skill in "${expected[@]}"; do
+		[[ -f "${cli_skills}/${skill}/SKILL.md" ]] ||
+			fail "Missing CLI primitive skill: ${skill} (${cli_skills}/${skill}/SKILL.md)"
+		[[ -f "${mcp_skills}/${skill}/SKILL.md" ]] ||
+			fail "Missing MCP primitive skill: ${skill} (${mcp_skills}/${skill}/SKILL.md)"
+	done
+
+	local cli_count mcp_count
+	cli_count="$(find "${cli_skills}" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+	mcp_count="$(find "${mcp_skills}" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+	if [[ ${cli_count} -ne 8 ]]; then
+		fail "dbt-tools-cli must have exactly 8 skill directories (found ${cli_count})"
+	fi
+	if [[ ${mcp_count} -ne 8 ]]; then
+		fail "dbt-tools-mcp must have exactly 8 skill directories (found ${mcp_count})"
+	fi
+
+	for name in "${cli_skills}"/*; do
+		[[ -d ${name} ]] || continue
+		skill="$(basename "${name}")"
+		found=0
+		for expected_skill in "${expected[@]}"; do
+			if [[ ${skill} == "${expected_skill}" ]]; then
+				found=1
+				break
+			fi
+		done
+		((found == 1)) || fail "Unexpected CLI skill directory: ${skill}"
+	done
+}
+
 run_structural_phase() {
 	precheck_marketplace
 	precheck_cursor_marketplace
@@ -69,6 +115,7 @@ run_structural_phase() {
 
 	collect_resolved_plugins
 	cursor_marketplace_matches_codex_resolution
+	verify_primitive_skill_parity
 	run_structural_verification
 
 	echo "verify-agent-plugins: structural verification OK."
