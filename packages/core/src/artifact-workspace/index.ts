@@ -9,6 +9,7 @@ import { normalizeWarehouseAdapterType } from '../analysis/search/warehouse';
 import { buildAnalysisSnapshotFromParsedArtifactBundle } from '../analysis/snapshot';
 import { getRunSummaryFromSnapshot, type RunSummaryOutput } from '../analysis/snapshot/run-summary';
 import {
+  DEFAULT_MAX_CACHED_TARGETS,
   getDbtToolsRemoteClientEnvFromEnv,
   type DbtToolsRemoteClientEnv,
 } from '../config/dbt-tools-env';
@@ -51,6 +52,10 @@ import type { GraphNodeAttributes } from '../types';
 
 export interface ArtifactWorkspaceOptions {
   dbtTarget?: string;
+  /** Max distinct targets to retain parsed in memory. Default 3. 0 = disable cache. */
+  maxCachedTargets?: number;
+  /** Evict cached entries idle longer than this ms. Default 0 (disabled). */
+  cacheTtlMs?: number;
   now?: () => number;
   cwd?: string;
   remoteClient?: RemoteObjectStoreClient;
@@ -73,6 +78,13 @@ export interface ArtifactWorkspaceRunRef {
   versionToken: string;
 }
 
+export interface ArtifactWorkspaceCachedTargetRef {
+  target: string;
+  loadedAtMs: number;
+  versionToken: string;
+  lastAccessedAtMs: number;
+}
+
 export interface ArtifactWorkspaceStatus {
   target: string | null;
   selectedRunId: string | null;
@@ -82,6 +94,9 @@ export interface ArtifactWorkspaceStatus {
   lastRefreshError?: string;
   runs: ArtifactWorkspaceRunRef[];
   warehouse_type?: ReturnType<typeof normalizeWarehouseAdapterType>;
+  cachedTargets?: ArtifactWorkspaceCachedTargetRef[];
+  cachePolicy?: { maxTargets: number; ttlMs: number };
+  fromCache?: boolean;
 }
 
 interface LoadedArtifactWorkspace {
@@ -89,6 +104,13 @@ interface LoadedArtifactWorkspace {
   analysis: AnalysisSnapshot;
   graph: ManifestGraph;
   loadedAtMs: number;
+}
+
+interface CachedTargetEntry {
+  runs: ResolvedArtifactRun[];
+  selectedRunId: string;
+  loaded: LoadedArtifactWorkspace;
+  lastAccessedAtMs: number;
 }
 
 type DiscoveredSource =
@@ -253,9 +275,12 @@ export class ArtifactWorkspace {
   private dbtTarget: string | null;
   private readonly cwd: string;
   private readonly now: () => number;
+  private readonly maxCachedTargets: number;
+  private readonly cacheTtlMs: number;
   private readonly injectedRemoteClient: RemoteObjectStoreClient | undefined;
   private readonly gcsRequestOptions: GcsArtifactSourceRequestOptions | undefined;
   private readonly remoteClientOverrides: RemoteSourceClientOverrides | undefined;
+  private readonly targetCache = new Map<string, CachedTargetEntry>();
   private selectedRunId: string | null = null;
   private runs: ResolvedArtifactRun[] = [];
   private loaded: LoadedArtifactWorkspace | null = null;
@@ -267,6 +292,8 @@ export class ArtifactWorkspace {
     this.dbtTarget = options.dbtTarget ?? null;
     this.cwd = options.cwd ?? process.cwd();
     this.now = options.now ?? Date.now;
+    this.maxCachedTargets = options.maxCachedTargets ?? DEFAULT_MAX_CACHED_TARGETS;
+    this.cacheTtlMs = options.cacheTtlMs ?? 0;
     this.injectedRemoteClient = options.remoteClient;
     this.gcsRequestOptions = options.gcsRequestOptions;
     this.remoteClientOverrides = options.remoteClientOverrides;
@@ -277,17 +304,47 @@ export class ArtifactWorkspace {
     if (trimmed === '') {
       throw new Error('target is required.');
     }
-    if (this.refreshPromise != null) {
-      await this.refreshPromise;
-      this.refreshPromise = null;
-    }
+    await this.awaitIdleRefresh();
+    this.evictExpired();
+    const cacheKey = trimmed;
+    const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
     this.dbtTarget = trimmed;
+    this.stale = false;
+    this.lastRefreshError = undefined;
+    if (cached != null) {
+      this.touchCacheEntry(cacheKey, cached);
+      this.runs = cached.runs;
+      this.selectedRunId = cached.selectedRunId;
+      this.loaded = cached.loaded;
+      return this.status({ fromCache: true });
+    }
+    this.selectedRunId = null;
+    this.runs = [];
+    this.loaded = null;
+    await this.initialize();
+    this.syncActiveToCache();
+    return this.status();
+  }
+
+  async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
+    await this.awaitIdleRefresh();
+    this.dbtTarget = null;
     this.selectedRunId = null;
     this.runs = [];
     this.loaded = null;
     this.stale = false;
     this.lastRefreshError = undefined;
-    await this.initialize();
+    return this.status();
+  }
+
+  async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
+    await this.awaitIdleRefresh();
+    this.targetCache.clear();
+    this.loaded = null;
+    this.runs = [];
+    this.selectedRunId = null;
+    this.stale = false;
+    this.lastRefreshError = undefined;
     return this.status();
   }
 
@@ -318,6 +375,7 @@ export class ArtifactWorkspace {
     this.loaded = await this.loadRun(source, run);
     this.stale = false;
     this.lastRefreshError = undefined;
+    this.syncActiveToCache();
     dbtToolsDebugLogPhase('initialize complete', startedAt, `runId=${run.runId}`);
   }
 
@@ -355,6 +413,7 @@ export class ArtifactWorkspace {
     this.loaded = await this.loadRun(source, run);
     this.stale = false;
     this.lastRefreshError = undefined;
+    this.syncActiveToCache();
     return this.status();
   }
 
@@ -387,6 +446,7 @@ export class ArtifactWorkspace {
       this.loaded = await this.loadRun(source, run);
       this.stale = false;
       this.lastRefreshError = undefined;
+      this.syncActiveToCache();
     } catch (error) {
       this.stale = true;
       this.lastRefreshError = error instanceof Error ? error.message : String(error);
@@ -394,11 +454,12 @@ export class ArtifactWorkspace {
     return this.status();
   }
 
-  private status(): ArtifactWorkspaceStatus {
+  private status(options?: { fromCache?: boolean }): ArtifactWorkspaceStatus {
     const warehouseType =
       this.loaded?.analysis.warehouseType != null
         ? normalizeWarehouseAdapterType(this.loaded.analysis.warehouseType)
         : undefined;
+    const cachedTargets = this.buildCachedTargetsList();
     return {
       target: this.dbtTarget,
       selectedRunId: this.selectedRunId,
@@ -408,7 +469,71 @@ export class ArtifactWorkspace {
       runs: this.runs.map((run) => ({ runId: run.runId, versionToken: run.versionToken })),
       ...(warehouseType != null ? { warehouse_type: warehouseType } : {}),
       ...(this.lastRefreshError != null ? { lastRefreshError: this.lastRefreshError } : {}),
+      ...(cachedTargets.length > 0 ? { cachedTargets } : {}),
+      cachePolicy: { maxTargets: this.maxCachedTargets, ttlMs: this.cacheTtlMs },
+      ...(options?.fromCache === true ? { fromCache: true } : {}),
     };
+  }
+
+  private async awaitIdleRefresh(): Promise<void> {
+    if (this.refreshPromise != null) {
+      await this.refreshPromise;
+      this.refreshPromise = null;
+    }
+  }
+
+  private buildCachedTargetsList(): ArtifactWorkspaceCachedTargetRef[] {
+    return [...this.targetCache.entries()].map(([target, entry]) => ({
+      target,
+      loadedAtMs: entry.loaded.loadedAtMs,
+      versionToken: entry.loaded.run.versionToken,
+      lastAccessedAtMs: entry.lastAccessedAtMs,
+    }));
+  }
+
+  private evictExpired(): void {
+    if (this.cacheTtlMs <= 0) return;
+    const now = this.now();
+    for (const [key, entry] of this.targetCache) {
+      if (now - entry.lastAccessedAtMs > this.cacheTtlMs) {
+        this.targetCache.delete(key);
+      }
+    }
+  }
+
+  private touchCacheEntry(cacheKey: string, entry: CachedTargetEntry): void {
+    const now = this.now();
+    entry.lastAccessedAtMs = now;
+    this.targetCache.delete(cacheKey);
+    this.targetCache.set(cacheKey, entry);
+  }
+
+  private putCacheEntry(cacheKey: string, entry: CachedTargetEntry): void {
+    if (this.maxCachedTargets <= 0) return;
+    this.targetCache.delete(cacheKey);
+    this.targetCache.set(cacheKey, entry);
+    while (this.targetCache.size > this.maxCachedTargets) {
+      const oldest = this.targetCache.keys().next().value;
+      if (oldest != null) {
+        this.targetCache.delete(oldest);
+      }
+    }
+  }
+
+  private syncActiveToCache(): void {
+    if (this.maxCachedTargets <= 0 || this.dbtTarget == null || this.loaded == null) {
+      return;
+    }
+    if (this.selectedRunId == null) return;
+    const cacheKey = this.dbtTarget;
+    const now = this.now();
+    const entry: CachedTargetEntry = {
+      runs: this.runs,
+      selectedRunId: this.selectedRunId,
+      loaded: this.loaded,
+      lastAccessedAtMs: now,
+    };
+    this.putCacheEntry(cacheKey, entry);
   }
 
   private resolveSelectedRun(): ResolvedArtifactRun | null {

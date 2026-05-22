@@ -35,6 +35,23 @@ class FakeWorkspaceControl implements ArtifactWorkspaceControl {
     this.status = { ...this.status, target, loadedAtMs: 300 };
     return this.status;
   }
+
+  async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
+    this.status = {
+      ...this.status,
+      target: null,
+      loadedAtMs: null,
+      selectedRunId: null,
+      versionToken: null,
+      runs: [],
+    };
+    return this.status;
+  }
+
+  async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
+    this.status = { ...this.status, loadedAtMs: null, cachedTargets: undefined };
+    return this.status;
+  }
 }
 
 class FakeUseCases implements DbtToolsUseCases {

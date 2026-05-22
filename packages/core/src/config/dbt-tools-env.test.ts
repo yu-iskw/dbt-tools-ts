@@ -9,6 +9,10 @@ import {
 } from '../util/typed-map';
 
 import {
+  getDbtToolsCacheTtlMsFromEnv,
+  getDbtToolsMaxCachedTargetsFromEnv,
+  optionalCacheTtlMsFromEnv,
+  optionalMaxCachedTargetsFromEnv,
   getDbtToolsReloadDebounceMs,
   getDbtToolsRemoteClientEnvFromEnv,
   getDbtToolsTargetDirFromEnv,
@@ -16,6 +20,8 @@ import {
   isDbtToolsWatchEnabled,
   resetDbtToolsEnvDeprecationWarningsForTests,
 } from './dbt-tools-env';
+
+const CACHE_KEYS = ['DBT_TOOLS_MAX_CACHED_TARGETS', 'DBT_TOOLS_CACHE_TTL_MS'] as const;
 
 const TARGET_KEYS = ['DBT_TOOLS_TARGET_DIR', 'DBT_TARGET_DIR', 'DBT_TARGET'] as const;
 const DEBUG_KEYS = ['DBT_TOOLS_DEBUG', 'DBT_DEBUG'] as const;
@@ -221,6 +227,46 @@ describe('dbt-tools-env', () => {
           endpoint: 'https://s3.local',
         },
       });
+    });
+  });
+
+  describe('artifact workspace cache env', () => {
+    let prev: Record<string, string | undefined>;
+
+    beforeEach(() => {
+      prev = clearKeys(CACHE_KEYS);
+    });
+
+    afterEach(() => {
+      restoreKeys(prev);
+    });
+
+    it('defaults max cached targets to 3', () => {
+      expect(getDbtToolsMaxCachedTargetsFromEnv()).toBe(3);
+    });
+
+    it('reads max cached targets from env', () => {
+      process.env.DBT_TOOLS_MAX_CACHED_TARGETS = '0';
+      expect(getDbtToolsMaxCachedTargetsFromEnv()).toBe(0);
+    });
+
+    it('defaults cache TTL to 0', () => {
+      expect(getDbtToolsCacheTtlMsFromEnv()).toBe(0);
+    });
+
+    it('reads cache TTL from env', () => {
+      process.env.DBT_TOOLS_CACHE_TTL_MS = '60000';
+      expect(getDbtToolsCacheTtlMsFromEnv()).toBe(60000);
+    });
+
+    it('optional readers return undefined when env is unset', () => {
+      expect(optionalMaxCachedTargetsFromEnv({})).toBeUndefined();
+      expect(optionalCacheTtlMsFromEnv({})).toBeUndefined();
+    });
+
+    it('optional readers parse explicit env records', () => {
+      expect(optionalMaxCachedTargetsFromEnv({ DBT_TOOLS_MAX_CACHED_TARGETS: '5' })).toBe(5);
+      expect(optionalCacheTtlMsFromEnv({ DBT_TOOLS_CACHE_TTL_MS: '120000' })).toBe(120000);
     });
   });
 });

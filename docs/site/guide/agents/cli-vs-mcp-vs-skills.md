@@ -19,6 +19,7 @@ dbt-tools exposes three complementary layers. They are not interchangeable—pic
 ## MCP
 
 - Use when parse cost dominates (large manifest, remote S3/GCS target) and the client issues **many** queries.
+- Long sessions can cache up to **three** parsed artifact roots by default; switch with repeated `dbt_tools_set_target` (no extra plugin skills—see [MCP tools](../../reference/mcp-tools.md)).
 - Configure clients to launch `dbt-tools-mcp` with the same artifact root as CLI.
 - See [Connecting clients](../mcp/connecting-clients.md) and [dbt-tools-mcp plugin README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/plugins/dbt-tools-mcp/README.md).
 

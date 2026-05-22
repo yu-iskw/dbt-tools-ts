@@ -62,6 +62,7 @@ Install and configure skills: [Install agent skills](../guide/agents/install.md)
 Example skill invocations:
 
 - `dbt-tools-cli:check-session` — check artifact health
+- `dbt-tools-mcp:bind-target` / `dbt_tools_set_target` — bind artifact root; repeat for another tag slice; `dbt_tools_clear_cached_targets` when done
 - `dbt-tools-cli:find-resources` — search for a model by name
 - `dbt-tools-cli:describe-resource` — explain a model or test
 - `dbt-tools-cli:trace-dependencies` — find upstream or downstream deps

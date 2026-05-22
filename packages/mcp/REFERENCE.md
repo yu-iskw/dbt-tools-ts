@@ -12,6 +12,8 @@ Usage: dbt-tools-mcp [--dbt-target <path|s3://bucket/prefix|gs://bucket/prefix>]
 | ------------------------------------------- | -------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--dbt-target <target>`                     | No\*     | `DBT_TOOLS_DBT_TARGET`                                        | Local directory, or `s3://bucket/prefix`, or `gs://bucket/prefix`. Omit to set via **`dbt_tools_set_target`**.                                             |
 | `--poll-interval-ms <ms>`                   | No       | _(none — set in MCP `args` only)_                             | Non-negative integer. If **> 0**, runs a background timer that calls `refreshIfChanged()` on that interval (errors are swallowed). Omit or `0` to disable. |
+| `--max-cached-targets <n>`                  | No       | `DBT_TOOLS_MAX_CACHED_TARGETS`                                | Max parsed artifact roots kept in memory (default **3**). **`0`** disables caching (always reload on `set_target`).                                        |
+| `--cache-ttl-ms <ms>`                       | No       | `DBT_TOOLS_CACHE_TTL_MS`                                      | Evict cached roots idle longer than **n** ms (default **0**, disabled).                                                                                    |
 | `--gcs-project-id <id>`                     | No       | `DBT_TOOLS_GCS_PROJECT_ID`                                    | GCS client project ID (`gs://` targets only)                                                                                                               |
 | `--gcs-impersonate-service-account <email>` | No       | `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT`                   | GCS read-only impersonation principal (`gs://` targets only)                                                                                               |
 | `--s3-region <region>`                      | No       | `DBT_TOOLS_S3_REGION` (credentials may also use `AWS_REGION`) | S3 region (`s3://` targets only)                                                                                                                           |
@@ -43,6 +45,8 @@ Configuration errors for invalid CLI flags print to **stderr** and exit **1** be
 | `DBT_TOOLS_S3_REGION`                       | S3 region (`s3://` targets)                                                                                              |
 | `DBT_TOOLS_S3_ENDPOINT`                     | S3-compatible endpoint URL (`s3://` targets)                                                                             |
 | `DBT_TOOLS_DEBUG`                           | Set to **`1`** for phased progress logs on **stderr** (GCS/S3 list, download, parse). Safe for MCP; never log to stdout. |
+| `DBT_TOOLS_MAX_CACHED_TARGETS`              | LRU capacity for in-memory multi-target cache (default **3**; **0** disables)                                            |
+| `DBT_TOOLS_CACHE_TTL_MS`                    | Idle TTL for cached targets in ms (default **0**, disabled)                                                              |
 | AWS / GCP standard vars                     | Credentials for remote targets, e.g. `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_PROFILE`, `GOOGLE_APPLICATION_CREDENTIALS`  |
 
 ### Not used by MCP
@@ -154,7 +158,11 @@ sequenceDiagram
   MCP->>WS: getStatus
   WS-->>Agent: target_may_be_null
   Agent->>MCP: dbt_tools_set_target
-  MCP->>WS: setTarget_and_initialize
+  alt cache_hit
+    MCP->>WS: restore_cached_snapshot
+  else cache_miss
+    MCP->>WS: setTarget_and_initialize
+  end
   Agent->>MCP: dbt_tools_refresh
   MCP->>WS: refreshIfChanged
   alt versionToken_changed
@@ -181,7 +189,17 @@ Example shape (fields may be `null` before load):
   "loadedAtMs": 1710000000000,
   "stale": false,
   "runs": [{ "runId": "current", "versionToken": "abc123" }],
-  "warehouse_type": "bigquery"
+  "warehouse_type": "bigquery",
+  "fromCache": true,
+  "cachePolicy": { "maxTargets": 3, "ttlMs": 0 },
+  "cachedTargets": [
+    {
+      "target": "s3://bucket/dbt/tag-a",
+      "loadedAtMs": 1710000000000,
+      "versionToken": "abc123",
+      "lastAccessedAtMs": 1710000001000
+    }
+  ]
 }
 ```
 
@@ -195,6 +213,9 @@ Example shape (fields may be `null` before load):
 | `lastRefreshError` | Present when `stale` is true                                              |
 | `runs`             | Discovered runs (replaces separate `list_runs` tool)                      |
 | `warehouse_type`   | Adapter type for warehouse-scoped execution queries                       |
+| `fromCache`        | Present on `set_target` when the snapshot was restored from LRU cache     |
+| `cachePolicy`      | Active `maxTargets` and `ttlMs` for the workspace                         |
+| `cachedTargets`    | Other roots still held in memory (when caching is enabled)                |
 
 ## Breaking migration (v2)
 
@@ -209,18 +230,20 @@ Example shape (fields may be `null` before load):
 
 ## Agent recipes
 
-| Scenario         | Chain                                                       |
-| ---------------- | ----------------------------------------------------------- |
-| New MCP session  | `status` → `set_target` → triage                            |
-| Post-run triage  | `status` → `query_executions` (`status`) → `get_resource`   |
-| Slowest nodes    | `status` → `query_executions` (`sort: execution_time_desc`) |
-| Blast radius     | `query_dependencies` (`direction: downstream`)              |
-| BQ slot leaders  | `query_executions` + `bigquery: { sort: slot_ms_desc }`     |
-| New CI artifacts | `refresh` → triage / slowest                                |
+| Scenario                | Chain                                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------------------------- |
+| New MCP session         | `status` → `set_target` → triage                                                                   |
+| Post-run triage         | `status` → `query_executions` (`status`) → `get_resource`                                          |
+| Slowest nodes           | `status` → `query_executions` (`sort: execution_time_desc`)                                        |
+| Blast radius            | `query_dependencies` (`direction: downstream`)                                                     |
+| BQ slot leaders         | `query_executions` + `bigquery: { sort: slot_ms_desc }`                                            |
+| New CI artifacts        | `refresh` → triage / slowest                                                                       |
+| Multiple tag slices     | `set_target` per prefix; repeat `set_target` is fast when cached; `clear_cached_targets` when done |
+| Free memory, keep cache | `unset_target` (drops active binding; LRU entries remain)                                          |
 
 ## MCP tools reference
 
-Eight tools. Each returns **JSON** in text `content` and **`structuredContent`** (same payload). Validation errors set **`isError: true`** with `hint` and optional `allowed_sorts`.
+Ten tools. Each returns **JSON** in text `content` and **`structuredContent`** (same payload). Validation errors set **`isError: true`** with `hint` and optional `allowed_sorts`.
 
 ### `dbt_tools_status`
 
@@ -238,7 +261,23 @@ Set or change the dbt artifact root. Does **not** accept GCS impersonation or S3
 | -------- | ---------------- | -------------------------------------------- |
 | `target` | string, required | Local path, `s3://bucket/prefix`, or `gs://` |
 
-Returns the same status shape as `dbt_tools_status` on success. On failure, `isError: true` with `error` (and discovery detail in the message).
+Returns the same status shape as `dbt_tools_status` on success. On failure, `isError: true` with `error` (and discovery detail in the message). When the target was loaded recently and is still in the LRU cache, `fromCache: true` and `loadedAtMs` reflect the original load time (no re-download or re-parse).
+
+### `dbt_tools_unset_target`
+
+Clear the active artifact target binding. **Retains** in-memory cached targets for fast re-bind. Does not delete remote or local artifact files.
+
+| Input    | Type | Notes                             |
+| -------- | ---- | --------------------------------- |
+| _(none)_ |      | Returns status shape (see above). |
+
+### `dbt_tools_clear_cached_targets`
+
+Drop all in-memory parsed artifact caches and clear the active loaded snapshot. The active `target` string may remain set; the next analysis tool call reloads from disk or remote. Does not delete artifact files.
+
+| Input    | Type | Notes                             |
+| -------- | ---- | --------------------------------- |
+| _(none)_ |      | Returns status shape (see above). |
 
 ### `dbt_tools_refresh`
 

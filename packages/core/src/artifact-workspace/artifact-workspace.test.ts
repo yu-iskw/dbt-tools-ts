@@ -211,4 +211,118 @@ describe('ArtifactWorkspace', () => {
       await rmValidated(dirB, { recursive: true, force: true });
     }
   });
+
+  it('serves setTarget from cache when switching back within LRU capacity', async () => {
+    const dirA = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-cache-a-'));
+    const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-cache-b-'));
+    try {
+      await writeArtifacts(dirA);
+      await writeArtifacts(dirB);
+      let now = 100;
+      const workspace = new ArtifactWorkspace({
+        maxCachedTargets: 2,
+        now: () => now,
+      });
+
+      const first = await workspace.setTarget(dirA);
+      now = 200;
+      await workspace.setTarget(dirB);
+      now = 300;
+      const third = await workspace.setTarget(dirA);
+
+      expect(first.loadedAtMs).toBe(100);
+      expect(third.fromCache).toBe(true);
+      expect(third.loadedAtMs).toBe(100);
+      expect(third.cachedTargets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ target: dirA, loadedAtMs: 100 }),
+          expect.objectContaining({ target: dirB, loadedAtMs: 200 }),
+        ]),
+      );
+    } finally {
+      await rmValidated(dirA, { recursive: true, force: true });
+      await rmValidated(dirB, { recursive: true, force: true });
+    }
+  });
+
+  it('reloads when LRU capacity evicts a prior target', async () => {
+    const dirA = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-lru-a-'));
+    const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-lru-b-'));
+    try {
+      await writeArtifacts(dirA);
+      await writeArtifacts(dirB);
+      let now = 100;
+      const workspace = new ArtifactWorkspace({
+        maxCachedTargets: 1,
+        now: () => now,
+      });
+
+      await workspace.setTarget(dirA);
+      now = 200;
+      await workspace.setTarget(dirB);
+      now = 300;
+      const third = await workspace.setTarget(dirA);
+
+      expect(third.fromCache).toBeUndefined();
+      expect(third.loadedAtMs).toBe(300);
+    } finally {
+      await rmValidated(dirA, { recursive: true, force: true });
+      await rmValidated(dirB, { recursive: true, force: true });
+    }
+  });
+
+  it('reloads after cache TTL expires', async () => {
+    await writeArtifacts(tempDir);
+    let now = 1000;
+    const workspace = new ArtifactWorkspace({
+      maxCachedTargets: 2,
+      cacheTtlMs: 1000,
+      now: () => now,
+    });
+
+    const first = await workspace.setTarget(tempDir);
+    now = 2500;
+    const second = await workspace.setTarget(tempDir);
+
+    expect(first.loadedAtMs).toBe(1000);
+    expect(second.fromCache).toBeUndefined();
+    expect(second.loadedAtMs).toBe(2500);
+  });
+
+  it('unsetTarget clears active binding but retains cache', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 123 });
+    await workspace.setTarget(tempDir);
+
+    const status = await workspace.unsetTarget();
+
+    expect(status.target).toBeNull();
+    expect(status.loadedAtMs).toBeNull();
+    expect(status.cachedTargets).toEqual([
+      expect.objectContaining({ target: tempDir, loadedAtMs: 123 }),
+    ]);
+    await expect(workspace.getLoadedWorkspace()).rejects.toBeInstanceOf(
+      ArtifactTargetNotConfiguredError,
+    );
+  });
+
+  it('clearCachedTargets drops cache and active loaded state', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 123 });
+    await workspace.setTarget(tempDir);
+
+    const status = await workspace.clearCachedTargets();
+
+    expect(status.cachedTargets).toBeUndefined();
+    expect(status.loadedAtMs).toBeNull();
+    expect(status.runs).toEqual([]);
+    expect(status.target).toBe(tempDir);
+
+    const useCases = createDbtToolsUseCases(workspace);
+    await expect(useCases.searchResources({ query: 'customers', limit: 1 })).resolves.toMatchObject(
+      { total: expect.any(Number) },
+    );
+    const afterSearch = await workspace.getStatus();
+    expect(afterSearch.loadedAtMs).toBe(123);
+  });
 });

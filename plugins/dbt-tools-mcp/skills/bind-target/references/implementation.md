@@ -8,7 +8,7 @@
 
 1. Call `dbt_tools_status` (no args).
 2. If `target` is `null`, call `dbt_tools_set_target` with the user's artifact root.
-3. On success, response matches status shape (`loadedAtMs`, `runs[]`, etc.).
+3. On success, response matches status shape (`loadedAtMs`, `runs[]`, etc.). Repeating `set_target` for the same root may return `fromCache: true` when the server still holds that root in its LRU cache.
 
 ## Examples
 

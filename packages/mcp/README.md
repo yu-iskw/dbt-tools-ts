@@ -144,19 +144,22 @@ Then call **`dbt_tools_set_target`** with `{ "target": "./target" }` or a remote
 6. **`dbt_tools_query_executions`** — ranked/filtered executions (warehouse block for adapter metrics)
 7. **`dbt_tools_get_run_summary`** — totals and bottlenecks without a node list
 8. **`dbt_tools_refresh`** — after a new dbt run uploads artifacts (or rely on `--poll-interval-ms`)
+9. **`dbt_tools_unset_target`** / **`dbt_tools_clear_cached_targets`** — when switching tag slices or freeing memory (see [REFERENCE.md](REFERENCE.md#lifecycle-and-refresh))
 
-## Tools (8)
+## Tools (10)
 
-| Tool                           | Summary                                     |
-| ------------------------------ | ------------------------------------------- |
-| `dbt_tools_status`             | Target, runs[], warehouse_type, stale state |
-| `dbt_tools_set_target`         | Set or change artifact root (path/URI only) |
-| `dbt_tools_refresh`            | Reload if artifacts changed                 |
-| `dbt_tools_search_resources`   | Catalog search                              |
-| `dbt_tools_get_resource`       | One resource by `unique_id`                 |
-| `dbt_tools_query_dependencies` | Upstream/downstream dependencies            |
-| `dbt_tools_query_executions`   | Filter/sort run executions                  |
-| `dbt_tools_get_run_summary`    | Run aggregates (no node list)               |
+| Tool                             | Summary                                     |
+| -------------------------------- | ------------------------------------------- |
+| `dbt_tools_status`               | Target, runs[], warehouse_type, stale state |
+| `dbt_tools_set_target`           | Set or change artifact root (path/URI only) |
+| `dbt_tools_unset_target`         | Clear active target; keep LRU cache         |
+| `dbt_tools_clear_cached_targets` | Drop all in-memory parsed caches            |
+| `dbt_tools_refresh`              | Reload if artifacts changed                 |
+| `dbt_tools_search_resources`     | Catalog search                              |
+| `dbt_tools_get_resource`         | One resource by `unique_id`                 |
+| `dbt_tools_query_dependencies`   | Upstream/downstream dependencies            |
+| `dbt_tools_query_executions`     | Filter/sort run executions                  |
+| `dbt_tools_get_run_summary`      | Run aggregates (no node list)               |
 
 Parameters, defaults, and pagination limits: **[REFERENCE.md](REFERENCE.md#mcp-tools-reference)**.
 
@@ -175,3 +178,5 @@ More symptoms: **[REFERENCE.md](REFERENCE.md#troubleshooting)**.
 ## Design notes
 
 The MCP package is intentionally thin. Shared artifact lifecycle, query semantics, pagination contracts, and output types live in `@dbt-tools/core`; this package adapts those use cases to MCP stdio transport and JSON tool responses.
+
+**Multi-target cache:** `ArtifactWorkspace` keeps up to **three** parsed artifact roots in memory by default (`DBT_TOOLS_MAX_CACHED_TARGETS`, `--max-cached-targets`). Repeating `dbt_tools_set_target` for a recent root skips download/parse when the entry is still cached. Background poll and `dbt_tools_refresh` only touch the **active** target.

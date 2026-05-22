@@ -14,6 +14,11 @@ export * from './analysis/snapshot';
 
 // Config exports (Node; not re-exported from browser entry)
 export {
+  DEFAULT_MAX_CACHED_TARGETS,
+  getDbtToolsCacheTtlMsFromEnv,
+  getDbtToolsMaxCachedTargetsFromEnv,
+  optionalCacheTtlMsFromEnv,
+  optionalMaxCachedTargetsFromEnv,
   getDbtToolsTargetDirFromEnv,
   getDbtToolsDbtTargetFromEnv,
   getDbtToolsReloadDebounceMs,

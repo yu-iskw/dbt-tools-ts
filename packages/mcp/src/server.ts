@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-import { dbtToolsDebugLog } from '@dbt-tools/core';
+import {
+  dbtToolsDebugLog,
+  getDbtToolsCacheTtlMsFromEnv,
+  getDbtToolsMaxCachedTargetsFromEnv,
+} from '@dbt-tools/core';
 import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -63,6 +67,8 @@ export async function createDbtToolsMcpStack(
   const remoteClientOverrides = remoteClientOverridesFromOptions(options);
   const workspace = new ArtifactWorkspace({
     ...(options.dbtTarget != null ? { dbtTarget: options.dbtTarget } : {}),
+    maxCachedTargets: options.maxCachedTargets ?? getDbtToolsMaxCachedTargetsFromEnv(),
+    cacheTtlMs: options.cacheTtlMs ?? getDbtToolsCacheTtlMsFromEnv(),
     ...(options.gcsImpersonateServiceAccount != null
       ? { gcsRequestOptions: { impersonatedServiceAccount: options.gcsImpersonateServiceAccount } }
       : {}),

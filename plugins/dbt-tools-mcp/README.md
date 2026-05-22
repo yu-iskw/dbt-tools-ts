@@ -17,7 +17,7 @@ First-party plugin with **primitive agent skills** for [`@dbt-tools/mcp`](../../
 }
 ```
 
-No `DBT_TOOLS_*` env in the bundle. Agents set the artifact root with **`dbt_tools_set_target`** (see [`bind-target`](skills/bind-target/SKILL.md)).
+No `DBT_TOOLS_*` env in the bundle. Agents set the artifact root with **`dbt_tools_set_target`** (see [`bind-target`](skills/bind-target/SKILL.md)). The MCP server caches up to **three** parsed roots in memory by default so switching between tag-sliced artifact prefixes is faster on repeat `set_target`.
 
 ## Skill handles (FQH)
 

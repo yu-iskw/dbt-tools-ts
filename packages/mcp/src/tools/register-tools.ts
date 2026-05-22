@@ -116,6 +116,30 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
   );
 
   server.registerTool(
+    'dbt_tools_unset_target',
+    {
+      title: 'dbt-tools unset target',
+      description:
+        'Clear the active artifact target binding. Retains in-memory cached targets. Does not delete artifact files.',
+      inputSchema: emptySchema,
+      annotations: { readOnlyHint: false, idempotentHint: true },
+    },
+    handlers.dbt_tools_unset_target,
+  );
+
+  server.registerTool(
+    'dbt_tools_clear_cached_targets',
+    {
+      title: 'dbt-tools clear cached targets',
+      description:
+        'Drop all in-memory parsed artifact caches and clear the active loaded snapshot. Does not delete remote or local artifact files.',
+      inputSchema: emptySchema,
+      annotations: { readOnlyHint: false, idempotentHint: true },
+    },
+    handlers.dbt_tools_clear_cached_targets,
+  );
+
+  server.registerTool(
     'dbt_tools_refresh',
     {
       title: 'dbt-tools refresh',

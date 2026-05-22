@@ -72,6 +72,24 @@ describe('parseMcpServerOptions', () => {
     expect(() => parseMcpServerOptions(['--max-cached-runs', '1'], {})).toThrow(/Unknown option/i);
   });
 
+  it('parses cache sizing flags and env overrides', () => {
+    expect(
+      parseMcpServerOptions(['--max-cached-targets', '3', '--cache-ttl-ms', '60000'], {}),
+    ).toEqual({
+      maxCachedTargets: 3,
+      cacheTtlMs: 60000,
+    });
+    expect(
+      parseMcpServerOptions([], {
+        DBT_TOOLS_MAX_CACHED_TARGETS: '0',
+        DBT_TOOLS_CACHE_TTL_MS: '120000',
+      }),
+    ).toEqual({
+      maxCachedTargets: 0,
+      cacheTtlMs: 120000,
+    });
+  });
+
   it('throws when remote flags are used with a local target', () => {
     expect(() =>
       parseMcpServerOptions(['--dbt-target', './target', '--gcs-project-id', 'p'], {}),

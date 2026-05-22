@@ -172,3 +172,44 @@ export function getDbtToolsWebBaseUrlFromEnv(): string | undefined {
   const u = trimEnv(process.env.DBT_TOOLS_WEB_BASE_URL);
   return u === undefined ? undefined : u.replace(/\/$/, '');
 }
+
+/** Default LRU capacity for MCP multi-target in-memory artifact cache. */
+export const DEFAULT_MAX_CACHED_TARGETS = 3;
+
+export type DbtToolsEnvRecord = Record<string, string | undefined>;
+
+function parseNonNegativeIntegerEnv(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0) return undefined;
+  return parsed;
+}
+
+/** When set in env, overrides default; omitted means caller applies {@link DEFAULT_MAX_CACHED_TARGETS}. */
+export function optionalMaxCachedTargetsFromEnv(
+  env: DbtToolsEnvRecord = process.env,
+): number | undefined {
+  return parseNonNegativeIntegerEnv(trimEnv(env.DBT_TOOLS_MAX_CACHED_TARGETS));
+}
+
+/** When set in env, enables idle TTL eviction; omitted means caller treats as disabled (0). */
+export function optionalCacheTtlMsFromEnv(
+  env: DbtToolsEnvRecord = process.env,
+): number | undefined {
+  return parseNonNegativeIntegerEnv(trimEnv(env.DBT_TOOLS_CACHE_TTL_MS));
+}
+
+/**
+ * Max distinct artifact roots to retain parsed in memory (MCP multi-target cache).
+ * Default 3 when unset; 0 disables caching.
+ */
+export function getDbtToolsMaxCachedTargetsFromEnv(): number {
+  return optionalMaxCachedTargetsFromEnv(process.env) ?? DEFAULT_MAX_CACHED_TARGETS;
+}
+
+/**
+ * Evict cached artifact roots idle longer than this many ms. Default 0 (disabled).
+ */
+export function getDbtToolsCacheTtlMsFromEnv(): number {
+  return optionalCacheTtlMsFromEnv(process.env) ?? 0;
+}

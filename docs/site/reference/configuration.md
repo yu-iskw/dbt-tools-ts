@@ -16,6 +16,8 @@ Remote setup details (including GCS impersonation): [Local and remote artifacts]
 | `DBT_TOOLS_TARGET_DIR`                      | —   | —   | yes | Local artifact directory for web server                                     |
 | `DBT_TOOLS_WEB_BASE_URL`                    | yes | —   | —   | Base URL for `web_url` in CLI JSON ([deep links](./deep-links.md))          |
 | `DBT_TOOLS_DEBUG`                           | yes | yes | yes | Set `1` for debug/progress logs on stderr                                   |
+| `DBT_TOOLS_MAX_CACHED_TARGETS`              | —   | yes | —   | MCP LRU capacity for parsed artifact roots (default **3**; **0** disables)  |
+| `DBT_TOOLS_CACHE_TTL_MS`                    | —   | yes | —   | MCP idle TTL to evict cached roots (default **0**, disabled)                |
 | `DBT_TOOLS_WATCH`                           | —   | —   | dev | Vite dev file watch (`0` disables)                                          |
 | `DBT_TOOLS_RELOAD_DEBOUNCE_MS`              | —   | —   | dev | Vite dev reload debounce (ms)                                               |
 
@@ -34,7 +36,7 @@ Use with `s3://` or `gs://` in `DBT_TOOLS_DBT_TARGET` / `--dbt-target`:
 | `DBT_TOOLS_S3_REGION`                       | S3 region                                    |
 | `DBT_TOOLS_S3_ENDPOINT`                     | Custom S3-compatible endpoint                |
 
-**MCP and web** startup flags: `--dbt-target`, `--gcs-project-id`, `--gcs-impersonate-service-account`, `--s3-region`, `--s3-endpoint`, `-V` / `--version` (flags override env when both are set). See [MCP tools](./mcp-tools.md), [Web server CLI](./web-cli.md), and [`packages/web/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md).
+**MCP and web** startup flags: `--dbt-target`, `--gcs-project-id`, `--gcs-impersonate-service-account`, `--s3-region`, `--s3-endpoint`, `-V` / `--version` (flags override env when both are set). MCP also supports `--poll-interval-ms`, `--max-cached-targets`, and `--cache-ttl-ms` (see [MCP tools](./mcp-tools.md)). See [Web server CLI](./web-cli.md) and [`packages/web/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md).
 
 You can also switch remote sources in the web **Load artifacts** panel after startup (see [Local and remote artifacts](../concepts/local-and-remote-artifacts.md)).
 

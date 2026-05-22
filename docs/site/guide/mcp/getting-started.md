@@ -22,6 +22,19 @@ dbt-tools-mcp --dbt-target ./target
 
 Configure your MCP client to launch `dbt-tools-mcp` with the same `--dbt-target` (or `DBT_TOOLS_DBT_TARGET`).
 
+## Multiple artifact roots (tag slices)
+
+One MCP process can investigate **several artifact prefixes** in a long session (for example mutually exclusive dbt tags with separate `target/` uploads):
+
+1. `dbt_tools_set_target` → `s3://bucket/dbt/domain-a/` (or a local path)
+2. Triage with `dbt_tools_search_resources`, `dbt_tools_query_executions`, etc.
+3. `dbt_tools_set_target` → `s3://bucket/dbt/domain-b/`
+4. `dbt_tools_set_target` → domain-a again — **fast** if still in the LRU cache (default capacity **3**)
+
+Use a **stable URI or path string** per slice so cache keys match on repeat `set_target`. **`dbt_tools_refresh`** and background poll only update the **active** target. When finished or under memory pressure, call **`dbt_tools_clear_cached_targets`**. To drop the active binding but keep cache entries for a quick re-bind, use **`dbt_tools_unset_target`**.
+
+See [MCP tools](../../reference/mcp-tools.md) and [`packages/mcp/REFERENCE.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/REFERENCE.md).
+
 ## Artifact requirements
 
 MCP loads **`manifest.json` and `run_results.json` together** when a target is set. There is no manifest-only MCP session. If you only ran `dbt compile`, use CLI `dbt-tools status` or **`dbt-tools-cli:check-session`** to inspect readiness, then run `dbt build` or `dbt run` before starting MCP. See [Troubleshooting](../../reference/troubleshooting.md) and the [check-session reference](https://github.com/yu-iskw/dbt-tools-ts/blob/main/plugins/dbt-tools-mcp/skills/check-session/references/session.md).

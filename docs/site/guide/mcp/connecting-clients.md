@@ -26,6 +26,13 @@ dbt-tools-mcp --dbt-target ./target
 
 Set `DBT_TOOLS_DBT_TARGET` so client configs can omit the flag.
 
+Optional cache tuning (long sessions, multiple tag slices):
+
+```bash
+export DBT_TOOLS_MAX_CACHED_TARGETS=3   # default; 0 disables in-memory cache
+export DBT_TOOLS_CACHE_TTL_MS=0          # idle eviction; 0 = disabled
+```
+
 ## Client configuration (pattern)
 
 Point your MCP client at the `dbt-tools-mcp` binary with the same artifact root:
@@ -35,13 +42,22 @@ Point your MCP client at the `dbt-tools-mcp` binary with the same artifact root:
   "mcpServers": {
     "dbt-tools": {
       "command": "dbt-tools-mcp",
-      "args": ["--dbt-target", "./target"]
+      "args": [
+        "--dbt-target",
+        "./target",
+        "--max-cached-targets",
+        "3",
+        "--poll-interval-ms",
+        "30000"
+      ]
     }
   }
 }
 ```
 
-Exact config file location depends on your editor—see your MCP host documentation.
+Omit `--max-cached-targets` and `--cache-ttl-ms` to use defaults (**3** cached roots, TTL disabled). Exact config file location depends on your editor—see your MCP host documentation.
+
+Lifecycle tools: [MCP tools](../../reference/mcp-tools.md) (`dbt_tools_set_target`, `dbt_tools_unset_target`, `dbt_tools_clear_cached_targets`).
 
 ## Learn more
 

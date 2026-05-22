@@ -11,7 +11,7 @@ compatibility: dbt-tools MCP server enabled; bind-target applied when target was
 ## Contract
 
 - **Inputs:** none (uses current MCP workspace)
-- **Outputs:** `target`, `loadedAtMs`, `stale`, `versionToken`, `runs[]`, `warehouse_type`; optional `lastRefreshError`
+- **Outputs:** `target`, `loadedAtMs`, `stale`, `versionToken`, `runs[]`, `warehouse_type`; optional `lastRefreshError`, `cachedTargets`, `cachePolicy`, `fromCache` (on recent `set_target`)
 - **Done when:** session state is clear and downstream primitives are safe to call
 
 ## Preconditions

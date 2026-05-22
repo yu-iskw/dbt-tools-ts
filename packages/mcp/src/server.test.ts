@@ -80,6 +80,8 @@ describe('dbt-tools MCP server wiring', () => {
     const handlers = {
       dbt_tools_status: async () => ({ content: [] }),
       dbt_tools_set_target: async () => ({ content: [] }),
+      dbt_tools_unset_target: async () => ({ content: [] }),
+      dbt_tools_clear_cached_targets: async () => ({ content: [] }),
       dbt_tools_refresh: async () => ({ content: [] }),
       dbt_tools_search_resources: async () => ({ content: [] }),
       dbt_tools_get_resource: async () => ({ content: [] }),
@@ -93,6 +95,8 @@ describe('dbt-tools MCP server wiring', () => {
     expect(server.tools.map((tool) => tool.name)).toEqual([
       'dbt_tools_status',
       'dbt_tools_set_target',
+      'dbt_tools_unset_target',
+      'dbt_tools_clear_cached_targets',
       'dbt_tools_refresh',
       'dbt_tools_search_resources',
       'dbt_tools_get_resource',

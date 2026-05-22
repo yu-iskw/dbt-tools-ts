@@ -3,6 +3,8 @@ import {
   assertRemoteFlagsMatchTarget,
   entrypointRemoteHelpLines,
   normalizeEntrypointRemoteOptions,
+  optionalCacheTtlMsFromEnv,
+  optionalMaxCachedTargetsFromEnv,
   parseEntrypointRemoteArgv,
   resolveEntrypointDbtTarget,
   type EntrypointRemoteOptions,
@@ -10,6 +12,8 @@ import {
 
 export interface McpServerOptions extends EntrypointRemoteOptions {
   pollIntervalMs?: number;
+  maxCachedTargets?: number;
+  cacheTtlMs?: number;
 }
 
 export type McpRemoteClientFlagOptions = Pick<
@@ -36,7 +40,7 @@ function readFlagValue(args: string[], index: number, flag: string): string {
   return value;
 }
 
-function parsePositiveInteger(raw: string, flag: string): number {
+function parseNonNegativeInteger(raw: string, flag: string): number {
   const parsed = Number(raw);
   if (!Number.isInteger(parsed) || parsed < 0) {
     throw new Error(`${flag} must be a non-negative integer.`);
@@ -44,33 +48,55 @@ function parsePositiveInteger(raw: string, flag: string): number {
   return parsed;
 }
 
-function partitionMcpArgv(args: string[]): { remoteArgs: string[]; pollIntervalMs?: number } {
+const MCP_OWNED_VALUE_FLAGS = new Set([
+  '--poll-interval-ms',
+  '--max-cached-targets',
+  '--cache-ttl-ms',
+]);
+
+function readMcpOwnedFlagValue(args: string[], index: number, flag: string): number {
+  return parseNonNegativeInteger(readFlagValue(args, index, flag), flag);
+}
+
+function assignMcpOwnedFlag(
+  flags: { pollIntervalMs?: number; maxCachedTargets?: number; cacheTtlMs?: number },
+  flag: string,
+  value: number,
+): void {
+  if (flag === '--poll-interval-ms') flags.pollIntervalMs = value;
+  else if (flag === '--max-cached-targets') flags.maxCachedTargets = value;
+  else flags.cacheTtlMs = value;
+}
+
+function partitionMcpArgv(args: string[]): {
+  remoteArgs: string[];
+  pollIntervalMs?: number;
+  maxCachedTargets?: number;
+  cacheTtlMs?: number;
+} {
   const remoteArgs: string[] = [];
-  let pollIntervalMs: number | undefined;
+  const mcpFlags: {
+    pollIntervalMs?: number;
+    maxCachedTargets?: number;
+    cacheTtlMs?: number;
+  } = {};
   let i = 0;
   while (i < args.length) {
     const arg = argvElementAt(args, i);
     if (arg === undefined) break;
-    if (arg === '--poll-interval-ms') {
-      pollIntervalMs = parsePositiveInteger(readFlagValue(args, i, arg), arg);
+    if (arg === '--help' || arg === '-h') throw new McpHelpRequested();
+    if (arg === '--version' || arg === '-V') throw new McpVersionRequested();
+    if (MCP_OWNED_VALUE_FLAGS.has(arg)) {
+      assignMcpOwnedFlag(mcpFlags, arg, readMcpOwnedFlagValue(args, i, arg));
       i += 2;
       continue;
     }
-    if (arg === '--help' || arg === '-h') {
-      throw new McpHelpRequested();
-    }
-    if (arg === '--version' || arg === '-V') {
-      throw new McpVersionRequested();
-    }
     remoteArgs.push(arg);
-    if (ENTRYPOINT_VALUE_FLAGS.has(arg)) {
-      remoteArgs.push(readFlagValue(args, i, arg));
-      i += 2;
-    } else {
-      i += 1;
-    }
+    const hasValue = ENTRYPOINT_VALUE_FLAGS.has(arg);
+    if (hasValue) remoteArgs.push(readFlagValue(args, i, arg));
+    i += hasValue ? 2 : 1;
   }
-  return { remoteArgs, pollIntervalMs };
+  return { remoteArgs, ...mcpFlags };
 }
 
 const ENTRYPOINT_VALUE_FLAGS = new Set([
@@ -92,10 +118,14 @@ function mcpOptionsFromParts(
   remote: EntrypointRemoteOptions,
   pollIntervalMs?: number,
   resolvedTarget?: string,
+  maxCachedTargets?: number,
+  cacheTtlMs?: number,
 ): McpServerOptions {
   return {
     ...(resolvedTarget != null ? { dbtTarget: resolvedTarget } : {}),
     ...(pollIntervalMs !== undefined ? { pollIntervalMs } : {}),
+    ...(maxCachedTargets !== undefined ? { maxCachedTargets } : {}),
+    ...(cacheTtlMs !== undefined ? { cacheTtlMs } : {}),
     ...(remote.gcsProjectId != null ? { gcsProjectId: remote.gcsProjectId } : {}),
     ...(remote.gcsImpersonateServiceAccount != null
       ? { gcsImpersonateServiceAccount: remote.gcsImpersonateServiceAccount }
@@ -106,7 +136,7 @@ function mcpOptionsFromParts(
 }
 
 export function parseMcpServerOptions(args: string[], env: Env = process.env): McpServerOptions {
-  const { remoteArgs, pollIntervalMs } = partitionMcpArgv(args);
+  const { remoteArgs, pollIntervalMs, maxCachedTargets, cacheTtlMs } = partitionMcpArgv(args);
   const explicit = parseEntrypointRemoteArgv(remoteArgs);
   const resolvedTarget = resolveEntrypointDbtTarget(explicit, env);
 
@@ -115,7 +145,13 @@ export function parseMcpServerOptions(args: string[], env: Env = process.env): M
   }
 
   const remote = normalizeEntrypointRemoteOptions(explicit);
-  return mcpOptionsFromParts(remote, pollIntervalMs, resolvedTarget);
+  return mcpOptionsFromParts(
+    remote,
+    pollIntervalMs,
+    resolvedTarget,
+    maxCachedTargets ?? optionalMaxCachedTargetsFromEnv(env),
+    cacheTtlMs ?? optionalCacheTtlMsFromEnv(env),
+  );
 }
 
 export function helpText(): string {
@@ -126,6 +162,10 @@ export function helpText(): string {
     ...entrypointRemoteHelpLines(),
     '  --poll-interval-ms <ms>',
     '      MCP background refresh interval; 0 disables. No env equivalent (use args).',
+    '  --max-cached-targets <n>',
+    '      Max parsed artifact roots kept in memory (default 3). Env: DBT_TOOLS_MAX_CACHED_TARGETS. 0 disables.',
+    '  --cache-ttl-ms <ms>',
+    '      Evict cached roots idle longer than n ms (default 0, disabled). Env: DBT_TOOLS_CACHE_TTL_MS.',
     '  -V, --version',
     '      Print package version',
     '  -h, --help',

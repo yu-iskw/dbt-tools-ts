@@ -30,6 +30,8 @@ export interface ArtifactWorkspaceControl {
   getStatus(): Promise<ArtifactWorkspaceStatus>;
   refreshIfChanged(): Promise<ArtifactWorkspaceStatus>;
   setTarget(target: string): Promise<ArtifactWorkspaceStatus>;
+  unsetTarget(): Promise<ArtifactWorkspaceStatus>;
+  clearCachedTargets(): Promise<ArtifactWorkspaceStatus>;
 }
 
 export interface McpJsonToolResult {
@@ -262,6 +264,8 @@ type McpToolHandler = (input: ToolInput) => Promise<McpJsonToolResult>;
 export type DbtToolsMcpToolHandlers = {
   dbt_tools_status: McpToolHandler;
   dbt_tools_set_target: McpToolHandler;
+  dbt_tools_unset_target: McpToolHandler;
+  dbt_tools_clear_cached_targets: McpToolHandler;
   dbt_tools_refresh: McpToolHandler;
   dbt_tools_search_resources: McpToolHandler;
   dbt_tools_get_resource: McpToolHandler;
@@ -300,6 +304,12 @@ export function createDbtToolsMcpToolHandlers(
         );
       }
     },
+
+    dbt_tools_unset_target: async (_input: ToolInput): Promise<McpJsonToolResult> =>
+      jsonResultFromValue(await workspace.unsetTarget()),
+
+    dbt_tools_clear_cached_targets: async (_input: ToolInput): Promise<McpJsonToolResult> =>
+      jsonResultFromValue(await workspace.clearCachedTargets()),
 
     dbt_tools_refresh: async (_input: ToolInput): Promise<McpJsonToolResult> =>
       jsonResultFromValue(await workspace.refreshIfChanged()),
