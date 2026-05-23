@@ -61,6 +61,25 @@ describe('parseArtifactSourceLocation', () => {
   it('throws on empty location', () => {
     expect(() => parseArtifactSourceLocation('local', '   ', '/tmp')).toThrow(/required/i);
   });
+
+  it('allows absolute local paths outside cwd', () => {
+    const r = parseArtifactSourceLocation('local', '/var/dbt/target', '/tmp');
+    expect(r.kind).toBe('local');
+    if (r.kind === 'local') {
+      expect(r.resolvedPath).toBe('/var/dbt/target');
+    }
+  });
+
+  it('resolves relative local paths under cwd', () => {
+    const r = parseArtifactSourceLocation('local', 'target/artifacts', '/tmp/cwd');
+    expect(r).toEqual({ kind: 'local', resolvedPath: '/tmp/cwd/target/artifacts' });
+  });
+
+  it('rejects relative local paths with traversal before resolve', () => {
+    expect(() => parseArtifactSourceLocation('local', '../outside', '/tmp/cwd')).toThrow(
+      /Path traversal detected/i,
+    );
+  });
 });
 
 describe('joinObjectStorageKey', () => {

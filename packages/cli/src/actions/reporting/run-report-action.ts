@@ -14,6 +14,7 @@ import {
   buildAdapterTotals,
   detectAdapterHeavyNodes,
   filterAdapterMetricMins,
+  parseAdapterHeavyMetric,
   formatOutput,
   formatRunReport,
   formatAdapterTotalsHuman,
@@ -45,7 +46,7 @@ type RunReportOptions = ArtifactRootCliOptions & {
   json?: boolean;
   noJson?: boolean;
   adapterSummary?: boolean;
-  adapterTopBy?: AdapterHeavyMetric;
+  adapterTopBy?: string;
   adapterTopN?: number;
   adapterMinBytes?: number;
   adapterMinSlotMs?: number;
@@ -142,7 +143,7 @@ function filterExecutionsForAdapterTop(
 
 function buildAdapterSections(
   adapterSource: NodeExecution[],
-  options: RunReportOptions,
+  options: Omit<RunReportOptions, 'adapterTopBy'> & { adapterTopBy?: AdapterHeavyMetric },
   graph: ManifestGraph | undefined,
 ): {
   jsonParts: Record<string, unknown>;
@@ -209,6 +210,8 @@ export async function runReportAction(
   handleError: (error: unknown, preferStructuredErrors: boolean) => void,
 ): Promise<void> {
   try {
+    const adapterTopBy = parseAdapterHeavyMetric(options.adapterTopBy);
+
     const paths = await resolveCliArtifactPaths(
       {
         dbtTarget: options.dbtTarget,
@@ -244,9 +247,9 @@ export async function runReportAction(
 
     const { bottlenecks, bottlenecksTopLabel } = computeBottlenecksSection(summary, options, graph);
 
-    const wantsAdapter = options.adapterSummary === true || options.adapterTopBy != null;
+    const wantsAdapter = options.adapterSummary === true || adapterTopBy != null;
     const { jsonParts: adapterJson, humanAppend: adapterHumanAppend } = wantsAdapter
-      ? buildAdapterSections(adapterSource, options, graph)
+      ? buildAdapterSections(adapterSource, { ...options, adapterTopBy }, graph)
       : { jsonParts: {}, humanAppend: '' };
 
     let filteredSummary: ExecutionSummary = summary;

@@ -39,7 +39,7 @@ export type ExportOutput = {
   graph_export_bytes: number;
   provenance: { steps: Array<{ op: string; status: 'ok' }> };
   primitive_commands: string[];
-  /** Full graph export string (dot/gexf/json text). Omitted when extremely large if needed later. */
+  /** Full graph export string (dot/gexf/json text). Omitted when larger than 512 KiB. */
   graph_export?: string;
 };
 

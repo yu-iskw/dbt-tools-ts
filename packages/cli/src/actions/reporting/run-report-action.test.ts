@@ -94,6 +94,20 @@ describe('runReportAction', () => {
     expect(totals.nodesWithAdapterData).toBeGreaterThan(0);
   });
 
+  it('routes invalid --adapter-top-by through handleCliError', async () => {
+    const structuredHandleError = vi.fn();
+    await runReportAction(
+      { dbtTarget: dbtTargetDir, adapterTopBy: 'bytes_procesed', json: true },
+      structuredHandleError,
+    );
+    expect(structuredHandleError).toHaveBeenCalledTimes(1);
+    const err = structuredHandleError.mock.calls[0]![0];
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toMatch(/--adapter-top-by must be one of/);
+    expect(structuredHandleError.mock.calls[0]![1]).toBe(true);
+    expect(consoleLogSpy).not.toHaveBeenCalled();
+  });
+
   it('includes adapter_top in JSON when --adapter-top-by', async () => {
     await runReportAction(
       {

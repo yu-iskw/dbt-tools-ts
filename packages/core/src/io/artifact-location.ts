@@ -1,6 +1,10 @@
 import * as path from 'node:path';
 
-import { validateSafePath, resolveSafePath } from '../validation/input-validator';
+import {
+  assertPathUnderBase,
+  resolveSafePath,
+  validateSafePath,
+} from '../validation/input-validator';
 
 import type { DbtToolsRemoteSourceConfig } from '../config/dbt-tools-env';
 
@@ -69,6 +73,9 @@ export function parseArtifactSourceLocation(
     const resolved = path.isAbsolute(trimmed)
       ? resolveSafePath(trimmed)
       : resolveSafePath(path.resolve(cwd, trimmed));
+    if (!path.isAbsolute(trimmed)) {
+      assertPathUnderBase(resolved, cwd);
+    }
     return { kind: 'local', resolvedPath: resolved };
   }
 

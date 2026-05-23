@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import {
+  assertPathUnderBase,
   validateSafePath,
   validateNoControlChars,
   validateResourceId,
@@ -10,6 +11,16 @@ import {
 } from './input-validator';
 
 describe('InputValidator', () => {
+  describe('assertPathUnderBase', () => {
+    it('accepts paths under the base directory', () => {
+      expect(() => assertPathUnderBase('/tmp/cwd/target', '/tmp/cwd')).not.toThrow();
+    });
+
+    it('rejects paths outside the base directory', () => {
+      expect(() => assertPathUnderBase('/etc/passwd', '/tmp/cwd')).toThrow(/outside allowed base/);
+    });
+  });
+
   describe('validateSafePath', () => {
     it('should accept valid paths', () => {
       expect(() => validateSafePath('./target/manifest.json')).not.toThrow();
