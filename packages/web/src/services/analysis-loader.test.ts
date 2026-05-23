@@ -84,9 +84,9 @@ describe('analysis-loader', () => {
       'preload',
     );
 
-    const requests = worker.postMessage.mock.calls.map(
-      ([request]) => request as { requestId: number },
-    );
+    const requests = worker.postMessage.mock.calls
+      .map(([request]) => request as { type: string; requestId: number })
+      .filter((request) => request.type === 'load-analysis');
 
     worker.onmessage?.({
       data: {
