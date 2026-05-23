@@ -85,6 +85,21 @@ describe('ArtifactWorkspace', () => {
     await rmValidated(tempDir, { recursive: true, force: true });
   });
 
+  it('serializes concurrent initialize paths into one loaded workspace', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ dbtTarget: tempDir, now: () => 123 });
+
+    const [first, second, status] = await Promise.all([
+      workspace.getLoadedWorkspace(),
+      workspace.getLoadedWorkspace(),
+      workspace.refreshIfChanged(),
+    ]);
+
+    expect(first.loadedAtMs).toBe(second.loadedAtMs);
+    expect(status.loadedAtMs).toBe(123);
+    expect(first.run.runId).toBe(second.run.runId);
+  });
+
   it('loads a local target once and serves shared search/resource/lineage use cases', async () => {
     await writeArtifacts(tempDir);
     const workspace = new ArtifactWorkspace({ dbtTarget: tempDir, now: () => 123 });
