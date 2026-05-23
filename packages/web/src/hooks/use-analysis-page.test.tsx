@@ -179,6 +179,71 @@ describe('use-analysis-page', () => {
     document.body.innerHTML = '';
   });
 
+  it('does not apply preload after the user loads a different artifact set', async () => {
+    fetchArtifactSourceStatus.mockResolvedValue({
+      mode: 'preload',
+      currentSource: 'preload',
+      label: 'Env preload',
+      checkedAtMs: Date.now(),
+      remoteProvider: null,
+      remoteLocation: null,
+      sourceKind: null,
+      locationDisplay: null,
+      pollIntervalMs: null,
+      currentRun: null,
+      pendingRun: null,
+      supportsSwitch: false,
+    });
+
+    let resolvePreload:
+      | ((
+          value: Awaited<ReturnType<typeof loadCurrentManagedArtifacts>>,
+        ) => void)
+      | undefined;
+    loadCurrentManagedArtifacts.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePreload = resolve;
+        }),
+    );
+
+    const { container, root } = renderHarness();
+
+    await act(async () => {
+      container.querySelector('[data-testid="simulate-managed-load"]')?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      );
+    });
+
+    expect(readResult(container).project).toBe('managed');
+    expect(readResult(container).loading).toBe('true');
+
+    await act(async () => {
+      resolvePreload?.({
+        status: {
+          mode: 'preload',
+          currentSource: 'preload',
+          label: 'Env preload',
+          checkedAtMs: Date.now(),
+          remoteProvider: null,
+          remoteLocation: null,
+          pollIntervalMs: null,
+          currentRun: null,
+          pendingRun: null,
+          supportsSwitch: false,
+          sourceKind: null,
+          locationDisplay: null,
+        },
+        result: loadResult('env-preload', 'preload'),
+      });
+      await Promise.resolve();
+    });
+
+    expect(readResult(container).project).toBe('managed');
+
+    cleanupRoot(root, container);
+  });
+
   it('keeps the current remote analysis loaded while polling surfaces a newer run', async () => {
     loadCurrentManagedArtifacts.mockResolvedValue({
       status: {

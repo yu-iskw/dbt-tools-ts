@@ -287,6 +287,7 @@ export class ArtifactWorkspace {
   private stale = false;
   private lastRefreshError: string | undefined;
   private refreshPromise: Promise<ArtifactWorkspaceStatus> | null = null;
+  private initializePromise: Promise<void> | null = null;
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -321,7 +322,7 @@ export class ArtifactWorkspace {
     this.selectedRunId = null;
     this.runs = [];
     this.loaded = null;
-    await this.initialize();
+    await this.ensureInitialized();
     this.syncActiveToCache();
     return this.status();
   }
@@ -349,6 +350,22 @@ export class ArtifactWorkspace {
   }
 
   async initialize(): Promise<void> {
+    await this.ensureInitialized();
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.loaded != null) return;
+    if (this.initializePromise != null) {
+      await this.initializePromise;
+      return;
+    }
+    this.initializePromise = this.initializeInternal().finally(() => {
+      this.initializePromise = null;
+    });
+    await this.initializePromise;
+  }
+
+  private async initializeInternal(): Promise<void> {
     const startedAt = dbtToolsDebugNow();
     const configuredTarget = this.requireTarget();
     dbtToolsDebugLog(`initialize start target=${configuredTarget}`);
@@ -403,6 +420,10 @@ export class ArtifactWorkspace {
   }
 
   async selectRun(runId: string): Promise<ArtifactWorkspaceStatus> {
+    await this.awaitIdleRefresh();
+    if (this.initializePromise != null) {
+      await this.initializePromise;
+    }
     const source = await this.discoverSource();
     this.runs = source.runs;
     const run = this.runs.find((candidate) => candidate.runId === runId);
@@ -419,14 +440,14 @@ export class ArtifactWorkspace {
 
   async getLoadedWorkspace(): Promise<LoadedArtifactWorkspace> {
     if (this.loaded == null) {
-      await this.initialize();
+      await this.ensureInitialized();
     }
     return this.loaded!;
   }
 
   private async refreshIfChangedInternal(): Promise<ArtifactWorkspaceStatus> {
     if (this.loaded == null) {
-      await this.initialize();
+      await this.ensureInitialized();
       return this.status();
     }
 
