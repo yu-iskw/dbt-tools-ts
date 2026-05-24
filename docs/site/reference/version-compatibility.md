@@ -2,7 +2,7 @@
 
 ## Node.js
 
-dbt-tools requires Node.js 20 or later. The exact version used by the maintainers is recorded in `.node-version` at the repository root.
+dbt-tools requires Node.js 20 or later. The exact version used by the maintainers is recorded in [`.mise.toml`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.mise.toml) and [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) at the repository root (pnpm via `packageManager` in `package.json`).
 
 | dbt-tools package version | Minimum Node.js |
 | ------------------------- | --------------- |

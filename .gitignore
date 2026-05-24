@@ -70,6 +70,10 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# mise local overrides (never commit)
+mise.local.toml
+.mise.local.toml
+
 # dotenv environment variable files
 .env
 .env.*

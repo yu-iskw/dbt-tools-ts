@@ -18,7 +18,7 @@ How the pieces fit together: [Ecosystem at a glance](./ecosystem.md). Not sure w
 ## Prerequisites
 
 - A dbt project with `manifest.json` and `run_results.json` under `target/`
-- Node.js 20+ (see the repository [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) for development)
+- Node.js 20+ for published packages; monorepo development uses [`.mise.toml`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.mise.toml) / [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) (optional [mise](https://mise.jdx.dev/): `mise trust && mise install`)
 
 > **No dbt project?** Use [Try with a sample project](./try-with-sample-project.md) to generate artifacts with a public sample repo (no warehouse required for the default path).
 

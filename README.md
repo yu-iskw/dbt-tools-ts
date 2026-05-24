@@ -27,7 +27,21 @@ Product positioning and package boundaries are recorded in [ADR-0008](docs/adr/0
 
 ## Quick Start
 
-Install Node.js from [`.node-version`](.node-version), then install workspace dependencies:
+### With mise (recommended for monorepo development)
+
+Install [mise](https://mise.jdx.dev/), then from the repository root:
+
+```bash
+mise trust
+mise install
+mise run install
+```
+
+`mise` reads [`.mise.toml`](.mise.toml) for Node.js (aligned with [`.node-version`](.node-version)); Corepack installs pnpm from `packageManager` in [`package.json`](package.json).
+
+### Without mise
+
+Install Node.js from [`.node-version`](.node-version) and pnpm **11+** (see `packageManager` in [`package.json`](package.json)), then:
 
 ```bash
 pnpm install

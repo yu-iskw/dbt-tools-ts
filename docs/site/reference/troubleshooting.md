@@ -25,7 +25,7 @@ Symptom-first fixes for common setup issues. Package-specific detail remains in 
 
 ## Wrong Node version
 
-Published packages require **Node.js 20+**. Match [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) when developing from the monorepo.
+Published packages require **Node.js 20+**. Match [`.mise.toml`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.mise.toml) / [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) when developing from the monorepo (`mise trust && mise install`, or install Node/pnpm manually).
 
 ## MCP client cannot start the server
 

@@ -1,0 +1,21 @@
+# Tool versions for local development.
+# Node is pinned here; pnpm comes from packageManager via Corepack (see package.json).
+# CI uses actions/setup-node (.node-version) and pnpm/action-setup (packageManager).
+# See https://mise.jdx.dev/
+
+min_version = "2024.11.0"
+
+[tools]
+node = "24.13.0"
+
+[settings]
+# Honor .node-version when present; .mise.toml remains the explicit pin for contributors using mise.
+idiomatic_version_file_enable_tools = ["node"]
+# Install pnpm at the version in package.json "packageManager" after Node installs.
+node.corepack = true
+
+[tasks]
+install = { description = "Install workspace dependencies", run = "pnpm install" }
+build = { description = "Build all packages", run = "pnpm build" }
+test = { description = "Run Vitest unit tests", run = "pnpm test" }
+lint = { description = "ESLint report (agent gate)", run = "pnpm lint:report" }

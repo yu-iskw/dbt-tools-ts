@@ -10,7 +10,8 @@ This skill automates the process of setting up the development environment to en
 ## Workflow Checklist
 
 - [ ] **Step 1: Environment Validation**
-  - [ ] Check Node.js version against `.node-version`
+  - [ ] Prefer mise: `mise trust && mise install` (see [`.mise.toml`](../../../.mise.toml))
+  - [ ] Or check Node.js version against `.node-version` (nvm/fnm/manual)
 - [ ] **Step 2: Dependency Installation**
   - [ ] Run `pnpm install` (installs the Trunk launcher from `@trunkio/launcher` into `node_modules/.bin`)
 - [ ] **Step 3: Verify Trunk**
@@ -22,9 +23,20 @@ This skill automates the process of setting up the development environment to en
 
 ### 1. Environment Validation
 
-#### Node.js Version
+#### mise (recommended)
 
-Read the `.node-version` file in the workspace root. Ensure the current Node.js environment matches this version. If there's a mismatch, inform the user to switch Node versions (e.g., using `nvm` or `fnm`).
+If [mise](https://mise.jdx.dev/) is available, install and activate project tools from [`.mise.toml`](../../../.mise.toml):
+
+```bash
+mise trust
+mise install
+```
+
+This installs Node.js (aligned with [`.node-version`](../../../.node-version)); Corepack activates pnpm from `packageManager` in [`package.json`](../../../package.json).
+
+#### Node.js without mise
+
+Read the `.node-version` file in the workspace root. Ensure the current Node.js environment matches this version. If there's a mismatch, inform the user to switch Node versions (e.g., using `mise`, `nvm`, or `fnm`).
 
 ### 2. Dependency Installation
 
@@ -59,7 +71,7 @@ pnpm exec trunk install
 - All `pnpm` dependencies are installed successfully.
 - `pnpm exec trunk --version` succeeds.
 - Managed Trunk tools are initialized if you ran `pnpm exec trunk install`.
-- The Node.js version matches the requirement in `.node-version`.
+- Node.js and pnpm match `.mise.toml` / `.node-version` / `packageManager` (via mise or manual setup).
 
 ## Post-Setup Verification
 
