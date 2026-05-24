@@ -2,7 +2,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { loadTestManifest, loadTestRunResults } from 'dbt-artifacts-parser/test-utils';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ArtifactTargetNotConfiguredError } from '../errors/artifact-target-not-configured-error';
 // @ts-expect-error - workspace package, TypeScript resolves via package.json
@@ -304,6 +304,70 @@ describe('ArtifactWorkspace', () => {
     await expect(workspace.getLoadedWorkspace()).rejects.toBeInstanceOf(
       ArtifactTargetNotConfiguredError,
     );
+  });
+
+  it('does not apply stale initialize() after setTarget switches targets concurrently', async () => {
+    const dirA = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-race-a-'));
+    const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-race-b-'));
+    try {
+      const manifestA = {
+        ...manifestJson,
+        metadata: { ...(manifestJson.metadata as object), project_name: 'project-a' },
+      };
+      const manifestB = {
+        ...manifestJson,
+        metadata: { ...(manifestJson.metadata as object), project_name: 'project-b' },
+      };
+      await writeValidatedUtf8(
+        resolveJoinedSafe(dirA, DBT_MANIFEST_JSON),
+        JSON.stringify(manifestA),
+      );
+      await writeValidatedUtf8(
+        resolveJoinedSafe(dirA, DBT_RUN_RESULTS_JSON),
+        JSON.stringify(runResultsJson),
+      );
+      await writeValidatedUtf8(
+        resolveJoinedSafe(dirB, DBT_MANIFEST_JSON),
+        JSON.stringify(manifestB),
+      );
+      await writeValidatedUtf8(
+        resolveJoinedSafe(dirB, DBT_RUN_RESULTS_JSON),
+        JSON.stringify(runResultsJson),
+      );
+
+      let releaseSlowLoad: (() => void) | undefined;
+      const slowLoadGate = new Promise<void>((resolve) => {
+        releaseSlowLoad = resolve;
+      });
+      const workspace = new ArtifactWorkspace({ dbtTarget: dirA, now: () => 999 });
+      await workspace.setTarget(dirA);
+      await workspace.clearCachedTargets();
+
+      const originalLoadRun = workspace['loadRun'].bind(workspace);
+      const loadRunSpy = vi.spyOn(workspace as never, 'loadRun').mockImplementation(async (source, run) => {
+        if (workspace['dbtTarget'] === dirA) {
+          await slowLoadGate;
+        }
+        return originalLoadRun(source, run);
+      });
+
+      const initPromise = workspace.getLoadedWorkspace();
+      await Promise.resolve();
+      const switchedPromise = workspace.setTarget(dirB);
+      await Promise.resolve();
+      releaseSlowLoad?.();
+      const [, switched] = await Promise.all([initPromise, switchedPromise]);
+      loadRunSpy.mockRestore();
+
+      expect(switched.target).toBe(dirB);
+      const status = await workspace.getStatus();
+      expect(status.target).toBe(dirB);
+      const loaded = await workspace.getLoadedWorkspace();
+      expect(loaded.run.manifestKey).toBe(resolveJoinedSafe(dirB, DBT_MANIFEST_JSON));
+    } finally {
+      await rmValidated(dirA, { recursive: true, force: true });
+      await rmValidated(dirB, { recursive: true, force: true });
+    }
   });
 
   it('clearCachedTargets drops cache and active loaded state', async () => {

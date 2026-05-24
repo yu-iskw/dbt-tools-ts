@@ -287,6 +287,9 @@ export class ArtifactWorkspace {
   private stale = false;
   private lastRefreshError: string | undefined;
   private refreshPromise: Promise<ArtifactWorkspaceStatus> | null = null;
+  private initializePromise: Promise<void> | null = null;
+  /** Bumped when target binding changes so in-flight initialize() cannot commit stale snapshots. */
+  private targetGeneration = 0;
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -305,6 +308,8 @@ export class ArtifactWorkspace {
       throw new Error('target is required.');
     }
     await this.awaitIdleRefresh();
+    await this.awaitIdleInitialize();
+    this.targetGeneration += 1;
     this.evictExpired();
     const cacheKey = trimmed;
     const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
@@ -321,13 +326,15 @@ export class ArtifactWorkspace {
     this.selectedRunId = null;
     this.runs = [];
     this.loaded = null;
-    await this.initialize();
+    await this.ensureInitialized();
     this.syncActiveToCache();
     return this.status();
   }
 
   async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
     await this.awaitIdleRefresh();
+    await this.awaitIdleInitialize();
+    this.targetGeneration += 1;
     this.dbtTarget = null;
     this.selectedRunId = null;
     this.runs = [];
@@ -339,6 +346,8 @@ export class ArtifactWorkspace {
 
   async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
     await this.awaitIdleRefresh();
+    await this.awaitIdleInitialize();
+    this.targetGeneration += 1;
     this.targetCache.clear();
     this.loaded = null;
     this.runs = [];
@@ -351,8 +360,12 @@ export class ArtifactWorkspace {
   async initialize(): Promise<void> {
     const startedAt = dbtToolsDebugNow();
     const configuredTarget = this.requireTarget();
+    const generationAtStart = this.targetGeneration;
     dbtToolsDebugLog(`initialize start target=${configuredTarget}`);
     const source = await this.discoverSource();
+    if (this.dbtTarget !== configuredTarget || this.targetGeneration !== generationAtStart) {
+      return;
+    }
     this.runs = source.runs;
     if (!source.discovery.ok) {
       throw new Error(
@@ -372,7 +385,11 @@ export class ArtifactWorkspace {
         this.discoveryErrorMessage(source.discovery) ?? 'No dbt artifact runs found.',
       );
     }
-    this.loaded = await this.loadRun(source, run);
+    const loaded = await this.loadRun(source, run);
+    if (this.dbtTarget !== configuredTarget || this.targetGeneration !== generationAtStart) {
+      return;
+    }
+    this.loaded = loaded;
     this.stale = false;
     this.lastRefreshError = undefined;
     this.syncActiveToCache();
@@ -418,15 +435,22 @@ export class ArtifactWorkspace {
   }
 
   async getLoadedWorkspace(): Promise<LoadedArtifactWorkspace> {
-    if (this.loaded == null) {
-      await this.initialize();
+    if (this.dbtTarget == null) {
+      throw new ArtifactTargetNotConfiguredError();
     }
-    return this.loaded!;
+    if (this.loaded != null) {
+      return this.loaded;
+    }
+    await this.ensureInitialized();
+    if (this.loaded == null) {
+      throw new ArtifactTargetNotConfiguredError();
+    }
+    return this.loaded;
   }
 
   private async refreshIfChangedInternal(): Promise<ArtifactWorkspaceStatus> {
     if (this.loaded == null) {
-      await this.initialize();
+      await this.ensureInitialized();
       return this.status();
     }
 
@@ -480,6 +504,22 @@ export class ArtifactWorkspace {
       await this.refreshPromise;
       this.refreshPromise = null;
     }
+  }
+
+  private async awaitIdleInitialize(): Promise<void> {
+    if (this.initializePromise != null) {
+      await this.initializePromise;
+    }
+  }
+
+  private ensureInitialized(): Promise<void> {
+    if (this.initializePromise != null) {
+      return this.initializePromise;
+    }
+    this.initializePromise = this.initialize().finally(() => {
+      this.initializePromise = null;
+    });
+    return this.initializePromise;
   }
 
   private buildCachedTargetsList(): ArtifactWorkspaceCachedTargetRef[] {

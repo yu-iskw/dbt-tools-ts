@@ -340,6 +340,126 @@ describe('ArtifactSourceService', () => {
     expect(refreshed.supportsSwitch).toBe(true);
   });
 
+  it('keeps loaded artifact bytes pinned while a newer remote version is pending', async () => {
+    const client = new FakeRemoteClient([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 2_000,
+        etag: 'manifest-v1',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v1"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 2_000,
+        etag: 'results-v1',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v1"}}'),
+      },
+    ]);
+
+    const service = new ArtifactSourceService({
+      remoteConfig: {
+        provider: 's3',
+        bucket: 'dbt-artifacts',
+        prefix: 'scheduled',
+        pollIntervalMs: 15_000,
+      },
+      remoteClient: client,
+    });
+
+    await service.getStatus();
+    const initialPayload = await service.getCurrentArtifacts();
+    expect(new TextDecoder().decode(initialPayload?.manifestBytes)).toContain('run-v1');
+
+    client.replaceObjects([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 3_000,
+        etag: 'manifest-v2',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v2"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 3_000,
+        etag: 'results-v2',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v2"}}'),
+      },
+    ]);
+
+    const refreshed = await service.getStatus();
+    expect(refreshed.pendingRun).not.toBeNull();
+
+    const pinnedPayload = await service.getCurrentArtifacts();
+    expect(new TextDecoder().decode(pinnedPayload?.manifestBytes)).toContain('run-v1');
+  });
+
+  it('does not revert configureArtifactSource when a stale remote poll completes', async () => {
+    let releaseList: (() => void) | undefined;
+    const listGate = new Promise<void>((resolve) => {
+      releaseList = resolve;
+    });
+
+    const client = new FakeRemoteClient([
+      {
+        key: 'prefix-a/manifest.json',
+        updatedAtMs: 1,
+        etag: 'a-manifest',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"prefix-a"}}'),
+      },
+      {
+        key: 'prefix-a/run_results.json',
+        updatedAtMs: 1,
+        etag: 'a-results',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"prefix-a"}}'),
+      },
+      {
+        key: 'prefix-b/manifest.json',
+        updatedAtMs: 1,
+        etag: 'b-manifest',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"prefix-b"}}'),
+      },
+      {
+        key: 'prefix-b/run_results.json',
+        updatedAtMs: 1,
+        etag: 'b-results',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"prefix-b"}}'),
+      },
+    ]);
+
+    const originalList = client.listObjects.bind(client);
+    vi.spyOn(client, 'listObjects').mockImplementation(async () => {
+      const listed = await originalList();
+      if (listed.some((object) => object.key.startsWith('prefix-a/'))) {
+        await listGate;
+      }
+      return listed;
+    });
+
+    const createClientSpy = vi
+      .spyOn(artifactIo, 'createRemoteObjectStoreClient')
+      .mockResolvedValue(client);
+
+    const service = new ArtifactSourceService({
+      remoteConfig: {
+        provider: 's3',
+        bucket: 'dbt-artifacts',
+        prefix: 'prefix-a',
+        pollIntervalMs: 15_000,
+      },
+      remoteClient: client,
+    });
+
+    const poll = service.getStatus();
+    const configured = service.configureArtifactSource('s3', 'dbt-artifacts/prefix-b');
+    releaseList?.();
+    await poll;
+    const status = await configured;
+
+    expect(status.remoteLocation).toContain('prefix-b');
+    const payload = await service.getCurrentArtifacts();
+    expect(new TextDecoder().decode(payload?.manifestBytes)).toContain('prefix-b');
+    createClientSpy.mockRestore();
+  });
+
   it('seeds remote artifact root from DBT_TOOLS_DBT_TARGET at startup', async () => {
     const client = new FakeRemoteClient([
       {

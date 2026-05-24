@@ -135,6 +135,10 @@ export class ArtifactSourceService {
   private selectedRunId: string | null = null;
   /** Version token of artifacts the active investigation is using (ADR-0004 detect-notify-confirm). */
   private loadedVersionToken: string | null = null;
+  /** Bytes last committed for investigation; pins remote reads while a newer prefix version is pending. */
+  private loadedArtifactCache: CurrentArtifactPayload | null = null;
+  /** Incremented on user configure so in-flight remote poll refresh cannot revert the session. */
+  private sessionGeneration = 0;
 
   constructor(options: ArtifactSourceServiceOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
@@ -189,6 +193,9 @@ export class ArtifactSourceService {
             ? this.pickBootstrapRunId(discovery.runs)
             : null;
         this.applyDiscoveredArtifactSource(discovery, selectedRunId);
+        if (selectedRunId != null) {
+          await this.refreshLoadedArtifactCache();
+        }
         return;
       }
       await this.applyLocalDirectory(parsed.resolvedPath, true);
@@ -323,6 +330,7 @@ export class ArtifactSourceService {
     if (this.mode !== 'remote' || this.remoteConfig == null || this.remoteClient == null) {
       return;
     }
+    const generationAtStart = this.sessionGeneration;
     try {
       const discovery = await this.discoverRemoteConfiguration(
         this.remoteConfig,
@@ -331,12 +339,36 @@ export class ArtifactSourceService {
       if (!discovery.discoveryResult.ok) {
         return;
       }
+      if (generationAtStart !== this.sessionGeneration) {
+        return;
+      }
       this.applyDiscoveredArtifactSource(discovery, this.selectedRunId, {
         syncLoadedVersion: false,
       });
     } catch (error) {
       debugLog('Remote discovery refresh failed', error);
     }
+  }
+
+  private async readCurrentArtifactPayload(
+    run: ResolvedArtifactRun,
+  ): Promise<CurrentArtifactPayload | null> {
+    if (this.mode === 'preload' && this.localDir != null) {
+      return this.readPreloadArtifacts(run);
+    }
+    if (this.mode === 'remote' && this.remoteClient != null && this.remoteConfig != null) {
+      return this.readRemoteArtifacts(run, this.remoteConfig.bucket, this.remoteClient);
+    }
+    return null;
+  }
+
+  private async refreshLoadedArtifactCache(): Promise<void> {
+    const run = this.resolveSelectedRun();
+    if (run == null || this.discoveryResult?.ok !== true) {
+      this.loadedArtifactCache = null;
+      return;
+    }
+    this.loadedArtifactCache = await this.readCurrentArtifactPayload(run);
   }
 
   private async readPreloadArtifacts(run: ResolvedArtifactRun): Promise<CurrentArtifactPayload> {
@@ -427,6 +459,7 @@ export class ArtifactSourceService {
     this.selectedRunId = selectedRunId;
     if (options?.syncLoadedVersion !== false) {
       this.syncLoadedVersionToken(selectedRunId, discovery.runs);
+      this.loadedArtifactCache = null;
     }
   }
 
@@ -502,6 +535,9 @@ export class ArtifactSourceService {
         ? this.pickBootstrapRunId(discovery.runs)
         : null;
     this.applyDiscoveredArtifactSource(discovery, selectedRunId);
+    if (selectedRunId != null) {
+      await this.refreshLoadedArtifactCache();
+    }
   }
 
   private async applyRemoteConfiguration(
@@ -515,6 +551,9 @@ export class ArtifactSourceService {
         ? this.pickBootstrapRunId(discovery.runs)
         : null;
     this.applyDiscoveredArtifactSource(discovery, selectedRunId);
+    if (selectedRunId != null) {
+      await this.refreshLoadedArtifactCache();
+    }
   }
 
   async discoverArtifactSource(
@@ -543,9 +582,14 @@ export class ArtifactSourceService {
     providerOptions?: GcsArtifactSourceRequestOptions,
   ): Promise<ArtifactSourceStatus> {
     await this.ensureReady();
+    const generationAtStart = ++this.sessionGeneration;
     const discovery = await this.discoverArtifactSourceInternal(kind, location, providerOptions);
+    if (generationAtStart !== this.sessionGeneration) {
+      return this.getStatus();
+    }
     const selectedRunId = this.resolveConfiguredRunId(discovery, runId);
     this.applyDiscoveredArtifactSource(discovery, selectedRunId);
+    await this.refreshLoadedArtifactCache();
 
     return this.getStatus();
   }
@@ -582,15 +626,25 @@ export class ArtifactSourceService {
     const run = this.runs.find((r) => r.runId === this.selectedRunId);
     if (run == null) return null;
 
-    if (this.mode === 'preload' && this.localDir != null) {
-      return this.readPreloadArtifacts(run);
+    if (
+      this.mode === 'remote' &&
+      this.loadedVersionToken != null &&
+      run.versionToken !== this.loadedVersionToken &&
+      this.loadedArtifactCache != null
+    ) {
+      return this.loadedArtifactCache;
     }
 
-    if (this.mode === 'remote' && this.remoteClient != null && this.remoteConfig != null) {
-      return this.readRemoteArtifacts(run, this.remoteConfig.bucket, this.remoteClient);
+    const payload = await this.readCurrentArtifactPayload(run);
+    if (
+      payload != null &&
+      this.mode === 'remote' &&
+      this.loadedVersionToken != null &&
+      run.versionToken === this.loadedVersionToken
+    ) {
+      this.loadedArtifactCache = payload;
     }
-
-    return null;
+    return payload;
   }
 
   async switchToRun(runId?: string): Promise<ArtifactSourceStatus> {
@@ -605,6 +659,8 @@ export class ArtifactSourceService {
       if (found) {
         this.selectedRunId = runId;
         this.syncLoadedVersionToken(this.selectedRunId, this.runs);
+        this.loadedArtifactCache = null;
+        await this.refreshLoadedArtifactCache();
         debugLog('Selected artifact run', this.selectedRunId);
       }
     }
