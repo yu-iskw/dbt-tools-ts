@@ -287,6 +287,9 @@ export class ArtifactWorkspace {
   private stale = false;
   private lastRefreshError: string | undefined;
   private refreshPromise: Promise<ArtifactWorkspaceStatus> | null = null;
+  private initializePromise: Promise<void> | null = null;
+  /** Bumped when the active target or selected run binding changes; stale loads must not assign `loaded`. */
+  private loadGeneration = 0;
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -304,7 +307,7 @@ export class ArtifactWorkspace {
     if (trimmed === '') {
       throw new Error('target is required.');
     }
-    await this.awaitIdleRefresh();
+    await this.awaitIdleOperations();
     this.evictExpired();
     const cacheKey = trimmed;
     const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
@@ -318,6 +321,7 @@ export class ArtifactWorkspace {
       this.loaded = cached.loaded;
       return this.status({ fromCache: true });
     }
+    this.bumpLoadGeneration();
     this.selectedRunId = null;
     this.runs = [];
     this.loaded = null;
@@ -327,7 +331,8 @@ export class ArtifactWorkspace {
   }
 
   async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
-    await this.awaitIdleRefresh();
+    await this.awaitIdleOperations();
+    this.bumpLoadGeneration();
     this.dbtTarget = null;
     this.selectedRunId = null;
     this.runs = [];
@@ -338,7 +343,8 @@ export class ArtifactWorkspace {
   }
 
   async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
-    await this.awaitIdleRefresh();
+    await this.awaitIdleOperations();
+    this.bumpLoadGeneration();
     this.targetCache.clear();
     this.loaded = null;
     this.runs = [];
@@ -349,10 +355,29 @@ export class ArtifactWorkspace {
   }
 
   async initialize(): Promise<void> {
+    if (this.initializePromise != null) {
+      return this.initializePromise;
+    }
+    const generation = this.loadGeneration;
+    const targetAtStart = this.dbtTarget;
+    this.initializePromise = this.initializeInternal(generation, targetAtStart).finally(() => {
+      this.initializePromise = null;
+    });
+    return this.initializePromise;
+  }
+
+  private async initializeInternal(
+    generation: number,
+    targetAtStart: string | null,
+  ): Promise<void> {
     const startedAt = dbtToolsDebugNow();
     const configuredTarget = this.requireTarget();
     dbtToolsDebugLog(`initialize start target=${configuredTarget}`);
     const source = await this.discoverSource();
+    if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+      dbtToolsDebugLog(`initialize aborted (stale) target=${configuredTarget}`);
+      return;
+    }
     this.runs = source.runs;
     if (!source.discovery.ok) {
       throw new Error(
@@ -372,7 +397,12 @@ export class ArtifactWorkspace {
         this.discoveryErrorMessage(source.discovery) ?? 'No dbt artifact runs found.',
       );
     }
-    this.loaded = await this.loadRun(source, run);
+    const loaded = await this.loadRun(source, run);
+    if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+      dbtToolsDebugLog(`initialize aborted after load (stale) target=${configuredTarget}`);
+      return;
+    }
+    this.loaded = loaded;
     this.stale = false;
     this.lastRefreshError = undefined;
     this.syncActiveToCache();
@@ -403,6 +433,9 @@ export class ArtifactWorkspace {
   }
 
   async selectRun(runId: string): Promise<ArtifactWorkspaceStatus> {
+    await this.awaitIdleOperations();
+    const generation = this.loadGeneration;
+    const targetAtStart = this.dbtTarget;
     const source = await this.discoverSource();
     this.runs = source.runs;
     const run = this.runs.find((candidate) => candidate.runId === runId);
@@ -410,7 +443,11 @@ export class ArtifactWorkspace {
       throw new Error(`Unknown artifact run id: ${runId}`);
     }
     this.selectedRunId = runId;
-    this.loaded = await this.loadRun(source, run);
+    const loaded = await this.loadRun(source, run);
+    if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+      return this.status();
+    }
+    this.loaded = loaded;
     this.stale = false;
     this.lastRefreshError = undefined;
     this.syncActiveToCache();
@@ -430,7 +467,12 @@ export class ArtifactWorkspace {
       return this.status();
     }
 
+    const generation = this.loadGeneration;
+    const targetAtStart = this.dbtTarget;
     const source = await this.discoverSource();
+    if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+      return this.status();
+    }
     this.runs = source.runs;
     const run = this.resolveSelectedRun() ?? this.runs[0] ?? null;
     if (run == null) {
@@ -443,11 +485,18 @@ export class ArtifactWorkspace {
     }
 
     try {
-      this.loaded = await this.loadRun(source, run);
+      const loaded = await this.loadRun(source, run);
+      if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+        return this.status();
+      }
+      this.loaded = loaded;
       this.stale = false;
       this.lastRefreshError = undefined;
       this.syncActiveToCache();
     } catch (error) {
+      if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+        return this.status();
+      }
       this.stale = true;
       this.lastRefreshError = error instanceof Error ? error.message : String(error);
     }
@@ -475,10 +524,22 @@ export class ArtifactWorkspace {
     };
   }
 
-  private async awaitIdleRefresh(): Promise<void> {
+  private bumpLoadGeneration(): void {
+    this.loadGeneration += 1;
+  }
+
+  private isLoadStillCurrent(generation: number, targetAtStart: string | null): boolean {
+    return generation === this.loadGeneration && targetAtStart === this.dbtTarget;
+  }
+
+  private async awaitIdleOperations(): Promise<void> {
     if (this.refreshPromise != null) {
       await this.refreshPromise;
       this.refreshPromise = null;
+    }
+    if (this.initializePromise != null) {
+      await this.initializePromise;
+      this.initializePromise = null;
     }
   }
 

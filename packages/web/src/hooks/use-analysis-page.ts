@@ -170,8 +170,13 @@ export function useAnalysisPage(): UseAnalysisPageResult {
               missingSources: false,
             },
           );
+          setPendingRemoteRun(status.pendingRun);
+        } else {
+          setError(
+            'Remote run was selected on the server but artifact files could not be loaded. Try again or reload the page.',
+          );
+          setPendingRemoteRun(pendingRemoteRun);
         }
-        setPendingRemoteRun(status.pendingRun);
         mergeSnapshotFromStatus(status);
       } catch (switchError) {
         setError(

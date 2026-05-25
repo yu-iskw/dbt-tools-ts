@@ -22,6 +22,15 @@ import type { RemoteObjectStoreClient } from '../io/remote-object-store';
 class FakeRemoteObjectStoreClient implements RemoteObjectStoreClient {
   readonly reads: string[] = [];
   failReads = false;
+  /** When set, readObjectBytes waits until release() is called (per key prefix). */
+  blockedPrefix: string | null = null;
+  private releaseBlockedReads: (() => void) | null = null;
+
+  releaseBlockedReadsNow(): void {
+    this.releaseBlockedReads?.();
+    this.releaseBlockedReads = null;
+    this.blockedPrefix = null;
+  }
 
   private objects = new Map<
     string,
@@ -51,6 +60,11 @@ class FakeRemoteObjectStoreClient implements RemoteObjectStoreClient {
   }
 
   async readObjectBytes(_bucket: string, key: string): Promise<Uint8Array> {
+    if (this.blockedPrefix != null && key.startsWith(this.blockedPrefix)) {
+      await new Promise<void>((resolve) => {
+        this.releaseBlockedReads = resolve;
+      });
+    }
     this.reads.push(key);
     if (this.failReads) {
       throw new Error(`read failed for ${key}`);
@@ -303,6 +317,28 @@ describe('ArtifactWorkspace', () => {
     ]);
     await expect(workspace.getLoadedWorkspace()).rejects.toBeInstanceOf(
       ArtifactTargetNotConfiguredError,
+    );
+  });
+
+  it('does not apply a stale initialize when the active target changes mid-load', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`prefix-b/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-b/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+    remoteClient.put(`prefix-c/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-c/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+
+    const workspace = new ArtifactWorkspace({ remoteClient, now: () => 999 });
+    remoteClient.blockedPrefix = 'prefix-b/';
+    const slowLoad = workspace.setTarget('s3://bucket/prefix-b');
+    const switchToC = workspace.setTarget('s3://bucket/prefix-c');
+    remoteClient.releaseBlockedReadsNow();
+    await Promise.all([slowLoad, switchToC]);
+
+    const status = await workspace.getStatus();
+    expect(status.target).toBe('s3://bucket/prefix-c');
+    const useCases = createDbtToolsUseCases(workspace);
+    await expect(useCases.searchResources({ query: 'customers', limit: 1 })).resolves.toMatchObject(
+      { total: expect.any(Number) },
     );
   });
 
