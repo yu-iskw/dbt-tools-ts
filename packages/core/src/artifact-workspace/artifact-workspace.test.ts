@@ -22,6 +22,9 @@ import type { RemoteObjectStoreClient } from '../io/remote-object-store';
 class FakeRemoteObjectStoreClient implements RemoteObjectStoreClient {
   readonly reads: string[] = [];
   failReads = false;
+  /** When set, delays readObjectBytes for keys containing this substring. */
+  delayReadKeySubstring: string | null = null;
+  delayReadMs = 0;
 
   private objects = new Map<
     string,
@@ -54,6 +57,13 @@ class FakeRemoteObjectStoreClient implements RemoteObjectStoreClient {
     this.reads.push(key);
     if (this.failReads) {
       throw new Error(`read failed for ${key}`);
+    }
+    if (
+      this.delayReadKeySubstring != null &&
+      key.includes(this.delayReadKeySubstring) &&
+      this.delayReadMs > 0
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, this.delayReadMs));
     }
     const object = this.objects.get(key);
     if (object == null) {
@@ -302,6 +312,53 @@ describe('ArtifactWorkspace', () => {
       expect.objectContaining({ target: tempDir, loadedAtMs: 123 }),
     ]);
     await expect(workspace.getLoadedWorkspace()).rejects.toBeInstanceOf(
+      ArtifactTargetNotConfiguredError,
+    );
+  });
+
+  it('does not apply a slow initialize after a faster setTarget to another path', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`slow/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`slow/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+    remoteClient.put(`fast/${DBT_MANIFEST_JSON}`, manifestJson, 2);
+    remoteClient.put(`fast/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 2);
+    remoteClient.delayReadKeySubstring = 'slow/';
+    remoteClient.delayReadMs = 50;
+
+    const workspace = new ArtifactWorkspace({ remoteClient });
+    const slow = workspace.setTarget('s3://bucket/slow');
+    await workspace.setTarget('s3://bucket/fast');
+    await slow;
+
+    const status = await workspace.getStatus();
+    expect(status.target).toBe('s3://bucket/fast');
+    expect(status.versionToken).toContain('etag-2');
+    expect(status.versionToken).not.toContain('etag-1');
+  });
+
+  it('does not repopulate loaded after unsetTarget while initialize is in flight', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`prefix/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+    remoteClient.delayReadKeySubstring = 'prefix/';
+    remoteClient.delayReadMs = 50;
+
+    const workspace = new ArtifactWorkspace({
+      dbtTarget: 's3://bucket/prefix',
+      remoteClient,
+    });
+    const initializing = workspace.initialize();
+    const unset = await workspace.unsetTarget();
+    expect(unset.target).toBeNull();
+    expect(unset.loadedAtMs).toBeNull();
+    await initializing;
+
+    const status = await workspace.getStatus();
+    expect(status.target).toBeNull();
+    expect(status.loadedAtMs).toBeNull();
+
+    const useCases = createDbtToolsUseCases(workspace);
+    await expect(useCases.searchResources({ query: 'customers', limit: 1 })).rejects.toBeInstanceOf(
       ArtifactTargetNotConfiguredError,
     );
   });

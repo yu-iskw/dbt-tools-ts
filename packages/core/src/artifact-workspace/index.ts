@@ -287,6 +287,9 @@ export class ArtifactWorkspace {
   private stale = false;
   private lastRefreshError: string | undefined;
   private refreshPromise: Promise<ArtifactWorkspaceStatus> | null = null;
+  private initializePromise: Promise<void> | null = null;
+  /** Bumped when target binding changes; stale in-flight loads must not assign `loaded`. */
+  private activeInitToken = 0;
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -305,6 +308,8 @@ export class ArtifactWorkspace {
       throw new Error('target is required.');
     }
     await this.awaitIdleRefresh();
+    await this.awaitIdleInitialize();
+    this.activeInitToken++;
     this.evictExpired();
     const cacheKey = trimmed;
     const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
@@ -321,13 +326,15 @@ export class ArtifactWorkspace {
     this.selectedRunId = null;
     this.runs = [];
     this.loaded = null;
-    await this.initialize();
+    await this.runInitialize(this.activeInitToken);
     this.syncActiveToCache();
     return this.status();
   }
 
   async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
     await this.awaitIdleRefresh();
+    await this.awaitIdleInitialize();
+    this.activeInitToken++;
     this.dbtTarget = null;
     this.selectedRunId = null;
     this.runs = [];
@@ -339,6 +346,8 @@ export class ArtifactWorkspace {
 
   async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
     await this.awaitIdleRefresh();
+    await this.awaitIdleInitialize();
+    this.activeInitToken++;
     this.targetCache.clear();
     this.loaded = null;
     this.runs = [];
@@ -349,10 +358,45 @@ export class ArtifactWorkspace {
   }
 
   async initialize(): Promise<void> {
+    if (this.dbtTarget == null) {
+      throw new ArtifactTargetNotConfiguredError();
+    }
+    await this.runInitialize(this.activeInitToken);
+  }
+
+  private async runInitialize(expectedToken: number): Promise<void> {
+    if (this.initializePromise != null) {
+      await this.initializePromise;
+      if (expectedToken !== this.activeInitToken || this.dbtTarget == null) {
+        return;
+      }
+      if (this.loaded != null) {
+        return;
+      }
+    }
+    if (expectedToken !== this.activeInitToken || this.dbtTarget == null) {
+      return;
+    }
+
+    const promise = this.initializeInternal(expectedToken);
+    this.initializePromise = promise;
+    try {
+      await promise;
+    } finally {
+      if (this.initializePromise === promise) {
+        this.initializePromise = null;
+      }
+    }
+  }
+
+  private async initializeInternal(expectedToken: number): Promise<void> {
     const startedAt = dbtToolsDebugNow();
     const configuredTarget = this.requireTarget();
     dbtToolsDebugLog(`initialize start target=${configuredTarget}`);
     const source = await this.discoverSource();
+    if (expectedToken !== this.activeInitToken || this.dbtTarget == null) {
+      return;
+    }
     this.runs = source.runs;
     if (!source.discovery.ok) {
       throw new Error(
@@ -372,7 +416,11 @@ export class ArtifactWorkspace {
         this.discoveryErrorMessage(source.discovery) ?? 'No dbt artifact runs found.',
       );
     }
-    this.loaded = await this.loadRun(source, run);
+    const loaded = await this.loadRun(source, run);
+    if (expectedToken !== this.activeInitToken || this.dbtTarget == null) {
+      return;
+    }
+    this.loaded = loaded;
     this.stale = false;
     this.lastRefreshError = undefined;
     this.syncActiveToCache();
@@ -418,10 +466,16 @@ export class ArtifactWorkspace {
   }
 
   async getLoadedWorkspace(): Promise<LoadedArtifactWorkspace> {
+    if (this.dbtTarget == null) {
+      throw new ArtifactTargetNotConfiguredError();
+    }
     if (this.loaded == null) {
       await this.initialize();
     }
-    return this.loaded!;
+    if (this.dbtTarget == null || this.loaded == null) {
+      throw new ArtifactTargetNotConfiguredError();
+    }
+    return this.loaded;
   }
 
   private async refreshIfChangedInternal(): Promise<ArtifactWorkspaceStatus> {
@@ -479,6 +533,12 @@ export class ArtifactWorkspace {
     if (this.refreshPromise != null) {
       await this.refreshPromise;
       this.refreshPromise = null;
+    }
+  }
+
+  private async awaitIdleInitialize(): Promise<void> {
+    if (this.initializePromise != null) {
+      await this.initializePromise;
     }
   }
 

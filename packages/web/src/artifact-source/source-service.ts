@@ -135,6 +135,8 @@ export class ArtifactSourceService {
   private selectedRunId: string | null = null;
   /** Version token of artifacts the active investigation is using (ADR-0004 detect-notify-confirm). */
   private loadedVersionToken: string | null = null;
+  /** Bumped on user configure; stale remote poll refreshes must not overwrite newer config. */
+  private discoveryGeneration = 0;
 
   constructor(options: ArtifactSourceServiceOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
@@ -323,11 +325,17 @@ export class ArtifactSourceService {
     if (this.mode !== 'remote' || this.remoteConfig == null || this.remoteClient == null) {
       return;
     }
+    const configAtStart = this.remoteConfig;
+    const clientAtStart = this.remoteClient;
+    const generationAtStart = this.discoveryGeneration;
     try {
-      const discovery = await this.discoverRemoteConfiguration(
-        this.remoteConfig,
-        this.remoteClient,
-      );
+      const discovery = await this.discoverRemoteConfiguration(configAtStart, clientAtStart);
+      if (generationAtStart !== this.discoveryGeneration) {
+        return;
+      }
+      if (this.remoteConfig !== configAtStart || this.remoteClient !== clientAtStart) {
+        return;
+      }
       if (!discovery.discoveryResult.ok) {
         return;
       }
@@ -543,7 +551,12 @@ export class ArtifactSourceService {
     providerOptions?: GcsArtifactSourceRequestOptions,
   ): Promise<ArtifactSourceStatus> {
     await this.ensureReady();
+    this.discoveryGeneration++;
+    const generationAtStart = this.discoveryGeneration;
     const discovery = await this.discoverArtifactSourceInternal(kind, location, providerOptions);
+    if (generationAtStart !== this.discoveryGeneration) {
+      return this.getStatus();
+    }
     const selectedRunId = this.resolveConfiguredRunId(discovery, runId);
     this.applyDiscoveredArtifactSource(discovery, selectedRunId);
 

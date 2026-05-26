@@ -13,6 +13,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactSourceService, type RemoteObjectStoreClient } from './source-service';
 
 class FakeRemoteClient implements RemoteObjectStoreClient {
+  listDelayMs = 0;
+
   constructor(
     private readonly objects: Array<{
       key: string;
@@ -44,6 +46,9 @@ class FakeRemoteClient implements RemoteObjectStoreClient {
       generation?: string;
     }>
   > {
+    if (this.listDelayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, this.listDelayMs));
+    }
     return this.objects.map(({ bytes: _bytes, ...object }) => object);
   }
 
@@ -283,6 +288,63 @@ describe('ArtifactSourceService', () => {
           impersonatedServiceAccount: 'target@svc.iam.gserviceaccount.com',
         }),
       );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('does not revert configure when a stale remote poll list completes later', async () => {
+    const spy = vi.spyOn(artifactIo, 'createRemoteObjectStoreClient');
+    const client = new FakeRemoteClient([
+      {
+        key: 'prefix-a/manifest.json',
+        updatedAtMs: 1_000,
+        etag: 'manifest-a',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-a"}}'),
+      },
+      {
+        key: 'prefix-a/run_results.json',
+        updatedAtMs: 1_000,
+        etag: 'results-a',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-a"}}'),
+      },
+      {
+        key: 'prefix-b/manifest.json',
+        updatedAtMs: 2_000,
+        etag: 'manifest-b',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-b"}}'),
+      },
+      {
+        key: 'prefix-b/run_results.json',
+        updatedAtMs: 2_000,
+        etag: 'results-b',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-b"}}'),
+      },
+    ]);
+    client.listDelayMs = 50;
+    spy.mockResolvedValue(client);
+
+    try {
+      const service = new ArtifactSourceService({
+        remoteConfig: {
+          provider: 's3',
+          bucket: 'dbt-artifacts',
+          prefix: 'prefix-a',
+          pollIntervalMs: 15_000,
+        },
+        remoteClient: client,
+      });
+
+      const stalePoll = service.getStatus();
+      await service.configureArtifactSource('s3', 'dbt-artifacts/prefix-b');
+      await stalePoll;
+
+      const status = await service.getStatus();
+      expect(status.remoteLocation).toContain('prefix-b');
+      expect(status.remoteLocation).not.toContain('prefix-a');
+
+      const payload = await service.getCurrentArtifacts();
+      expect(new TextDecoder().decode(payload?.manifestBytes)).toContain('run-b');
     } finally {
       spy.mockRestore();
     }
