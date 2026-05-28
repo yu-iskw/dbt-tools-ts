@@ -1,0 +1,9 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+
+[settings]
+auto_install = true
+
+[tools]
+ast-grep = "latest"
+ripgrep = "latest"
+fd = "latest"

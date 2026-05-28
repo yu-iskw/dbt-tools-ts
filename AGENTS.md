@@ -10,6 +10,7 @@
 
 - **Package manager:** pnpm workspace.
 - **Node.js:** use [`.node-version`](.node-version) for local development and CI. Published packages require Node.js 20+.
+- **Dev tools (mise):** optional search CLIs in [`mise.toml`](mise.toml) ([mise registry](https://mise.jdx.dev/registry.html)): `ast-grep` / `sg` (structural search), `ripgrep` / `rg` (content search), `fd` (path discovery). Install with `mise trust` (first time) then `mise install`. **Coding agents:** prefer `rg`, `fd`, and `ast-grep`/`sg` over ad-hoc shell greps when exploring this repo; they do not replace quality gates below.
 - **Language:** TypeScript. Unit tests use Vitest from the repository root (per-package [`vitest.config.ts`](packages/core/vitest.config.ts) projects; coverage and global thresholds only in root [`vitest.config.ts`](vitest.config.ts)).
 - **Repository boundary:** this repo owns `@dbt-tools/core`, `@dbt-tools/cli`, `@dbt-tools/mcp`, and `@dbt-tools/web`. `dbt-artifacts-parser` is an external npm dependency and upstream parser package, not a workspace package here.
 
@@ -63,6 +64,15 @@ Root [`eslint.config.mjs`](eslint.config.mjs) layers `eslint-plugin-security` (c
 For documentation-only and agent-resource edits, the default repo policy still expects `pnpm lint:report`, `pnpm knip`, and `pnpm coverage:report`; a user may explicitly narrow verification for migration or review work. Cursor mirror: [`.cursor/rules/coverage-and-lint-reports.mdc`](.cursor/rules/coverage-and-lint-reports.mdc).
 
 ## Commands
+
+Optional dev tools from [`mise.toml`](mise.toml):
+
+```bash
+mise trust    # first time in this repo
+mise install
+```
+
+Workspace commands:
 
 ```bash
 pnpm install
