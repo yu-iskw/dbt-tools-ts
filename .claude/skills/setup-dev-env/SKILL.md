@@ -17,6 +17,9 @@ This skill automates the process of setting up the development environment to en
   - [ ] Run `pnpm exec trunk --version` or `pnpm trunk --version`
 - [ ] **Step 4: Tooling Setup**
   - [ ] Run `pnpm exec trunk install` to fetch managed linters and formatters (optional but recommended)
+- [ ] **Step 5: Search tools (optional)**
+  - [ ] Run `mise trust && mise install` for `fd`, `rg`, and `sg` from [`mise.toml`](../../../mise.toml)
+  - [ ] See [codebase-search](../codebase-search/SKILL.md) for usage recipes
 
 ## Detailed Instructions
 
@@ -53,6 +56,17 @@ Trunk manages linters and formatters hermetically. Run the following command to 
 ```bash
 pnpm exec trunk install
 ```
+
+### 5. Search tools (optional)
+
+Mise-pinned CLIs for repo exploration (`fd`, `rg`, `sg`) are declared in root [`mise.toml`](../../../mise.toml). They are optional — quality gates do not require them.
+
+```bash
+mise trust
+mise install
+```
+
+Usage recipes: [codebase-search](../codebase-search/SKILL.md).
 
 ## Success Criteria
 

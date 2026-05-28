@@ -15,6 +15,7 @@ This directory contains the Claude Code configuration for AI-assisted developmen
 ├── skills/                # Reusable workflows (slash commands)
 │   ├── build-and-fix/
 │   ├── check-directory-structure/
+│   ├── codebase-search/
 │   ├── codeql-fix/
 │   ├── improve-claude-config/
 │   ├── initialize-project/
