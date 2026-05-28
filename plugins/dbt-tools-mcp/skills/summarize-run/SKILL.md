@@ -10,7 +10,7 @@ compatibility: dbt-tools MCP server enabled; loaded session with run_results.
 
 ## Contract
 
-- **Inputs:** none
+- **Inputs:** optional `bottleneck` (`metric`: `execution_time` | `slot_ms` | `bytes_processed`, `topN`, `resourceTypes`)
 - **Outputs:** summary, status breakdown, bottlenecks, adapter totals
 - **Done when:** run-level picture is clear before drill-down
 

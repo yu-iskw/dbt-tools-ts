@@ -237,13 +237,25 @@ Example shape (fields may be `null` before load):
 | Slowest nodes           | `status` → `query_executions` (`sort: execution_time_desc`)                                        |
 | Blast radius            | `query_dependencies` (`direction: downstream`)                                                     |
 | BQ slot leaders         | `query_executions` + `bigquery: { sort: slot_ms_desc }`                                            |
+| Known `unique_id`s      | `query_executions` + `uniqueIds: [...]` (not paging)                                               |
+| Subgraph warehouse cost | `query_subgraph_cost` (`metric: slot_ms`, `direction: upstream`)                                   |
 | New CI artifacts        | `refresh` → triage / slowest                                                                       |
 | Multiple tag slices     | `set_target` per prefix; repeat `set_target` is fast when cached; `clear_cached_targets` when done |
 | Free memory, keep cache | `unset_target` (drops active binding; LRU entries remain)                                          |
 
 ## MCP tools reference
 
-Ten tools. Each returns **JSON** in text `content` and **`structuredContent`** (same payload). Validation errors set **`isError: true`** with `hint` and optional `allowed_sorts`.
+Eleven tools. Each returns **JSON** in text `content` and **`structuredContent`** (same payload). Validation errors set **`isError: true`** with `hint` and optional `allowed_sorts`.
+
+### Response size invariants
+
+- **`dbt_tools_get_run_summary`** never embeds full `node_executions` or catalog-sized arrays. Contract: serialized JSON stays under **256 KiB** for large runs (see core tests).
+- **`dbt_tools_query_dependencies`** omits SQL by default (`includeCode: false`). Dependency nodes are **identity-only** (`unique_id`, `resource_type`, `name`, `package_name`, `depth`) plus optional SQL when `includeCode: true`. Use **`dbt_tools_get_resource`** or **`dbt_tools_search_resources`** for path, tags, and other manifest fields.
+- **`dbt_tools_query_subgraph_cost`** returns rollups only (no SQL bodies). Closures above **500** nodes set `truncated: true` and `totals_scope: partial` — `totals` and `top_contributors` cover only the capped node set (highest metric nodes retained), not the full DAG closure.
+
+### Deferred features
+
+Not implemented yet: cross-target `compare_executions`, `targetHandle` registry, cursor pagination, `namePattern` on executions, named target config file, critical-path tool, multi-`runId` selection on tools.
 
 ### `dbt_tools_status`
 
@@ -314,36 +326,69 @@ Return details for one dbt resource by `unique_id`.
 
 Upstream or downstream dependencies (replaces `lineage` and `impact`).
 
-| Input        | Type                       | Notes                      |
-| ------------ | -------------------------- | -------------------------- |
-| `uniqueId`   | string, required           |                            |
-| `direction`  | `upstream` \| `downstream` | Default **`upstream`**     |
-| `depth`      | int ≥ 1?                   | Optional hop limit         |
-| `buildOrder` | boolean?                   | Upstream topological order |
+| Input                     | Type                       | Notes                                                                                                                                               |
+| ------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `uniqueId`                | string, required           |                                                                                                                                                     |
+| `direction`               | `upstream` \| `downstream` | Default **`upstream`**                                                                                                                              |
+| `depth`                   | int ≥ 1?                   | Optional hop limit                                                                                                                                  |
+| `buildOrder`              | boolean?                   | Upstream topological order                                                                                                                          |
+| `includeCode`             | boolean?                   | Default **false** — SQL via `get_resource`                                                                                                          |
+| `includeExecutionMetrics` | boolean?                   | Attach `execution` on up to **500** dependency nodes (`ran: false` if skipped); sets `execution_metrics_truncated: true` when the closure is larger |
+
+Each dependency object is identity-only unless `includeCode: true` (see response size invariants above).
 
 ### `dbt_tools_query_executions`
 
 Filter and sort executed nodes. At most **one** warehouse block: `bigquery`, `snowflake`, `athena`, `postgres`, `redshift`, or `spark`.
 
-| Input              | Type                | Default / max                     |
-| ------------------ | ------------------- | --------------------------------- |
-| `resourceTypes`    | string[]?           | Default model, test, unit_test    |
-| `status`           | string \| string[]? | Pass explicitly for triage        |
-| `limit`            | int?                | Default **10**, max **50**        |
-| `offset`           | int?                | Requires `limit`                  |
-| `sort`             | enum?               | `execution_time_desc`, …          |
-| `uniqueIdPattern`  | string?             | Glob on `unique_id`               |
-| `minExecutionTime` | number?             | Seconds                           |
-| `maxExecutionTime` | number?             | Seconds                           |
-| `bigquery` / …     | object?             | Warehouse-specific sorts and mins |
+**Filter combination:** `uniqueIds`, `uniqueIdPattern`, `resourceTypes`, and other filters combine with **AND**.
+
+| Input              | Type                | Default / max                                                                                       |
+| ------------------ | ------------------- | --------------------------------------------------------------------------------------------------- |
+| `resourceTypes`    | string[]?           | Default model, test, unit_test                                                                      |
+| `status`           | string \| string[]? | Pass explicitly for triage                                                                          |
+| `limit`            | int?                | Default **10**, max **50**                                                                          |
+| `offset`           | int?                | Requires `limit`                                                                                    |
+| `sort`             | enum?               | `execution_time_desc`, …                                                                            |
+| `uniqueIds`        | string[]?           | Exact IDs (max **100**); response includes `not_found` for IDs absent from the run                  |
+| `uniqueIdPattern`  | string?             | Glob on `unique_id` (`*` wildcards)                                                                 |
+| `globMode`         | enum?               | `substring` (default) wraps bare patterns as `*pat*`; `strict` requires exact match or explicit `*` |
+| `adapterText`      | string?             | Substring match on warehouse query/job id fields                                                    |
+| `minExecutionTime` | number?             | Seconds                                                                                             |
+| `maxExecutionTime` | number?             | Seconds                                                                                             |
+| `bigquery` / …     | object?             | Warehouse-specific sorts, mins, and `queryId` (alias for adapter text)                              |
+
+Response may include:
+
+- **`not_found`** — requested `uniqueIds` with no execution row in the run
+- **`excluded_by_resource_types`** — IDs that ran but were filtered out by `resourceTypes`
+- **`hints`** — when `total_matched` is 0 (glob semantics, AND filters, resource-type exclusions)
+
+**CLI note:** `dbt-tools query-executions` defaults `--glob-mode` to **`strict`**; MCP defaults to **`substring`** when `globMode` is omitted.
+
+### `dbt_tools_query_subgraph_cost`
+
+Roll up `slot_ms`, `bytes_processed`, or `execution_time` for a node and its upstream or downstream subgraph (executed nodes only).
+
+| Input           | Type                       | Notes                                                    |
+| --------------- | -------------------------- | -------------------------------------------------------- |
+| `uniqueId`      | string, required           | Root node                                                |
+| `direction`     | `upstream` \| `downstream` | Default **`upstream`**                                   |
+| `depth`         | int ≥ 1?                   | Optional hop limit                                       |
+| `resourceTypes` | string[]?                  | Filter closure by resource type                          |
+| `metric`        | enum                       | `slot_ms`, `bytes_processed`, `execution_time` (default) |
+
+Response includes **`totals_scope`**: `complete` when the full closure fits in the cap; **`partial`** when `truncated: true` (totals reflect only the capped subset).
 
 ### `dbt_tools_get_run_summary`
 
 Summary, status breakdown, bottlenecks, adapter totals — **no** per-node list.
 
-| Input    | Type | Notes |
-| -------- | ---- | ----- |
-| _(none)_ |      |       |
+| Input        | Type    | Notes                                                                                       |
+| ------------ | ------- | ------------------------------------------------------------------------------------------- |
+| `bottleneck` | object? | Optional `metric` (`execution_time`, `slot_ms`, `bytes_processed`), `topN`, `resourceTypes` |
+
+When `bottleneck.metric` is `slot_ms` or `bytes_processed`, read **`metric_value`** and **`total_metric`** on `bottlenecks`; node **`execution_time`** remains wall-clock seconds.
 
 ## Troubleshooting
 

@@ -8,7 +8,7 @@ import {
   type AthenaSearchCriteria,
   type BaseAdapterSearchCriteria,
   type BigQuerySearchCriteria,
-  type QueryDependenciesInput,
+  type QueryDependenciesWorkspaceInput,
   type QueryExecutionsRequest,
   type SnowflakeSearchCriteria,
   getObjectProperty,
@@ -18,6 +18,8 @@ import {
   type ArtifactWorkspaceStatus,
   type DbtToolsUseCases,
   type GetResourceInput,
+  type QuerySubgraphCostInput,
+  type RunSummaryOptions,
   type SearchResourcesInput,
 } from '@dbt-tools/core/artifact-workspace';
 
@@ -145,7 +147,7 @@ function getResourceInput(input: ToolInput): GetResourceInput {
   };
 }
 
-function queryDependenciesInput(input: ToolInput): QueryDependenciesInput {
+function queryDependenciesInput(input: ToolInput): QueryDependenciesWorkspaceInput {
   const uniqueId = optionalString(input, 'uniqueId');
   if (uniqueId == null) {
     throw new Error(MSG_UNIQUE_ID_REQUIRED);
@@ -156,6 +158,8 @@ function queryDependenciesInput(input: ToolInput): QueryDependenciesInput {
     direction,
     depth: optionalNumber(input, 'depth'),
     buildOrder: input.buildOrder === true,
+    includeCode: input.includeCode === true,
+    includeExecutionMetrics: input.includeExecutionMetrics === true,
   };
 }
 
@@ -173,17 +177,25 @@ function queryExecutionsInput(input: ToolInput): QueryExecutionsRequest {
       ? sortRaw
       : undefined;
 
+  const globModeRaw = optionalString(input, 'globMode');
+  const globMode =
+    globModeRaw === 'strict' || globModeRaw === 'substring' ? globModeRaw : undefined;
+
   const request: QueryExecutionsRequest = {
     resourceTypes: optionalStringArray(input, 'resourceTypes'),
     status,
     limit: boundedLimit(input, QUERY_EXECUTIONS_DEFAULT_LIMIT, QUERY_EXECUTIONS_MAX_LIMIT),
     offset: offset(input),
+    uniqueIds: optionalStringArray(input, 'uniqueIds'),
     uniqueIdPattern: optionalString(input, 'uniqueIdPattern'),
+    ...(globMode != null ? { globMode } : {}),
+    adapterText: optionalString(input, 'adapterText'),
     minExecutionTime: optionalNumber(input, 'minExecutionTime'),
     maxExecutionTime: optionalNumber(input, 'maxExecutionTime'),
     ...(sort != null ? { sort } : {}),
     bigquery: pickWarehouseBlock(optionalRecord(input, 'bigquery'), {
       sort: 'sort',
+      queryId: 'queryId',
       minSlotMs: 'minSlotMs',
       minBytesProcessed: 'minBytesProcessed',
       minBytesBilled: 'minBytesBilled',
@@ -221,6 +233,51 @@ function queryExecutionsInput(input: ToolInput): QueryExecutionsRequest {
   };
 
   return request;
+}
+
+function querySubgraphCostInput(input: ToolInput): QuerySubgraphCostInput {
+  const uniqueId = optionalString(input, 'uniqueId');
+  if (uniqueId == null) {
+    throw new Error(MSG_UNIQUE_ID_REQUIRED);
+  }
+  const direction = input.direction === 'downstream' ? 'downstream' : 'upstream';
+  const metricRaw = optionalString(input, 'metric');
+  const metric =
+    metricRaw === 'slot_ms' || metricRaw === 'bytes_processed' || metricRaw === 'execution_time'
+      ? metricRaw
+      : 'execution_time';
+  return {
+    uniqueId,
+    direction,
+    depth: optionalNumber(input, 'depth'),
+    resourceTypes: optionalStringArray(input, 'resourceTypes'),
+    metric,
+  };
+}
+
+function runSummaryInput(input: ToolInput): RunSummaryOptions | undefined {
+  const bottleneckRaw = optionalRecord(input, 'bottleneck');
+  if (bottleneckRaw == null) return undefined;
+
+  const metricRaw = optionalString(bottleneckRaw, 'metric');
+  const metric =
+    metricRaw === 'slot_ms' || metricRaw === 'bytes_processed' || metricRaw === 'execution_time'
+      ? metricRaw
+      : undefined;
+  const topN = optionalNumber(bottleneckRaw, 'topN');
+  const resourceTypes = optionalStringArray(bottleneckRaw, 'resourceTypes');
+
+  if (metric == null && topN == null && (resourceTypes == null || resourceTypes.length === 0)) {
+    return undefined;
+  }
+
+  return {
+    bottleneck: {
+      ...(metric != null ? { metric } : {}),
+      ...(topN != null ? { topN } : {}),
+      ...(resourceTypes != null && resourceTypes.length > 0 ? { resourceTypes } : {}),
+    },
+  };
 }
 
 function validationErrorResult(error: QueryExecutionsValidationError): McpJsonToolResult {
@@ -271,6 +328,7 @@ export type DbtToolsMcpToolHandlers = {
   dbt_tools_get_resource: McpToolHandler;
   dbt_tools_query_dependencies: McpToolHandler;
   dbt_tools_query_executions: McpToolHandler;
+  dbt_tools_query_subgraph_cost: McpToolHandler;
   dbt_tools_get_run_summary: McpToolHandler;
 };
 
@@ -336,7 +394,10 @@ export function createDbtToolsMcpToolHandlers(
       }
     },
 
-    dbt_tools_get_run_summary: async (_input: ToolInput): Promise<McpJsonToolResult> =>
-      withLoadedUseCases(useCases, (uc) => uc.getRunSummary()),
+    dbt_tools_query_subgraph_cost: async (input: ToolInput): Promise<McpJsonToolResult> =>
+      withLoadedUseCases(useCases, (uc) => uc.querySubgraphCost(querySubgraphCostInput(input))),
+
+    dbt_tools_get_run_summary: async (input: ToolInput): Promise<McpJsonToolResult> =>
+      withLoadedUseCases(useCases, (uc) => uc.getRunSummary(runSummaryInput(input))),
   };
 }

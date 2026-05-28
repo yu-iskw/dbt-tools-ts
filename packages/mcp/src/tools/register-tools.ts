@@ -17,6 +17,7 @@ const bigQueryBlockSchema = z
     sort: z
       .enum(['slot_ms_desc', 'bytes_processed_desc', 'bytes_billed_desc', 'rows_affected_desc'])
       .optional(),
+    queryId: z.string().optional(),
     minSlotMs: z.number().optional(),
     minBytesProcessed: z.number().optional(),
     minBytesBilled: z.number().optional(),
@@ -62,7 +63,10 @@ const queryExecutionsInputSchema = z
     status: z.union([z.string(), z.array(z.string())]).optional(),
     limit: z.number().int().min(1).max(QUERY_EXECUTIONS_MAX_LIMIT).optional(),
     offset: z.number().int().min(0).optional(),
+    uniqueIds: z.array(z.string().min(1)).max(100).optional(),
     uniqueIdPattern: z.string().optional(),
+    globMode: z.enum(['strict', 'substring']).optional(),
+    adapterText: z.string().optional(),
     minExecutionTime: z.number().optional(),
     maxExecutionTime: z.number().optional(),
     sort: z.enum(['execution_time_desc', 'execution_time_asc', 'unique_id']).optional(),
@@ -187,12 +191,14 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
     {
       title: 'dbt-tools query dependencies',
       description:
-        'Return upstream or downstream dependencies for a dbt resource (replaces lineage and impact).',
+        'Return upstream or downstream dependencies for a dbt resource (replaces lineage and impact). SQL omitted by default; use get_resource with includeCode for code.',
       inputSchema: z.object({
         uniqueId: z.string().min(1),
         direction: z.enum(['upstream', 'downstream']).default('upstream'),
         depth: z.number().int().min(1).optional(),
         buildOrder: z.boolean().optional(),
+        includeCode: z.boolean().optional(),
+        includeExecutionMetrics: z.boolean().optional(),
       }),
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
@@ -204,7 +210,7 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
     {
       title: 'dbt-tools query executions',
       description:
-        'Filter and sort executed nodes from run_results. Use get_run_summary for totals. Catalog: search_resources.',
+        'Filter and sort executed nodes from run_results. BigQuery cost leaders: resourceTypes ["model"], bigquery { sort: "slot_ms_desc", minSlotMs: 1000000 }, limit 20. uniqueIds for exact IDs; uniqueIdPattern uses glob (*); bare fragments match as *fragment* unless globMode strict. Use get_run_summary for totals.',
       inputSchema: queryExecutionsInputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
@@ -212,12 +218,38 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
   );
 
   server.registerTool(
+    'dbt_tools_query_subgraph_cost',
+    {
+      title: 'dbt-tools query subgraph cost',
+      description:
+        'Roll up warehouse cost or execution time for a node and its upstream or downstream subgraph. No SQL bodies. Closures above 500 nodes return totals_scope partial (highest-metric nodes retained).',
+      inputSchema: z.object({
+        uniqueId: z.string().min(1),
+        direction: z.enum(['upstream', 'downstream']).default('upstream'),
+        depth: z.number().int().min(1).optional(),
+        resourceTypes: z.array(z.string()).optional(),
+        metric: z.enum(['slot_ms', 'bytes_processed', 'execution_time']).default('execution_time'),
+      }),
+      annotations: { readOnlyHint: true, idempotentHint: true },
+    },
+    handlers.dbt_tools_query_subgraph_cost,
+  );
+
+  server.registerTool(
     'dbt_tools_get_run_summary',
     {
       title: 'dbt-tools get run summary',
       description:
-        'Return run summary, status breakdown, bottlenecks, and adapter totals (no per-node list).',
-      inputSchema: emptySchema,
+        'Return run summary, status breakdown, bottlenecks, and adapter totals. Never includes full per-node execution lists.',
+      inputSchema: z.object({
+        bottleneck: z
+          .object({
+            metric: z.enum(['execution_time', 'slot_ms', 'bytes_processed']).optional(),
+            topN: z.number().int().min(1).max(50).optional(),
+            resourceTypes: z.array(z.string()).optional(),
+          })
+          .optional(),
+      }),
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
     handlers.dbt_tools_get_run_summary,

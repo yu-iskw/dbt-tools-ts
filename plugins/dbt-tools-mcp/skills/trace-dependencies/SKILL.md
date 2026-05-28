@@ -10,7 +10,7 @@ compatibility: dbt-tools MCP server enabled; uniqueId required.
 
 ## Contract
 
-- **Inputs:** `uniqueId`; `direction` (`upstream` or `downstream`, default `upstream`); optional `depth`; optional `buildOrder` (upstream)
+- **Inputs:** `uniqueId`; `direction` (`upstream` or `downstream`, default `upstream`); optional `depth`; optional `buildOrder` (upstream); `includeCode` (default false); `includeExecutionMetrics` for per-node run metrics. Subgraph cost rollups: `dbt_tools_query_subgraph_cost`.
 - **Outputs:** dependency graph payload from MCP
 - **Done when:** dependency neighborhood or build sequence is clear
 

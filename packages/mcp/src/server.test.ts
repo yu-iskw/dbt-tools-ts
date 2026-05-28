@@ -87,6 +87,7 @@ describe('dbt-tools MCP server wiring', () => {
       dbt_tools_get_resource: async () => ({ content: [] }),
       dbt_tools_query_dependencies: async () => ({ content: [] }),
       dbt_tools_query_executions: async () => ({ content: [] }),
+      dbt_tools_query_subgraph_cost: async () => ({ content: [] }),
       dbt_tools_get_run_summary: async () => ({ content: [] }),
     } satisfies DbtToolsMcpToolHandlers;
 
@@ -102,6 +103,7 @@ describe('dbt-tools MCP server wiring', () => {
       'dbt_tools_get_resource',
       'dbt_tools_query_dependencies',
       'dbt_tools_query_executions',
+      'dbt_tools_query_subgraph_cost',
       'dbt_tools_get_run_summary',
     ]);
   });

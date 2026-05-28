@@ -5,6 +5,7 @@ import {
   executionRowToNodeExecution,
   filterExecutionRowsByResourceTypes,
   resolveWarehouseSearchPlan,
+  type ResolvedWarehouseSearchPlan,
 } from './warehouse';
 
 import type {
@@ -87,7 +88,10 @@ const ADAPTER_HEAVY_DESC_KEYS = [
   'rows_duplicated',
 ] as const satisfies readonly AdapterHeavyMetric[];
 
-function adapterNumericHeavyOrZero(execution: NodeExecution, metric: AdapterHeavyMetric): number {
+export function adapterNumericHeavyOrZero(
+  execution: NodeExecution,
+  metric: AdapterHeavyMetric,
+): number {
   const v = getAdapterMetricSortValue(execution, metric);
   return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 }
@@ -118,6 +122,11 @@ function applyRunResultsFilters(
     const statuses = typeof criteria.status === 'string' ? [criteria.status] : criteria.status;
     const set = new Set(statuses.map((s) => s.toLowerCase()));
     result = result.filter((e) => set.has((e.status || 'unknown').toLowerCase()));
+  }
+
+  if (criteria.unique_ids !== undefined && criteria.unique_ids.size > 0) {
+    const allowed = criteria.unique_ids;
+    result = result.filter((e) => allowed.has(e.unique_id));
   }
 
   if (criteria.min_execution_time !== undefined) {
@@ -340,6 +349,9 @@ export interface QueryExecutionsOutput {
   total_matched: number;
   returned: number;
   has_more: boolean;
+  not_found?: string[];
+  excluded_by_resource_types?: string[];
+  hints?: string[];
   allowed_sorts?: string[];
   allowed_min_filters?: string[];
   rows: QueryExecutionsResultRow[];
@@ -352,47 +364,70 @@ function resourceTypeForQuery(uniqueId: string, graph?: ManifestGraph): string |
   return uniqueId.split('.')[0];
 }
 
-export function queryExecutions(
-  executionRows: ExecutionRow[],
-  request: QueryExecutionsRequest,
-  options: { warehouseType?: string | null; graph?: ManifestGraph },
-): QueryExecutionsOutput {
-  const plan = resolveWarehouseSearchPlan(request, {
-    warehouseType: options.warehouseType,
-    graph: options.graph,
-  });
-
-  let filtered = filterExecutionRowsByResourceTypes(executionRows, plan.resourceTypes);
-
+function matchedExecutionsForPlan(
+  resourceTypeFilteredRows: ExecutionRow[],
+  plan: ResolvedWarehouseSearchPlan,
+): NodeExecution[] {
+  let filtered = resourceTypeFilteredRows;
   if (plan.status != null && plan.status.length > 0) {
     const statusSet = new Set(plan.status);
     filtered = filtered.filter((row) => statusSet.has(row.status.toLowerCase()));
   }
-
   let matched = searchRunResults(filtered.map(executionRowToNodeExecution), plan.base);
   if (plan.activeWarehouseBlock != null) {
     matched = applyWarehouseSearchBlock(matched, plan.activeWarehouseBlock);
   }
-  matched = sortByExecutionSortKey(matched, plan.effectiveSort);
+  return sortByExecutionSortKey(matched, plan.effectiveSort);
+}
 
-  const totalMatched = matched.length;
-  const page = matched.slice(plan.offset, plan.offset + plan.limit);
+function buildQueryExecutionsHints(
+  plan: ResolvedWarehouseSearchPlan,
+  totalMatched: number,
+  excludedByResourceTypes: string[] | undefined,
+): string[] | undefined {
+  const shouldHint =
+    totalMatched === 0 &&
+    (plan.uniqueIdPatternForHints != null ||
+      (plan.requestedUniqueIds != null && plan.requestedUniqueIds.length > 0) ||
+      (excludedByResourceTypes != null && excludedByResourceTypes.length > 0));
+  if (!shouldHint) return undefined;
+  const hints: string[] = [];
+  if (plan.uniqueIdPatternForHints != null) {
+    hints.push(
+      'uniqueIdPattern uses glob syntax (* only); substring mode wraps bare patterns as *your_fragment*',
+    );
+  }
+  if (
+    plan.requestedUniqueIds != null &&
+    plan.requestedUniqueIds.length > 0 &&
+    plan.uniqueIdPatternForHints != null
+  ) {
+    hints.push('uniqueIds and uniqueIdPattern combine with AND; both must match');
+  }
+  if (excludedByResourceTypes != null && excludedByResourceTypes.length > 0) {
+    hints.push(
+      'Some uniqueIds ran but were excluded by resourceTypes; widen resourceTypes or omit the filter',
+    );
+  }
+  hints.push(
+    'Try search_resources for discovery, or uniqueIds when you know exact unique_id values',
+  );
+  return hints;
+}
 
-  const rows: QueryExecutionsResultRow[] = page.map((execution) => ({
-    unique_id: execution.unique_id,
-    name: getNodeName(execution.unique_id, options.graph),
-    resource_type: resourceTypeForQuery(execution.unique_id, options.graph),
-    status: execution.status || 'unknown',
-    execution_time: execution.execution_time ?? 0,
-    ...(execution.adapterMetrics != null ? { adapter_metrics: execution.adapterMetrics } : {}),
-  }));
-
-  const profile = plan.profile;
+function buildQueryExecutionsOutput(
+  plan: ResolvedWarehouseSearchPlan,
+  rows: QueryExecutionsResultRow[],
+  totalMatched: number,
+  notFound: string[] | undefined,
+  excludedByResourceTypes: string[] | undefined,
+  hints: string[] | undefined,
+): QueryExecutionsOutput {
   const warehouseCriteria =
     plan.activeWarehouseBlock != null
       ? (plan.activeWarehouseBlock.criteria as Record<string, unknown>)
       : null;
-
+  const profile = plan.profile;
   return {
     warehouse: plan.warehouse,
     run_warehouse: plan.runWarehouse,
@@ -404,6 +439,11 @@ export function queryExecutions(
     total_matched: totalMatched,
     returned: rows.length,
     has_more: plan.offset + rows.length < totalMatched,
+    ...(notFound != null && notFound.length > 0 ? { not_found: notFound } : {}),
+    ...(excludedByResourceTypes != null && excludedByResourceTypes.length > 0
+      ? { excluded_by_resource_types: excludedByResourceTypes }
+      : {}),
+    ...(hints != null ? { hints } : {}),
     allowed_sorts:
       profile != null
         ? [...COMMON_EXECUTION_SORTS, ...profile.allowedSorts]
@@ -411,6 +451,55 @@ export function queryExecutions(
     ...(profile != null ? { allowed_min_filters: [...profile.allowedMinFields] } : {}),
     rows,
   };
+}
+
+export function queryExecutions(
+  executionRows: ExecutionRow[],
+  request: QueryExecutionsRequest,
+  options: { warehouseType?: string | null; graph?: ManifestGraph },
+): QueryExecutionsOutput {
+  const plan = resolveWarehouseSearchPlan(request, {
+    warehouseType: options.warehouseType,
+    graph: options.graph,
+  });
+
+  const allRunUniqueIds = new Set(executionRows.map((row) => row.uniqueId));
+  const resourceTypeFilteredRows = filterExecutionRowsByResourceTypes(
+    executionRows,
+    plan.resourceTypes,
+  );
+  const resourceTypeAllowedIds = new Set(resourceTypeFilteredRows.map((row) => row.uniqueId));
+  const notFound =
+    plan.requestedUniqueIds != null
+      ? plan.requestedUniqueIds.filter((id) => !allRunUniqueIds.has(id))
+      : undefined;
+  const excludedByResourceTypes =
+    plan.requestedUniqueIds != null
+      ? plan.requestedUniqueIds.filter(
+          (id) => allRunUniqueIds.has(id) && !resourceTypeAllowedIds.has(id),
+        )
+      : undefined;
+
+  const matched = matchedExecutionsForPlan(resourceTypeFilteredRows, plan);
+  const totalMatched = matched.length;
+  const page = matched.slice(plan.offset, plan.offset + plan.limit);
+  const rows: QueryExecutionsResultRow[] = page.map((execution) => ({
+    unique_id: execution.unique_id,
+    name: getNodeName(execution.unique_id, options.graph),
+    resource_type: resourceTypeForQuery(execution.unique_id, options.graph),
+    status: execution.status || 'unknown',
+    execution_time: execution.execution_time ?? 0,
+    ...(execution.adapterMetrics != null ? { adapter_metrics: execution.adapterMetrics } : {}),
+  }));
+
+  return buildQueryExecutionsOutput(
+    plan,
+    rows,
+    totalMatched,
+    notFound,
+    excludedByResourceTypes,
+    buildQueryExecutionsHints(plan, totalMatched, excludedByResourceTypes),
+  );
 }
 
 export function detectAdapterHeavyNodes(

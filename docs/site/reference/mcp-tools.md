@@ -1,6 +1,6 @@
 # MCP tools
 
-`dbt-tools-mcp` exposes **ten tools**. Each returns JSON in message `content` and `structuredContent`. Validation errors set `isError: true` with a `hint` when applicable.
+`dbt-tools-mcp` exposes **eleven tools**. Each returns JSON in message `content` and `structuredContent`. Validation errors set `isError: true` with a `hint` when applicable.
 
 Repeating **`dbt_tools_set_target`** for a recently used artifact root is fast when that root is still in the server’s in-memory LRU cache (default capacity **3**). Use **`dbt_tools_clear_cached_targets`** to free memory or **`dbt_tools_unset_target`** to drop the active binding while keeping cache entries.
 
@@ -19,6 +19,7 @@ Set **remote client flags** (GCS impersonation, S3 region/endpoint) at **server 
 | `dbt_tools_get_resource`         | Resource details by `uniqueId`                       |
 | `dbt_tools_query_dependencies`   | Upstream / downstream lineage                        |
 | `dbt_tools_query_executions`     | Filter and sort executions                           |
+| `dbt_tools_query_subgraph_cost`  | Subgraph cost / time rollup (no SQL)                 |
 | `dbt_tools_get_run_summary`      | Run-level summary (no per-node list)                 |
 
 **Typical chain:** `dbt_tools_set_target` (or `--dbt-target` at server startup) → `dbt_tools_status` → triage tools (`query_executions`, `get_resource`, …).

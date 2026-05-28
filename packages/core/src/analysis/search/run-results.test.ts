@@ -13,11 +13,14 @@ import {
   applyWarehouseSearchBlock,
   detectAdapterHeavyNodes,
   detectBottlenecks,
+  queryExecutions,
   searchRunResults,
   sortByExecutionSortKey,
 } from './run-results';
+import { normalizeUniqueIdPattern } from './warehouse';
 
 import type { NodeExecution } from '../execution/analyzer';
+import type { ExecutionRow } from '../snapshot/types';
 
 function makeExecution(overrides: Partial<NodeExecution> & { unique_id: string }): NodeExecution {
   return {
@@ -92,6 +95,13 @@ describe('search/run-results', () => {
       expect(result).toHaveLength(4);
     });
 
+    it('filters by unique_ids set', () => {
+      const result = searchRunResults(fixtures, {
+        unique_ids: new Set(['model.a.slow', 'model.b.failed', 'model.missing']),
+      });
+      expect(result.map((e) => e.unique_id).sort()).toEqual(['model.a.slow', 'model.b.failed']);
+    });
+
     it('filters by unique_id pattern (glob)', () => {
       const result = searchRunResults(fixtures, {
         unique_id_pattern: 'model.b.*',
@@ -164,6 +174,12 @@ describe('search/run-results', () => {
       expect(result.map((entry) => entry.unique_id)).toEqual(['model.a']);
     });
 
+    it('normalizeUniqueIdPattern wraps substring patterns', () => {
+      expect(normalizeUniqueIdPattern('fct_orders', 'substring')).toBe('*fct_orders*');
+      expect(normalizeUniqueIdPattern('model.b.*', 'substring')).toBe('model.b.*');
+      expect(normalizeUniqueIdPattern('fct_orders', 'strict')).toBe('fct_orders');
+    });
+
     it('sorts by warehouse adapter metrics via block', () => {
       const executions = [
         makeExecution({
@@ -181,6 +197,123 @@ describe('search/run-results', () => {
       });
       const result = sortByExecutionSortKey(filtered, 'bytes_billed_desc');
       expect(result.map((entry) => entry.unique_id)).toEqual(['model.b', 'model.a']);
+    });
+  });
+
+  describe('queryExecutions', () => {
+    function row(uniqueId: string, overrides: Partial<ExecutionRow> = {}): ExecutionRow {
+      return {
+        uniqueId,
+        name: uniqueId.split('.').pop() ?? uniqueId,
+        resourceType: uniqueId.startsWith('test.') ? 'test' : 'model',
+        packageName: 'pkg',
+        path: null,
+        status: 'success',
+        statusTone: 'success',
+        executionTime: 1,
+        threadId: null,
+        start: null,
+        end: null,
+        ...overrides,
+      };
+    }
+
+    const rows: ExecutionRow[] = [
+      row('model.pkg.fct_orders', { executionTime: 10 }),
+      row('model.pkg.dim_customers', { executionTime: 5 }),
+    ];
+
+    it('filters by uniqueIds and reports not_found', () => {
+      const out = queryExecutions(
+        rows,
+        {
+          uniqueIds: ['model.pkg.fct_orders', 'model.pkg.missing'],
+          limit: 50,
+        },
+        {},
+      );
+      expect(out.total_matched).toBe(1);
+      expect(out.not_found).toEqual(['model.pkg.missing']);
+      expect(out.rows[0].unique_id).toBe('model.pkg.fct_orders');
+    });
+
+    it('reports excluded_by_resource_types when uniqueId ran but type filtered out', () => {
+      const testRow = row('test.pkg.assert_orders', { executionTime: 2 });
+      const out = queryExecutions(
+        [...rows, testRow],
+        {
+          uniqueIds: ['test.pkg.assert_orders'],
+          resourceTypes: ['model'],
+          limit: 50,
+        },
+        {},
+      );
+      expect(out.total_matched).toBe(0);
+      expect(out.not_found).toBeUndefined();
+      expect(out.excluded_by_resource_types).toEqual(['test.pkg.assert_orders']);
+      expect(out.hints?.some((h) => h.includes('resourceTypes'))).toBe(true);
+    });
+
+    it('hints when uniqueIds and uniqueIdPattern combine to zero matches', () => {
+      const out = queryExecutions(
+        rows,
+        {
+          uniqueIds: ['model.pkg.fct_orders'],
+          uniqueIdPattern: 'dim',
+          globMode: 'substring',
+          limit: 50,
+        },
+        {},
+      );
+      expect(out.total_matched).toBe(0);
+      expect(out.hints?.some((h) => h.includes('AND'))).toBe(true);
+    });
+
+    it('substring globMode matches fragment in unique_id', () => {
+      const out = queryExecutions(
+        rows,
+        {
+          uniqueIdPattern: 'fct_orders',
+          globMode: 'substring',
+          limit: 50,
+        },
+        {},
+      );
+      expect(out.total_matched).toBe(1);
+      expect(out.rows[0].unique_id).toBe('model.pkg.fct_orders');
+    });
+
+    it('strict globMode requires exact unique_id', () => {
+      const out = queryExecutions(
+        rows,
+        {
+          uniqueIdPattern: 'fct_orders',
+          globMode: 'strict',
+          limit: 50,
+        },
+        {},
+      );
+      expect(out.total_matched).toBe(0);
+      expect(out.hints?.length).toBeGreaterThan(0);
+    });
+
+    it('finds row by bigquery queryId via adapter text', () => {
+      const withJob = row('model.pkg.job_model', {
+        adapterMetrics: {
+          rawKeys: ['job_id'],
+          queryId: 'job-abc-123',
+        },
+      });
+      const out = queryExecutions(
+        [withJob],
+        {
+          bigquery: { queryId: 'abc-123' },
+          limit: 10,
+        },
+        {},
+      );
+      expect(out.total_matched).toBe(1);
+      expect(out.rows[0].unique_id).toBe('model.pkg.job_model');
     });
   });
 

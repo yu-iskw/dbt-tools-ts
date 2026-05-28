@@ -86,6 +86,15 @@ export const WAREHOUSE_EXECUTION_PROFILES: Record<WarehouseAdapterType, Warehous
 
 export const QUERY_EXECUTIONS_DEFAULT_LIMIT = 10;
 export const QUERY_EXECUTIONS_MAX_LIMIT = 50;
+export const QUERY_EXECUTIONS_MAX_UNIQUE_IDS = 100;
+
+export function normalizeUniqueIdPattern(
+  pattern: string,
+  globMode: 'strict' | 'substring' = 'substring',
+): string {
+  if (globMode === 'strict' || pattern.includes('*')) return pattern;
+  return `*${pattern}*`;
+}
 
 const DEFAULT_RESOURCE_TYPES = ['model', 'test', 'unit_test'] as const;
 
@@ -136,24 +145,7 @@ export function normalizeWarehouseAdapterType(
 }
 
 function readWarehouseBlock(request: QueryExecutionsRequest, key: WarehouseAdapterType): unknown {
-  switch (key) {
-    case 'bigquery':
-      return request.bigquery;
-    case 'snowflake':
-      return request.snowflake;
-    case 'athena':
-      return request.athena;
-    case 'postgres':
-      return request.postgres;
-    case 'redshift':
-      return request.redshift;
-    case 'spark':
-      return request.spark;
-    default: {
-      const _exhaustive: never = key;
-      return _exhaustive;
-    }
-  }
+  return getObjectProperty(request as Record<string, unknown>, key);
 }
 
 function warehouseExecutionProfile(warehouse: WarehouseAdapterType): WarehouseExecutionProfile {
@@ -265,6 +257,8 @@ export interface ResolvedWarehouseSearchPlan {
   base: RunResultsSearchCriteria;
   effectiveSort: ExecutionSortKey;
   profile: WarehouseExecutionProfile | null;
+  requestedUniqueIds?: string[];
+  uniqueIdPatternForHints?: string;
 }
 
 function resolveWarehouseLabel(
@@ -346,6 +340,59 @@ function resolveEffectiveSort(
   return effectiveSort;
 }
 
+function assertQueryExecutionsPagination(request: QueryExecutionsRequest): void {
+  if (request.offset != null && request.offset > 0 && request.limit == null) {
+    throw new QueryExecutionsValidationError('offset requires limit');
+  }
+}
+
+function assertUniqueIdsWithinLimit(uniqueIds: string[] | undefined): void {
+  if (uniqueIds != null && uniqueIds.length > QUERY_EXECUTIONS_MAX_UNIQUE_IDS) {
+    throw new QueryExecutionsValidationError(
+      `uniqueIds exceeds maximum of ${QUERY_EXECUTIONS_MAX_UNIQUE_IDS}`,
+      { hint: 'Split the request or use uniqueIdPattern for broader matching.' },
+    );
+  }
+}
+
+function buildExecutionSearchBase(
+  request: QueryExecutionsRequest,
+  activeWarehouseBlock: WarehouseSearchBlock | null,
+): RunResultsSearchCriteria {
+  return {
+    min_execution_time: request.minExecutionTime,
+    max_execution_time: request.maxExecutionTime,
+    ...(request.sort != null && activeWarehouseBlock == null ? { sort: request.sort } : {}),
+  };
+}
+
+function applyUniqueIdFiltersToBase(
+  base: RunResultsSearchCriteria,
+  request: QueryExecutionsRequest,
+): string | undefined {
+  if (request.uniqueIds != null && request.uniqueIds.length > 0) {
+    base.unique_ids = new Set(request.uniqueIds);
+  }
+
+  if (request.uniqueIdPattern == null || request.uniqueIdPattern === '') {
+    return undefined;
+  }
+
+  const globMode = request.globMode ?? 'substring';
+  base.unique_id_pattern = normalizeUniqueIdPattern(request.uniqueIdPattern, globMode);
+  return request.uniqueIdPattern;
+}
+
+function resolveAdapterTextFilter(
+  request: QueryExecutionsRequest,
+  activeAdapter: WarehouseAdapterType | null,
+): string | undefined {
+  const fromRequest = request.adapterText?.trim();
+  if (fromRequest != null && fromRequest !== '') return fromRequest;
+  if (activeAdapter === 'bigquery') return request.bigquery?.queryId?.trim() || undefined;
+  return undefined;
+}
+
 export function resolveWarehouseSearchPlan(
   request: QueryExecutionsRequest,
   options: { warehouseType?: string | null; graph?: ManifestGraph },
@@ -371,18 +418,15 @@ export function resolveWarehouseSearchPlan(
     QUERY_EXECUTIONS_MAX_LIMIT,
   );
   const offset = request.offset ?? 0;
-  if (offset > 0 && request.limit == null) {
-    throw new QueryExecutionsValidationError('offset requires limit');
-  }
+  assertQueryExecutionsPagination(request);
+  assertUniqueIdsWithinLimit(request.uniqueIds);
 
-  const base: RunResultsSearchCriteria = {
-    min_execution_time: request.minExecutionTime,
-    max_execution_time: request.maxExecutionTime,
-    ...(request.sort != null && activeWarehouseBlock == null ? { sort: request.sort } : {}),
-  };
+  const base = buildExecutionSearchBase(request, activeWarehouseBlock);
+  const uniqueIdPatternForHints = applyUniqueIdFiltersToBase(base, request);
 
-  if (request.uniqueIdPattern != null && request.uniqueIdPattern !== '') {
-    base.unique_id_pattern = request.uniqueIdPattern;
+  const adapterText = resolveAdapterTextFilter(request, activeAdapter);
+  if (adapterText != null && adapterText !== '') {
+    base.adapter_text = adapterText;
   }
 
   const effectiveSort = resolveEffectiveSort(request, activeWarehouseBlock, profile);
@@ -398,6 +442,10 @@ export function resolveWarehouseSearchPlan(
     base,
     effectiveSort,
     profile,
+    ...(request.uniqueIds != null && request.uniqueIds.length > 0
+      ? { requestedUniqueIds: [...request.uniqueIds] }
+      : {}),
+    ...(uniqueIdPatternForHints != null ? { uniqueIdPatternForHints } : {}),
   };
 }
 

@@ -4,10 +4,21 @@ import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 import { parseSources } from 'dbt-artifacts-parser/sources';
 
 import { queryDependencies, type QueryDependenciesInput } from '../analysis/dependencies/query';
+import { buildExecutionByUniqueId } from '../analysis/execution/execution-index';
+import {
+  querySubgraphCost,
+  type QuerySubgraphCostInput,
+  type SubgraphCostOutput,
+} from '../analysis/execution/subgraph-cost';
+import { FORENSICS_MAX_NODES } from '../analysis/forensics/limits';
 import { queryExecutions, type QueryExecutionsOutput } from '../analysis/search/run-results';
 import { normalizeWarehouseAdapterType } from '../analysis/search/warehouse';
 import { buildAnalysisSnapshotFromParsedArtifactBundle } from '../analysis/snapshot';
-import { getRunSummaryFromSnapshot, type RunSummaryOutput } from '../analysis/snapshot/run-summary';
+import {
+  getRunSummaryFromSnapshot,
+  type RunSummaryOptions,
+  type RunSummaryOutput,
+} from '../analysis/snapshot/run-summary';
 import {
   DEFAULT_MAX_CACHED_TARGETS,
   getDbtToolsRemoteClientEnvFromEnv,
@@ -47,7 +58,7 @@ import { readValidatedUtf8 } from '../io/safe-fs';
 import type { DependencyResult } from '../analysis/dependencies/service';
 import type { ManifestGraph } from '../analysis/manifest/graph';
 import type { QueryExecutionsRequest } from '../analysis/search/types';
-import type { AnalysisSnapshot, ResourceNode } from '../analysis/snapshot';
+import type { AnalysisSnapshot, ExecutionRow, ResourceNode } from '../analysis/snapshot';
 import type { GraphNodeAttributes } from '../types';
 
 export interface ArtifactWorkspaceOptions {
@@ -103,6 +114,7 @@ interface LoadedArtifactWorkspace {
   run: ResolvedArtifactRun;
   analysis: AnalysisSnapshot;
   graph: ManifestGraph;
+  executionByUniqueId: Map<string, ExecutionRow>;
   loadedAtMs: number;
 }
 
@@ -163,14 +175,50 @@ export interface GetResourceInput {
 
 export type ResourceDetails = ResourceNode;
 
-export type QueryDependenciesOutput = DependencyResult;
+export interface QueryDependenciesWorkspaceInput extends QueryDependenciesInput {
+  includeExecutionMetrics?: boolean;
+}
+
+export interface QueryDependenciesDependencyNode {
+  unique_id: string;
+  resource_type: string;
+  name: string;
+  package_name: string;
+  depth: number;
+  execution?: DependencyExecutionAttachment;
+  [key: string]: unknown;
+}
+
+export interface QueryDependenciesWorkspaceOutput extends Omit<DependencyResult, 'dependencies'> {
+  dependencies: QueryDependenciesDependencyNode[];
+  dependencies_truncated?: boolean;
+  closure_dependency_count?: number;
+}
+
+export type QueryDependenciesOutput = QueryDependenciesWorkspaceOutput;
+
+export type {
+  QuerySubgraphCostInput,
+  SubgraphCostOutput,
+} from '../analysis/execution/subgraph-cost';
+export type { RunSummaryOptions, RunSummaryOutput } from '../analysis/snapshot/run-summary';
+
+export interface DependencyExecutionAttachment {
+  ran: boolean;
+  status?: string;
+  execution_time?: number;
+  adapter_metrics?: ExecutionRow['adapterMetrics'];
+}
 
 export interface DbtToolsUseCases {
   searchResources(input: SearchResourcesInput): Promise<SearchResourcesOutput>;
   getResource(input: GetResourceInput): Promise<ResourceDetails | null>;
-  queryDependencies(input: QueryDependenciesInput): Promise<QueryDependenciesOutput>;
+  queryDependencies(
+    input: QueryDependenciesWorkspaceInput,
+  ): Promise<QueryDependenciesWorkspaceOutput>;
   queryExecutions(input: QueryExecutionsRequest): Promise<QueryExecutionsOutput>;
-  getRunSummary(): Promise<RunSummaryOutput>;
+  querySubgraphCost(input: QuerySubgraphCostInput): Promise<SubgraphCostOutput>;
+  getRunSummary(options?: RunSummaryOptions): Promise<RunSummaryOutput>;
 }
 
 export const SEARCH_RESOURCES_DEFAULT_LIMIT = 20;
@@ -217,6 +265,18 @@ function copyResourceForOutput(resource: ResourceNode, includeCode: boolean): Re
   delete result.compiledCode;
   delete result.rawCode;
   return result;
+}
+
+function toDependencyExecutionAttachment(
+  row: ExecutionRow | undefined,
+): DependencyExecutionAttachment {
+  if (row == null) return { ran: false };
+  return {
+    ran: true,
+    status: row.status,
+    execution_time: row.executionTime,
+    ...(row.adapterMetrics != null ? { adapter_metrics: row.adapterMetrics } : {}),
+  };
 }
 
 export function searchResourcesInGraph(
@@ -653,6 +713,7 @@ export class ArtifactWorkspace {
       run,
       analysis,
       graph,
+      executionByUniqueId: buildExecutionByUniqueId(analysis.executions),
       loadedAtMs: this.now(),
     };
   }
@@ -723,7 +784,37 @@ export function createDbtToolsUseCases(workspace: ArtifactWorkspace): DbtToolsUs
 
     async queryDependencies(input) {
       const loaded = await workspace.getLoadedWorkspace();
-      return queryDependencies(loaded.graph, input);
+      const { includeExecutionMetrics, ...coreInput } = input;
+      const result = queryDependencies(loaded.graph, coreInput);
+      if (includeExecutionMetrics !== true) return result;
+
+      const closureCount = result.dependencies.length;
+      const dependenciesTruncated = closureCount > FORENSICS_MAX_NODES;
+      const capped = dependenciesTruncated
+        ? result.dependencies.slice(0, FORENSICS_MAX_NODES)
+        : result.dependencies;
+
+      const dependencies = capped.map((dep) => ({
+        ...dep,
+        execution: toDependencyExecutionAttachment(loaded.executionByUniqueId.get(dep.unique_id)),
+      }));
+
+      return {
+        ...result,
+        dependencies,
+        count: dependencies.length,
+        ...(dependenciesTruncated
+          ? {
+              dependencies_truncated: true,
+              closure_dependency_count: closureCount,
+            }
+          : {}),
+      };
+    },
+
+    async querySubgraphCost(input) {
+      const loaded = await workspace.getLoadedWorkspace();
+      return querySubgraphCost(loaded.graph, loaded.executionByUniqueId, input);
     },
 
     async queryExecutions(input) {
@@ -734,9 +825,9 @@ export function createDbtToolsUseCases(workspace: ArtifactWorkspace): DbtToolsUs
       });
     },
 
-    async getRunSummary() {
+    async getRunSummary(options) {
       const loaded = await workspace.getLoadedWorkspace();
-      return getRunSummaryFromSnapshot(loaded.analysis);
+      return getRunSummaryFromSnapshot(loaded.analysis, options);
     },
   };
 }

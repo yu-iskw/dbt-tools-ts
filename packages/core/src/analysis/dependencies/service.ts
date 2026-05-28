@@ -44,6 +44,8 @@ export interface DependencyResultTree {
   count: number;
 }
 
+export type DependencyDepShape = 'full' | 'identity';
+
 /**
  * DependencyService wraps ManifestGraph dependency methods with formatting
  * and field filtering capabilities.
@@ -54,6 +56,7 @@ export class DependencyService {
    * @param depth - Optional max traversal depth; 1 = immediate neighbors, undefined = all levels
    * @param format - Output structure: flat list or nested tree
    * @param buildOrder - When true and direction is upstream, return dependencies in topological build order
+   * @param depShape - `identity` omits manifest metadata beyond core identity fields
    */
   static getDependencies(
     graph: ManifestGraph,
@@ -63,6 +66,7 @@ export class DependencyService {
     depth?: number,
     format?: 'flat' | 'tree',
     buildOrder?: boolean,
+    depShape: DependencyDepShape = 'full',
   ): DependencyResult | DependencyResultTree {
     if (format === 'tree' && !(direction === 'upstream' && buildOrder)) {
       return this.getDependenciesTree(graph, resourceId, direction, fields, depth);
@@ -81,6 +85,16 @@ export class DependencyService {
     const dependencies: DependencyResult['dependencies'] = dependencyEntries.map(
       ({ nodeId, depth: depDepth }) => {
         const attributes = graphologyGraph.getNodeAttributes(nodeId) as GraphNodeAttributes;
+
+        if (depShape === 'identity') {
+          return {
+            unique_id: nodeId,
+            resource_type: attributes.resource_type || 'unknown',
+            name: attributes.name || nodeId,
+            package_name: attributes.package_name || '',
+            depth: depDepth,
+          };
+        }
 
         return {
           ...attributes,

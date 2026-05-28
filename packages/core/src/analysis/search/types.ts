@@ -18,6 +18,7 @@ export interface RunResultsSearchCriteria {
   min_execution_time?: number;
   max_execution_time?: number;
   status?: string[] | string;
+  unique_ids?: Set<string>;
   unique_id_pattern?: RegExp | string;
   limit?: number;
   sort?: CommonExecutionSort;
@@ -52,6 +53,8 @@ export interface BigQuerySearchCriteria {
     WarehouseAdapterSort,
     'bytes_billed_desc' | 'bytes_processed_desc' | 'rows_affected_desc' | 'slot_ms_desc'
   >;
+  /** Substring match on adapter query/job id fields in run_results. */
+  queryId?: string;
   minSlotMs?: number;
   minBytesProcessed?: number;
   minBytesBilled?: number;
@@ -92,12 +95,18 @@ export type WarehouseSearchBlock =
   | { adapter: 'snowflake'; criteria: SnowflakeSearchCriteria }
   | { adapter: 'spark'; criteria: BaseAdapterSearchCriteria };
 
+export type QueryExecutionsGlobMode = 'strict' | 'substring';
+
 export interface QueryExecutionsCommon {
   resourceTypes?: string[];
   status?: string[] | string;
   limit?: number;
   offset?: number;
+  uniqueIds?: string[];
   uniqueIdPattern?: string;
+  /** Default substring: patterns without * are wrapped as *pattern*. */
+  globMode?: QueryExecutionsGlobMode;
+  adapterText?: string;
   minExecutionTime?: number;
   maxExecutionTime?: number;
   sort?: CommonExecutionSort;
@@ -126,6 +135,8 @@ export interface BottleneckNode {
   unique_id: string;
   name?: string;
   execution_time: number;
+  /** Present when bottlenecks.metric is slot_ms or bytes_processed. */
+  metric_value?: number;
   rank: number;
   pct_of_total: number;
   status: string;
@@ -137,5 +148,9 @@ export interface BottleneckNode {
 export interface BottleneckResult {
   nodes: BottleneckNode[];
   total_execution_time: number;
+  /** Primary sort metric when not wall-clock execution_time. */
+  metric?: 'bytes_processed' | 'execution_time' | 'slot_ms';
+  /** Sum of metric_value across ranked nodes when metric is adapter-specific. */
+  total_metric?: number;
   criteria_used: 'threshold' | 'top_n';
 }

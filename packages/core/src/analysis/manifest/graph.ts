@@ -736,22 +736,30 @@ export class ManifestGraph {
   }
 
   /**
-   * Build a focused subgraph centred on a single node.
-   *
-   * @param focusId - unique_id of the focal node (must exist in the graph)
-   * @param direction - which edges to traverse: "upstream", "downstream", or "both"
-   * @param depth - optional max traversal hops (undefined = unlimited)
-   * @param resourceTypes - optional set of resource_type values to keep (undefined = keep all)
-   * @returns A new DirectedGraph containing only the focal node, the reachable
-   *          nodes in the requested direction(s), and the edges between them.
-   * @throws Error if focusId is not found in the graph
+   * Collect node IDs reachable from a focus node (same closure rules as {@link buildSubgraph}).
    */
-  buildSubgraph(
+  collectSubgraphNodeIds(
     focusId: string,
     direction: 'both' | 'downstream' | 'upstream',
     depth?: number,
-    resourceTypes?: Set<string>,
-  ): DirectedGraph<GraphNodeAttributes, GraphEdgeAttributes> {
+    resourceTypes?: Set<string> | string[],
+  ): string[] {
+    const typeSet =
+      resourceTypes == null
+        ? undefined
+        : resourceTypes instanceof Set
+          ? resourceTypes
+          : new Set(resourceTypes.map((t) => t.toLowerCase()));
+
+    const included = this.collectIncludedNodeIds(focusId, direction, depth);
+    return this.filterSubgraphNodeIds(focusId, included, typeSet);
+  }
+
+  private collectIncludedNodeIds(
+    focusId: string,
+    direction: 'both' | 'downstream' | 'upstream',
+    depth?: number,
+  ): Set<string> {
     if (!this.graph.hasNode(focusId)) {
       throw new Error(`Focus node not found in manifest: ${focusId}`);
     }
@@ -769,18 +777,53 @@ export class ManifestGraph {
       }
     }
 
-    const subgraph = new DirectedGraph<GraphNodeAttributes, GraphEdgeAttributes>();
+    return included;
+  }
 
+  private filterSubgraphNodeIds(
+    focusId: string,
+    included: Set<string>,
+    resourceTypes?: Set<string>,
+  ): string[] {
+    const nodeIds: string[] = [];
     for (const nodeId of included) {
       if (!this.graph.hasNode(nodeId)) continue;
       const attrs = this.graph.getNodeAttributes(nodeId);
-      // Always include the focal node itself; resource-type filter only applies to
-      // traversed neighbours so the subgraph is never empty when the node exists.
       const isFocusNode = nodeId === focusId;
-      if (!isFocusNode && resourceTypes && !resourceTypes.has(attrs.resource_type.toLowerCase())) {
+      if (
+        !isFocusNode &&
+        resourceTypes != null &&
+        !resourceTypes.has(attrs.resource_type.toLowerCase())
+      ) {
         continue;
       }
-      subgraph.addNode(nodeId, attrs);
+      nodeIds.push(nodeId);
+    }
+    return nodeIds;
+  }
+
+  /**
+   * Build a focused subgraph centred on a single node.
+   *
+   * @param focusId - unique_id of the focal node (must exist in the graph)
+   * @param direction - which edges to traverse: "upstream", "downstream", or "both"
+   * @param depth - optional max traversal hops (undefined = unlimited)
+   * @param resourceTypes - optional set of resource_type values to keep (undefined = keep all)
+   * @returns A new DirectedGraph containing only the focal node, the reachable
+   *          nodes in the requested direction(s), and the edges between them.
+   * @throws Error if focusId is not found in the graph
+   */
+  buildSubgraph(
+    focusId: string,
+    direction: 'both' | 'downstream' | 'upstream',
+    depth?: number,
+    resourceTypes?: Set<string>,
+  ): DirectedGraph<GraphNodeAttributes, GraphEdgeAttributes> {
+    const nodeIds = this.collectSubgraphNodeIds(focusId, direction, depth, resourceTypes);
+    const subgraph = new DirectedGraph<GraphNodeAttributes, GraphEdgeAttributes>();
+
+    for (const nodeId of nodeIds) {
+      subgraph.addNode(nodeId, this.graph.getNodeAttributes(nodeId));
     }
 
     this.graph.forEachEdge((_edgeId, attrs, source, target) => {

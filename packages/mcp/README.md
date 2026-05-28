@@ -140,13 +140,14 @@ Then call **`dbt_tools_set_target`** with `{ "target": "./target" }` or a remote
 2. **`dbt_tools_set_target`** — when `target` is `null`, point at local `target/` or `s3://` / `gs://` prefix
 3. **`dbt_tools_search_resources`** — find models/sources by name or filters
 4. **`dbt_tools_get_resource`** — details for a `unique_id` (set `includeCode: true` when you need SQL)
-5. **`dbt_tools_query_dependencies`** — upstream/downstream DAG (blast radius = `direction: downstream`)
-6. **`dbt_tools_query_executions`** — ranked/filtered executions (warehouse block for adapter metrics)
-7. **`dbt_tools_get_run_summary`** — totals and bottlenecks without a node list
-8. **`dbt_tools_refresh`** — after a new dbt run uploads artifacts (or rely on `--poll-interval-ms`)
-9. **`dbt_tools_unset_target`** / **`dbt_tools_clear_cached_targets`** — when switching tag slices or freeing memory (see [REFERENCE.md](REFERENCE.md#lifecycle-and-refresh))
+5. **`dbt_tools_query_dependencies`** — upstream/downstream DAG (SQL omitted by default; `includeExecutionMetrics` for costs)
+6. **`dbt_tools_query_executions`** — ranked/filtered executions (`uniqueIds` for known nodes; warehouse block for adapter metrics)
+7. **`dbt_tools_query_subgraph_cost`** — rollup cost/time for upstream/downstream subgraph
+8. **`dbt_tools_get_run_summary`** — totals and bottlenecks without a node list
+9. **`dbt_tools_refresh`** — after a new dbt run uploads artifacts (or rely on `--poll-interval-ms`)
+10. **`dbt_tools_unset_target`** / **`dbt_tools_clear_cached_targets`** — when switching tag slices or freeing memory (see [REFERENCE.md](REFERENCE.md#lifecycle-and-refresh))
 
-## Tools (10)
+## Tools (11)
 
 | Tool                             | Summary                                     |
 | -------------------------------- | ------------------------------------------- |
@@ -159,6 +160,7 @@ Then call **`dbt_tools_set_target`** with `{ "target": "./target" }` or a remote
 | `dbt_tools_get_resource`         | One resource by `unique_id`                 |
 | `dbt_tools_query_dependencies`   | Upstream/downstream dependencies            |
 | `dbt_tools_query_executions`     | Filter/sort run executions                  |
+| `dbt_tools_query_subgraph_cost`  | Subgraph cost/time rollup                   |
 | `dbt_tools_get_run_summary`      | Run aggregates (no node list)               |
 
 Parameters, defaults, and pagination limits: **[REFERENCE.md](REFERENCE.md#mcp-tools-reference)**.

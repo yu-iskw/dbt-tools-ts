@@ -10,8 +10,8 @@ compatibility: dbt-tools on PATH; run_results required (check-session readiness 
 
 ## Contract
 
-- **Inputs:** optional status filter; sort; limit/offset; optional `unique_id` pattern; warehouse-specific options when relevant
-- **Outputs:** ranked or filtered execution rows
+- **Inputs:** optional status filter; sort; limit/offset; optional `unique_id` pattern; `--unique-ids` (max 100); `--glob-mode` (CLI default **strict**); BigQuery `--query-id`; warehouse-specific options when relevant
+- **Outputs:** ranked or filtered execution rows; may include `not_found`, `excluded_by_resource_types`, and `hints` when filters exclude ran nodes or combine with AND semantics
 - **Done when:** the user has the executions needed for triage or drill-down
 
 ## Preconditions

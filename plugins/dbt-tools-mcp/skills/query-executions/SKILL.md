@@ -10,7 +10,7 @@ compatibility: dbt-tools MCP server enabled; loaded session with run_results.
 
 ## Contract
 
-- **Inputs:** optional status; sort; limit/offset; `uniqueIdPattern`; warehouse block (at most one)
+- **Inputs:** optional status; sort; limit/offset; `uniqueIds` (exact, max 100); `uniqueIdPattern` (glob; default substring wraps `*fragment*`); `globMode`; `adapterText`; warehouse block (at most one; BigQuery `queryId` for job lookup)
 - **Outputs:** bounded execution rows
 - **Done when:** triage or ranking question is answered
 

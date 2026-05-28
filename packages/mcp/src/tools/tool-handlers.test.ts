@@ -119,6 +119,21 @@ class FakeUseCases implements DbtToolsUseCases {
     };
   }
 
+  async querySubgraphCost() {
+    return {
+      root_unique_id: 'model.pkg.orders',
+      direction: 'upstream' as const,
+      metric: 'execution_time' as const,
+      node_count: 0,
+      executed_node_count: 0,
+      truncated: false,
+      totals_scope: 'complete' as const,
+      totals: { slot_ms: 0, bytes_processed: 0, execution_time: 0 },
+      top_contributors: [],
+      not_executed: [],
+    };
+  }
+
   async getRunSummary() {
     return {
       summary: {
@@ -199,6 +214,114 @@ describe('createDbtToolsMcpToolHandlers', () => {
     expect(parseToolJson(result)).toMatchObject({
       error: ArtifactTargetNotConfiguredError.message,
       hint: expect.stringContaining('dbt_tools_set_target'),
+    });
+  });
+
+  it('forwards query_executions filters including uniqueIds and globMode', async () => {
+    const useCases = new FakeUseCases();
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
+
+    await handlers.dbt_tools_query_executions({
+      uniqueIds: ['model.pkg.orders'],
+      uniqueIdPattern: 'orders',
+      globMode: 'strict',
+      adapterText: 'job-1',
+    });
+
+    expect(useCases.lastQueryExecutionsInput).toMatchObject({
+      uniqueIds: ['model.pkg.orders'],
+      uniqueIdPattern: 'orders',
+      globMode: 'strict',
+      adapterText: 'job-1',
+    });
+  });
+
+  it('forwards query_dependencies include flags', async () => {
+    const useCases = new FakeUseCases();
+    let depsInput: unknown;
+    useCases.queryDependencies = async (input) => {
+      depsInput = input;
+      return {
+        resource_id: input.uniqueId,
+        direction: input.direction,
+        dependencies: [],
+        count: 0,
+      };
+    };
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
+
+    await handlers.dbt_tools_query_dependencies({
+      uniqueId: 'model.pkg.orders',
+      includeCode: true,
+      includeExecutionMetrics: true,
+    });
+
+    expect(depsInput).toMatchObject({
+      uniqueId: 'model.pkg.orders',
+      includeCode: true,
+      includeExecutionMetrics: true,
+    });
+  });
+
+  it('calls querySubgraphCost with parsed metric', async () => {
+    const useCases = new FakeUseCases();
+    let costInput: unknown;
+    useCases.querySubgraphCost = async (input) => {
+      costInput = input;
+      return {
+        root_unique_id: input.uniqueId,
+        direction: input.direction,
+        metric: input.metric,
+        node_count: 0,
+        executed_node_count: 0,
+        truncated: false,
+        totals_scope: 'complete' as const,
+        totals: { slot_ms: 0, bytes_processed: 0, execution_time: 0 },
+        top_contributors: [],
+        not_executed: [],
+      };
+    };
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
+
+    await handlers.dbt_tools_query_subgraph_cost({
+      uniqueId: 'model.pkg.orders',
+      direction: 'downstream',
+      metric: 'slot_ms',
+    });
+
+    expect(costInput).toMatchObject({
+      uniqueId: 'model.pkg.orders',
+      direction: 'downstream',
+      metric: 'slot_ms',
+    });
+  });
+
+  it('forwards run summary bottleneck options', async () => {
+    const useCases = new FakeUseCases();
+    let summaryOptions: unknown;
+    useCases.getRunSummary = async (options) => {
+      summaryOptions = options;
+      return {
+        summary: {
+          total_execution_time: 0,
+          total_nodes: 0,
+          nodes_by_status: {},
+          node_executions: [],
+        },
+        statusBreakdown: [],
+        bottlenecks: undefined,
+        adapterTotals: null,
+        warehouse_type: 'bigquery' as const,
+      };
+    };
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
+
+    await handlers.dbt_tools_get_run_summary({
+      bottleneck: { metric: 'slot_ms', topN: 10, resourceTypes: ['model'] },
+    });
+
+    expect(summaryOptions).toMatchObject({
+      bottleneck: { metric: 'slot_ms', topN: 10, resourceTypes: ['model'] },
     });
   });
 

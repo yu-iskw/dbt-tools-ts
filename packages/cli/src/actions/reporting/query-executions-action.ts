@@ -3,6 +3,7 @@ import {
   formatOutput,
   FieldFilter,
   queryExecutions,
+  QueryExecutionsValidationError,
   readValidatedUtf8,
   shouldOutputJSON,
   validateSafePath,
@@ -27,6 +28,10 @@ export type QueryExecutionsOptions = ArtifactRootCliOptions & {
   offset?: number;
   resourceTypes?: string;
   uniqueIdPattern?: string;
+  globMode?: 'strict' | 'substring';
+  uniqueIds?: string;
+  queryId?: string;
+  adapterText?: string;
   minExecutionTime?: number;
   maxExecutionTime?: number;
   minSlotMs?: number;
@@ -47,7 +52,7 @@ async function readArtifactJson(path: string): Promise<Record<string, unknown>> 
   return JSON.parse(text) as Record<string, unknown>;
 }
 
-function parseResourceTypes(csv: string | undefined): string[] | undefined {
+function parseCsvList(csv: string | undefined): string[] | undefined {
   if (csv == null || csv.trim() === '') return undefined;
   return csv
     .split(',')
@@ -55,20 +60,40 @@ function parseResourceTypes(csv: string | undefined): string[] | undefined {
     .filter(Boolean);
 }
 
-function buildRequest(options: QueryExecutionsOptions): QueryExecutionsRequest {
+function assertGlobModeValid(globMode: string | undefined): void {
+  if (globMode == null || globMode === '') return;
+  if (globMode !== 'strict' && globMode !== 'substring') {
+    throw new QueryExecutionsValidationError(
+      `Invalid glob mode: ${globMode}. Use strict or substring.`,
+    );
+  }
+}
+
+/** @internal Exported for CLI unit tests. */
+export function buildQueryExecutionsRequest(
+  options: QueryExecutionsOptions,
+): QueryExecutionsRequest {
+  assertGlobModeValid(options.globMode);
+  const uniqueIds = parseCsvList(options.uniqueIds);
+
   const sort = options.sort as QueryExecutionsRequest['sort'] | undefined;
+  const globMode =
+    options.globMode === 'strict' || options.globMode === 'substring' ? options.globMode : 'strict';
+  const warehouse = options.warehouse;
   const base: QueryExecutionsRequest = {
-    resourceTypes: parseResourceTypes(options.resourceTypes),
+    resourceTypes: parseCsvList(options.resourceTypes),
     status: options.status,
     limit: options.limit,
     offset: options.offset,
+    uniqueIds,
     uniqueIdPattern: options.uniqueIdPattern,
+    globMode,
+    adapterText: options.adapterText,
     minExecutionTime: options.minExecutionTime,
     maxExecutionTime: options.maxExecutionTime,
-    ...(sort != null ? { sort } : {}),
+    ...(sort != null && warehouse == null ? { sort } : {}),
   };
 
-  const warehouse = options.warehouse;
   if (warehouse == null) return base;
 
   return {
@@ -83,6 +108,9 @@ function buildRequest(options: QueryExecutionsOptions): QueryExecutionsRequest {
       minRowsUpdated: options.minRowsUpdated,
       minRowsDeleted: options.minRowsDeleted,
       minRowsDuplicated: options.minRowsDuplicated,
+      ...(warehouse === 'bigquery' && options.queryId != null && options.queryId !== ''
+        ? { queryId: options.queryId }
+        : {}),
     },
   };
 }
@@ -96,6 +124,15 @@ function formatQueryExecutionsHuman(output: QueryExecutionsOutput): string {
   );
   if (output.has_more) {
     lines.push('(more rows — increase --limit or use --offset with --limit)');
+  }
+  if (output.not_found != null && output.not_found.length > 0) {
+    lines.push(`Not in run: ${output.not_found.join(', ')}`);
+  }
+  if (output.excluded_by_resource_types != null && output.excluded_by_resource_types.length > 0) {
+    lines.push(`Excluded by resourceTypes: ${output.excluded_by_resource_types.join(', ')}`);
+  }
+  if (output.hints != null && output.hints.length > 0) {
+    lines.push(`Hint: ${output.hints[0]}`);
   }
   lines.push('');
   if (output.rows.length === 0) {
@@ -135,7 +172,7 @@ export async function queryExecutionsAction(
       manifest,
       runResults,
     );
-    const output = queryExecutions(analysis.executions, buildRequest(options), {
+    const output = queryExecutions(analysis.executions, buildQueryExecutionsRequest(options), {
       warehouseType: manifest.metadata?.adapter_type ?? null,
       graph,
     });

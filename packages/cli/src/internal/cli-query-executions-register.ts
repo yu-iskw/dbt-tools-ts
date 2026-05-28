@@ -28,7 +28,13 @@ function registerCommonQueryExecutionsOptions(command: Command, opts: RegisterOp
       '--resource-types <types>',
       'Comma-separated resource types (default: model,test,unit_test)',
     )
-    .option('--unique-id-pattern <pattern>', 'Glob pattern for unique_id')
+    .option('--unique-id-pattern <pattern>', 'Glob pattern for unique_id (* wildcards only)')
+    .option(
+      '--glob-mode <mode>',
+      'unique-id-pattern mode: strict (CLI default; exact match or explicit *) or substring (wraps bare patterns as *pat*; MCP default)',
+    )
+    .option('--unique-ids <ids>', 'Comma-separated unique_ids (max 100; exact match)')
+    .option('--adapter-text <text>', 'Substring match on adapter query/job id and message fields')
     .option('--min-execution-time <seconds>', 'Minimum execution time', parseFloat)
     .option('--max-execution-time <seconds>', 'Maximum execution time', parseFloat)
     .option(opts.OPT_FIELDS, opts.DESC_FIELDS)
@@ -60,6 +66,7 @@ export function registerQueryExecutionsCommand(
 
   const bigquery = registerCommonQueryExecutionsOptions(root.command('bigquery'), opts)
     .option('--min-slot-ms <n>', 'Minimum BigQuery slot_ms', parseFloat)
+    .option('--query-id <id>', 'Substring match on BigQuery job/query id fields')
     .option(OPT_MIN_BYTES, DESC_MIN_BYTES, parseFloat)
     .option('--min-bytes-billed <n>', 'Minimum bytes billed', parseFloat)
     .option(OPT_MIN_ROWS_AFFECTED, DESC_MIN_ROWS_AFFECTED, parseFloat);

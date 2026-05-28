@@ -9,7 +9,13 @@ export * from './analysis/search/run-results';
 export * from './analysis/search/warehouse';
 export * from './analysis/search/types';
 export * from './analysis/dependencies/query';
-export * from './analysis/snapshot/run-summary';
+export { FORENSICS_MAX_NODES } from './analysis/forensics/limits';
+export {
+  querySubgraphCost,
+  SUBGRAPH_COST_TOP_CONTRIBUTORS,
+} from './analysis/execution/subgraph-cost';
+export { buildExecutionByUniqueId } from './analysis/execution/execution-index';
+export { getRunSummaryFromSnapshot } from './analysis/snapshot/run-summary';
 export * from './analysis/snapshot';
 
 // Config exports (Node; not re-exported from browser entry)
