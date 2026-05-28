@@ -10,7 +10,7 @@
 
 - **Package manager:** pnpm workspace.
 - **Node.js:** use [`.node-version`](.node-version) for local development and CI. Published packages require Node.js 20+.
-- **Dev tools (mise):** optional search CLIs in [`mise.toml`](mise.toml) ([mise registry](https://mise.jdx.dev/registry.html)): `ast-grep` / `sg` (structural search), `ripgrep` / `rg` (content search), `fd` (path discovery). Install with `mise trust` (first time) then `mise install`. **Coding agents:** prefer `rg`, `fd`, and `ast-grep`/`sg` over ad-hoc shell greps when exploring this repo; they do not replace quality gates below.
+- **Dev tools (mise):** optional search CLIs in [`mise.toml`](mise.toml) — install with `mise trust` then `mise install`. **Coding agents:** see [Codebase search (coding agents)](#codebase-search-coding-agents) below; these tools complement (not replace) quality gates.
 - **Language:** TypeScript. Unit tests use Vitest from the repository root (per-package [`vitest.config.ts`](packages/core/vitest.config.ts) projects; coverage and global thresholds only in root [`vitest.config.ts`](vitest.config.ts)).
 - **Repository boundary:** this repo owns `@dbt-tools/core`, `@dbt-tools/cli`, `@dbt-tools/mcp`, and `@dbt-tools/web`. `dbt-artifacts-parser` is an external npm dependency and upstream parser package, not a workspace package here.
 
@@ -88,6 +88,127 @@ pnpm --filter @dbt-tools/web build
 ```
 
 Pack and `npx` smoke for the web package is documented in [`.claude/skills/dbt-tools-web-pack-npx-smoke/SKILL.md`](.claude/skills/dbt-tools-web-pack-npx-smoke/SKILL.md).
+
+## Codebase search (coding agents)
+
+[`mise.toml`](mise.toml) pins three fast, gitignore-aware search tools via the [mise registry](https://mise.jdx.dev/registry.html). Install once per machine:
+
+```bash
+mise trust    # first time in this repo
+mise install
+eval "$(mise activate bash)"   # or rely on mise shims on PATH
+```
+
+| Tool | Binary | Use for |
+| ---- | ------ | ------- |
+| **fd** | `fd` | Find files by name, extension, or path segment |
+| **ripgrep** | `rg` | Search file **contents** (regex or literal) |
+| **ast-grep** | `sg`, `ast-grep` | Search or rewrite by **AST shape** (exports, imports, call patterns) |
+
+**Rule of thumb:** `fd` → which files; `rg` → what's inside them; `sg` → what the code *is* structurally. Prefer these over ad-hoc `grep`/`find` when exploring this monorepo. They do **not** replace quality gates (`pnpm test`, `pnpm lint:report`, etc.).
+
+All three respect `.gitignore` by default (so `node_modules/`, `dist/`, and other ignored paths are skipped). Run from the repo root unless a path argument is shown.
+
+### Agent defaults
+
+Non-interactive flags that match each tool's `--help` and official docs:
+
+- **rg:** `--no-config --color=never` (ignore user ripgrep config; no ANSI in piped output). Add `--no-heading` when parsing line-oriented output. Use `--json --no-heading` for JSON Lines match streams (`begin` / `match` / `end` records — see [ripgrep JSON](https://docs.rs/grep-printer/latest/grep_printer/struct.JSON.html)).
+- **fd:** pass `.` or `-g` when the search root is a separate path argument (see [fd usage](https://github.com/sharkdp/fd#usage)). Put `-x` / `-X` last — everything after it is the subprocess command.
+- **sg run:** always set `-l typescript` or `-l tsx`. Use `--json=stream --color=never --heading=never` for machine-readable output (requires `=` after `--json`). Patterns must be **valid, parseable code** — not regex. See [pattern syntax](https://ast-grep.github.io/guide/pattern-syntax.html). Prefer `sg run` over bare `ast-grep --pattern` (same binary; `run` is the documented subcommand).
+
+**Metavariables** ([ast-grep pattern syntax](https://ast-grep.github.io/guide/pattern-syntax.html)):
+
+- `$NAME` — one named AST node (uppercase identifier after `$`)
+- `$$OP` — one unnamed node (punctuation, operators)
+- `$$$REST` — zero or more nodes (parameters, statements, import specifiers)
+
+### fd — find files
+
+Official reference: [fd README](https://github.com/sharkdp/fd) (`fd --help`).
+
+```bash
+# Exact filename (glob) under packages/
+fd -g 'vitest.config.ts' packages/
+
+# All TypeScript / TSX sources under a package (match-all pattern + extensions)
+fd . packages/web/src -e ts -e tsx
+
+# Match a path segment (full path, not just basename)
+fd -p 'packages/mcp/src' -e ts .
+
+# Cap results (exit after N paths)
+fd -g '*.test.ts' packages/core --max-results 20
+
+# Pipe paths into another command (batch form; put -X last)
+fd -e ts -e tsx . packages/web/src/components -X rg -l 'SettingsView' --no-heading
+```
+
+**Pitfalls:** `fd packages/web/src` treats `packages/web/src` as the pattern, not the root — use `fd . packages/web/src` or `fd -g '*.tsx' packages/web/src`. `-E/--exclude` overrides other ignore rules when you must force-skip a directory.
+
+### ripgrep — search contents
+
+Official reference: [ripgrep GUIDE.md](https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md) (`rg --help`, `rg --type-list`).
+
+```bash
+# Literal symbol search in TypeScript (no regex escaping)
+rg -F 'ArtifactWorkspace' packages/mcp -t ts -m 5 --no-config --no-heading --color=never
+
+# List candidate files without searching contents
+rg --files packages/ -g '*.ts' -g '!**/*.test.ts' -g '!**/*.spec.ts'
+
+# Files that contain a string (paths only)
+rg -l 'resolveSafePath' packages/core/src -t ts --no-config
+
+# JSON Lines for structured parsing (do not combine with -l/-c/--files)
+rg --json --no-heading --color=never 'resolveSafePath' packages/core/src/io -t ts -m 3 --no-config
+
+# Count matches per file
+rg -c 'pnpm' package.json packages/*/package.json --no-config
+
+# Deterministic path order (disables parallelism; use when order matters)
+rg --sort=path -F 'DBT_TOOLS' docs/ --no-config --no-heading
+```
+
+Built-in types for this repo include `ts`, `js`, `json`, `yaml`, `md` (`rg --type-list`). Use `-F` for env var names, error strings, and exact identifiers; use `-w` for whole-word matches.
+
+**Pitfalls:** `--json` conflicts with `-l`, `-c`, and `--files` — pick one output mode. Binary files (NUL byte) are skipped unless `-a`/`--text` or `-uuu`. Hidden and gitignored trees stay skipped unless `-u` / `-uu`. User `RIPGREP_CONFIG_PATH` can change defaults — use `--no-config` in automation.
+
+### ast-grep — structural search
+
+Official reference: [ast-grep docs](https://ast-grep.github.io/) (`sg run --help`, `sg scan --help`). CLI name is **`sg`**; [`mise.toml`](mise.toml) also exposes `ast-grep`.
+
+```bash
+# Class declarations (pattern must include the class body — not just `export class $NAME`)
+sg run -p 'class $NAME { $$$ }' -l typescript packages/core/src/errors \
+  --json=stream --color=never --heading=never
+
+# Import statements with captured module path
+sg run -p 'import { $$$ } from $MOD' -l typescript packages/mcp/src/server.ts \
+  --json=stream --color=never --heading=never
+
+# Narrow paths (later --globs win; ! prefix excludes)
+sg run -p 'export function $NAME($$$ARGS): $RET { $$$BODY }' -l typescript packages/core/src \
+  --globs 'packages/core/src/**/*.ts' --globs '!**/*.test.ts' \
+  --json=stream --color=never --heading=never
+
+# Paths only
+sg run -p 'interface $NAME { $$$ }' -l typescript packages/mcp/src \
+  --files-with-matches --color=never
+```
+
+Use `sg scan` with project rules in `sgconfig.yml` for repeatable lint/refactor passes ([rewrite guide](https://ast-grep.github.io/guide/rewrite-code.html)). For one-off exploration, prefer `sg run`. Avoid `-i`/`--interactive` in agents; use `-U`/`--update-all` only when intentionally rewriting files.
+
+**Pitfalls:** Patterns are AST snippets, not regex — incomplete patterns (e.g. `export class $NAME` without `{ $$$ }`) parse but match nothing. Always set `-l`. `--max-results` applies to `sg scan`, not `sg run`. Debug parsing with `--debug-query=ast` or the [playground](https://ast-grep.github.io/playground.html).
+
+### Official documentation
+
+| Tool | Primary docs |
+| ---- | ------------ |
+| fd | https://github.com/sharkdp/fd |
+| ripgrep | https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md |
+| ast-grep | https://ast-grep.github.io/ (pattern syntax: https://ast-grep.github.io/guide/pattern-syntax.html) |
+| mise | https://mise.jdx.dev/configuration.html |
 
 ## Agent resources
 

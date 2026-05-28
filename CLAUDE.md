@@ -8,7 +8,7 @@
 
 - Package manager: `pnpm` workspace.
 - Node.js: version in [`.node-version`](.node-version).
-- Dev tools: [`mise.toml`](mise.toml) — `mise install` for `ast-grep`/`sg`, `rg`, `fd`; agents should prefer these over ad-hoc greps (see `AGENTS.md`).
+- Dev tools: [`mise.toml`](mise.toml) — `mise install` for `sg`/`rg`/`fd`; agent usage with examples is in **`AGENTS.md` → [Codebase search (coding agents)](AGENTS.md#codebase-search-coding-agents)**.
 - Packages: `@dbt-tools/core` in [`packages/core`](packages/core), `@dbt-tools/cli` in [`packages/cli`](packages/cli), `@dbt-tools/mcp` in [`packages/mcp`](packages/mcp), and `@dbt-tools/web` in [`packages/web`](packages/web).
 - Parser boundary: `dbt-artifacts-parser` is an external npm dependency, not a workspace package in this repository.
 
