@@ -306,6 +306,89 @@ describe('ArtifactWorkspace', () => {
     );
   });
 
+  it('does not apply refresh results after setTarget switches to another target', async () => {
+    const dirA = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-race-a-'));
+    const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-race-b-'));
+    try {
+      await writeArtifacts(dirA);
+      const nodesB = { ...(manifestJson.nodes as Record<string, unknown>) };
+      delete nodesB['model.jaffle_shop.customers'];
+      const manifestB = { ...manifestJson, nodes: nodesB };
+      await writeValidatedUtf8(
+        resolveJoinedSafe(dirB, DBT_MANIFEST_JSON),
+        JSON.stringify(manifestB),
+      );
+      await writeValidatedUtf8(
+        resolveJoinedSafe(dirB, DBT_RUN_RESULTS_JSON),
+        JSON.stringify(runResultsJson),
+      );
+
+      const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 100 });
+      await workspace.setTarget(dirA);
+
+      const useCases = createDbtToolsUseCases(workspace);
+      const customersOnA = await useCases.searchResources({ query: 'customers', limit: 5 });
+      expect(customersOnA.total).toBeGreaterThan(0);
+
+      let releaseRefresh: (() => void) | undefined;
+      const refreshGate = new Promise<void>((resolve) => {
+        releaseRefresh = resolve;
+      });
+      const originalDiscover = (
+        workspace as unknown as { discoverSource: () => Promise<unknown> }
+      ).discoverSource.bind(workspace);
+      (workspace as unknown as { discoverSource: () => Promise<unknown> }).discoverSource =
+        async () => {
+          const source = await originalDiscover();
+          await refreshGate;
+          return source;
+        };
+
+      const refreshPromise = workspace.refreshIfChanged();
+      const switchPromise = workspace.setTarget(dirB);
+      releaseRefresh?.();
+      await Promise.all([refreshPromise, switchPromise]);
+
+      await expect(
+        useCases.getResource({ uniqueId: 'model.jaffle_shop.customers' }),
+      ).resolves.toBeNull();
+
+      const status = await workspace.getStatus();
+      expect(status.target).toBe(dirB);
+    } finally {
+      await rmValidated(dirA, { recursive: true, force: true });
+      await rmValidated(dirB, { recursive: true, force: true });
+    }
+  });
+
+  it('revalidates cached target when remote version token changes', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-a/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+    remoteClient.put(`prefix-b/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-b/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+
+    let now = 100;
+    const workspace = new ArtifactWorkspace({
+      maxCachedTargets: 2,
+      remoteClient,
+      now: () => now,
+    });
+
+    await workspace.setTarget('s3://bucket/prefix-a');
+    const readsAfterA = remoteClient.reads.length;
+    now = 200;
+    await workspace.setTarget('s3://bucket/prefix-b');
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 2);
+
+    now = 300;
+    const restored = await workspace.setTarget('s3://bucket/prefix-a');
+
+    expect(restored.fromCache).toBeUndefined();
+    expect(restored.loadedAtMs).toBe(300);
+    expect(remoteClient.reads.length).toBeGreaterThan(readsAfterA);
+  });
+
   it('clearCachedTargets drops cache and active loaded state', async () => {
     await writeArtifacts(tempDir);
     const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 123 });
