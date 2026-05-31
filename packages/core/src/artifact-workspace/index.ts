@@ -316,7 +316,11 @@ export class ArtifactWorkspace {
       this.runs = cached.runs;
       this.selectedRunId = cached.selectedRunId;
       this.loaded = cached.loaded;
-      return this.status({ fromCache: true });
+      const beforeToken = this.loaded.run.versionToken;
+      const status = await this.refreshIfChanged();
+      const stillCached =
+        this.loaded != null && this.loaded.run.versionToken === beforeToken;
+      return stillCached ? { ...status, fromCache: true } : status;
     }
     this.selectedRunId = null;
     this.runs = [];

@@ -212,6 +212,34 @@ describe('ArtifactWorkspace', () => {
     }
   });
 
+  it('refreshes a cached target when its remote artifacts change while another target is active', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-a/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+    remoteClient.put(`prefix-b/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-b/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+
+    const workspace = new ArtifactWorkspace({
+      maxCachedTargets: 2,
+      remoteClient,
+      now: () => 100,
+    });
+
+    const first = await workspace.setTarget('s3://bucket/prefix-a');
+    const versionBefore = first.versionToken;
+
+    await workspace.setTarget('s3://bucket/prefix-b');
+
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 2);
+    remoteClient.put(`prefix-a/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 2);
+
+    const restored = await workspace.setTarget('s3://bucket/prefix-a');
+
+    expect(restored.fromCache).toBeUndefined();
+    expect(restored.versionToken).not.toBe(versionBefore);
+    expect(restored.stale).toBe(false);
+  });
+
   it('serves setTarget from cache when switching back within LRU capacity', async () => {
     const dirA = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-cache-a-'));
     const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-cache-b-'));
