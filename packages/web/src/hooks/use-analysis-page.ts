@@ -6,6 +6,7 @@ import {
 } from '@web/lib/artifact-source';
 
 import { debug, markDebug, measureDebug } from '../debug';
+import { invalidateAnalysisWorkerPendingLoads } from '../services/analysis-loader';
 import {
   fetchArtifactSourceStatus,
   refetchFromApi,
@@ -60,6 +61,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
   const [artifactLocationSnapshot, setArtifactLocationSnapshot] =
     useState<ArtifactLocationSnapshot | null>(null);
   const pendingMetricsRef = useRef<AnalysisLoadResult['metrics'] | null>(null);
+  const preloadSupersededRef = useRef(false);
 
   const mergeSnapshotFromStatus = useCallback((status: ArtifactSourceStatus) => {
     setArtifactLocationSnapshot((prev) => {
@@ -78,6 +80,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
   }, []);
 
   useAnalysisPreload({
+    preloadSupersededRef,
     setPreloadLoading,
     setAnalysis,
     setAnalysisSource,
@@ -127,6 +130,8 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     pendingRemoteRun,
     acceptingRemoteRun,
     onLoadDifferent: () => {
+      preloadSupersededRef.current = true;
+      invalidateAnalysisWorkerPendingLoads();
       setAnalysis(null);
       setAnalysisSource(null);
       setPendingRemoteRun(null);
@@ -139,6 +144,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
       });
     },
     onManagedAnalysisLoaded: (result, source, optionalArtifacts) => {
+      preloadSupersededRef.current = true;
       pendingMetricsRef.current = result.metrics;
       setAnalysisSource(source);
       setPendingRemoteRun(null);
@@ -170,8 +176,13 @@ export function useAnalysisPage(): UseAnalysisPageResult {
               missingSources: false,
             },
           );
+          setPendingRemoteRun(status.pendingRun);
+        } else {
+          setError(
+            'Remote run was selected on the server but artifact files could not be loaded. Try again or reload the page.',
+          );
+          setPendingRemoteRun(pendingRemoteRun);
         }
-        setPendingRemoteRun(status.pendingRun);
         mergeSnapshotFromStatus(status);
       } catch (switchError) {
         setError(

@@ -359,6 +359,76 @@ describe('use-analysis-page', () => {
     cleanupRoot(root, container);
   });
 
+  it('keeps pending banner and shows error when accept switch succeeds but refetch returns null', async () => {
+    loadCurrentManagedArtifacts.mockResolvedValue({
+      status: {
+        mode: 'remote',
+        currentSource: 'remote',
+        label: 'Remote source',
+        checkedAtMs: Date.now(),
+        remoteProvider: 'gcs',
+        remoteLocation: 'GCS bucket/prefix',
+        pollIntervalMs: 5_000,
+        currentRun: {
+          runId: 'run-1',
+          label: 'run-1',
+          updatedAtMs: 1_000,
+          versionToken: 'run-1',
+        },
+        pendingRun: {
+          runId: 'run-2',
+          label: 'run-2',
+          updatedAtMs: 2_000,
+          versionToken: 'run-2',
+        },
+        supportsSwitch: true,
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS bucket/prefix',
+      },
+      result: loadResult('run-1', 'remote'),
+    });
+    switchToArtifactRun.mockResolvedValue({
+      mode: 'remote',
+      currentSource: 'remote',
+      label: 'Remote source',
+      checkedAtMs: Date.now(),
+      remoteProvider: 'gcs',
+      remoteLocation: 'GCS bucket/prefix',
+      pollIntervalMs: 5_000,
+      currentRun: {
+        runId: 'run-2',
+        label: 'run-2',
+        updatedAtMs: 2_000,
+        versionToken: 'run-2',
+      },
+      pendingRun: null,
+      supportsSwitch: false,
+      sourceKind: 'gcs',
+      locationDisplay: 'GCS bucket/prefix',
+    });
+    refetchFromApi.mockResolvedValue(null);
+
+    const { container, root } = renderHarness();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      readResult(container).acceptButton?.click();
+      await Promise.resolve();
+    });
+
+    expect(readResult(container)).toMatchObject({
+      project: 'run-1',
+      pending: 'run-2',
+      accepting: 'false',
+      error: expect.stringContaining('could not be loaded'),
+    });
+
+    cleanupRoot(root, container);
+  });
+
   it('hydrates artifact location snapshot from preload status', async () => {
     loadCurrentManagedArtifacts.mockResolvedValue({
       status: {

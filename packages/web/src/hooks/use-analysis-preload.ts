@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
 import { debug } from '../debug';
 import {
@@ -12,6 +12,8 @@ import type { ArtifactSourceStatus } from '../services/artifact-source-api';
 import type { AnalysisState } from '@web/types';
 
 interface UseAnalysisPreloadParams {
+  /** When true, preload must not overwrite analysis state (user loaded or cleared). */
+  preloadSupersededRef: RefObject<boolean>;
   setPreloadLoading: (loading: boolean) => void;
   setAnalysis: (a: AnalysisState | null) => void;
   setAnalysisSource: (s: WorkspaceArtifactSource | null) => void;
@@ -29,6 +31,7 @@ interface UseAnalysisPreloadParams {
  * Runs artifact preload once on mount. Fetches from /api/* and updates state.
  */
 export function useAnalysisPreload({
+  preloadSupersededRef,
   setPreloadLoading,
   setAnalysis,
   setAnalysisSource,
@@ -50,6 +53,10 @@ export function useAnalysisPreload({
     loadCurrentManagedArtifacts()
       .then(({ result, status }) => {
         setPreloadLoading(false);
+        if (preloadSupersededRef.current) {
+          debug('Preload: skipped — user superseded managed load');
+          return;
+        }
         setPendingRemoteRun(status.pendingRun);
         setRemotePollIntervalMs(status.pollIntervalMs);
         onArtifactSourceStatus?.(status);
@@ -79,6 +86,7 @@ export function useAnalysisPreload({
         setError(err instanceof Error ? err.message : 'Failed to load artifacts from server');
       });
   }, [
+    preloadSupersededRef,
     pendingMetricsRef,
     setPreloadLoading,
     setAnalysis,

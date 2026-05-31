@@ -287,6 +287,10 @@ export class ArtifactWorkspace {
   private stale = false;
   private lastRefreshError: string | undefined;
   private refreshPromise: Promise<ArtifactWorkspaceStatus> | null = null;
+  private serializedOps: Promise<void> = Promise.resolve();
+  private initializePromise: Promise<void> | null = null;
+  /** Bumped when the active target binding changes; stale loads must not assign `loaded`. */
+  private loadGeneration = 0;
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -300,34 +304,42 @@ export class ArtifactWorkspace {
   }
 
   async setTarget(target: string): Promise<ArtifactWorkspaceStatus> {
-    const trimmed = target.trim();
-    if (trimmed === '') {
-      throw new Error('target is required.');
-    }
-    await this.awaitIdleRefresh();
-    this.evictExpired();
-    const cacheKey = trimmed;
-    const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
-    this.dbtTarget = trimmed;
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    if (cached != null) {
-      this.touchCacheEntry(cacheKey, cached);
-      this.runs = cached.runs;
-      this.selectedRunId = cached.selectedRunId;
-      this.loaded = cached.loaded;
-      return this.status({ fromCache: true });
-    }
-    this.selectedRunId = null;
-    this.runs = [];
-    this.loaded = null;
-    await this.initialize();
-    this.syncActiveToCache();
-    return this.status();
+    return this.runSerialized(async () => {
+      const trimmed = target.trim();
+      if (trimmed === '') {
+        throw new Error('target is required.');
+      }
+      this.evictExpired();
+      const cacheKey = trimmed;
+      const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
+      this.dbtTarget = trimmed;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      if (cached != null) {
+        this.touchCacheEntry(cacheKey, cached);
+        this.runs = cached.runs;
+        this.selectedRunId = cached.selectedRunId;
+        this.loaded = cached.loaded;
+        const revalidated = await this.revalidateCachedLoad(cached);
+        if (revalidated) {
+          this.syncActiveToCache();
+          return this.status();
+        }
+        return this.status({ fromCache: true });
+      }
+      this.bumpLoadGeneration();
+      this.selectedRunId = null;
+      this.runs = [];
+      this.loaded = null;
+      await this.ensureInitialized();
+      this.syncActiveToCache();
+      return this.status();
+    });
   }
 
   async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
-    await this.awaitIdleRefresh();
+    return this.runSerialized(async () => {
+    this.bumpLoadGeneration();
     this.dbtTarget = null;
     this.selectedRunId = null;
     this.runs = [];
@@ -335,10 +347,12 @@ export class ArtifactWorkspace {
     this.stale = false;
     this.lastRefreshError = undefined;
     return this.status();
+    });
   }
 
   async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
-    await this.awaitIdleRefresh();
+    return this.runSerialized(async () => {
+    this.bumpLoadGeneration();
     this.targetCache.clear();
     this.loaded = null;
     this.runs = [];
@@ -346,13 +360,39 @@ export class ArtifactWorkspace {
     this.stale = false;
     this.lastRefreshError = undefined;
     return this.status();
+    });
   }
 
   async initialize(): Promise<void> {
+    await this.ensureInitialized();
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.loaded != null) return;
+    if (this.initializePromise != null) {
+      await this.initializePromise;
+      return;
+    }
+    const generation = this.loadGeneration;
+    const targetAtStart = this.dbtTarget;
+    this.initializePromise = this.initializeInternal(generation, targetAtStart).finally(() => {
+      this.initializePromise = null;
+    });
+    await this.initializePromise;
+  }
+
+  private async initializeInternal(
+    generation: number,
+    targetAtStart: string | null,
+  ): Promise<void> {
     const startedAt = dbtToolsDebugNow();
     const configuredTarget = this.requireTarget();
     dbtToolsDebugLog(`initialize start target=${configuredTarget}`);
     const source = await this.discoverSource();
+    if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+      dbtToolsDebugLog(`initialize aborted (stale) target=${configuredTarget}`);
+      return;
+    }
     this.runs = source.runs;
     if (!source.discovery.ok) {
       throw new Error(
@@ -372,7 +412,12 @@ export class ArtifactWorkspace {
         this.discoveryErrorMessage(source.discovery) ?? 'No dbt artifact runs found.',
       );
     }
-    this.loaded = await this.loadRun(source, run);
+    const loaded = await this.loadRun(source, run);
+    if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+      dbtToolsDebugLog(`initialize aborted after load (stale) target=${configuredTarget}`);
+      return;
+    }
+    this.loaded = loaded;
     this.stale = false;
     this.lastRefreshError = undefined;
     this.syncActiveToCache();
@@ -384,7 +429,7 @@ export class ArtifactWorkspace {
       return this.status();
     }
     if (this.refreshPromise != null) return this.refreshPromise;
-    this.refreshPromise = this.refreshIfChangedInternal().finally(() => {
+    this.refreshPromise = this.runSerialized(() => this.refreshIfChangedInternal()).finally(() => {
       this.refreshPromise = null;
     });
     return this.refreshPromise;
@@ -403,34 +448,59 @@ export class ArtifactWorkspace {
   }
 
   async selectRun(runId: string): Promise<ArtifactWorkspaceStatus> {
-    const source = await this.discoverSource();
-    this.runs = source.runs;
-    const run = this.runs.find((candidate) => candidate.runId === runId);
-    if (run == null) {
-      throw new Error(`Unknown artifact run id: ${runId}`);
-    }
-    this.selectedRunId = runId;
-    this.loaded = await this.loadRun(source, run);
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    this.syncActiveToCache();
-    return this.status();
+    return this.runSerialized(async () => {
+      const generation = this.loadGeneration;
+      const targetAtStart = this.dbtTarget;
+      const source = await this.discoverSource();
+      if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+        return this.status();
+      }
+      this.runs = source.runs;
+      const run = this.runs.find((candidate) => candidate.runId === runId);
+      if (run == null) {
+        throw new Error(`Unknown artifact run id: ${runId}`);
+      }
+      this.selectedRunId = runId;
+      const loaded = await this.loadRun(source, run);
+      if (!this.isLoadStillCurrent(generation, targetAtStart)) {
+        return this.status();
+      }
+      this.loaded = loaded;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      this.syncActiveToCache();
+      return this.status();
+    });
   }
 
   async getLoadedWorkspace(): Promise<LoadedArtifactWorkspace> {
-    if (this.loaded == null) {
-      await this.initialize();
-    }
-    return this.loaded!;
+    return this.runSerialized(async () => {
+      await this.ensureInitialized();
+      if (this.loaded == null) {
+        throw new ArtifactTargetNotConfiguredError();
+      }
+      return this.loaded;
+    });
   }
 
   private async refreshIfChangedInternal(): Promise<ArtifactWorkspaceStatus> {
-    if (this.loaded == null) {
-      await this.initialize();
+    const targetForRefresh = this.dbtTarget;
+    if (targetForRefresh == null) {
       return this.status();
     }
 
+    if (this.loaded == null) {
+      await this.ensureInitialized();
+      return this.status();
+    }
+
+    const generation = this.loadGeneration;
+    const targetAtStart = this.dbtTarget;
     const source = await this.discoverSource();
+    if (this.dbtTarget !== targetForRefresh || !this.isLoadStillCurrent(generation, targetAtStart)) {
+      return this.status();
+    }
+
     this.runs = source.runs;
     const run = this.resolveSelectedRun() ?? this.runs[0] ?? null;
     if (run == null) {
@@ -443,11 +513,24 @@ export class ArtifactWorkspace {
     }
 
     try {
-      this.loaded = await this.loadRun(source, run);
+      const loaded = await this.loadRun(source, run);
+      if (
+        this.dbtTarget !== targetForRefresh ||
+        !this.isLoadStillCurrent(generation, targetAtStart)
+      ) {
+        return this.status();
+      }
+      this.loaded = loaded;
       this.stale = false;
       this.lastRefreshError = undefined;
       this.syncActiveToCache();
     } catch (error) {
+      if (
+        this.dbtTarget !== targetForRefresh ||
+        !this.isLoadStillCurrent(generation, targetAtStart)
+      ) {
+        return this.status();
+      }
       this.stale = true;
       this.lastRefreshError = error instanceof Error ? error.message : String(error);
     }
@@ -475,11 +558,42 @@ export class ArtifactWorkspace {
     };
   }
 
-  private async awaitIdleRefresh(): Promise<void> {
-    if (this.refreshPromise != null) {
-      await this.refreshPromise;
-      this.refreshPromise = null;
+  private bumpLoadGeneration(): void {
+    this.loadGeneration += 1;
+  }
+
+  private isLoadStillCurrent(generation: number, targetAtStart: string | null): boolean {
+    return generation === this.loadGeneration && targetAtStart === this.dbtTarget;
+  }
+
+  private runSerialized<T>(work: () => Promise<T>): Promise<T> {
+    const run = this.serializedOps.then(work, work);
+    this.serializedOps = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  /** Returns true when cached artifacts were reloaded because the version token changed. */
+  private async revalidateCachedLoad(cached: CachedTargetEntry): Promise<boolean> {
+    const source = await this.discoverSource();
+    const run =
+      source.runs.find((candidate) => candidate.runId === cached.selectedRunId) ??
+      source.runs[0] ??
+      null;
+    if (run == null) {
+      return false;
     }
+    if (run.versionToken === cached.loaded.run.versionToken) {
+      return false;
+    }
+    this.runs = source.runs;
+    this.selectedRunId = run.runId;
+    this.loaded = await this.loadRun(source, run);
+    this.stale = false;
+    this.lastRefreshError = undefined;
+    return true;
   }
 
   private buildCachedTargetsList(): ArtifactWorkspaceCachedTargetRef[] {
