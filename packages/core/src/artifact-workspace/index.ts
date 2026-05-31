@@ -339,27 +339,27 @@ export class ArtifactWorkspace {
 
   async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
     return this.runSerialized(async () => {
-    this.bumpLoadGeneration();
-    this.dbtTarget = null;
-    this.selectedRunId = null;
-    this.runs = [];
-    this.loaded = null;
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    return this.status();
+      this.bumpLoadGeneration();
+      this.dbtTarget = null;
+      this.selectedRunId = null;
+      this.runs = [];
+      this.loaded = null;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      return this.status();
     });
   }
 
   async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
     return this.runSerialized(async () => {
-    this.bumpLoadGeneration();
-    this.targetCache.clear();
-    this.loaded = null;
-    this.runs = [];
-    this.selectedRunId = null;
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    return this.status();
+      this.bumpLoadGeneration();
+      this.targetCache.clear();
+      this.loaded = null;
+      this.runs = [];
+      this.selectedRunId = null;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      return this.status();
     });
   }
 
@@ -497,7 +497,10 @@ export class ArtifactWorkspace {
     const generation = this.loadGeneration;
     const targetAtStart = this.dbtTarget;
     const source = await this.discoverSource();
-    if (this.dbtTarget !== targetForRefresh || !this.isLoadStillCurrent(generation, targetAtStart)) {
+    if (
+      this.dbtTarget !== targetForRefresh ||
+      !this.isLoadStillCurrent(generation, targetAtStart)
+    ) {
       return this.status();
     }
 

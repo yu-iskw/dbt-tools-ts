@@ -243,7 +243,9 @@ function isInvalidatePendingLoadsMessage(
 }
 
 if (typeof self !== 'undefined') {
-  self.onmessage = (event: MessageEvent<AnalysisWorkerRequest | { type: 'invalidate-pending-loads' }>) => {
+  self.onmessage = (
+    event: MessageEvent<AnalysisWorkerRequest | { type: 'invalidate-pending-loads' }>,
+  ) => {
     if (!isTrustedDedicatedWorkerMessage(event)) {
       return;
     }
