@@ -123,6 +123,8 @@ function renderChrome(
         preloadLoading={false}
         pendingRemoteRun={null}
         acceptingRemoteRun={false}
+        onManagedLoadStarted={vi.fn()}
+        onManagedLoadEnded={vi.fn()}
         onManagedAnalysisLoaded={vi.fn()}
         onError={vi.fn()}
         onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -255,6 +257,8 @@ describe('AppWorkspaceChrome header', () => {
           preloadLoading={false}
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
+          onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -317,6 +321,8 @@ describe('AppWorkspaceChrome header', () => {
           preloadLoading={false}
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
+          onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -373,6 +379,8 @@ describe('AppWorkspaceChrome header', () => {
           preloadLoading={false}
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
+          onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -427,6 +435,8 @@ describe('AppWorkspaceChrome header', () => {
           preloadLoading={false}
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
+          onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -481,6 +491,8 @@ describe('AppWorkspaceChrome header', () => {
             versionToken: 'v1',
           }}
           acceptingRemoteRun={false}
+          onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}

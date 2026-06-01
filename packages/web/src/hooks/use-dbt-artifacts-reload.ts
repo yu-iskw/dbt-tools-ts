@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type RefObject } from 'react';
 
 import { debug } from '../debug';
 import { refetchFromApi } from '../services/artifact-api';
@@ -6,6 +6,16 @@ import { refetchFromApi } from '../services/artifact-api';
 import type { AnalysisLoadResult } from '../services/analysis-loader';
 import type { WorkspaceArtifactSource } from '../services/artifact-source-api';
 import type { AnalysisState } from '@web/types';
+
+/** Returns true when an HMR refetch result must not be applied to page state. */
+export function shouldIgnorePreloadHmrResult(
+  preloadSuperseded: boolean,
+  managedLoadInFlight: boolean,
+  loadGeneration: number,
+  generationAtStart: number,
+): boolean {
+  return preloadSuperseded || managedLoadInFlight || loadGeneration !== generationAtStart;
+}
 
 /**
  * Subscribes to dbt-artifacts-changed (Vite HMR) when analysis came from preload.
@@ -16,14 +26,29 @@ export function useDbtArtifactsReload(
   setAnalysis: (a: AnalysisState | null) => void,
   setError: (e: string | null) => void,
   pendingMetricsRef: { current: AnalysisLoadResult['metrics'] | null },
+  loadGenerationRef: RefObject<number>,
+  preloadSupersededRef: RefObject<boolean>,
+  managedLoadInFlightRef: RefObject<boolean>,
 ): void {
   useEffect(() => {
     if (analysisSource !== 'preload' || !import.meta.hot) return;
 
     const handler = () => {
+      const generationAtStart = loadGenerationRef.current;
       debug('Reload: dbt-artifacts-changed received, refetching');
       refetchFromApi('preload')
         .then((result) => {
+          if (
+            shouldIgnorePreloadHmrResult(
+              preloadSupersededRef.current,
+              managedLoadInFlightRef.current,
+              loadGenerationRef.current,
+              generationAtStart,
+            )
+          ) {
+            debug('Reload: skipped stale HMR refetch');
+            return;
+          }
           if (result) {
             pendingMetricsRef.current = result.metrics;
             setAnalysis(result.analysis);
@@ -32,11 +57,29 @@ export function useDbtArtifactsReload(
           }
         })
         .catch((err) => {
+          if (
+            shouldIgnorePreloadHmrResult(
+              preloadSupersededRef.current,
+              managedLoadInFlightRef.current,
+              loadGenerationRef.current,
+              generationAtStart,
+            )
+          ) {
+            return;
+          }
           setError(err instanceof Error ? err.message : 'Failed to reload artifacts from server');
         });
     };
 
     import.meta.hot.on('dbt-artifacts-changed', handler);
     return () => import.meta.hot?.off('dbt-artifacts-changed', handler);
-  }, [analysisSource, pendingMetricsRef, setAnalysis, setError]);
+  }, [
+    analysisSource,
+    loadGenerationRef,
+    pendingMetricsRef,
+    preloadSupersededRef,
+    managedLoadInFlightRef,
+    setAnalysis,
+    setError,
+  ]);
 }

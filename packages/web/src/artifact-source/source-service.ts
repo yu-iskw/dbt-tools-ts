@@ -390,12 +390,18 @@ export class ArtifactSourceService {
   }
 
   private async refreshLoadedArtifactCache(): Promise<void> {
+    const binding = captureSessionBinding(this.sessionGeneration, this.selectedRunId);
     const run = this.resolveSelectedRun();
     if (run == null || this.discoveryResult?.ok !== true) {
-      this.loadedArtifactCache = null;
+      if (isSessionBindingCurrent(binding, this.sessionGeneration, this.selectedRunId)) {
+        this.loadedArtifactCache = null;
+      }
       return;
     }
-    this.loadedArtifactCache = await this.readCurrentArtifactPayload(run);
+    const payload = await this.readCurrentArtifactPayload(run);
+    if (isSessionBindingCurrent(binding, this.sessionGeneration, this.selectedRunId)) {
+      this.loadedArtifactCache = payload;
+    }
   }
 
   private async readPreloadArtifacts(run: ResolvedArtifactRun): Promise<CurrentArtifactPayload> {

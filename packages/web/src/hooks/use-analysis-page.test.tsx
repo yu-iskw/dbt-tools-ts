@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act } from 'react';
+import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -73,6 +73,7 @@ function loadResult(projectName: string, source: 'preload' | 'remote' | 'upload'
 
 function HookHarness() {
   const result = useAnalysisPage();
+  const managedLoadGenerationRef = useRef<number | null>(null);
   return (
     <div
       data-testid="result"
@@ -93,15 +94,61 @@ function HookHarness() {
       </button>
       <button
         type="button"
+        data-testid="simulate-managed-start"
+        onClick={() => {
+          managedLoadGenerationRef.current = result.onManagedLoadStarted();
+        }}
+      >
+        managed-start
+      </button>
+      <button
+        type="button"
         data-testid="simulate-managed-load"
-        onClick={() =>
-          result.onManagedAnalysisLoaded(loadResult('managed', 'preload'), 'preload', {
-            missingCatalog: false,
-            missingSources: false,
-          })
-        }
+        onClick={() => {
+          const loadGeneration = managedLoadGenerationRef.current;
+          if (loadGeneration == null) return;
+          result.onManagedAnalysisLoaded(
+            loadResult('managed', 'preload'),
+            'preload',
+            {
+              missingCatalog: false,
+              missingSources: false,
+            },
+            loadGeneration,
+          );
+        }}
       >
         managed
+      </button>
+      <button
+        type="button"
+        data-testid="simulate-overlapping-managed-load"
+        onClick={() => {
+          const staleGeneration = result.onManagedLoadStarted();
+          const currentGeneration = result.onManagedLoadStarted();
+          managedLoadGenerationRef.current = currentGeneration;
+          result.onManagedAnalysisLoaded(
+            loadResult('stale', 'preload'),
+            'preload',
+            {
+              missingCatalog: false,
+              missingSources: false,
+            },
+            staleGeneration,
+          );
+        }}
+      >
+        overlapping-managed
+      </button>
+      <button
+        type="button"
+        data-testid="simulate-managed-fail"
+        onClick={() => {
+          const loadGeneration = result.onManagedLoadStarted();
+          result.onManagedLoadEnded(loadGeneration);
+        }}
+      >
+        managed-fail
       </button>
     </div>
   );
@@ -461,6 +508,114 @@ describe('use-analysis-page', () => {
     cleanupRoot(root, container);
   });
 
+  it('discards stale managed analysis when the user resets before load completes', async () => {
+    loadCurrentManagedArtifacts.mockResolvedValue({
+      status: {
+        mode: 'none',
+        currentSource: null,
+        label: 'Waiting for artifacts',
+        checkedAtMs: Date.now(),
+        remoteProvider: null,
+        remoteLocation: null,
+        pollIntervalMs: null,
+        currentRun: null,
+        pendingRun: null,
+        supportsSwitch: false,
+        sourceKind: null,
+        locationDisplay: null,
+      },
+      result: null,
+    });
+
+    const { container, root } = renderHarness();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const startBtn = container.querySelector('[data-testid="simulate-managed-start"]');
+    const managedBtn = container.querySelector('[data-testid="simulate-managed-load"]');
+    const resetBtn = container.querySelectorAll('button')[1];
+
+    await act(() => {
+      startBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      resetBtn?.click();
+      managedBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(readResult(container)).toMatchObject({
+      project: '',
+      source: '',
+    });
+
+    cleanupRoot(root, container);
+  });
+
+  it('discards stale managed analysis when a newer managed load starts before the prior request completes', async () => {
+    fetchArtifactSourceStatus.mockResolvedValue({
+      mode: 'preload',
+      currentSource: 'preload',
+      label: 'Artifacts',
+      checkedAtMs: Date.now(),
+      remoteProvider: null,
+      remoteLocation: null,
+      pollIntervalMs: null,
+      currentRun: null,
+      pendingRun: null,
+      supportsSwitch: false,
+      sourceKind: 'local',
+      locationDisplay: '/tmp/managed',
+    });
+    loadCurrentManagedArtifacts.mockResolvedValue({
+      status: {
+        mode: 'none',
+        currentSource: null,
+        label: 'Waiting for artifacts',
+        checkedAtMs: Date.now(),
+        remoteProvider: null,
+        remoteLocation: null,
+        pollIntervalMs: null,
+        currentRun: null,
+        pendingRun: null,
+        supportsSwitch: false,
+        sourceKind: null,
+        locationDisplay: null,
+      },
+      result: null,
+    });
+
+    const { container, root } = renderHarness();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const overlappingBtn = container.querySelector(
+      '[data-testid="simulate-overlapping-managed-load"]',
+    );
+    const managedBtn = container.querySelector('[data-testid="simulate-managed-load"]');
+
+    await act(() => {
+      overlappingBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(readResult(container)).toMatchObject({
+      project: '',
+      source: '',
+    });
+
+    await act(() => {
+      managedBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(readResult(container)).toMatchObject({
+      project: 'managed',
+      source: 'preload',
+    });
+
+    cleanupRoot(root, container);
+  });
+
   it('keeps pending banner and shows error when accept succeeds but refetch returns null', async () => {
     loadCurrentManagedArtifacts.mockResolvedValue({
       status: {
@@ -612,10 +767,12 @@ describe('use-analysis-page', () => {
       await Promise.resolve();
     });
 
+    const startBtn = container.querySelector('[data-testid="simulate-managed-start"]');
     const managedBtn = container.querySelector('[data-testid="simulate-managed-load"]');
     expect(managedBtn).not.toBeNull();
 
     await act(async () => {
+      (startBtn as HTMLButtonElement).click();
       (managedBtn as HTMLButtonElement).click();
       await Promise.resolve();
     });
