@@ -63,6 +63,9 @@ export * from './io/safe-fs';
 export * from './util/typed-map';
 export * from './util/timing-safe';
 
+// Session binding (stale-load guards; see docs/adr/0011-session-binding-for-artifact-investigation.md)
+export * from './session-binding';
+
 // Long-lived artifact workspace (Node-safe)
 export * from './artifact-workspace/index';
 

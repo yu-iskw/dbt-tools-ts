@@ -101,6 +101,14 @@ function isArtifactSwitchRequest(req: IncomingMessage, pathname: string): boolea
   return req.method === 'POST' && pathname === '/api/artifact-source/switch';
 }
 
+function isArtifactRefreshRequest(req: IncomingMessage, pathname: string): boolean {
+  return req.method === 'POST' && pathname === '/api/artifact-source/refresh';
+}
+
+function isArtifactAcceptPendingRequest(req: IncomingMessage, pathname: string): boolean {
+  return req.method === 'POST' && pathname === '/api/artifact-source/accept-pending-run';
+}
+
 function isArtifactConfigureRequest(req: IncomingMessage, pathname: string): boolean {
   return req.method === 'POST' && pathname === '/api/artifact-source/configure';
 }
@@ -127,7 +135,36 @@ async function respondArtifactSwitch(
 ): Promise<void> {
   const body = await readJsonBody(req);
   const runId = typeof body.runId === 'string' && body.runId.trim() !== '' ? body.runId : undefined;
-  sendJson(res, 200, await service.switchToRun(runId));
+  try {
+    sendJson(res, 200, await service.switchToRun(runId));
+  } catch (error) {
+    sendJson(res, 400, {
+      error: error instanceof Error ? error.message : 'Failed to switch artifact run.',
+    });
+  }
+}
+
+async function respondArtifactRefresh(
+  res: ServerResponse,
+  service: ArtifactSourceService,
+): Promise<void> {
+  sendJson(res, 200, await service.refreshRemoteArtifactDiscovery());
+}
+
+async function respondArtifactAcceptPending(
+  req: IncomingMessage,
+  res: ServerResponse,
+  service: ArtifactSourceService,
+): Promise<void> {
+  const body = await readJsonBody(req);
+  const runId = typeof body.runId === 'string' ? body.runId : '';
+  try {
+    sendJson(res, 200, await service.acceptPendingRemoteRun(runId));
+  } catch (error) {
+    sendJson(res, 400, {
+      error: error instanceof Error ? error.message : 'Failed to accept pending remote run.',
+    });
+  }
 }
 
 async function respondArtifactConfigure(
@@ -240,6 +277,16 @@ export async function tryHandleArtifactSourceViteRequest(
 
   if (isArtifactSwitchRequest(req, pathname)) {
     await respondArtifactSwitch(req, res, service);
+    return true;
+  }
+
+  if (isArtifactRefreshRequest(req, pathname)) {
+    await respondArtifactRefresh(res, service);
+    return true;
+  }
+
+  if (isArtifactAcceptPendingRequest(req, pathname)) {
+    await respondArtifactAcceptPending(req, res, service);
     return true;
   }
 

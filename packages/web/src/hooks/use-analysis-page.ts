@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { applyArtifactSession } from '@web/lib/artifact-session-state';
 import {
   artifactLocationSnapshotFromStatus,
   type ArtifactLocationSnapshot,
@@ -8,9 +9,8 @@ import {
 import { debug, markDebug, measureDebug } from '../debug';
 import { invalidateAnalysisWorkerPendingLoads } from '../services/analysis-loader';
 import {
+  acceptPendingRemoteRunFromApi,
   fetchArtifactSourceStatus,
-  refetchFromApi,
-  switchToArtifactRun,
   type MissingOptionalArtifactsState,
   type RemoteArtifactRun,
   type WorkspaceArtifactSource,
@@ -159,29 +159,37 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     onError: setError,
     onAcceptPendingRemoteRun: async () => {
       if (pendingRemoteRun == null) return;
+      const pendingRun = pendingRemoteRun;
 
       setAcceptingRemoteRun(true);
       try {
-        const status = await switchToArtifactRun(pendingRemoteRun.runId);
-        const result = await refetchFromApi('remote');
+        const { status, result } = await acceptPendingRemoteRunFromApi(pendingRun.runId);
         if (result != null) {
-          pendingMetricsRef.current = result.metrics;
-          setAnalysis(result.analysis);
-          setAnalysisSource(status.currentSource);
-          setRemotePollIntervalMs(status.pollIntervalMs);
-          setError(null);
-          setArtifactCapability(
-            status.missingOptionalArtifacts ?? {
-              missingCatalog: false,
-              missingSources: false,
+          applyArtifactSession({
+            status,
+            analysis: result,
+            setPendingRemoteRun,
+            setRemotePollIntervalMs,
+            setAnalysisSource,
+            setArtifactCapability,
+            setAnalysis,
+            setError,
+            onMetrics: (metrics) => {
+              pendingMetricsRef.current = metrics;
             },
-          );
-          setPendingRemoteRun(status.pendingRun);
+          });
         } else {
           setError(
             'Remote run was selected on the server but artifact files could not be loaded. Try again or reload the page.',
           );
-          setPendingRemoteRun(pendingRemoteRun);
+          applyArtifactSession({
+            status,
+            setPendingRemoteRun,
+            setRemotePollIntervalMs,
+            setAnalysisSource,
+            setArtifactCapability,
+          });
+          setPendingRemoteRun(pendingRun);
         }
         mergeSnapshotFromStatus(status);
       } catch (switchError) {

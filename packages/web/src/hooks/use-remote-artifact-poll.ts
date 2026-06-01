@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
 
 import { debug } from '../debug';
-import { fetchArtifactSourceStatus } from '../services/artifact-api';
+import { refreshArtifactSourceStatus } from '../services/artifact-api';
 
 import type { ArtifactSourceStatus, RemoteArtifactRun } from '../services/artifact-source-api';
 import type { WorkspaceArtifactSource } from '@web/lib/artifact-source-kind';
 
 /**
- * Polls `/api/artifact-source` while the workspace is in remote mode so the UI
- * can surface `pendingRun` when a newer complete pair appears on the bucket.
+ * Polls `/api/artifact-source/refresh` while the workspace is in remote mode so
+ * the UI can surface `pendingRun` when a newer complete pair appears on the bucket.
  */
 export function useRemoteArtifactPoll(
   analysisSource: WorkspaceArtifactSource | null,
@@ -28,7 +28,7 @@ export function useRemoteArtifactPoll(
 
     const poll = async () => {
       try {
-        const status = await fetchArtifactSourceStatus();
+        const status = await refreshArtifactSourceStatus();
         if (!cancelled) {
           setPendingRemoteRun(status.pendingRun);
           setRemotePollIntervalMs(status.pollIntervalMs);

@@ -12,6 +12,8 @@ import {
   type ArtifactSourceKind,
   type DbtToolsRemoteSourceConfig,
   type GcsArtifactSourceRequestOptions,
+  captureSessionBinding,
+  isSessionBindingCurrent,
 } from '@dbt-tools/core';
 import {
   createRemoteObjectStoreClient,
@@ -344,7 +346,7 @@ export class ArtifactSourceService {
     if (this.mode !== 'remote' || this.remoteConfig == null || this.remoteClient == null) {
       return;
     }
-    const generationAtStart = this.sessionGeneration;
+    const binding = captureSessionBinding(this.sessionGeneration, null);
     try {
       const discovery = await this.discoverRemoteConfiguration(
         this.remoteConfig,
@@ -353,11 +355,11 @@ export class ArtifactSourceService {
       if (!discovery.discoveryResult.ok) {
         return;
       }
-      if (generationAtStart !== this.sessionGeneration) {
+      if (!isSessionBindingCurrent(binding, this.sessionGeneration, null)) {
         return;
       }
       this.applyDiscoveredArtifactSource(discovery, this.selectedRunId, {
-        syncLoadedVersion: false,
+        commitLoadedVersion: false,
       });
     } catch (error) {
       debugLog('Remote discovery refresh failed', error);
@@ -459,7 +461,7 @@ export class ArtifactSourceService {
   private applyDiscoveredArtifactSource(
     discovery: DiscoveredArtifactSource,
     selectedRunId: string | null,
-    options?: { syncLoadedVersion?: boolean },
+    options?: { commitLoadedVersion?: boolean },
   ): void {
     this.mode = discovery.mode;
     this.localDir = discovery.localDir;
@@ -471,7 +473,7 @@ export class ArtifactSourceService {
     this.discoveryResult = discovery.discoveryResult;
     this.runs = discovery.runs;
     this.selectedRunId = selectedRunId;
-    if (options?.syncLoadedVersion !== false) {
+    if (options?.commitLoadedVersion !== false) {
       this.syncLoadedVersionToken(selectedRunId, discovery.runs);
       this.loadedArtifactCache = null;
     }
@@ -596,9 +598,10 @@ export class ArtifactSourceService {
     providerOptions?: GcsArtifactSourceRequestOptions,
   ): Promise<ArtifactSourceStatus> {
     await this.ensureReady();
-    const generationAtStart = ++this.sessionGeneration;
+    this.sessionGeneration += 1;
+    const binding = captureSessionBinding(this.sessionGeneration, null);
     const discovery = await this.discoverArtifactSourceInternal(kind, location, providerOptions);
-    if (generationAtStart !== this.sessionGeneration) {
+    if (!isSessionBindingCurrent(binding, this.sessionGeneration, null)) {
       return this.getStatus();
     }
     const selectedRunId = this.resolveConfiguredRunId(discovery, runId);
@@ -619,11 +622,45 @@ export class ArtifactSourceService {
       return this.statusWhenNone();
     }
 
+    return toArtifactSourceStatus(this.buildActiveArtifactStatus());
+  }
+
+  /** Re-list remote prefix and merge discovery (poll / explicit refresh). */
+  async refreshRemoteArtifactDiscovery(): Promise<ArtifactSourceStatus> {
+    await this.ensureReady();
+    if (this.delegatedAdapter != null) {
+      return this.delegatedAdapter.getStatus();
+    }
     if (this.mode === 'remote') {
       await this.refreshRemoteDiscovery();
     }
+    return this.getStatus();
+  }
 
-    return toArtifactSourceStatus(this.buildActiveArtifactStatus());
+  /**
+   * Switch to a pending remote run and return status plus current artifact bytes.
+   * Server commits run selection and artifact cache before the client loads analysis.
+   */
+  async acceptPendingRemoteRun(runId: string): Promise<ArtifactSourceStatus> {
+    await this.ensureReady();
+    if (this.delegatedAdapter != null) {
+      throw new Error('acceptPendingRemoteRun is not supported with a delegated adapter.');
+    }
+    if (this.mode !== 'remote') {
+      throw new Error('acceptPendingRemoteRun requires a remote artifact source.');
+    }
+    const trimmed = runId.trim();
+    if (trimmed === '') {
+      throw new Error('runId is required.');
+    }
+    if (!this.runs.some((run) => run.runId === trimmed)) {
+      throw new Error(`Unknown artifact run id: ${trimmed}`);
+    }
+    this.selectedRunId = trimmed;
+    this.syncLoadedVersionToken(this.selectedRunId, this.runs);
+    this.loadedArtifactCache = null;
+    await this.refreshLoadedArtifactCache();
+    return this.getStatus();
   }
 
   async getCurrentArtifacts(): Promise<CurrentArtifactPayload | null> {
@@ -669,14 +706,15 @@ export class ArtifactSourceService {
     }
 
     if (runId != null && runId.trim() !== '') {
-      const found = this.runs.some((r) => r.runId === runId);
-      if (found) {
-        this.selectedRunId = runId;
-        this.syncLoadedVersionToken(this.selectedRunId, this.runs);
-        this.loadedArtifactCache = null;
-        await this.refreshLoadedArtifactCache();
-        debugLog('Selected artifact run', this.selectedRunId);
+      const trimmed = runId.trim();
+      if (!this.runs.some((r) => r.runId === trimmed)) {
+        throw new Error(`Unknown artifact run id: ${trimmed}`);
       }
+      this.selectedRunId = trimmed;
+      this.syncLoadedVersionToken(this.selectedRunId, this.runs);
+      this.loadedArtifactCache = null;
+      await this.refreshLoadedArtifactCache();
+      debugLog('Selected artifact run', this.selectedRunId);
     }
 
     return this.getStatus();

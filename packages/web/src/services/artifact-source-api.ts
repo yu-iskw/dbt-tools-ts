@@ -282,22 +282,6 @@ export async function loadCurrentManagedArtifacts(): Promise<{
   };
 }
 
-export async function switchToArtifactRun(runId?: string): Promise<ArtifactSourceStatus> {
-  const response = await fetch('/api/artifact-source/switch', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(runId ? { runId } : {}),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to switch artifact source run');
-  }
-
-  return (await response.json()) as ArtifactSourceStatus;
-}
-
 export async function discoverArtifactSourceFromApi(
   kind: UserArtifactSourceKind,
   location: string,

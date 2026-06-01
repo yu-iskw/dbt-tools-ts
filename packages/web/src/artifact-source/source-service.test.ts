@@ -288,73 +288,6 @@ describe('ArtifactSourceService', () => {
     }
   });
 
-  it('coalesces concurrent remote discovery refresh during getStatus', async () => {
-    let listCalls = 0;
-    let releaseList: (() => void) | undefined;
-    const listGate = new Promise<void>((resolve) => {
-      releaseList = resolve;
-    });
-
-    const client = new FakeRemoteClient([
-      {
-        key: 'scheduled/manifest.json',
-        updatedAtMs: 2_000,
-        etag: 'manifest-v1',
-        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v1"}}'),
-      },
-      {
-        key: 'scheduled/run_results.json',
-        updatedAtMs: 2_000,
-        etag: 'results-v1',
-        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v1"}}'),
-      },
-    ]);
-    const originalList = client.listObjects.bind(client);
-    client.listObjects = async () => {
-      listCalls += 1;
-      if (listCalls > 2) {
-        await listGate;
-      }
-      return originalList();
-    };
-
-    const service = new ArtifactSourceService({
-      remoteConfig: {
-        provider: 's3',
-        bucket: 'dbt-artifacts',
-        prefix: 'scheduled',
-        pollIntervalMs: 15_000,
-      },
-      remoteClient: client,
-    });
-
-    await service.getStatus();
-
-    client.replaceObjects([
-      {
-        key: 'scheduled/manifest.json',
-        updatedAtMs: 3_000,
-        etag: 'manifest-v2',
-        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v2"}}'),
-      },
-      {
-        key: 'scheduled/run_results.json',
-        updatedAtMs: 3_000,
-        etag: 'results-v2',
-        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-v2"}}'),
-      },
-    ]);
-
-    const firstRefresh = service.getStatus();
-    const secondRefresh = service.getStatus();
-    releaseList?.();
-    const [firstStatus, secondStatus] = await Promise.all([firstRefresh, secondRefresh]);
-
-    expect(listCalls).toBe(3);
-    expect(firstStatus.pendingRun?.versionToken).toContain('manifest-v2');
-    expect(secondStatus.pendingRun).toEqual(firstStatus.pendingRun);
-  });
-
   it('surfaces pendingRun after getStatus when remote root artifacts are overwritten in place', async () => {
     const client = new FakeRemoteClient([
       {
@@ -400,7 +333,7 @@ describe('ArtifactSourceService', () => {
       },
     ]);
 
-    const refreshed = await service.getStatus();
+    const refreshed = await service.refreshRemoteArtifactDiscovery();
     expect(refreshed.currentRun?.runId).toBe('current');
     expect(refreshed.pendingRun?.runId).toBe('current');
     expect(refreshed.pendingRun?.versionToken).not.toBe(initial.currentRun?.versionToken);
