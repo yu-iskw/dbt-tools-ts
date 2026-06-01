@@ -1,6 +1,6 @@
 {
   "name": "@dbt-tools/core",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Composable analysis engine for dbt artifacts (graphs, execution analysis) — substrate for @dbt-tools/cli and @dbt-tools/web",
   "keywords": [
     "dbt",
