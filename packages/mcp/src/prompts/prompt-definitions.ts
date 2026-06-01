@@ -1,17 +1,10 @@
 import * as z from 'zod/v4';
 
+import { mcpOptionalBooleanSchema } from '../mcp-coercions.js';
+
 import type { PromptMessage } from '@modelcontextprotocol/sdk/types.js';
 
 const NO_DBT_EXECUTION_LINE = 'Do not modify files or execute dbt commands.';
-
-/** MCP prompt args often arrive as strings; only accept explicit true/false literals. */
-const mcpOptionalBooleanSchema = z.preprocess((value) => {
-  if (value === undefined) return undefined;
-  if (typeof value === 'boolean') return value;
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return value;
-}, z.boolean().optional());
 
 export const triageDbtRunArgsSchema = z.object({
   focus: z.enum(['failures', 'performance', 'cost', 'all']).optional(),

@@ -1,67 +1,46 @@
-import { parseCatalog } from 'dbt-artifacts-parser/catalog';
-import { parseManifest } from 'dbt-artifacts-parser/manifest';
-import { parseRunResults } from 'dbt-artifacts-parser/run_results';
-import { parseSources } from 'dbt-artifacts-parser/sources';
-
-import { queryDependencies, type QueryDependenciesInput } from '../analysis/dependencies/query';
-import { queryExecutions, type QueryExecutionsOutput } from '../analysis/search/run-results';
+import { queryDependencies } from '../analysis/dependencies/query';
+import { queryExecutions } from '../analysis/search/run-results';
 import { normalizeWarehouseAdapterType } from '../analysis/search/warehouse';
-import { buildAnalysisSnapshotFromParsedArtifactBundle } from '../analysis/snapshot';
-import { getRunSummaryFromSnapshot, type RunSummaryOutput } from '../analysis/snapshot/run-summary';
-import {
-  DEFAULT_MAX_CACHED_TARGETS,
-  getDbtToolsRemoteClientEnvFromEnv,
-  type DbtToolsRemoteClientEnv,
-} from '../config/dbt-tools-env';
+import { getRunSummaryFromSnapshot } from '../analysis/snapshot/run-summary';
+import { DEFAULT_MAX_CACHED_TARGETS, type DbtToolsRemoteClientEnv } from '../config/dbt-tools-env';
 import {
   dbtToolsDebugLog,
   dbtToolsDebugLogPhase,
   dbtToolsDebugNow,
 } from '../debug/dbt-tools-debug-log.js';
-import {
-  applyDiscoveryNodeFilters,
-  legacySearchScore,
-  parseDiscoveryQueryTokens,
-} from '../discovery';
 import { ArtifactTargetNotConfiguredError } from '../errors/artifact-target-not-configured-error';
 import {
-  discoverArtifactCandidates,
-  discoverLocalArtifactRunPaths,
-  remoteKeysToListedArtifacts,
-  type ArtifactDiscoveryResult,
-} from '../io/artifact-discovery';
-import {
   type GcsArtifactSourceRequestOptions,
-  joinObjectStorageKey,
-  mergeRemoteSourceConfigWithParsedLocation,
-  normalizeArtifactPrefix,
   type RemoteSourceClientOverrides,
 } from '../io/artifact-location';
-import { parseDbtToolsArtifactTarget } from '../io/dbt-artifact-bundle';
-import {
-  createRemoteObjectStoreClient,
-  type RemoteObjectStoreClient,
-} from '../io/remote-object-store';
-import { readValidatedUtf8 } from '../io/safe-fs';
 import {
   captureSessionBinding,
   isSessionBindingCurrent,
   type SessionBinding,
 } from '../session-binding';
 
-import type { DependencyResult } from '../analysis/dependencies/service';
-import type { ManifestGraph } from '../analysis/manifest/graph';
-import type { QueryExecutionsRequest } from '../analysis/search/types';
-import type { AnalysisSnapshot, ResourceNode } from '../analysis/snapshot';
+import { copyResourceForOutput, searchResourcesInGraph } from './graph-search.js';
+import { ArtifactLoadPipeline } from './load-pipeline.js';
+import { ArtifactLoadProgressHub } from './progress.js';
+import {
+  SNAPSHOT_READY_PROGRESS_MESSAGE,
+  type CachedTargetEntry,
+  type DiscoveredSource,
+  type DbtToolsUseCases,
+  type LoadedArtifactWorkspace,
+  type ResolvedArtifactRun,
+} from './types.js';
+
 import type {
   ArtifactWorkspaceCachedTargetRef,
   ArtifactWorkspaceStatus,
 } from '../contracts/artifact-workspace-status.js';
+import type { ArtifactDiscoveryResult } from '../io/artifact-discovery';
+import type { RemoteObjectStoreClient } from '../io/remote-object-store';
 import type {
   ArtifactLoadPhase,
   ArtifactLoadProgressCallback,
 } from '../progress/artifact-load-progress.js';
-import type { GraphNodeAttributes } from '../types';
 
 export type {
   ArtifactWorkspaceCachedTargetRef,
@@ -88,189 +67,20 @@ export interface ArtifactWorkspaceOptions {
   onProgress?: ArtifactLoadProgressCallback;
 }
 
-export interface ResolvedArtifactRun {
-  runId: string;
-  manifestKey: string;
-  runResultsKey: string;
-  catalogKey?: string;
-  sourcesKey?: string;
-  updatedAtMs: number;
-  versionToken: string;
-}
+export type {
+  DbtToolsUseCases,
+  GetResourceInput,
+  QueryDependenciesOutput,
+  ResourceDetails,
+  ResolvedArtifactRun,
+  SearchResourceResult,
+  SearchResourcesInput,
+  SearchResourcesOutput,
+} from './types.js';
 
-interface LoadedArtifactWorkspace {
-  run: ResolvedArtifactRun;
-  analysis: AnalysisSnapshot;
-  graph: ManifestGraph;
-  loadedAtMs: number;
-}
+export { SEARCH_RESOURCES_DEFAULT_LIMIT, SEARCH_RESOURCES_MAX_LIMIT } from './types.js';
 
-interface CachedTargetEntry {
-  runs: ResolvedArtifactRun[];
-  selectedRunId: string;
-  loaded: LoadedArtifactWorkspace;
-  lastAccessedAtMs: number;
-}
-
-type DiscoveredSource =
-  | {
-      kind: 'local';
-      discovery: ArtifactDiscoveryResult;
-      runs: ResolvedArtifactRun[];
-    }
-  | {
-      kind: 'remote';
-      bucket: string;
-      client: RemoteObjectStoreClient;
-      discovery: ArtifactDiscoveryResult;
-      runs: ResolvedArtifactRun[];
-    };
-
-export interface SearchResourcesInput {
-  query?: string;
-  type?: string;
-  package?: string;
-  tag?: string;
-  path?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface SearchResourceResult {
-  unique_id: string;
-  resource_type: string;
-  name: string;
-  package_name: string;
-  path?: string;
-  tags?: string[];
-  description?: string;
-}
-
-export interface SearchResourcesOutput {
-  query?: string;
-  total: number;
-  results: SearchResourceResult[];
-  limit?: number;
-  offset: number;
-  has_more?: boolean;
-}
-
-export interface GetResourceInput {
-  uniqueId: string;
-  includeCode?: boolean;
-}
-
-export type ResourceDetails = ResourceNode;
-
-export type QueryDependenciesOutput = DependencyResult;
-
-export interface DbtToolsUseCases {
-  searchResources(input: SearchResourcesInput): Promise<SearchResourcesOutput>;
-  getResource(input: GetResourceInput): Promise<ResourceDetails | null>;
-  queryDependencies(input: QueryDependenciesInput): Promise<QueryDependenciesOutput>;
-  queryExecutions(input: QueryExecutionsRequest): Promise<QueryExecutionsOutput>;
-  getRunSummary(): Promise<RunSummaryOutput>;
-}
-
-export const SEARCH_RESOURCES_DEFAULT_LIMIT = 20;
-export const SEARCH_RESOURCES_MAX_LIMIT = 200;
-
-const SNAPSHOT_READY_PROGRESS_MESSAGE = 'Snapshot ready';
-
-function clampLimit(value: number | undefined, defaultValue: number, maxValue: number): number {
-  if (value == null || !Number.isFinite(value)) return defaultValue;
-  return Math.min(Math.max(1, Math.floor(value)), maxValue);
-}
-
-function normalizeOffset(value: number | undefined): number {
-  if (value == null || !Number.isFinite(value)) return 0;
-  return Math.max(0, Math.floor(value));
-}
-
-function resolveOptionalSearchLimit(limit: number | undefined): number | undefined {
-  if (limit == null) return undefined;
-  return clampLimit(limit, SEARCH_RESOURCES_DEFAULT_LIMIT, SEARCH_RESOURCES_MAX_LIMIT);
-}
-
-function decodeJson(bytes: Uint8Array): Record<string, unknown> {
-  return JSON.parse(Buffer.from(bytes).toString('utf8')) as Record<string, unknown>;
-}
-
-function optionalDecodeJson(bytes: Uint8Array | null): Record<string, unknown> | undefined {
-  return bytes == null ? undefined : decodeJson(bytes);
-}
-
-function toSearchResult(uniqueId: string, attrs: GraphNodeAttributes): SearchResourceResult {
-  return {
-    unique_id: uniqueId,
-    resource_type: attrs.resource_type,
-    name: attrs.name,
-    package_name: attrs.package_name,
-    path: attrs.path as string | undefined,
-    tags: attrs.tags as string[] | undefined,
-    description: attrs.description as string | undefined,
-  };
-}
-
-function copyResourceForOutput(resource: ResourceNode, includeCode: boolean): ResourceDetails {
-  if (includeCode) return resource;
-  const result: ResourceDetails = { ...resource };
-  delete result.compiledCode;
-  delete result.rawCode;
-  return result;
-}
-
-export function searchResourcesInGraph(
-  graph: ManifestGraph,
-  input: SearchResourcesInput,
-): SearchResourcesOutput {
-  const parsed = input.query ? parseDiscoveryQueryTokens(input.query) : { terms: [] };
-  const effectiveType = input.type ?? parsed.type;
-  const effectivePackage = input.package ?? parsed.package;
-  const effectiveTag = input.tag ?? parsed.tag;
-  const effectivePath = input.path ?? parsed.path;
-  const scored: Array<{ score: number; result: SearchResourceResult }> = [];
-
-  graph.getGraph().forEachNode((uniqueId, attrs) => {
-    if (
-      !applyDiscoveryNodeFilters(
-        attrs,
-        effectiveType,
-        effectivePackage,
-        effectiveTag,
-        effectivePath,
-      )
-    ) {
-      return;
-    }
-    const score = legacySearchScore(attrs, parsed.terms);
-    if (score === 0) return;
-    scored.push({ score, result: toSearchResult(uniqueId, attrs) });
-  });
-
-  scored.sort((a, b) =>
-    b.score === a.score ? a.result.unique_id.localeCompare(b.result.unique_id) : b.score - a.score,
-  );
-  const limit = resolveOptionalSearchLimit(input.limit);
-  const offset = normalizeOffset(input.offset);
-  if (offset > 0 && limit == null) {
-    throw new Error('offset requires limit');
-  }
-  const all = scored.map((row) => row.result);
-  const results = limit == null ? all : all.slice(offset, offset + limit);
-  return {
-    query: input.query || undefined,
-    total: all.length,
-    results,
-    offset,
-    ...(limit != null
-      ? {
-          limit,
-          has_more: offset + results.length < all.length,
-        }
-      : {}),
-  };
-}
+export { copyResourceForOutput, searchResourcesInGraph } from './graph-search.js';
 
 export class ArtifactWorkspace {
   private dbtTarget: string | null;
@@ -292,8 +102,8 @@ export class ArtifactWorkspace {
   private initializePromise: Promise<void> | null = null;
   /** Bumped when the active target binding changes; stale loads must not assign `loaded`. */
   private loadGeneration = 0;
-  private loadProgressCallback: ArtifactLoadProgressCallback | undefined;
-  private readonly refreshProgressListeners = new Set<ArtifactLoadProgressCallback>();
+  private readonly progressHub = new ArtifactLoadProgressHub();
+  private readonly loadPipeline: ArtifactLoadPipeline;
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -304,15 +114,22 @@ export class ArtifactWorkspace {
     this.injectedRemoteClient = options.remoteClient;
     this.gcsRequestOptions = options.gcsRequestOptions;
     this.remoteClientOverrides = options.remoteClientOverrides;
-    this.loadProgressCallback = options.onProgress;
+    this.progressHub.setCallback(options.onProgress);
+    this.loadPipeline = new ArtifactLoadPipeline({
+      cwd: this.cwd,
+      now: () => this.now(),
+      requireTarget: () => this.requireTarget(),
+      reportProgress: (phase, progress, message) => this.reportProgress(phase, progress, message),
+      mergeRemoteClientEnvLayers: (base, override) =>
+        this.mergeRemoteClientEnvLayers(base, override),
+      injectedRemoteClient: this.injectedRemoteClient,
+      gcsRequestOptions: this.gcsRequestOptions,
+      remoteClientOverrides: this.remoteClientOverrides,
+    });
   }
 
   private reportProgress(phase: ArtifactLoadPhase, progress: number, message: string): void {
-    const event = { phase, progress, message };
-    this.loadProgressCallback?.(event);
-    for (const listener of [...this.refreshProgressListeners]) {
-      listener(event);
-    }
+    this.progressHub.emit(phase, progress, message);
   }
 
   async setTarget(
@@ -320,10 +137,8 @@ export class ArtifactWorkspace {
     options?: ArtifactWorkspaceLoadOptions,
   ): Promise<ArtifactWorkspaceStatus> {
     return this.runSerialized(async () => {
-      const previousProgress = this.loadProgressCallback;
-      if (options?.onProgress != null) {
-        this.loadProgressCallback = options.onProgress;
-      }
+      const restoreCallback =
+        options?.onProgress != null ? this.progressHub.swapCallback(options.onProgress) : undefined;
       try {
         const trimmed = target.trim();
         if (trimmed === '') {
@@ -346,7 +161,9 @@ export class ArtifactWorkspace {
         this.syncActiveToCache();
         return this.status();
       } finally {
-        this.loadProgressCallback = previousProgress;
+        if (options?.onProgress != null) {
+          this.progressHub.setCallback(restoreCallback);
+        }
       }
     });
   }
@@ -371,7 +188,7 @@ export class ArtifactWorkspace {
       this.loaded = null;
       this.runs = [];
       this.selectedRunId = null;
-      this.stale = false;
+      this.stale = true;
       this.lastRefreshError = undefined;
       return this.status();
     });
@@ -437,7 +254,7 @@ export class ArtifactWorkspace {
   }
 
   private reportSnapshotReadyIfListening(): void {
-    if (this.loadProgressCallback != null) {
+    if (this.progressHub.getCallback() != null) {
       this.reportProgress('ready', 100, SNAPSHOT_READY_PROGRESS_MESSAGE);
     }
   }
@@ -471,10 +288,8 @@ export class ArtifactWorkspace {
     if (this.dbtTarget == null) {
       return this.status();
     }
-    const listener = options?.onProgress;
-    if (listener != null) {
-      this.refreshProgressListeners.add(listener);
-    }
+    const unsubscribe =
+      options?.onProgress != null ? this.progressHub.subscribe(options.onProgress) : undefined;
     try {
       if (this.refreshPromise == null) {
         this.refreshPromise = this.runSerialized(() => this.refreshIfChangedInternal()).finally(
@@ -485,9 +300,7 @@ export class ArtifactWorkspace {
       }
       return await this.refreshPromise;
     } finally {
-      if (listener != null) {
-        this.refreshProgressListeners.delete(listener);
-      }
+      unsubscribe?.();
     }
   }
 
@@ -547,7 +360,6 @@ export class ArtifactWorkspace {
     }
 
     if (this.loaded == null) {
-      await this.ensureInitialized();
       return this.status();
     }
 
@@ -762,148 +574,15 @@ export class ArtifactWorkspace {
     return this.dbtTarget;
   }
 
-  private async discoverSource(): Promise<DiscoveredSource> {
-    const startedAt = dbtToolsDebugNow();
-    const parsed = parseDbtToolsArtifactTarget(this.requireTarget(), this.cwd);
-    dbtToolsDebugLog(`discoverSource kind=${parsed.kind}`);
-    if (parsed.kind === 'local') {
-      this.reportProgress('discover-bundle', 25, 'Discovering artifact bundle');
-      const { discovery, runs } = await discoverLocalArtifactRunPaths(parsed.resolvedPath);
-      dbtToolsDebugLogPhase('discoverSource local done', startedAt, `runs=${runs.length}`);
-      return { kind: 'local', discovery, runs };
-    }
-
-    this.reportProgress('list-objects', 15, 'Listing artifact objects');
-    const { gcsRequestOptions, remoteClientOverrides } = this.mergeRemoteClientEnvLayers(
-      getDbtToolsRemoteClientEnvFromEnv(),
-      {
-        gcsRequestOptions: this.gcsRequestOptions,
-        remoteClientOverrides: this.remoteClientOverrides,
-      },
-    );
-    const config = mergeRemoteSourceConfigWithParsedLocation(
-      undefined,
-      parsed,
-      gcsRequestOptions,
-      remoteClientOverrides,
-    );
-    const client = this.injectedRemoteClient ?? (await createRemoteObjectStoreClient(config));
-    const prefix = normalizeArtifactPrefix(config.prefix);
-    const objects = await client.listObjects(config.bucket, prefix);
-    this.reportProgress('discover-bundle', 25, 'Discovering artifact bundle');
-    const discovery = discoverArtifactCandidates(remoteKeysToListedArtifacts(objects, prefix));
-    dbtToolsDebugLog(`discoverSource remote listed=${objects.length} discoveryOk=${discovery.ok}`);
-    const runs: ResolvedArtifactRun[] = discovery.ok
-      ? discovery.candidates.map((candidate) => ({
-          runId: candidate.runId,
-          manifestKey: joinObjectStorageKey(prefix, candidate.manifestRelative),
-          runResultsKey: joinObjectStorageKey(prefix, candidate.runResultsRelative),
-          ...(candidate.catalogRelative != null
-            ? { catalogKey: joinObjectStorageKey(prefix, candidate.catalogRelative) }
-            : {}),
-          ...(candidate.sourcesRelative != null
-            ? { sourcesKey: joinObjectStorageKey(prefix, candidate.sourcesRelative) }
-            : {}),
-          updatedAtMs: candidate.updatedAtMs,
-          versionToken: candidate.versionToken,
-        }))
-      : [];
-    dbtToolsDebugLogPhase('discoverSource remote done', startedAt, `runs=${runs.length}`);
-    return { kind: 'remote', bucket: config.bucket, client, discovery, runs };
+  private discoverSource(): Promise<DiscoveredSource> {
+    return this.loadPipeline.discoverSource();
   }
 
-  private async loadRun(
+  private loadRun(
     source: DiscoveredSource,
     run: ResolvedArtifactRun,
   ): Promise<LoadedArtifactWorkspace> {
-    const startedAt = dbtToolsDebugNow();
-    dbtToolsDebugLog(`loadRun start runId=${run.runId}`);
-    const [manifestBytes, runResultsBytes, catalogBytes, sourcesBytes] =
-      source.kind === 'local'
-        ? await this.readLocalRun(run)
-        : await this.readRemoteRun(source, run);
-    dbtToolsDebugLog(
-      `loadRun read bytes manifest=${manifestBytes.byteLength} run_results=${runResultsBytes.byteLength}`,
-    );
-    this.reportProgress('parse-artifacts', 75, 'Parsing dbt artifacts');
-    const manifestJson = decodeJson(manifestBytes);
-    const runResultsJson = decodeJson(runResultsBytes);
-    const catalogJson = optionalDecodeJson(catalogBytes);
-    const sourcesJson = optionalDecodeJson(sourcesBytes);
-    const manifest = parseManifest(manifestJson);
-    const runResults = parseRunResults(runResultsJson);
-    const catalog = catalogJson == null ? undefined : parseCatalog(catalogJson);
-    const sources = sourcesJson == null ? undefined : parseSources(sourcesJson);
-    this.reportProgress('build-graph', 85, 'Building dependency graph');
-    const { analysis, graph } = buildAnalysisSnapshotFromParsedArtifactBundle({
-      manifestJson,
-      runResultsJson,
-      catalogJson,
-      sourcesJson,
-      manifest,
-      runResults,
-      catalog,
-      sources,
-    });
-    this.reportProgress('build-snapshot', 95, 'Building analysis snapshot');
-    dbtToolsDebugLogPhase('loadRun complete', startedAt, `resources=${analysis.resources.length}`);
-    return {
-      run,
-      analysis,
-      graph,
-      loadedAtMs: this.now(),
-    };
-  }
-
-  private async readLocalRun(
-    run: ResolvedArtifactRun,
-  ): Promise<[Uint8Array, Uint8Array, Uint8Array | null, Uint8Array | null]> {
-    const [manifestText, runResultsText, catalogText, sourcesText] = await Promise.all([
-      readValidatedUtf8(run.manifestKey),
-      readValidatedUtf8(run.runResultsKey),
-      this.readOptionalLocalUtf8(run.catalogKey),
-      this.readOptionalLocalUtf8(run.sourcesKey),
-    ]);
-    const encoder = new TextEncoder();
-    return [
-      encoder.encode(manifestText),
-      encoder.encode(runResultsText),
-      catalogText != null ? encoder.encode(catalogText) : null,
-      sourcesText != null ? encoder.encode(sourcesText) : null,
-    ];
-  }
-
-  private async readOptionalLocalUtf8(filePath: string | undefined): Promise<string | null> {
-    if (filePath == null) return null;
-    try {
-      return await readValidatedUtf8(filePath);
-    } catch {
-      return null;
-    }
-  }
-
-  private async readRemoteRun(
-    source: Extract<DiscoveredSource, { kind: 'remote' }>,
-    run: ResolvedArtifactRun,
-  ): Promise<[Uint8Array, Uint8Array, Uint8Array | null, Uint8Array | null]> {
-    const readOptional = async (key: string | undefined): Promise<Uint8Array | null> => {
-      if (key == null) return null;
-      try {
-        return await source.client.readObjectBytes(source.bucket, key);
-      } catch {
-        return null;
-      }
-    };
-    this.reportProgress('download-manifest', 40, 'Downloading manifest');
-    const manifestBytes = await source.client.readObjectBytes(source.bucket, run.manifestKey);
-    this.reportProgress('download-run-results', 50, 'Downloading run results');
-    const runResultsBytes = await source.client.readObjectBytes(source.bucket, run.runResultsKey);
-    this.reportProgress('download-optional-artifacts', 60, 'Downloading optional artifacts');
-    const [catalogBytes, sourcesBytes] = await Promise.all([
-      readOptional(run.catalogKey),
-      readOptional(run.sourcesKey),
-    ]);
-    return [manifestBytes, runResultsBytes, catalogBytes, sourcesBytes];
+    return this.loadPipeline.loadRun(source, run);
   }
 }
 

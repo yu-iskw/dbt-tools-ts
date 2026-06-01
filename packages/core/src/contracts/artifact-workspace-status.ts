@@ -18,26 +18,24 @@ export const artifactWorkspaceCachedTargetRefSchema = z
   })
   .passthrough();
 
-export const artifactWorkspaceStatusSchema = z
-  .object({
-    target: z.string().nullable(),
-    selectedRunId: z.string().nullable(),
-    versionToken: z.string().nullable(),
-    loadedAtMs: z.number().int().nullable(),
-    stale: z.boolean(),
-    lastRefreshError: z.string().optional(),
-    runs: z.array(artifactWorkspaceRunRefSchema),
-    warehouse_type: warehouseTypeSchema.optional(),
-    fromCache: z.boolean().optional(),
-    cachePolicy: z
-      .object({
-        maxTargets: z.number().int().min(0),
-        ttlMs: z.number().int().min(0),
-      })
-      .optional(),
-    cachedTargets: z.array(artifactWorkspaceCachedTargetRefSchema).optional(),
-  })
-  .passthrough();
+export const artifactWorkspaceStatusSchema = z.object({
+  target: z.string().nullable(),
+  selectedRunId: z.string().nullable(),
+  versionToken: z.string().nullable(),
+  loadedAtMs: z.number().int().nullable(),
+  stale: z.boolean(),
+  lastRefreshError: z.string().optional(),
+  runs: z.array(artifactWorkspaceRunRefSchema),
+  warehouse_type: warehouseTypeSchema.optional(),
+  fromCache: z.boolean().optional(),
+  cachePolicy: z
+    .object({
+      maxTargets: z.number().int().min(0),
+      ttlMs: z.number().int().min(0),
+    })
+    .optional(),
+  cachedTargets: z.array(artifactWorkspaceCachedTargetRefSchema).optional(),
+});
 
 export type ArtifactWorkspaceRunRef = z.infer<typeof artifactWorkspaceRunRefSchema>;
 export type ArtifactWorkspaceCachedTargetRef = z.infer<

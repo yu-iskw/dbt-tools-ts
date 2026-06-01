@@ -39,6 +39,6 @@ export const getResourceToolOutputSchema = z
   .object({
     resource: resourceDetailsSchema.nullable(),
   })
-  .passthrough();
+  .strict();
 
 export type GetResourceToolOutput = z.infer<typeof getResourceToolOutputSchema>;

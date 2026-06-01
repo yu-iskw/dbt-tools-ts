@@ -1,16 +1,15 @@
-import { ArtifactTargetNotConfiguredError } from '@dbt-tools/core';
 import {
   dependenciesResourceBodySchema,
   resourceDetailsResourceBodySchema,
   runSummaryResourceBodySchema,
   statusResourceBodySchema,
 } from '@dbt-tools/core/contracts';
-import type { ArtifactWorkspaceStatus } from '@dbt-tools/core/artifact-workspace';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import * as z from 'zod/v4';
 
-import { MCP_TARGET_NOT_CONFIGURED_MESSAGE } from '../mcp-errors.js';
-import { truncateSqlResourceText } from './resource-limits.js';
+import { runResourceWithLoadedUseCases } from '../loaded-use-cases.js';
+import { loadResourceNode, loadResourceSqlText } from './fetch-resource.js';
+import { buildSnapshotEnvelope } from './resource-envelope-build.js';
+import type * as z from 'zod/v4';
 import {
   DbtToolsResourceUriError,
   parseDbtToolsResourceUri,
@@ -24,15 +23,6 @@ import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
 export interface DbtToolsResourceContext {
   workspace: ArtifactWorkspaceControl;
   useCases: DbtToolsUseCases;
-}
-
-function snapshotMetadataFromStatus(status: ArtifactWorkspaceStatus) {
-  return {
-    versionToken: status.versionToken,
-    loadedAtMs: status.loadedAtMs,
-    target: status.target,
-    stale: status.stale,
-  };
 }
 
 function resourceNotFound(message: string): never {
@@ -49,29 +39,14 @@ function invalidResourceUri(error: unknown): never {
   throw new McpError(ErrorCode.InvalidParams, message);
 }
 
-function parseResourceBody<T>(schema: z.ZodType<T>, data: unknown): T {
-  const parsed = schema.safeParse(data);
-  if (!parsed.success) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Resource payload did not match contract: ${parsed.error.message}`,
-    );
-  }
-  return parsed.data;
-}
-
-async function withLoadedUseCases<T>(
+async function readJsonResourceWithEnvelope<T>(
   ctx: DbtToolsResourceContext,
-  run: (uc: DbtToolsUseCases) => Promise<T>,
+  schema: z.ZodType<T>,
+  load: (uc: DbtToolsUseCases) => Promise<Record<string, unknown>>,
 ): Promise<T> {
-  try {
-    return await run(ctx.useCases);
-  } catch (error) {
-    if (error instanceof ArtifactTargetNotConfiguredError) {
-      resourceNotFound(MCP_TARGET_NOT_CONFIGURED_MESSAGE);
-    }
-    throw error;
-  }
+  const payload = await runResourceWithLoadedUseCases(ctx.useCases, load);
+  const status = await ctx.workspace.getStatus();
+  return buildSnapshotEnvelope(status, schema, payload);
 }
 
 export async function readDbtToolsResource(
@@ -89,10 +64,7 @@ export async function readDbtToolsResource(
 
   if (request.kind === 'status') {
     const status = await ctx.workspace.getStatus();
-    const body = parseResourceBody(statusResourceBodySchema, {
-      ...snapshotMetadataFromStatus(status),
-      status,
-    });
+    const body = buildSnapshotEnvelope(status, statusResourceBodySchema, { status });
     return {
       contents: [
         {
@@ -105,12 +77,9 @@ export async function readDbtToolsResource(
   }
 
   if (request.kind === 'run-summary') {
-    const summary = await withLoadedUseCases(ctx, (uc) => uc.getRunSummary());
-    const status = await ctx.workspace.getStatus();
-    const body = parseResourceBody(runSummaryResourceBodySchema, {
-      ...snapshotMetadataFromStatus(status),
-      summary,
-    });
+    const body = await readJsonResourceWithEnvelope(ctx, runSummaryResourceBodySchema, (uc) =>
+      uc.getRunSummary().then((summary) => ({ summary })),
+    );
     return {
       contents: [
         {
@@ -123,19 +92,19 @@ export async function readDbtToolsResource(
   }
 
   if (request.kind === 'resource-details') {
-    const resource = await withLoadedUseCases(ctx, (uc) =>
-      uc.getResource({ uniqueId: request.uniqueId, includeCode: false }),
+    const body = await readJsonResourceWithEnvelope(
+      ctx,
+      resourceDetailsResourceBodySchema,
+      async (uc) => {
+        const resource = await uc.getResource({ uniqueId: request.uniqueId, includeCode: false });
+        if (resource == null) {
+          resourceNotFound(
+            `Resource not found for unique_id ${request.uniqueId}. Use dbt_tools_search_resources to discover available resources.`,
+          );
+        }
+        return { resource };
+      },
     );
-    if (resource == null) {
-      resourceNotFound(
-        `Resource not found for unique_id ${request.uniqueId}. Use dbt_tools_search_resources to discover available resources.`,
-      );
-    }
-    const status = await ctx.workspace.getStatus();
-    const body = parseResourceBody(resourceDetailsResourceBodySchema, {
-      ...snapshotMetadataFromStatus(status),
-      resource,
-    });
     return {
       contents: [
         {
@@ -148,22 +117,14 @@ export async function readDbtToolsResource(
   }
 
   if (request.kind === 'resource-sql') {
-    const resource = await withLoadedUseCases(ctx, (uc) =>
-      uc.getResource({ uniqueId: request.uniqueId, includeCode: true }),
+    const text = await runResourceWithLoadedUseCases(ctx.useCases, (uc) =>
+      loadResourceSqlText(uc, request.uniqueId, request.sqlKind),
     );
-    if (resource == null) {
+    if (text == null) {
       resourceNotFound(
-        `Resource not found for unique_id ${request.uniqueId}. Use dbt_tools_search_resources to discover available resources.`,
+        `Resource not found or ${request.sqlKind} SQL is not available for unique_id ${request.uniqueId}. Use dbt_tools_search_resources to discover available resources.`,
       );
     }
-    const sql =
-      request.sqlKind === 'raw' ? (resource.rawCode ?? null) : (resource.compiledCode ?? null);
-    if (sql == null || sql === '') {
-      resourceNotFound(
-        `${request.sqlKind} SQL is not available for unique_id ${request.uniqueId}.`,
-      );
-    }
-    const { text } = truncateSqlResourceText(sql);
     return {
       contents: [
         {
@@ -175,17 +136,14 @@ export async function readDbtToolsResource(
     };
   }
 
-  const dependencies = await withLoadedUseCases(ctx, (uc) =>
-    uc.queryDependencies({
-      uniqueId: request.uniqueId,
-      direction: request.direction,
-    }),
+  const body = await readJsonResourceWithEnvelope(ctx, dependenciesResourceBodySchema, (uc) =>
+    uc
+      .queryDependencies({
+        uniqueId: request.uniqueId,
+        direction: request.direction,
+      })
+      .then((dependencies) => ({ dependencies })),
   );
-  const status = await ctx.workspace.getStatus();
-  const body = parseResourceBody(dependenciesResourceBodySchema, {
-    ...snapshotMetadataFromStatus(status),
-    dependencies,
-  });
   return {
     contents: [
       {

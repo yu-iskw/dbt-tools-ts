@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { truncateSqlResourceText } from './resource-limits.js';
+import { truncateSqlText as truncateSqlResourceText } from '@dbt-tools/core/util/sql-truncation';
 
 describe('truncateSqlResourceText', () => {
   it('truncates at utf-8 boundaries and appends notice', () => {

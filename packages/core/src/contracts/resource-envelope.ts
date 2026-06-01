@@ -5,14 +5,12 @@ import { dependencyQueryOutputSchema } from './dependency-query.js';
 import { resourceDetailsSchema } from './resource-details.js';
 import { runSummaryOutputSchema } from './run-summary.js';
 
-export const snapshotMetadataSchema = z
-  .object({
-    versionToken: z.string().nullable(),
-    loadedAtMs: z.number().int().nullable(),
-    target: z.string().nullable().optional(),
-    stale: z.boolean().optional(),
-  })
-  .passthrough();
+export const snapshotMetadataSchema = z.object({
+  versionToken: z.string().nullable(),
+  loadedAtMs: z.number().int().nullable(),
+  target: z.string().nullable().optional(),
+  stale: z.boolean().optional(),
+});
 
 export const statusResourceBodySchema = snapshotMetadataSchema.extend({
   status: artifactWorkspaceStatusSchema,

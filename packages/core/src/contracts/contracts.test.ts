@@ -153,6 +153,18 @@ describe('core contracts', () => {
     expect(toolErrorSchema.parse({ error: 'x', hint: 'y' }).hint).toBe('y');
   });
 
+  it('rejects unknown top-level keys on strict tool output schemas', () => {
+    expect(() =>
+      searchResourcesOutputSchema.parse({
+        total: 0,
+        results: [],
+        offset: 0,
+        unexpected: true,
+      }),
+    ).toThrow();
+    expect(() => getResourceToolOutputSchema.parse({ resource: null, extra: true })).toThrow();
+  });
+
   it('rejects invalid workspace status payloads', () => {
     expect(() =>
       artifactWorkspaceStatusSchema.parse({

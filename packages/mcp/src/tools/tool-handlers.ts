@@ -1,20 +1,20 @@
-import { ArtifactTargetNotConfiguredError, QueryExecutionsValidationError } from '@dbt-tools/core';
+import { QueryExecutionsValidationError } from '@dbt-tools/core';
 import {
   artifactWorkspaceStatusSchema,
   dependencyQueryOutputSchema,
   getResourceToolOutputSchema,
   queryExecutionsOutputSchema,
-  resourceDetailsSchema,
   runSummaryOutputSchema,
   searchResourcesOutputSchema,
 } from '@dbt-tools/core/contracts';
 
-import { MCP_TARGET_NOT_CONFIGURED_HINT } from '../mcp-errors.js';
+import { runToolWithLoadedUseCases } from '../loaded-use-cases.js';
 import { assertRemoteFlagsMatchTarget, type McpRemoteClientFlagOptions } from '../options.js';
 import {
   createMcpLoadProgressNotifier,
   type McpToolRequestExtra,
 } from '../progress/map-load-progress.js';
+import { loadResourceNode, toGetResourceToolOutput } from '../resources/fetch-resource.js';
 
 import {
   emptyToolInputSchema,
@@ -29,7 +29,6 @@ import {
   toSearchResourcesInput,
 } from './tool-input-schemas.js';
 import { jsonResult, jsonToolError } from './tool-result.js';
-import { truncateResourceCodeFields } from './truncate-resource-code.js';
 
 import type { ArtifactWorkspaceControl } from '../workspace-control.js';
 import type { DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
@@ -60,28 +59,6 @@ function validationErrorResult(error: QueryExecutionsValidationError): McpJsonTo
     allowed_sorts: error.allowed_sorts,
     allowed_min_filters: error.allowed_min_filters,
   });
-}
-
-function targetNotConfiguredResult(): McpJsonToolResult {
-  return jsonToolError({
-    error: ArtifactTargetNotConfiguredError.message,
-    hint: MCP_TARGET_NOT_CONFIGURED_HINT,
-  });
-}
-
-async function withLoadedUseCases<T>(
-  schema: z.ZodType<T>,
-  useCases: DbtToolsUseCases,
-  run: (uc: DbtToolsUseCases) => Promise<unknown>,
-): Promise<McpJsonToolResult> {
-  try {
-    return jsonResult(schema, (await run(useCases)) as T);
-  } catch (error) {
-    if (error instanceof ArtifactTargetNotConfiguredError) {
-      return targetNotConfiguredResult();
-    }
-    throw error;
-  }
 }
 
 type McpToolHandler = (input: ToolInput, extra?: McpToolRequestExtra) => Promise<McpJsonToolResult>;
@@ -152,7 +129,7 @@ export function createDbtToolsMcpToolHandlers(
       if (!parsed.success) {
         return invalidInputResult(parsed.error);
       }
-      return withLoadedUseCases(searchResourcesOutputSchema, useCases, (uc) =>
+      return runToolWithLoadedUseCases(searchResourcesOutputSchema, useCases, (uc) =>
         uc.searchResources(toSearchResourcesInput(parsed.data)),
       );
     },
@@ -163,23 +140,19 @@ export function createDbtToolsMcpToolHandlers(
         return invalidInputResult(parsed.error);
       }
       const request = toGetResourceInput(parsed.data);
-      try {
-        const resource = await useCases.getResource(request);
-        const body = getResourceToolOutputSchema.parse({
-          resource:
-            resource == null
-              ? null
-              : resourceDetailsSchema.parse(
-                  request.includeCode ? truncateResourceCodeFields(resource) : resource,
-                ),
-        });
-        return jsonResult(getResourceToolOutputSchema, body, { contentPayload: body.resource });
-      } catch (error) {
-        if (error instanceof ArtifactTargetNotConfiguredError) {
-          return targetNotConfiguredResult();
-        }
-        throw error;
-      }
+      return runToolWithLoadedUseCases(
+        getResourceToolOutputSchema,
+        useCases,
+        async (uc) =>
+          toGetResourceToolOutput(
+            await loadResourceNode(
+              uc,
+              request.uniqueId,
+              request.includeCode ? 'truncate-for-json' : 'omit',
+            ),
+          ),
+        { contentPayload: (body) => body.resource },
+      );
     },
 
     dbt_tools_query_dependencies: async (input: ToolInput): Promise<McpJsonToolResult> => {
@@ -187,7 +160,7 @@ export function createDbtToolsMcpToolHandlers(
       if (!parsed.success) {
         return invalidInputResult(parsed.error);
       }
-      return withLoadedUseCases(dependencyQueryOutputSchema, useCases, (uc) =>
+      return runToolWithLoadedUseCases(dependencyQueryOutputSchema, useCases, (uc) =>
         uc.queryDependencies(toQueryDependenciesInput(parsed.data)),
       );
     },
@@ -198,7 +171,7 @@ export function createDbtToolsMcpToolHandlers(
         return invalidInputResult(parsed.error);
       }
       try {
-        return await withLoadedUseCases(queryExecutionsOutputSchema, useCases, (uc) =>
+        return await runToolWithLoadedUseCases(queryExecutionsOutputSchema, useCases, (uc) =>
           uc.queryExecutions(toQueryExecutionsRequest(parsed.data)),
         );
       } catch (error) {
@@ -214,7 +187,9 @@ export function createDbtToolsMcpToolHandlers(
       if (!parsed.success) {
         return invalidInputResult(parsed.error);
       }
-      return withLoadedUseCases(runSummaryOutputSchema, useCases, (uc) => uc.getRunSummary());
+      return runToolWithLoadedUseCases(runSummaryOutputSchema, useCases, (uc) =>
+        uc.getRunSummary(),
+      );
     },
   };
 }

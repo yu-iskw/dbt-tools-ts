@@ -175,6 +175,15 @@ describe('ArtifactWorkspace', () => {
     await expect(workspace.refreshIfChanged()).resolves.toMatchObject({ target: null });
   });
 
+  it('refreshIfChanged does not cold-load an unbound snapshot', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ dbtTarget: tempDir, now: () => 123 });
+    await workspace.refreshIfChanged();
+    const status = await workspace.getStatus();
+    expect(status.loadedAtMs).toBeNull();
+    expect(status.versionToken).toBeNull();
+  });
+
   it('loads artifacts after setTarget on an unconfigured workspace', async () => {
     await writeArtifacts(tempDir);
     const workspace = new ArtifactWorkspace({ now: () => 123 });
@@ -501,6 +510,7 @@ describe('ArtifactWorkspace', () => {
     expect(status.loadedAtMs).toBeNull();
     expect(status.runs).toEqual([]);
     expect(status.target).toBe(tempDir);
+    expect(status.stale).toBe(true);
 
     const useCases = createDbtToolsUseCases(workspace);
     await expect(useCases.searchResources({ query: 'customers', limit: 1 })).resolves.toMatchObject(

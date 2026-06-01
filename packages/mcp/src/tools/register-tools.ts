@@ -88,7 +88,8 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
     'dbt_tools_search_resources',
     {
       title: 'dbt-tools search resources',
-      description: 'Search dbt resources by terms and optional type/package/tag/path filters.',
+      description:
+        'Search dbt resources by terms and optional type/package/tag/path filters. Default limit is 20 when omitted.',
       inputSchema: searchResourcesInputSchema,
       outputSchema: searchResourcesOutputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true },

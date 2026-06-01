@@ -12,14 +12,12 @@ export const dependencyNodeSchema = z
   })
   .catchall(jsonValueSchema);
 
-export const dependencyQueryOutputSchema = z
-  .object({
-    resource_id: z.string(),
-    direction: z.enum(['downstream', 'upstream']),
-    build_order: z.boolean().optional(),
-    dependencies: z.array(dependencyNodeSchema),
-    count: z.number().int(),
-  })
-  .passthrough();
+export const dependencyQueryOutputSchema = z.object({
+  resource_id: z.string(),
+  direction: z.enum(['downstream', 'upstream']),
+  build_order: z.boolean().optional(),
+  dependencies: z.array(dependencyNodeSchema),
+  count: z.number().int(),
+});
 
 export type DependencyQueryOutputContract = z.infer<typeof dependencyQueryOutputSchema>;

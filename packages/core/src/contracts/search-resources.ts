@@ -21,6 +21,6 @@ export const searchResourcesOutputSchema = z
     offset: z.number().int(),
     has_more: z.boolean().optional(),
   })
-  .passthrough();
+  .strict();
 
 export type SearchResourcesOutputContract = z.infer<typeof searchResourcesOutputSchema>;

@@ -138,7 +138,7 @@ Then call **`dbt_tools_set_target`** with `{ "target": "./target" }` or a remote
 
 - **Resources** — `dbt-tools://status`, `dbt-tools://runs/current/summary`, and templates for resource metadata, SQL (`text/sql`, size-bounded), and dependencies. See [docs/site/reference/mcp-resources.md](../../docs/site/reference/mcp-resources.md).
 - **Prompts** — `triage_dbt_run`, `analyze_model_blast_radius`, `inspect_dbt_resource`, `optimize_dbt_run`, `review_artifact_snapshot`. See [docs/site/reference/mcp-prompts.md](../../docs/site/reference/mcp-prompts.md).
-- **Output schemas** — every tool publishes `outputSchema` aligned with `structuredContent`. Set `DBT_TOOLS_VALIDATE_OUTPUT=0` to skip server-side output parsing.
+- **Output schemas** — every tool publishes `outputSchema` aligned with `structuredContent`. Validation is on by default (`DBT_TOOLS_VALIDATE_OUTPUT` unset or any value other than `0` / `false`). Set **`DBT_TOOLS_VALIDATE_OUTPUT=0`** in production if you prefer to skip server-side output re-parsing. Top-level tool envelopes are strict; nested resource fields use passthrough for forward compatibility.
 
 Protocol smoke (after build): `pnpm smoke:mcp` from the monorepo root.
 

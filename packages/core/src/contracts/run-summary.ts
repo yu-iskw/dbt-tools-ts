@@ -55,15 +55,13 @@ const adapterTotalsSnapshotSchema = z
   })
   .passthrough();
 
-export const runSummaryOutputSchema = z
-  .object({
-    summary: executionSummarySchema,
-    statusBreakdown: z.array(statusBreakdownItemSchema),
-    bottlenecks: bottleneckResultSchema.optional(),
-    adapterTotals: adapterTotalsSnapshotSchema.nullable(),
-    warehouse_type: warehouseTypeSchema,
-  })
-  .passthrough();
+export const runSummaryOutputSchema = z.object({
+  summary: executionSummarySchema,
+  statusBreakdown: z.array(statusBreakdownItemSchema),
+  bottlenecks: bottleneckResultSchema.optional(),
+  adapterTotals: adapterTotalsSnapshotSchema.nullable(),
+  warehouse_type: warehouseTypeSchema,
+});
 
 export type RunSummaryOutput = z.infer<typeof runSummaryOutputSchema>;
 /** @deprecated Use {@link RunSummaryOutput} */

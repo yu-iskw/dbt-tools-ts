@@ -3,6 +3,11 @@ import { toolErrorSchema } from '@dbt-tools/core/contracts';
 import type { McpJsonToolResult } from './tool-handlers.js';
 import type * as z from 'zod/v4';
 
+/**
+ * @modelcontextprotocol/sdk@1.29 validateToolOutput skips outputSchema when result.isError is true
+ * (see server/mcp.js). Tool errors use toolErrorSchema in structuredContent for clients that read it.
+ */
+
 function isOutputValidationEnabled(): boolean {
   const flag = process.env.DBT_TOOLS_VALIDATE_OUTPUT;
   if (flag === '0' || flag === 'false') return false;
@@ -21,12 +26,15 @@ export function jsonResult<T>(
     ...(options?.isError === true ? { isError: true } : {}),
   };
 
+  const attachStructured =
+    payload !== null && typeof payload === 'object'
+      ? { structuredContent: payload as Record<string, unknown> }
+      : {};
+
   if (!isOutputValidationEnabled()) {
     return {
       ...base,
-      ...(payload !== null && typeof payload === 'object'
-        ? { structuredContent: payload as Record<string, unknown> }
-        : {}),
+      ...attachStructured,
     };
   }
 
@@ -41,9 +49,7 @@ export function jsonResult<T>(
 
   return {
     ...base,
-    ...(payload !== null && typeof payload === 'object'
-      ? { structuredContent: payload as Record<string, unknown> }
-      : {}),
+    ...attachStructured,
   };
 }
 
@@ -53,5 +59,13 @@ export function jsonToolError(
 ): McpJsonToolResult {
   return jsonResult(toolErrorSchema, toolErrorSchema.parse(payload), {
     isError: options?.isError ?? true,
+  });
+}
+
+export function outputSchemaValidationToolResult(hint: string): McpJsonToolResult {
+  return jsonToolError({
+    error: 'Internal tool output contract validation failed.',
+    hint,
+    code: 'output_schema_validation',
   });
 }
