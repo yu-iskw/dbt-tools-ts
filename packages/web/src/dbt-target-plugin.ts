@@ -64,8 +64,18 @@ export function dbtTargetPlugin(): Plugin {
 
       server.middlewares.use((req, res, next) => {
         void (async () => {
-          const handled = await tryHandleArtifactSourceViteRequest(req, res, service);
-          if (!handled) next();
+          try {
+            const handled = await tryHandleArtifactSourceViteRequest(req, res, service);
+            if (!handled) next();
+          } catch (error) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(
+              JSON.stringify({
+                error: error instanceof Error ? error.message : 'Artifact source request failed.',
+              }),
+            );
+          }
         })();
       });
 

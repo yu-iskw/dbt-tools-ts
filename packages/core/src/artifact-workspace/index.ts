@@ -54,6 +54,11 @@ import {
   type RemoteObjectStoreClient,
 } from '../io/remote-object-store';
 import { readValidatedUtf8 } from '../io/safe-fs';
+import {
+  captureSessionBinding,
+  isSessionBindingCurrent,
+  type SessionBinding,
+} from '../session-binding';
 
 import type { DependencyResult } from '../analysis/dependencies/service';
 import type { ManifestGraph } from '../analysis/manifest/graph';
@@ -347,6 +352,10 @@ export class ArtifactWorkspace {
   private stale = false;
   private lastRefreshError: string | undefined;
   private refreshPromise: Promise<ArtifactWorkspaceStatus> | null = null;
+  private serializedOps: Promise<void> = Promise.resolve();
+  private initializePromise: Promise<void> | null = null;
+  /** Bumped when the active target binding changes; stale loads must not assign `loaded`. */
+  private loadGeneration = 0;
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -360,59 +369,96 @@ export class ArtifactWorkspace {
   }
 
   async setTarget(target: string): Promise<ArtifactWorkspaceStatus> {
-    const trimmed = target.trim();
-    if (trimmed === '') {
-      throw new Error('target is required.');
-    }
-    await this.awaitIdleRefresh();
-    this.evictExpired();
-    const cacheKey = trimmed;
-    const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
-    this.dbtTarget = trimmed;
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    if (cached != null) {
-      this.touchCacheEntry(cacheKey, cached);
-      this.runs = cached.runs;
-      this.selectedRunId = cached.selectedRunId;
-      this.loaded = cached.loaded;
-      return this.status({ fromCache: true });
-    }
-    this.selectedRunId = null;
-    this.runs = [];
-    this.loaded = null;
-    await this.initialize();
-    this.syncActiveToCache();
-    return this.status();
+    return this.runSerialized(async () => {
+      const trimmed = target.trim();
+      if (trimmed === '') {
+        throw new Error('target is required.');
+      }
+      this.evictExpired();
+      const cacheKey = trimmed;
+      const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
+      this.dbtTarget = trimmed;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      if (cached != null) {
+        this.touchCacheEntry(cacheKey, cached);
+        this.runs = cached.runs;
+        this.selectedRunId = cached.selectedRunId;
+        this.loaded = cached.loaded;
+        try {
+          const revalidated = await this.revalidateCachedLoad(cached);
+          if (revalidated) {
+            this.syncActiveToCache();
+            return this.status();
+          }
+        } catch (error) {
+          this.stale = true;
+          this.lastRefreshError = error instanceof Error ? error.message : String(error);
+        }
+        return this.status({ fromCache: true });
+      }
+      this.bumpLoadGeneration();
+      this.selectedRunId = null;
+      this.runs = [];
+      this.loaded = null;
+      await this.ensureInitialized();
+      this.syncActiveToCache();
+      return this.status();
+    });
   }
 
   async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
-    await this.awaitIdleRefresh();
-    this.dbtTarget = null;
-    this.selectedRunId = null;
-    this.runs = [];
-    this.loaded = null;
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    return this.status();
+    return this.runSerialized(async () => {
+      this.bumpLoadGeneration();
+      this.dbtTarget = null;
+      this.selectedRunId = null;
+      this.runs = [];
+      this.loaded = null;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      return this.status();
+    });
   }
 
   async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
-    await this.awaitIdleRefresh();
-    this.targetCache.clear();
-    this.loaded = null;
-    this.runs = [];
-    this.selectedRunId = null;
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    return this.status();
+    return this.runSerialized(async () => {
+      this.bumpLoadGeneration();
+      this.targetCache.clear();
+      this.loaded = null;
+      this.runs = [];
+      this.selectedRunId = null;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      return this.status();
+    });
   }
 
   async initialize(): Promise<void> {
+    await this.ensureInitialized();
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.loaded != null) return;
+    if (this.initializePromise != null) {
+      await this.initializePromise;
+      return;
+    }
+    const binding = this.captureBinding();
+    this.initializePromise = this.initializeInternal(binding).finally(() => {
+      this.initializePromise = null;
+    });
+    await this.initializePromise;
+  }
+
+  private async initializeInternal(binding: SessionBinding): Promise<void> {
     const startedAt = dbtToolsDebugNow();
     const configuredTarget = this.requireTarget();
     dbtToolsDebugLog(`initialize start target=${configuredTarget}`);
     const source = await this.discoverSource();
+    if (!this.bindingStillActive(binding)) {
+      dbtToolsDebugLog(`initialize aborted (stale) target=${configuredTarget}`);
+      return;
+    }
     this.runs = source.runs;
     if (!source.discovery.ok) {
       throw new Error(
@@ -432,7 +478,12 @@ export class ArtifactWorkspace {
         this.discoveryErrorMessage(source.discovery) ?? 'No dbt artifact runs found.',
       );
     }
-    this.loaded = await this.loadRun(source, run);
+    const loaded = await this.loadRun(source, run);
+    if (!this.bindingStillActive(binding)) {
+      dbtToolsDebugLog(`initialize aborted after load (stale) target=${configuredTarget}`);
+      return;
+    }
+    this.loaded = loaded;
     this.stale = false;
     this.lastRefreshError = undefined;
     this.syncActiveToCache();
@@ -444,7 +495,7 @@ export class ArtifactWorkspace {
       return this.status();
     }
     if (this.refreshPromise != null) return this.refreshPromise;
-    this.refreshPromise = this.refreshIfChangedInternal().finally(() => {
+    this.refreshPromise = this.runSerialized(() => this.refreshIfChangedInternal()).finally(() => {
       this.refreshPromise = null;
     });
     return this.refreshPromise;
@@ -458,56 +509,72 @@ export class ArtifactWorkspace {
     if (this.runs.length === 0) {
       const source = await this.discoverSource();
       this.runs = source.runs;
+      if (this.loaded != null) {
+        this.syncActiveToCache();
+      }
     }
     return this.runs;
   }
 
   async selectRun(runId: string): Promise<ArtifactWorkspaceStatus> {
-    const source = await this.discoverSource();
-    this.runs = source.runs;
-    const run = this.runs.find((candidate) => candidate.runId === runId);
-    if (run == null) {
-      throw new Error(`Unknown artifact run id: ${runId}`);
-    }
-    this.selectedRunId = runId;
-    this.loaded = await this.loadRun(source, run);
-    this.stale = false;
-    this.lastRefreshError = undefined;
-    this.syncActiveToCache();
-    return this.status();
-  }
-
-  async getLoadedWorkspace(): Promise<LoadedArtifactWorkspace> {
-    if (this.loaded == null) {
-      await this.initialize();
-    }
-    return this.loaded!;
-  }
-
-  private async refreshIfChangedInternal(): Promise<ArtifactWorkspaceStatus> {
-    if (this.loaded == null) {
-      await this.initialize();
-      return this.status();
-    }
-
-    const source = await this.discoverSource();
-    this.runs = source.runs;
-    const run = this.resolveSelectedRun() ?? this.runs[0] ?? null;
-    if (run == null) {
-      return this.status();
-    }
-    this.selectedRunId = run.runId;
-
-    if (run.versionToken === this.loaded.run.versionToken) {
-      return this.status();
-    }
-
-    try {
-      this.loaded = await this.loadRun(source, run);
+    return this.runSerialized(async () => {
+      const binding = this.captureBinding();
+      const source = await this.discoverSource();
+      if (!this.bindingStillActive(binding)) {
+        return this.status();
+      }
+      this.runs = source.runs;
+      const run = this.runs.find((candidate) => candidate.runId === runId);
+      if (run == null) {
+        throw new Error(`Unknown artifact run id: ${runId}`);
+      }
+      this.selectedRunId = runId;
+      const loaded = await this.loadRun(source, run);
+      if (!this.bindingStillActive(binding)) {
+        return this.status();
+      }
+      this.loaded = loaded;
       this.stale = false;
       this.lastRefreshError = undefined;
       this.syncActiveToCache();
+      return this.status();
+    });
+  }
+
+  async getLoadedWorkspace(): Promise<LoadedArtifactWorkspace> {
+    return this.runSerialized(async () => {
+      await this.ensureInitialized();
+      if (this.loaded == null) {
+        throw new ArtifactTargetNotConfiguredError();
+      }
+      return this.loaded;
+    });
+  }
+
+  private async refreshIfChangedInternal(): Promise<ArtifactWorkspaceStatus> {
+    if (this.dbtTarget == null) {
+      return this.status();
+    }
+
+    if (this.loaded == null) {
+      await this.ensureInitialized();
+      return this.status();
+    }
+
+    const binding = this.captureBinding();
+    try {
+      const reloaded = await this.reloadSelectedRunIfVersionChanged(
+        binding,
+        this.loaded.run.versionToken,
+        this.selectedRunId,
+      );
+      if (!reloaded && !this.bindingStillActive(binding)) {
+        return this.status();
+      }
     } catch (error) {
+      if (!this.bindingStillActive(binding)) {
+        return this.status();
+      }
       this.stale = true;
       this.lastRefreshError = error instanceof Error ? error.message : String(error);
     }
@@ -535,10 +602,85 @@ export class ArtifactWorkspace {
     };
   }
 
-  private async awaitIdleRefresh(): Promise<void> {
-    if (this.refreshPromise != null) {
-      await this.refreshPromise;
-      this.refreshPromise = null;
+  private bumpLoadGeneration(): void {
+    this.loadGeneration += 1;
+  }
+
+  private captureBinding(): SessionBinding {
+    return captureSessionBinding(this.loadGeneration, this.dbtTarget);
+  }
+
+  private bindingStillActive(binding: SessionBinding): boolean {
+    return isSessionBindingCurrent(binding, this.loadGeneration, this.dbtTarget);
+  }
+
+  private runSerialized<T>(work: () => Promise<T>): Promise<T> {
+    const run = this.serializedOps.then(work, work);
+    this.serializedOps = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  /** Returns true when cached artifacts were reloaded because the version token changed. */
+  private async revalidateCachedLoad(cached: CachedTargetEntry): Promise<boolean> {
+    return this.reloadSelectedRunIfVersionChanged(
+      this.captureBinding(),
+      cached.loaded.run.versionToken,
+      cached.selectedRunId,
+    );
+  }
+
+  /**
+   * Discover, compare version token, and reload the selected run when changed.
+   * Returns true when a new snapshot was committed.
+   */
+  private async reloadSelectedRunIfVersionChanged(
+    binding: SessionBinding,
+    previousVersionToken: string,
+    preferredRunId: string | null,
+  ): Promise<boolean> {
+    const source = await this.discoverSource();
+    if (!this.bindingStillActive(binding)) {
+      return false;
+    }
+
+    this.runs = source.runs;
+    const run =
+      preferredRunId != null
+        ? (source.runs.find((candidate) => candidate.runId === preferredRunId) ?? null)
+        : (source.runs[0] ?? null);
+    if (run == null) {
+      if (preferredRunId != null) {
+        this.stale = true;
+        this.lastRefreshError = `Unknown artifact run id: ${preferredRunId}`;
+      }
+      return false;
+    }
+    this.selectedRunId = run.runId;
+
+    if (run.versionToken === previousVersionToken) {
+      return false;
+    }
+
+    try {
+      const loaded = await this.loadRun(source, run);
+      if (!this.bindingStillActive(binding)) {
+        return false;
+      }
+      this.loaded = loaded;
+      this.stale = false;
+      this.lastRefreshError = undefined;
+      this.syncActiveToCache();
+      return true;
+    } catch (error) {
+      if (!this.bindingStillActive(binding)) {
+        return false;
+      }
+      this.stale = true;
+      this.lastRefreshError = error instanceof Error ? error.message : String(error);
+      return false;
     }
   }
 

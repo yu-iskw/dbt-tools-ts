@@ -49,14 +49,15 @@ function AppContent() {
     prevAnalysisRef.current = analysis;
   }, [analysis, analysisSource, toast]);
 
-  const lastPendingRunIdRef = useRef<string | null>(null);
+  const lastPendingToastKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (pendingRemoteRun == null) {
-      lastPendingRunIdRef.current = null;
+      lastPendingToastKeyRef.current = null;
       return;
     }
-    if (lastPendingRunIdRef.current === pendingRemoteRun.runId) return;
-    lastPendingRunIdRef.current = pendingRemoteRun.runId;
+    const pendingKey = `${pendingRemoteRun.runId}:${pendingRemoteRun.versionToken}`;
+    if (lastPendingToastKeyRef.current === pendingKey) return;
+    lastPendingToastKeyRef.current = pendingKey;
     toast(`A newer remote run is available: ${pendingRemoteRun.label}`, 'warning');
   }, [pendingRemoteRun, toast]);
 

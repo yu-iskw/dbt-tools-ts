@@ -237,6 +237,34 @@ export async function fetchArtifactSourceStatus(): Promise<ArtifactSourceStatus>
   return (await response.json()) as ArtifactSourceStatus;
 }
 
+/** Poll path: refresh remote discovery, then return read-only status. */
+export async function refreshArtifactSourceStatus(): Promise<ArtifactSourceStatus> {
+  const response = await fetch('/api/artifact-source/refresh', { method: 'POST' });
+  if (!response.ok) {
+    throw new Error('Failed to refresh artifact source status');
+  }
+  return (await response.json()) as ArtifactSourceStatus;
+}
+
+export async function acceptPendingRemoteRunFromApi(
+  runId: string,
+): Promise<{ status: ArtifactSourceStatus; result: AnalysisLoadResult | null }> {
+  const response = await fetch('/api/artifact-source/accept-pending-run', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ runId }),
+  });
+  const data: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      errorMessageFromArtifactSourceJson(data, 'Failed to accept pending remote run'),
+    );
+  }
+  const status = data as ArtifactSourceStatus;
+  const result = await refetchFromApi('remote');
+  return { status, result };
+}
+
 export async function refetchFromApi(
   source: Exclude<WorkspaceArtifactSource, 'upload'> = 'preload',
 ): Promise<AnalysisLoadResult | null> {
@@ -262,7 +290,7 @@ export async function loadCurrentManagedArtifacts(): Promise<{
   }
 
   if (!response.ok) {
-    return loadManagedArtifactsFallback();
+    throw new Error(`Failed to load artifact source status (${response.status})`);
   }
 
   let status: ArtifactSourceStatus;
@@ -280,22 +308,6 @@ export async function loadCurrentManagedArtifacts(): Promise<{
     status,
     result: await refetchFromApi(status.currentSource),
   };
-}
-
-export async function switchToArtifactRun(runId?: string): Promise<ArtifactSourceStatus> {
-  const response = await fetch('/api/artifact-source/switch', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(runId ? { runId } : {}),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to switch artifact source run');
-  }
-
-  return (await response.json()) as ArtifactSourceStatus;
 }
 
 export async function discoverArtifactSourceFromApi(

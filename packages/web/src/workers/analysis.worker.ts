@@ -29,6 +29,8 @@ function now() {
 
 let cachedGraph: ManifestGraph | null = null;
 let cachedResources: AnalysisSnapshot['resources'] | null = null;
+/** Incremented per load; only the latest completed load may update worker caches. */
+let activeLoadGeneration = 0;
 
 const OMNIBOX_LIMIT = 8;
 const MSG_NO_ANALYSIS_LOADED = 'No analysis loaded';
@@ -151,9 +153,8 @@ export async function handleLoadAnalysisMessage(
     );
   }
 
+  const loadGeneration = ++activeLoadGeneration;
   try {
-    cachedGraph = null;
-    cachedResources = null;
     const totalStart = now();
     const decodeStart = now();
     const manifestJson = decodeJsonBytes(payload.artifactBuffers.manifestBytes);
@@ -188,8 +189,10 @@ export async function handleLoadAnalysisMessage(
       sources,
     });
 
-    cachedGraph = graph;
-    cachedResources = analysis.resources;
+    if (loadGeneration === activeLoadGeneration) {
+      cachedGraph = graph;
+      cachedResources = analysis.resources;
+    }
 
     const timings: AnalysisWorkerTimings = {
       decodeMs,
@@ -227,9 +230,25 @@ export function handleAnalysisWorkerRequest(
   return handleLoadAnalysisMessage(payload);
 }
 
+function isInvalidatePendingLoadsMessage(
+  data: unknown,
+): data is { type: 'invalidate-pending-loads' } {
+  return (
+    typeof data === 'object' &&
+    data != null &&
+    (data as { type?: string }).type === 'invalidate-pending-loads'
+  );
+}
+
 if (typeof self !== 'undefined') {
-  self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
+  self.onmessage = (
+    event: MessageEvent<AnalysisWorkerRequest | { type: 'invalidate-pending-loads' }>,
+  ) => {
     if (!isTrustedDedicatedWorkerMessage(event)) {
+      return;
+    }
+    if (isInvalidatePendingLoadsMessage(event.data)) {
+      activeLoadGeneration += 1;
       return;
     }
     void handleAnalysisWorkerRequest(event.data).then((response) => {

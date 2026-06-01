@@ -11,20 +11,20 @@ import type { AnalysisState } from '@web/types';
 const {
   fetchArtifactSourceStatus,
   loadCurrentManagedArtifacts,
-  refetchFromApi,
-  switchToArtifactRun,
+  acceptPendingRemoteRunFromApi,
+  refreshArtifactSourceStatus,
 } = vi.hoisted(() => ({
   fetchArtifactSourceStatus: vi.fn(),
   loadCurrentManagedArtifacts: vi.fn(),
-  refetchFromApi: vi.fn(),
-  switchToArtifactRun: vi.fn(),
+  acceptPendingRemoteRunFromApi: vi.fn(),
+  refreshArtifactSourceStatus: vi.fn(),
 }));
 
 vi.mock('../services/artifact-api', () => ({
   fetchArtifactSourceStatus,
   loadCurrentManagedArtifacts,
-  refetchFromApi,
-  switchToArtifactRun,
+  acceptPendingRemoteRunFromApi,
+  refreshArtifactSourceStatus,
 }));
 
 vi.mock('./use-dbt-artifacts-reload', () => ({
@@ -151,8 +151,8 @@ describe('use-analysis-page', () => {
     vi.useFakeTimers();
     fetchArtifactSourceStatus.mockReset();
     loadCurrentManagedArtifacts.mockReset();
-    refetchFromApi.mockReset();
-    switchToArtifactRun.mockReset();
+    acceptPendingRemoteRunFromApi.mockReset();
+    refreshArtifactSourceStatus.mockReset();
     loadCurrentManagedArtifacts.mockResolvedValue({
       status: {
         mode: 'none',
@@ -203,7 +203,7 @@ describe('use-analysis-page', () => {
       result: loadResult('run-1', 'remote'),
     });
 
-    fetchArtifactSourceStatus.mockResolvedValue({
+    refreshArtifactSourceStatus.mockResolvedValue({
       mode: 'remote',
       currentSource: 'remote',
       label: 'Remote source',
@@ -231,9 +231,12 @@ describe('use-analysis-page', () => {
     const { container, root } = renderHarness();
 
     await act(async () => {
-      await Promise.resolve();
+      for (let i = 0; i < 8; i++) {
+        await Promise.resolve();
+      }
     });
 
+    expect(refreshArtifactSourceStatus).toHaveBeenCalled();
     expect(readResult(container)).toMatchObject({
       source: 'remote',
       project: 'run-1',
@@ -245,7 +248,7 @@ describe('use-analysis-page', () => {
       await vi.advanceTimersByTimeAsync(2_000);
     });
 
-    expect(fetchArtifactSourceStatus).toHaveBeenCalledTimes(2);
+    expect(refreshArtifactSourceStatus.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(readResult(container)).toMatchObject({
       source: 'remote',
       project: 'run-1',
@@ -284,14 +287,14 @@ describe('use-analysis-page', () => {
       result: loadResult('run-1', 'remote'),
     });
 
-    fetchArtifactSourceStatus.mockResolvedValue({
-      mode: 'remote',
-      currentSource: 'remote',
+    const remotePendingStatus = {
+      mode: 'remote' as const,
+      currentSource: 'remote' as const,
       label: 'Remote source',
       checkedAtMs: Date.now(),
-      remoteProvider: 'gcs',
+      remoteProvider: 'gcs' as const,
       remoteLocation: 'GCS bucket/prefix',
-      sourceKind: 'gcs',
+      sourceKind: 'gcs' as const,
       locationDisplay: 'GCS bucket/prefix',
       pollIntervalMs: 5_000,
       currentRun: {
@@ -307,15 +310,9 @@ describe('use-analysis-page', () => {
         versionToken: 'run-2',
       },
       supportsSwitch: true,
-    });
-    switchToArtifactRun.mockResolvedValue({
-      mode: 'remote',
-      currentSource: 'remote',
-      label: 'Remote source',
-      checkedAtMs: Date.now(),
-      remoteProvider: 'gcs',
-      remoteLocation: 'GCS bucket/prefix',
-      pollIntervalMs: 5_000,
+    };
+    const remoteAcceptedStatus = {
+      ...remotePendingStatus,
       currentRun: {
         runId: 'run-2',
         label: 'run-2',
@@ -324,10 +321,17 @@ describe('use-analysis-page', () => {
       },
       pendingRun: null,
       supportsSwitch: false,
-      sourceKind: 'gcs',
-      locationDisplay: 'GCS bucket/prefix',
+    };
+
+    refreshArtifactSourceStatus.mockImplementation(async () =>
+      acceptPendingRemoteRunFromApi.mock.calls.length > 0
+        ? remoteAcceptedStatus
+        : remotePendingStatus,
+    );
+    acceptPendingRemoteRunFromApi.mockResolvedValue({
+      status: remoteAcceptedStatus,
+      result: loadResult('run-2', 'remote'),
     });
-    refetchFromApi.mockResolvedValue(loadResult('run-2', 'remote'));
 
     const { container, root } = renderHarness();
 
@@ -346,14 +350,208 @@ describe('use-analysis-page', () => {
       await Promise.resolve();
     });
 
-    expect(switchToArtifactRun).toHaveBeenCalledWith('run-2');
-    expect(refetchFromApi).toHaveBeenCalledWith('remote');
+    expect(acceptPendingRemoteRunFromApi).toHaveBeenCalledWith('run-2');
     expect(readResult(container)).toMatchObject({
       source: 'remote',
       project: 'run-2',
       pending: '',
       accepting: 'false',
       error: '',
+    });
+
+    cleanupRoot(root, container);
+  });
+
+  it('discards stale pending-run accept when load different runs before accept resolves', async () => {
+    loadCurrentManagedArtifacts.mockResolvedValue({
+      status: {
+        mode: 'remote',
+        currentSource: 'remote',
+        label: 'Remote source',
+        checkedAtMs: Date.now(),
+        remoteProvider: 'gcs',
+        remoteLocation: 'GCS bucket/prefix',
+        pollIntervalMs: 5_000,
+        currentRun: {
+          runId: 'run-1',
+          label: 'run-1',
+          updatedAtMs: 1_000,
+          versionToken: 'run-1',
+        },
+        pendingRun: {
+          runId: 'run-2',
+          label: 'run-2',
+          updatedAtMs: 2_000,
+          versionToken: 'run-2',
+        },
+        supportsSwitch: true,
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS bucket/prefix',
+      },
+      result: loadResult('run-1', 'remote'),
+    });
+
+    const remoteAcceptedStatus = {
+      mode: 'remote' as const,
+      currentSource: 'remote' as const,
+      label: 'Remote source',
+      checkedAtMs: Date.now(),
+      remoteProvider: 'gcs' as const,
+      remoteLocation: 'GCS bucket/prefix',
+      sourceKind: 'gcs' as const,
+      locationDisplay: 'GCS bucket/prefix',
+      pollIntervalMs: 5_000,
+      currentRun: {
+        runId: 'run-2',
+        label: 'run-2',
+        updatedAtMs: 2_000,
+        versionToken: 'run-2',
+      },
+      pendingRun: null,
+      supportsSwitch: false,
+    };
+
+    let resolveAccept!: (value: Awaited<ReturnType<typeof acceptPendingRemoteRunFromApi>>) => void;
+    const acceptDeferred = new Promise<Awaited<ReturnType<typeof acceptPendingRemoteRunFromApi>>>(
+      (resolve) => {
+        resolveAccept = resolve;
+      },
+    );
+    acceptPendingRemoteRunFromApi.mockReturnValue(acceptDeferred);
+
+    const { container, root } = renderHarness();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      readResult(container).acceptButton?.click();
+      await Promise.resolve();
+    });
+    expect(readResult(container).accepting).toBe('true');
+
+    const resetBtn = container.querySelectorAll('button')[1];
+    await act(() => {
+      resetBtn?.click();
+    });
+    expect(readResult(container)).toMatchObject({
+      project: '',
+      source: '',
+      pending: '',
+    });
+
+    await act(async () => {
+      resolveAccept({
+        status: remoteAcceptedStatus,
+        result: loadResult('run-2', 'remote'),
+      });
+      await acceptDeferred;
+      await Promise.resolve();
+    });
+
+    expect(acceptPendingRemoteRunFromApi).toHaveBeenCalledWith('run-2');
+    expect(readResult(container)).toMatchObject({
+      project: '',
+      source: '',
+      pending: '',
+      error: '',
+    });
+
+    cleanupRoot(root, container);
+  });
+
+  it('keeps pending banner and shows error when accept succeeds but refetch returns null', async () => {
+    loadCurrentManagedArtifacts.mockResolvedValue({
+      status: {
+        mode: 'remote',
+        currentSource: 'remote',
+        label: 'Remote source',
+        checkedAtMs: Date.now(),
+        remoteProvider: 'gcs',
+        remoteLocation: 'GCS bucket/prefix',
+        pollIntervalMs: 5_000,
+        currentRun: {
+          runId: 'run-1',
+          label: 'run-1',
+          updatedAtMs: 1_000,
+          versionToken: 'run-1',
+        },
+        pendingRun: {
+          runId: 'run-2',
+          label: 'run-2',
+          updatedAtMs: 2_000,
+          versionToken: 'run-2',
+        },
+        supportsSwitch: true,
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS bucket/prefix',
+      },
+      result: loadResult('run-1', 'remote'),
+    });
+    refreshArtifactSourceStatus.mockResolvedValue({
+      mode: 'remote',
+      currentSource: 'remote',
+      label: 'Remote source',
+      checkedAtMs: Date.now(),
+      remoteProvider: 'gcs',
+      remoteLocation: 'GCS bucket/prefix',
+      pollIntervalMs: 5_000,
+      currentRun: {
+        runId: 'run-1',
+        label: 'run-1',
+        updatedAtMs: 1_000,
+        versionToken: 'run-1',
+      },
+      pendingRun: {
+        runId: 'run-2',
+        label: 'run-2',
+        updatedAtMs: 2_000,
+        versionToken: 'run-2',
+      },
+      supportsSwitch: true,
+      sourceKind: 'gcs',
+      locationDisplay: 'GCS bucket/prefix',
+    });
+    acceptPendingRemoteRunFromApi.mockResolvedValue({
+      status: {
+        mode: 'remote',
+        currentSource: 'remote',
+        label: 'Remote source',
+        checkedAtMs: Date.now(),
+        remoteProvider: 'gcs',
+        remoteLocation: 'GCS bucket/prefix',
+        pollIntervalMs: 5_000,
+        currentRun: {
+          runId: 'run-2',
+          label: 'run-2',
+          updatedAtMs: 2_000,
+          versionToken: 'run-2',
+        },
+        pendingRun: null,
+        supportsSwitch: false,
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS bucket/prefix',
+      },
+      result: null,
+    });
+
+    const { container, root } = renderHarness();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      readResult(container).acceptButton?.click();
+      await Promise.resolve();
+    });
+
+    expect(readResult(container)).toMatchObject({
+      project: 'run-1',
+      pending: 'run-2',
+      accepting: 'false',
+      error: expect.stringContaining('could not be loaded'),
     });
 
     cleanupRoot(root, container);

@@ -190,6 +190,10 @@ class AnalysisWorkerClient {
     return promise;
   }
 
+  invalidatePendingLoads(): void {
+    this.worker.postMessage({ type: 'invalidate-pending-loads' });
+  }
+
   async searchResources(query: string): Promise<AnalysisState['resources']> {
     const requestId = this.requestId + 1;
     this.requestId = requestId;
@@ -311,7 +315,16 @@ export async function loadAnalysisFromBuffers(
   artifactBuffers: AnalysisArtifactBufferInputs,
   source: AnalysisLoadSource,
 ): Promise<AnalysisLoadResult> {
-  return getWorkerClient().loadAnalysis(artifactBuffers, source);
+  const client = getWorkerClient();
+  if (source !== 'preload') {
+    client.invalidatePendingLoads();
+  }
+  return client.loadAnalysis(artifactBuffers, source);
+}
+
+export function invalidateAnalysisWorkerPendingLoads(): void {
+  if (typeof Worker === 'undefined') return;
+  getWorkerClient().invalidatePendingLoads();
 }
 
 export async function requestResourceCodeFromWorker(

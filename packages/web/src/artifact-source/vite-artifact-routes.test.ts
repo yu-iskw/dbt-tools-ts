@@ -280,4 +280,73 @@ describe('tryHandleArtifactSourceViteRequest', () => {
       impersonatedServiceAccount: 'svc@proj.iam.gserviceaccount.com',
     });
   });
+
+  it('refreshes remote discovery via POST /api/artifact-source/refresh', async () => {
+    const refreshRemoteArtifactDiscovery = vi.fn(async () => ({
+      mode: 'remote' as const,
+      currentSource: 'remote' as const,
+      label: 'Remote',
+      checkedAtMs: 1,
+      remoteProvider: 's3' as const,
+      remoteLocation: 'S3 b/p',
+      pollIntervalMs: 15_000,
+      currentRun: null,
+      pendingRun: null,
+      supportsSwitch: false,
+    }));
+
+    server = await startRouteServer({ refreshRemoteArtifactDiscovery });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/refresh', {
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(200);
+    expect(refreshRemoteArtifactDiscovery).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns JSON when refresh throws', async () => {
+    const refreshRemoteArtifactDiscovery = vi.fn(async () => {
+      throw new Error('remote listing failed');
+    });
+
+    server = await startRouteServer({ refreshRemoteArtifactDiscovery });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/refresh', {
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'remote listing failed' });
+  });
+
+  it('accepts a pending remote run via POST /api/artifact-source/accept-pending-run', async () => {
+    const acceptPendingRemoteRun = vi.fn(async () => ({
+      mode: 'remote' as const,
+      currentSource: 'remote' as const,
+      label: 'Remote',
+      checkedAtMs: 1,
+      remoteProvider: 's3' as const,
+      remoteLocation: 'S3 b/p',
+      pollIntervalMs: 15_000,
+      currentRun: {
+        runId: 'run-2',
+        label: 'run-2',
+        updatedAtMs: 2,
+        versionToken: 'run-2',
+      },
+      pendingRun: null,
+      supportsSwitch: false,
+    }));
+
+    server = await startRouteServer({ acceptPendingRemoteRun });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/accept-pending-run', {
+      method: 'POST',
+      body: JSON.stringify({ runId: 'run-2' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(acceptPendingRemoteRun).toHaveBeenCalledWith('run-2');
+  });
 });
