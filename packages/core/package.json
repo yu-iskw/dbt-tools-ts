@@ -39,15 +39,15 @@
       "default": "./dist/artifact-workspace.js"
     },
     "./contracts": {
-      "types": "./dist/contracts/index.d.ts",
+      "types": "./src/contracts/index.ts",
       "default": "./dist/contracts/index.js"
     },
     "./progress/artifact-load-progress": {
-      "types": "./dist/progress/artifact-load-progress.d.ts",
+      "types": "./src/progress/artifact-load-progress.ts",
       "default": "./dist/progress/artifact-load-progress.js"
     },
     "./util/sql-truncation": {
-      "types": "./dist/util/sql-truncation.d.ts",
+      "types": "./src/util/sql-truncation.ts",
       "default": "./dist/util/sql-truncation.js"
     }
   },
