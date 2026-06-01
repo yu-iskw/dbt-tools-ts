@@ -290,7 +290,7 @@ export async function loadCurrentManagedArtifacts(): Promise<{
   }
 
   if (!response.ok) {
-    return loadManagedArtifactsFallback();
+    throw new Error(`Failed to load artifact source status (${response.status})`);
   }
 
   let status: ArtifactSourceStatus;

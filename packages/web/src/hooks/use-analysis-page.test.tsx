@@ -287,14 +287,14 @@ describe('use-analysis-page', () => {
       result: loadResult('run-1', 'remote'),
     });
 
-    refreshArtifactSourceStatus.mockResolvedValue({
-      mode: 'remote',
-      currentSource: 'remote',
+    const remotePendingStatus = {
+      mode: 'remote' as const,
+      currentSource: 'remote' as const,
       label: 'Remote source',
       checkedAtMs: Date.now(),
-      remoteProvider: 'gcs',
+      remoteProvider: 'gcs' as const,
       remoteLocation: 'GCS bucket/prefix',
-      sourceKind: 'gcs',
+      sourceKind: 'gcs' as const,
       locationDisplay: 'GCS bucket/prefix',
       pollIntervalMs: 5_000,
       currentRun: {
@@ -310,27 +310,26 @@ describe('use-analysis-page', () => {
         versionToken: 'run-2',
       },
       supportsSwitch: true,
-    });
-    acceptPendingRemoteRunFromApi.mockResolvedValue({
-      status: {
-        mode: 'remote',
-        currentSource: 'remote',
-        label: 'Remote source',
-        checkedAtMs: Date.now(),
-        remoteProvider: 'gcs',
-        remoteLocation: 'GCS bucket/prefix',
-        pollIntervalMs: 5_000,
-        currentRun: {
-          runId: 'run-2',
-          label: 'run-2',
-          updatedAtMs: 2_000,
-          versionToken: 'run-2',
-        },
-        pendingRun: null,
-        supportsSwitch: false,
-        sourceKind: 'gcs',
-        locationDisplay: 'GCS bucket/prefix',
+    };
+    const remoteAcceptedStatus = {
+      ...remotePendingStatus,
+      currentRun: {
+        runId: 'run-2',
+        label: 'run-2',
+        updatedAtMs: 2_000,
+        versionToken: 'run-2',
       },
+      pendingRun: null,
+      supportsSwitch: false,
+    };
+
+    refreshArtifactSourceStatus.mockImplementation(async () =>
+      acceptPendingRemoteRunFromApi.mock.calls.length > 0
+        ? remoteAcceptedStatus
+        : remotePendingStatus,
+    );
+    acceptPendingRemoteRunFromApi.mockResolvedValue({
+      status: remoteAcceptedStatus,
       result: loadResult('run-2', 'remote'),
     });
 

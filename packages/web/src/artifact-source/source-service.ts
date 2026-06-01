@@ -142,6 +142,8 @@ export class ArtifactSourceService {
   private loadedArtifactCache: CurrentArtifactPayload | null = null;
   /** Incremented on user configure so in-flight remote poll refresh cannot revert the session. */
   private sessionGeneration = 0;
+  /** Set when background remote list/refresh fails; surfaced via discoveryError when discovery is otherwise ok. */
+  private remoteRefreshError: string | null = null;
 
   constructor(options: ArtifactSourceServiceOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
@@ -277,7 +279,7 @@ export class ArtifactSourceService {
   }
 
   private buildActiveArtifactStatus(): Omit<ArtifactSourceStatus, 'checkedAtMs'> {
-    const discoveryError = this.discoveryErrorMessage();
+    const discoveryError = this.discoveryErrorMessage() ?? this.remoteRefreshError;
     const currentResolved = this.resolveSelectedRun();
     const currentRunUi = this.runToUiOrNull(currentResolved);
     const pendingRun = this.pendingRunAfterLatest(currentResolved);
@@ -353,15 +355,20 @@ export class ArtifactSourceService {
         this.remoteClient,
       );
       if (!discovery.discoveryResult.ok) {
+        this.remoteRefreshError =
+          discovery.discoveryResult.failure.message ?? 'Remote artifact discovery failed.';
         return;
       }
       if (!isSessionBindingCurrent(binding, this.sessionGeneration, null)) {
         return;
       }
+      this.remoteRefreshError = null;
       this.applyDiscoveredArtifactSource(discovery, this.selectedRunId, {
         commitLoadedVersion: false,
       });
     } catch (error) {
+      this.remoteRefreshError =
+        error instanceof Error ? error.message : 'Remote artifact discovery refresh failed.';
       debugLog('Remote discovery refresh failed', error);
     }
   }

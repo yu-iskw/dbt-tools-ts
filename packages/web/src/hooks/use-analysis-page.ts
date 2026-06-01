@@ -62,6 +62,12 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     useState<ArtifactLocationSnapshot | null>(null);
   const pendingMetricsRef = useRef<AnalysisLoadResult['metrics'] | null>(null);
   const preloadSupersededRef = useRef(false);
+  const loadGenerationRef = useRef(0);
+
+  const bumpLoadGeneration = useCallback(() => {
+    loadGenerationRef.current += 1;
+    return loadGenerationRef.current;
+  }, []);
 
   const mergeSnapshotFromStatus = useCallback((status: ArtifactSourceStatus) => {
     setArtifactLocationSnapshot((prev) => {
@@ -81,6 +87,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
 
   useAnalysisPreload({
     preloadSupersededRef,
+    loadGenerationRef,
     setPreloadLoading,
     setAnalysis,
     setAnalysisSource,
@@ -100,6 +107,11 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     setRemotePollIntervalMs,
     remotePollIntervalMs,
     mergeSnapshotFromStatus,
+    (pollMessage) => {
+      if (pollMessage != null) {
+        setError(pollMessage);
+      }
+    },
   );
 
   useEffect(() => {
@@ -130,6 +142,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     pendingRemoteRun,
     acceptingRemoteRun,
     onLoadDifferent: () => {
+      bumpLoadGeneration();
       preloadSupersededRef.current = true;
       invalidateAnalysisWorkerPendingLoads();
       setAnalysis(null);
@@ -144,6 +157,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
       });
     },
     onManagedAnalysisLoaded: (result, source, optionalArtifacts) => {
+      bumpLoadGeneration();
       preloadSupersededRef.current = true;
       pendingMetricsRef.current = result.metrics;
       setAnalysisSource(source);
@@ -158,9 +172,11 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     },
     onError: setError,
     onAcceptPendingRemoteRun: async () => {
-      if (pendingRemoteRun == null) return;
+      if (pendingRemoteRun == null || acceptingRemoteRun) return;
       const pendingRun = pendingRemoteRun;
 
+      bumpLoadGeneration();
+      invalidateAnalysisWorkerPendingLoads();
       setAcceptingRemoteRun(true);
       try {
         const { status, result } = await acceptPendingRemoteRunFromApi(pendingRun.runId);

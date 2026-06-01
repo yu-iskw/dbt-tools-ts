@@ -444,6 +444,9 @@ export class ArtifactWorkspace {
     if (this.runs.length === 0) {
       const source = await this.discoverSource();
       this.runs = source.runs;
+      if (this.loaded != null) {
+        this.syncActiveToCache();
+      }
     }
     return this.runs;
   }
@@ -494,13 +497,21 @@ export class ArtifactWorkspace {
     }
 
     const binding = this.captureBinding();
-    const reloaded = await this.reloadSelectedRunIfVersionChanged(
-      binding,
-      this.loaded.run.versionToken,
-      this.selectedRunId,
-    );
-    if (!reloaded && !this.bindingStillActive(binding)) {
-      return this.status();
+    try {
+      const reloaded = await this.reloadSelectedRunIfVersionChanged(
+        binding,
+        this.loaded.run.versionToken,
+        this.selectedRunId,
+      );
+      if (!reloaded && !this.bindingStillActive(binding)) {
+        return this.status();
+      }
+    } catch (error) {
+      if (!this.bindingStillActive(binding)) {
+        return this.status();
+      }
+      this.stale = true;
+      this.lastRefreshError = error instanceof Error ? error.message : String(error);
     }
     return this.status();
   }
@@ -572,12 +583,14 @@ export class ArtifactWorkspace {
 
     this.runs = source.runs;
     const run =
-      (preferredRunId != null
-        ? source.runs.find((candidate) => candidate.runId === preferredRunId)
-        : null) ??
-      source.runs[0] ??
-      null;
+      preferredRunId != null
+        ? (source.runs.find((candidate) => candidate.runId === preferredRunId) ?? null)
+        : (source.runs[0] ?? null);
     if (run == null) {
+      if (preferredRunId != null) {
+        this.stale = true;
+        this.lastRefreshError = `Unknown artifact run id: ${preferredRunId}`;
+      }
       return false;
     }
     this.selectedRunId = run.runId;

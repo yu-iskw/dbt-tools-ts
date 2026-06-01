@@ -55,8 +55,9 @@ function AppContent() {
       lastPendingRunIdRef.current = null;
       return;
     }
-    if (lastPendingRunIdRef.current === pendingRemoteRun.runId) return;
-    lastPendingRunIdRef.current = pendingRemoteRun.runId;
+    const pendingKey = `${pendingRemoteRun.runId}:${pendingRemoteRun.versionToken}`;
+    if (lastPendingRunIdRef.current === pendingKey) return;
+    lastPendingRunIdRef.current = pendingKey;
     toast(`A newer remote run is available: ${pendingRemoteRun.label}`, 'warning');
   }, [pendingRemoteRun, toast]);
 

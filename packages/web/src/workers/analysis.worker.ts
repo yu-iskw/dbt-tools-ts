@@ -155,8 +155,6 @@ export async function handleLoadAnalysisMessage(
 
   const loadGeneration = ++activeLoadGeneration;
   try {
-    cachedGraph = null;
-    cachedResources = null;
     const totalStart = now();
     const decodeStart = now();
     const manifestJson = decodeJsonBytes(payload.artifactBuffers.manifestBytes);
