@@ -20,6 +20,53 @@ const ARTIFACT_SOURCE_ROUTE_GLOB = '**/api/artifact-source';
 const ARTIFACT_SOURCE_DISCOVER_GLOB = '**/api/artifact-source/discover';
 const ARTIFACT_SOURCE_CONFIGURE_GLOB = '**/api/artifact-source/configure';
 const ARTIFACT_SOURCE_PATH = '/api/artifact-source';
+const ARTIFACT_SOURCE_REFRESH_GLOB = '**/api/artifact-source/refresh';
+const ARTIFACT_SOURCE_ACCEPT_GLOB = '**/api/artifact-source/accept-pending-run';
+
+const REMOTE_RUN_1 = {
+  runId: 'run-1',
+  label: 'run-1',
+  updatedAtMs: 1_000,
+  versionToken: 'run-1',
+} as const;
+
+const REMOTE_RUN_2 = {
+  runId: 'run-2',
+  label: 'run-2',
+  updatedAtMs: 2_000,
+  versionToken: 'run-2',
+} as const;
+
+function remoteStatusWithPendingRun() {
+  return {
+    mode: 'remote' as const,
+    currentSource: 'remote' as const,
+    label: 'Remote E2E source',
+    checkedAtMs: Date.now(),
+    remoteProvider: 's3' as const,
+    remoteLocation: 'S3 e2e-bucket/prefix',
+    sourceKind: 's3' as const,
+    locationDisplay: 'S3 e2e-bucket/prefix',
+    pollIntervalMs: 300_000,
+    currentRun: REMOTE_RUN_1,
+    pendingRun: REMOTE_RUN_2,
+    supportsSwitch: true,
+    discoveryError: null,
+    missingOptionalArtifacts: {
+      missingCatalog: true,
+      missingSources: true,
+    },
+  };
+}
+
+function remoteStatusAfterAccept() {
+  return {
+    ...remoteStatusWithPendingRun(),
+    currentRun: REMOTE_RUN_2,
+    pendingRun: null,
+    supportsSwitch: false,
+  };
+}
 
 function managedPreloadStatus() {
   return {
@@ -354,4 +401,84 @@ export async function loadWorkspace(
     timeout: 10_000,
   });
   await expect(page.locator('.error-banner')).toHaveCount(0);
+}
+
+/**
+ * Remote preload with a pending newer run; supports refresh poll and accept-pending-run.
+ */
+export async function registerRemotePendingAcceptMocks(
+  page: Page,
+  options?: {
+    catalogPath?: string;
+    sourcesPath?: string;
+  },
+): Promise<void> {
+  let accepted = false;
+
+  const statusForRequest = () =>
+    accepted ? remoteStatusAfterAccept() : remoteStatusWithPendingRun();
+
+  await page.route(ARTIFACT_SOURCE_ROUTE_GLOB, async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname !== ARTIFACT_SOURCE_PATH) {
+      await route.continue();
+      return;
+    }
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(statusForRequest()),
+    });
+  });
+
+  await page.route(ARTIFACT_SOURCE_REFRESH_GLOB, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({ status: 405 });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(statusForRequest()),
+    });
+  });
+
+  await page.route(ARTIFACT_SOURCE_ACCEPT_GLOB, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({ status: 405 });
+      return;
+    }
+    accepted = true;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(remoteStatusAfterAccept()),
+    });
+  });
+
+  await registerArtifactJsonByteRoutes(page, options);
+}
+
+/** Load workspace with remote pending-run mocks (see {@link registerRemotePendingAcceptMocks}). */
+export async function loadRemoteWorkspaceWithPendingRun(
+  page: Page,
+  options?: {
+    catalogPath?: string;
+    sourcesPath?: string;
+  },
+): Promise<void> {
+  await registerRemotePendingAcceptMocks(page, options);
+  await page.goto('/');
+  const workspaceNav = page.getByRole('navigation', {
+    name: 'Workspace sections',
+  });
+  await expect(workspaceNav.getByRole('button', { name: 'Health' })).toBeEnabled({
+    timeout: 30_000,
+  });
+  await expect(page.getByRole('region', { name: 'Remote update available' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Load latest remote run' })).toBeVisible();
 }

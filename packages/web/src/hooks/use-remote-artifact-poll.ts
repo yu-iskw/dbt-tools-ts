@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { DEFAULT_REMOTE_POLL_INTERVAL_MS } from '@web/constants/managed-artifact-errors';
 
@@ -22,7 +22,19 @@ export function useRemoteArtifactPoll(
   remotePollIntervalMs: number | null,
   onPollStatus?: (status: ArtifactSourceStatus) => void,
   onPollError?: (message: string | null) => void,
+  /** When true, polling is paused (e.g. while accepting a pending run). */
+  pollPaused = false,
 ): void {
+  const pollSeqRef = useRef(0);
+  const intervalMsRef = useRef(DEFAULT_REMOTE_POLL_INTERVAL_MS);
+
+  useEffect(() => {
+    intervalMsRef.current =
+      remotePollIntervalMs != null && remotePollIntervalMs > 0
+        ? remotePollIntervalMs
+        : DEFAULT_REMOTE_POLL_INTERVAL_MS;
+  }, [remotePollIntervalMs]);
+
   useEffect(() => {
     if (analysisSource !== 'remote') {
       setPendingRemoteRun(null);
@@ -31,49 +43,57 @@ export function useRemoteArtifactPoll(
       return;
     }
 
+    if (pollPaused) {
+      return;
+    }
+
     let cancelled = false;
 
-    const poll = async () => {
-      try {
-        const status = await refreshArtifactSourceStatus();
-        if (!cancelled) {
-          setPendingRemoteRun(status.pendingRun);
-          setRemotePollIntervalMs(status.pollIntervalMs);
-          onPollStatus?.(status);
-          const refreshMessage =
-            status.discoveryError != null && status.discoveryError.trim() !== ''
-              ? status.discoveryError
-              : null;
-          onPollError?.(refreshMessage);
-        }
-      } catch (pollError) {
-        debug('Artifact source poll failed', pollError);
-        if (!cancelled) {
-          onPollError?.(
-            pollError instanceof Error
-              ? pollError.message
-              : 'Failed to refresh remote artifact source',
-          );
-        }
-      }
+    const applyStatus = (status: ArtifactSourceStatus) => {
+      setPendingRemoteRun(status.pendingRun);
+      setRemotePollIntervalMs(status.pollIntervalMs);
+      onPollStatus?.(status);
+      const refreshMessage =
+        status.discoveryError != null && status.discoveryError.trim() !== ''
+          ? status.discoveryError
+          : null;
+      onPollError?.(refreshMessage);
     };
 
-    const intervalMs =
-      remotePollIntervalMs != null && remotePollIntervalMs > 0
-        ? remotePollIntervalMs
-        : DEFAULT_REMOTE_POLL_INTERVAL_MS;
+    const poll = async () => {
+      if (cancelled || pollPaused) return;
+      const seq = ++pollSeqRef.current;
+      try {
+        const status = await refreshArtifactSourceStatus();
+        if (cancelled || pollPaused || seq !== pollSeqRef.current) {
+          return;
+        }
+        applyStatus(status);
+      } catch (pollError) {
+        debug('Artifact source poll failed', pollError);
+        if (cancelled || pollPaused || seq !== pollSeqRef.current) {
+          return;
+        }
+        onPollError?.(
+          pollError instanceof Error
+            ? pollError.message
+            : 'Failed to refresh remote artifact source',
+        );
+      }
+    };
 
     void poll();
     const intervalId = window.setInterval(() => {
       void poll();
-    }, intervalMs);
+    }, intervalMsRef.current);
+
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
     };
   }, [
     analysisSource,
-    remotePollIntervalMs,
+    pollPaused,
     setPendingRemoteRun,
     setRemotePollIntervalMs,
     onPollStatus,

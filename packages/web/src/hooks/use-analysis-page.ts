@@ -112,6 +112,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
         setError(pollMessage);
       }
     },
+    acceptingRemoteRun,
   );
 
   useEffect(() => {
