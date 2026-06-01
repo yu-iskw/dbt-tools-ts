@@ -325,10 +325,15 @@ export class ArtifactWorkspace {
         this.runs = cached.runs;
         this.selectedRunId = cached.selectedRunId;
         this.loaded = cached.loaded;
-        const revalidated = await this.revalidateCachedLoad(cached);
-        if (revalidated) {
-          this.syncActiveToCache();
-          return this.status();
+        try {
+          const revalidated = await this.revalidateCachedLoad(cached);
+          if (revalidated) {
+            this.syncActiveToCache();
+            return this.status();
+          }
+        } catch (error) {
+          this.stale = true;
+          this.lastRefreshError = error instanceof Error ? error.message : String(error);
         }
         return this.status({ fromCache: true });
       }

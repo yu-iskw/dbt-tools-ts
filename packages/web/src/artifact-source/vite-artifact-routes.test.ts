@@ -305,6 +305,21 @@ describe('tryHandleArtifactSourceViteRequest', () => {
     expect(refreshRemoteArtifactDiscovery).toHaveBeenCalledTimes(1);
   });
 
+  it('returns JSON when refresh throws', async () => {
+    const refreshRemoteArtifactDiscovery = vi.fn(async () => {
+      throw new Error('remote listing failed');
+    });
+
+    server = await startRouteServer({ refreshRemoteArtifactDiscovery });
+
+    const response = await readJsonResponse(server, '/api/artifact-source/refresh', {
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'remote listing failed' });
+  });
+
   it('accepts a pending remote run via POST /api/artifact-source/accept-pending-run', async () => {
     const acceptPendingRemoteRun = vi.fn(async () => ({
       mode: 'remote' as const,

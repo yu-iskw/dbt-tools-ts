@@ -1,8 +1,8 @@
-import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { existsValidated } from '@dbt-tools/core';
 import { defineConfig, devices } from '@playwright/test';
 
 /** Directory containing this config (always use for preview so `dist/` resolves correctly). */
@@ -21,7 +21,7 @@ const bundledHeadlessShell = path.join(
 /** Fall back to system Chrome when Playwright browser bundles are not installed. */
 const chromiumUse =
   process.env.PLAYWRIGHT_CHANNEL === 'chrome' ||
-  (!existsSync(bundledHeadlessShell) && existsSync(systemChromePath))
+  (!existsValidated(bundledHeadlessShell) && existsValidated(systemChromePath))
     ? { ...devices['Desktop Chrome'], channel: 'chrome' as const }
     : { ...devices['Desktop Chrome'] };
 

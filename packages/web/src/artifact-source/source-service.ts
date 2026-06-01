@@ -355,8 +355,10 @@ export class ArtifactSourceService {
         this.remoteClient,
       );
       if (!discovery.discoveryResult.ok) {
-        this.remoteRefreshError =
-          discovery.discoveryResult.failure.message ?? 'Remote artifact discovery failed.';
+        if (isSessionBindingCurrent(binding, this.sessionGeneration, null)) {
+          this.remoteRefreshError =
+            discovery.discoveryResult.failure.message ?? 'Remote artifact discovery failed.';
+        }
         return;
       }
       if (!isSessionBindingCurrent(binding, this.sessionGeneration, null)) {
@@ -367,8 +369,10 @@ export class ArtifactSourceService {
         commitLoadedVersion: false,
       });
     } catch (error) {
-      this.remoteRefreshError =
-        error instanceof Error ? error.message : 'Remote artifact discovery refresh failed.';
+      if (isSessionBindingCurrent(binding, this.sessionGeneration, null)) {
+        this.remoteRefreshError =
+          error instanceof Error ? error.message : 'Remote artifact discovery refresh failed.';
+      }
       debugLog('Remote discovery refresh failed', error);
     }
   }
@@ -686,9 +690,8 @@ export class ArtifactSourceService {
 
     if (
       this.mode === 'remote' &&
-      this.loadedVersionToken != null &&
-      run.versionToken !== this.loadedVersionToken &&
-      this.loadedArtifactCache != null
+      this.loadedArtifactCache != null &&
+      this.loadedVersionToken != null
     ) {
       return this.loadedArtifactCache;
     }

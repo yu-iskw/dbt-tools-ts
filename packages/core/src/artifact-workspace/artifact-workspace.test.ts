@@ -361,6 +361,40 @@ describe('ArtifactWorkspace', () => {
     }
   });
 
+  it('serves cached snapshot when cached target revalidation listing fails', async () => {
+    const dirA = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-reval-a-'));
+    const dirB = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-tools-workspace-reval-b-'));
+    try {
+      await writeArtifacts(dirA);
+      await writeArtifacts(dirB);
+
+      const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 100 });
+      await workspace.setTarget(dirA);
+      const useCases = createDbtToolsUseCases(workspace);
+      const customersOnA = await useCases.searchResources({ query: 'customers', limit: 5 });
+      expect(customersOnA.total).toBeGreaterThan(0);
+
+      await workspace.setTarget(dirB);
+
+      (workspace as unknown as { discoverSource: () => Promise<unknown> }).discoverSource =
+        async () => {
+          throw new Error('transient listing outage');
+        };
+
+      const restored = await workspace.setTarget(dirA);
+      expect(restored.fromCache).toBe(true);
+      expect(restored.stale).toBe(true);
+      expect(restored.lastRefreshError).toContain('transient listing outage');
+
+      await expect(
+        useCases.getResource({ uniqueId: 'model.jaffle_shop.customers' }),
+      ).resolves.not.toBeNull();
+    } finally {
+      await rmValidated(dirA, { recursive: true, force: true });
+      await rmValidated(dirB, { recursive: true, force: true });
+    }
+  });
+
   it('revalidates cached target when remote version token changes', async () => {
     const remoteClient = new FakeRemoteObjectStoreClient();
     remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 1);

@@ -148,7 +148,13 @@ async function respondArtifactRefresh(
   res: ServerResponse,
   service: ArtifactSourceService,
 ): Promise<void> {
-  sendJson(res, 200, await service.refreshRemoteArtifactDiscovery());
+  try {
+    sendJson(res, 200, await service.refreshRemoteArtifactDiscovery());
+  } catch (error) {
+    sendJson(res, 500, {
+      error: error instanceof Error ? error.message : 'Remote artifact discovery refresh failed.',
+    });
+  }
 }
 
 async function respondArtifactAcceptPending(
