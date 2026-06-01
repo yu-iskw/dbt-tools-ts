@@ -35,7 +35,8 @@
     "build": "tsc -p tsconfig.build.json",
     "prepack": "npm run build && node ../../scripts/copy-dbt-tools-license.mjs",
     "test": "vitest run --project @dbt-tools/mcp",
-    "test:watch": "vitest --project @dbt-tools/mcp"
+    "test:watch": "vitest --project @dbt-tools/mcp",
+    "smoke:protocol": "node scripts/smoke-protocol.mjs"
   },
   "dependencies": {
     "@dbt-tools/core": "workspace:*",

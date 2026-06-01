@@ -6,7 +6,12 @@
       "@dbt-tools/core": ["../core/src/index.ts"],
       "@dbt-tools/core/artifact-io": ["../core/src/artifact-io.ts"],
       "@dbt-tools/core/artifact-workspace": ["../core/src/artifact-workspace.ts"],
-      "@dbt-tools/core/browser": ["../core/src/browser.ts"]
+      "@dbt-tools/core/browser": ["../core/src/browser.ts"],
+      "@dbt-tools/core/contracts": ["../core/src/contracts/index.ts"],
+      "@dbt-tools/core/progress/artifact-load-progress": [
+        "../core/src/progress/artifact-load-progress.ts"
+      ],
+      "@dbt-tools/core/util/sql-truncation": ["../core/src/util/sql-truncation.ts"]
     }
   },
   "include": ["src/**/*.ts", "vitest.config.ts", "coverage.policy.ts"],

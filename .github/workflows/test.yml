@@ -56,3 +56,6 @@ jobs:
 
       - name: Run tests with coverage
         run: pnpm coverage:report
+
+      - name: MCP protocol smoke
+        run: pnpm smoke:mcp

@@ -32,6 +32,14 @@ class RecordingMcpServer {
   registerTool(name: string, config: unknown, handler: unknown): void {
     this.tools.push({ name, config, handler });
   }
+
+  registerResource(): void {
+    // no-op for wiring tests
+  }
+
+  registerPrompt(): void {
+    // no-op for wiring tests
+  }
 }
 
 class RefreshingWorkspace {
@@ -92,6 +100,18 @@ describe('dbt-tools MCP server wiring', () => {
 
     registerDbtToolsTools(server as unknown as McpServer, handlers);
 
+    for (const tool of server.tools) {
+      const config = tool.config as { outputSchema?: unknown };
+      expect(config.outputSchema, `${tool.name} should publish outputSchema`).toBeDefined();
+    }
+
+    const getResource = server.tools.find((tool) => tool.name === 'dbt_tools_get_resource');
+    expect(getResource?.config).toMatchObject({
+      outputSchema: expect.objectContaining({
+        shape: expect.objectContaining({ resource: expect.anything() }),
+      }),
+    });
+
     expect(server.tools.map((tool) => tool.name)).toEqual([
       'dbt_tools_status',
       'dbt_tools_set_target',
@@ -132,6 +152,21 @@ describe('dbt-tools MCP server wiring', () => {
     const statusAfter = await workspace.getStatus();
     expect(statusAfter.target).toBe(tempDir);
     expect(statusAfter.loadedAtMs).not.toBeNull();
+  });
+
+  it('returns null JSON for unknown get_resource after load', async () => {
+    await writeArtifacts(tempDir);
+
+    const { workspace } = await createDbtToolsMcpStack(['--dbt-target', tempDir]);
+    const useCases = createDbtToolsUseCases(workspace);
+    const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);
+    await handlers.dbt_tools_search_resources({ query: 'orders' });
+
+    const result = await handlers.dbt_tools_get_resource({
+      uniqueId: 'model.jaffle_shop.does_not_exist',
+    });
+    expect(result.isError).not.toBe(true);
+    expect(JSON.parse(result.content[0]!.text)).toBeNull();
   });
 
   it('defers artifact load until a tool needs the workspace (lazy init)', async () => {

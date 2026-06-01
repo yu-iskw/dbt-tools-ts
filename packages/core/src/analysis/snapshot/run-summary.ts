@@ -1,23 +1,16 @@
+import { runSummaryOutputSchema, type RunSummaryOutput } from '../../contracts/run-summary.js';
 import { normalizeWarehouseAdapterType } from '../search/warehouse';
 
 import type { AnalysisSnapshot } from './types';
-import type { AdapterTotalsSnapshot } from '../adapter/metrics';
-import type { WarehouseAdapterType } from '../search/types';
 
-export interface RunSummaryOutput {
-  summary: AnalysisSnapshot['summary'];
-  statusBreakdown: AnalysisSnapshot['statusBreakdown'];
-  bottlenecks: AnalysisSnapshot['bottlenecks'];
-  adapterTotals: AdapterTotalsSnapshot | null;
-  warehouse_type: WarehouseAdapterType | 'unknown';
-}
+export type { RunSummaryOutput };
 
 export function getRunSummaryFromSnapshot(snapshot: AnalysisSnapshot): RunSummaryOutput {
-  return {
+  return runSummaryOutputSchema.parse({
     summary: snapshot.summary,
     statusBreakdown: snapshot.statusBreakdown,
     bottlenecks: snapshot.bottlenecks,
     adapterTotals: snapshot.adapterTotals ?? null,
     warehouse_type: normalizeWarehouseAdapterType(snapshot.warehouseType),
-  };
+  });
 }
