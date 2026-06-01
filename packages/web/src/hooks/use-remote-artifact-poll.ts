@@ -5,8 +5,11 @@ import { DEFAULT_REMOTE_POLL_INTERVAL_MS } from '@web/constants/managed-artifact
 import { debug } from '../debug';
 import { refreshArtifactSourceStatus } from '../services/artifact-api';
 
-import type { ArtifactSourceStatus, RemoteArtifactRun } from '../services/artifact-source-api';
-import type { WorkspaceArtifactSource } from '../services/artifact-source-api';
+import type {
+  ArtifactSourceStatus,
+  RemoteArtifactRun,
+  WorkspaceArtifactSource,
+} from '../services/artifact-source-api';
 
 /**
  * Polls `/api/artifact-source/refresh` while the workspace is in remote mode so
