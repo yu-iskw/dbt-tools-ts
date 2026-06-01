@@ -214,6 +214,27 @@ describe('createDbtToolsMcpToolHandlers', () => {
     expect(parseToolJson(result)).toBeNull();
   });
 
+  it('truncates oversized SQL in content text when includeCode is true', async () => {
+    const bigSql = 'SELECT 1\n'.repeat(50_000);
+    const useCases = new FakeUseCases();
+    useCases.getResource = async () => ({
+      ...(await new FakeUseCases().getResource()),
+      rawCode: bigSql,
+      compiledCode: bigSql,
+    });
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
+    const result = await handlers.dbt_tools_get_resource({
+      uniqueId: 'model.pkg.orders',
+      includeCode: true,
+    });
+    const content = parseToolJson(result) as { rawCode?: string };
+    expect(content.rawCode).toContain('dbt-tools:');
+    expect(content.rawCode?.length ?? 0).toBeLessThan(bigSql.length);
+    expect(result.structuredContent).toMatchObject({
+      resource: { rawCode: content.rawCode, compiledCode: content.compiledCode },
+    });
+  });
+
   it('maps validation errors to isError tool results', async () => {
     const useCases = new FakeUseCases();
     useCases.queryExecutions = async () => {

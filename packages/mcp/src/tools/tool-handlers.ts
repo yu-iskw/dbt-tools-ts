@@ -173,7 +173,7 @@ export function createDbtToolsMcpToolHandlers(
                   request.includeCode ? truncateResourceCodeFields(resource) : resource,
                 ),
         });
-        return jsonResult(getResourceToolOutputSchema, body, { contentPayload: resource });
+        return jsonResult(getResourceToolOutputSchema, body, { contentPayload: body.resource });
       } catch (error) {
         if (error instanceof ArtifactTargetNotConfiguredError) {
           return targetNotConfiguredResult();
