@@ -81,8 +81,10 @@ describe('core contracts', () => {
       threadId: null,
     };
     expect(resourceDetailsSchema.parse(node).uniqueId).toBe('model.pkg.orders');
-    expect(getResourceToolOutputSchema.parse(null)).toBeNull();
-    expect(getResourceToolOutputSchema.parse(node).uniqueId).toBe('model.pkg.orders');
+    expect(getResourceToolOutputSchema.parse({ resource: null }).resource).toBeNull();
+    expect(getResourceToolOutputSchema.parse({ resource: node }).resource?.uniqueId).toBe(
+      'model.pkg.orders',
+    );
   });
 
   it('maps query executions input and rejects dual warehouse blocks', () => {

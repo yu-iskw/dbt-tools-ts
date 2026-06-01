@@ -105,6 +105,13 @@ describe('dbt-tools MCP server wiring', () => {
       expect(config.outputSchema, `${tool.name} should publish outputSchema`).toBeDefined();
     }
 
+    const getResource = server.tools.find((tool) => tool.name === 'dbt_tools_get_resource');
+    expect(getResource?.config).toMatchObject({
+      outputSchema: expect.objectContaining({
+        shape: expect.objectContaining({ resource: expect.anything() }),
+      }),
+    });
+
     expect(server.tools.map((tool) => tool.name)).toEqual([
       'dbt_tools_status',
       'dbt_tools_set_target',

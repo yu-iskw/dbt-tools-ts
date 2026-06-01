@@ -1,4 +1,9 @@
-import { artifactWorkspaceStatusSchema, toolErrorSchema } from '@dbt-tools/core/contracts';
+import {
+  artifactWorkspaceStatusSchema,
+  getResourceToolOutputSchema,
+  toolErrorSchema,
+} from '@dbt-tools/core/contracts';
+import { normalizeObjectSchema } from '@modelcontextprotocol/sdk/server/zod-compat.js';
 import { describe, expect, it } from 'vitest';
 
 import { jsonResult, jsonToolError } from './tool-result.js';
@@ -32,6 +37,20 @@ describe('tool-result', () => {
       error: 'Internal tool output contract validation failed.',
       code: 'output_schema_validation',
     });
+  });
+
+  it('exposes get_resource output as an object schema for MCP SDK', () => {
+    expect(normalizeObjectSchema(getResourceToolOutputSchema)).toBeDefined();
+  });
+
+  it('keeps legacy content text while structuredContent uses the resource envelope', () => {
+    const result = jsonResult(
+      getResourceToolOutputSchema,
+      { resource: null },
+      { contentPayload: null },
+    );
+    expect(JSON.parse(result.content[0]?.text ?? 'undefined')).toBeNull();
+    expect(result.structuredContent).toEqual({ resource: null });
   });
 
   it('validates tool errors', () => {

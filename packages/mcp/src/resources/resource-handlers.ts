@@ -105,8 +105,8 @@ export async function readDbtToolsResource(
   }
 
   if (request.kind === 'run-summary') {
-    const status = await ctx.workspace.getStatus();
     const summary = await withLoadedUseCases(ctx, (uc) => uc.getRunSummary());
+    const status = await ctx.workspace.getStatus();
     const body = parseResourceBody(runSummaryResourceBodySchema, {
       ...snapshotMetadataFromStatus(status),
       summary,
@@ -123,7 +123,6 @@ export async function readDbtToolsResource(
   }
 
   if (request.kind === 'resource-details') {
-    const status = await ctx.workspace.getStatus();
     const resource = await withLoadedUseCases(ctx, (uc) =>
       uc.getResource({ uniqueId: request.uniqueId, includeCode: false }),
     );
@@ -132,6 +131,7 @@ export async function readDbtToolsResource(
         `Resource not found for unique_id ${request.uniqueId}. Use dbt_tools_search_resources to discover available resources.`,
       );
     }
+    const status = await ctx.workspace.getStatus();
     const body = parseResourceBody(resourceDetailsResourceBodySchema, {
       ...snapshotMetadataFromStatus(status),
       resource,
@@ -175,13 +175,13 @@ export async function readDbtToolsResource(
     };
   }
 
-  const status = await ctx.workspace.getStatus();
   const dependencies = await withLoadedUseCases(ctx, (uc) =>
     uc.queryDependencies({
       uniqueId: request.uniqueId,
       direction: request.direction,
     }),
   );
+  const status = await ctx.workspace.getStatus();
   const body = parseResourceBody(dependenciesResourceBodySchema, {
     ...snapshotMetadataFromStatus(status),
     dependencies,

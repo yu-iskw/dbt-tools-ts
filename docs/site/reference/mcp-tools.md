@@ -65,12 +65,12 @@ Each tool publishes an **`outputSchema`** (Zod-derived JSON Schema) matching `st
 
 ## Errors (tools)
 
-| Condition                                   | Tool behavior                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------ |
-| No target configured                        | `isError: true` with `error` and `hint`                            |
-| Invalid tool input                          | `isError: true` (`Invalid tool input: …` from Zod)                 |
-| Unknown resource (`dbt_tools_get_resource`) | Success with JSON `null` (not `isError`)                           |
-| Output contract validation (server-side)    | `isError: true` with internal contract message and optional `code` |
+| Condition                                   | Tool behavior                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| No target configured                        | `isError: true` with `error` and `hint`                                               |
+| Invalid tool input                          | `isError: true` (`Invalid tool input: …` from Zod)                                    |
+| Unknown resource (`dbt_tools_get_resource`) | Success: `content` text is JSON `null`; `structuredContent` is `{ "resource": null }` |
+| Output contract validation (server-side)    | `isError: true` with internal contract message and optional `code`                    |
 
 Resources use MCP protocol errors (`InvalidParams`) for missing targets and unknown resources — see [MCP resources](./mcp-resources.md#errors-resources).
 

@@ -34,5 +34,11 @@ export const resourceDetailsSchema = z
 
 export type ResourceDetailsContract = z.infer<typeof resourceDetailsSchema>;
 
-/** MCP `dbt_tools_get_resource` structuredContent is ResourceNode | null (no envelope). */
-export const getResourceToolOutputSchema = z.union([resourceDetailsSchema, z.null()]);
+/** MCP tool output: object envelope required by @modelcontextprotocol/sdk outputSchema normalization. */
+export const getResourceToolOutputSchema = z
+  .object({
+    resource: resourceDetailsSchema.nullable(),
+  })
+  .passthrough();
+
+export type GetResourceToolOutput = z.infer<typeof getResourceToolOutputSchema>;

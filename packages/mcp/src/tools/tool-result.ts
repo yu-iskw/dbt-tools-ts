@@ -12,9 +12,10 @@ function isOutputValidationEnabled(): boolean {
 export function jsonResult<T>(
   schema: z.ZodType<T>,
   payload: T,
-  options?: { isError?: boolean },
+  options?: { isError?: boolean; contentPayload?: unknown },
 ): McpJsonToolResult {
-  const text = JSON.stringify(payload, null, 2);
+  const contentValue = options?.contentPayload !== undefined ? options.contentPayload : payload;
+  const text = JSON.stringify(contentValue, null, 2);
   const base = {
     content: [{ type: 'text', text } as const],
     ...(options?.isError === true ? { isError: true } : {}),

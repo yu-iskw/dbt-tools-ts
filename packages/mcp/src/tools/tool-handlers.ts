@@ -6,6 +6,7 @@ import {
   queryExecutionsOutputSchema,
   runSummaryOutputSchema,
   searchResourcesOutputSchema,
+  type GetResourceToolOutput,
 } from '@dbt-tools/core/contracts';
 
 import { MCP_TARGET_NOT_CONFIGURED_HINT } from '../mcp-errors.js';
@@ -162,13 +163,23 @@ export function createDbtToolsMcpToolHandlers(
         return invalidInputResult(parsed.error);
       }
       const request = toGetResourceInput(parsed.data);
-      return withLoadedUseCases(getResourceToolOutputSchema, useCases, async (uc) => {
-        const resource = await uc.getResource(request);
-        if (resource == null) {
-          return null;
+      try {
+        const resource = await useCases.getResource(request);
+        const body: GetResourceToolOutput = {
+          resource:
+            resource == null
+              ? null
+              : request.includeCode
+                ? truncateResourceCodeFields(resource)
+                : resource,
+        };
+        return jsonResult(getResourceToolOutputSchema, body, { contentPayload: resource });
+      } catch (error) {
+        if (error instanceof ArtifactTargetNotConfiguredError) {
+          return targetNotConfiguredResult();
         }
-        return request.includeCode ? truncateResourceCodeFields(resource) : resource;
-      });
+        throw error;
+      }
     },
 
     dbt_tools_query_dependencies: async (input: ToolInput): Promise<McpJsonToolResult> => {

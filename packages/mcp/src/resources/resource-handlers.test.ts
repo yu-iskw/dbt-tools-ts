@@ -10,28 +10,32 @@ import type { ArtifactWorkspaceControl } from '../workspace-control.js';
 
 class FakeWorkspace implements ArtifactWorkspaceControl {
   getStatusCalls = 0;
+  loaded = false;
 
-  constructor(private readonly status: ArtifactWorkspaceStatus) {}
+  constructor(
+    private readonly unloadedStatus: ArtifactWorkspaceStatus,
+    private readonly loadedStatus: ArtifactWorkspaceStatus = unloadedStatus,
+  ) {}
 
   async getStatus(): Promise<ArtifactWorkspaceStatus> {
     this.getStatusCalls += 1;
-    return this.status;
+    return this.loaded ? this.loadedStatus : this.unloadedStatus;
   }
 
   async refreshIfChanged(): Promise<ArtifactWorkspaceStatus> {
-    return this.status;
+    return this.getStatus();
   }
 
   async setTarget(): Promise<ArtifactWorkspaceStatus> {
-    return this.status;
+    return this.getStatus();
   }
 
   async unsetTarget(): Promise<ArtifactWorkspaceStatus> {
-    return this.status;
+    return this.getStatus();
   }
 
   async clearCachedTargets(): Promise<ArtifactWorkspaceStatus> {
-    return this.status;
+    return this.getStatus();
   }
 }
 
@@ -98,6 +102,15 @@ class FakeUseCases implements DbtToolsUseCases {
   }
 }
 
+const unloadedStatus: ArtifactWorkspaceStatus = {
+  target: null,
+  selectedRunId: null,
+  versionToken: null,
+  loadedAtMs: null,
+  stale: false,
+  runs: [],
+};
+
 const loadedStatus: ArtifactWorkspaceStatus = {
   target: './target',
   selectedRunId: 'current',
@@ -109,16 +122,8 @@ const loadedStatus: ArtifactWorkspaceStatus = {
 
 describe('readDbtToolsResource', () => {
   it('returns status with null envelope metadata when unloaded', async () => {
-    const unloaded: ArtifactWorkspaceStatus = {
-      target: null,
-      selectedRunId: null,
-      versionToken: null,
-      loadedAtMs: null,
-      stale: false,
-      runs: [],
-    };
     const result = await readDbtToolsResource(
-      { workspace: new FakeWorkspace(unloaded), useCases: new FakeUseCases() },
+      { workspace: new FakeWorkspace(unloadedStatus), useCases: new FakeUseCases() },
       'dbt-tools://status',
     );
     const body = JSON.parse(result.contents[0]!.text!) as {
@@ -142,12 +147,34 @@ describe('readDbtToolsResource', () => {
     ).rejects.toBeInstanceOf(McpError);
   });
 
-  it('calls getStatus once for resource-details envelope', async () => {
-    const workspace = new FakeWorkspace(loadedStatus);
-    await readDbtToolsResource(
-      { workspace, useCases: new FakeUseCases() },
-      'dbt-tools://resources/model.pkg.orders',
+  it('calls getStatus once for resource-details envelope after load', async () => {
+    const workspace = new FakeWorkspace(unloadedStatus, loadedStatus);
+    const useCases = new FakeUseCases();
+    useCases.getResource = async (input) => {
+      workspace.loaded = true;
+      return new FakeUseCases().getResource(input);
+    };
+    await readDbtToolsResource({ workspace, useCases }, 'dbt-tools://resources/model.pkg.orders');
+    expect(workspace.getStatusCalls).toBe(1);
+  });
+
+  it('uses post-load status metadata on run-summary after lazy load', async () => {
+    const workspace = new FakeWorkspace(unloadedStatus, loadedStatus);
+    const useCases = new FakeUseCases();
+    useCases.getRunSummary = async () => {
+      workspace.loaded = true;
+      return new FakeUseCases().getRunSummary();
+    };
+    const result = await readDbtToolsResource(
+      { workspace, useCases },
+      'dbt-tools://runs/current/summary',
     );
+    const body = JSON.parse(result.contents[0]!.text!) as {
+      versionToken: string;
+      loadedAtMs: number;
+    };
+    expect(body.versionToken).toBe('v1');
+    expect(body.loadedAtMs).toBe(100);
     expect(workspace.getStatusCalls).toBe(1);
   });
 
