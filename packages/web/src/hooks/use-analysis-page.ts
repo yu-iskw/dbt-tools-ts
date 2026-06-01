@@ -176,11 +176,14 @@ export function useAnalysisPage(): UseAnalysisPageResult {
       if (pendingRemoteRun == null || acceptingRemoteRun) return;
       const pendingRun = pendingRemoteRun;
 
-      bumpLoadGeneration();
+      const generationAtAccept = bumpLoadGeneration();
       invalidateAnalysisWorkerPendingLoads();
       setAcceptingRemoteRun(true);
       try {
         const { status, result } = await acceptPendingRemoteRunFromApi(pendingRun.runId);
+        if (loadGenerationRef.current !== generationAtAccept) {
+          return;
+        }
         if (result != null) {
           applyArtifactSession({
             status,
@@ -210,11 +213,13 @@ export function useAnalysisPage(): UseAnalysisPageResult {
         }
         mergeSnapshotFromStatus(status);
       } catch (switchError) {
-        setError(
-          switchError instanceof Error
-            ? switchError.message
-            : 'Failed to switch remote artifact run',
-        );
+        if (loadGenerationRef.current === generationAtAccept) {
+          setError(
+            switchError instanceof Error
+              ? switchError.message
+              : 'Failed to switch remote artifact run',
+          );
+        }
       } finally {
         setAcceptingRemoteRun(false);
       }

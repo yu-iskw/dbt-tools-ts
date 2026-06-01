@@ -362,6 +362,105 @@ describe('use-analysis-page', () => {
     cleanupRoot(root, container);
   });
 
+  it('discards stale pending-run accept when load different runs before accept resolves', async () => {
+    loadCurrentManagedArtifacts.mockResolvedValue({
+      status: {
+        mode: 'remote',
+        currentSource: 'remote',
+        label: 'Remote source',
+        checkedAtMs: Date.now(),
+        remoteProvider: 'gcs',
+        remoteLocation: 'GCS bucket/prefix',
+        pollIntervalMs: 5_000,
+        currentRun: {
+          runId: 'run-1',
+          label: 'run-1',
+          updatedAtMs: 1_000,
+          versionToken: 'run-1',
+        },
+        pendingRun: {
+          runId: 'run-2',
+          label: 'run-2',
+          updatedAtMs: 2_000,
+          versionToken: 'run-2',
+        },
+        supportsSwitch: true,
+        sourceKind: 'gcs',
+        locationDisplay: 'GCS bucket/prefix',
+      },
+      result: loadResult('run-1', 'remote'),
+    });
+
+    const remoteAcceptedStatus = {
+      mode: 'remote' as const,
+      currentSource: 'remote' as const,
+      label: 'Remote source',
+      checkedAtMs: Date.now(),
+      remoteProvider: 'gcs' as const,
+      remoteLocation: 'GCS bucket/prefix',
+      sourceKind: 'gcs' as const,
+      locationDisplay: 'GCS bucket/prefix',
+      pollIntervalMs: 5_000,
+      currentRun: {
+        runId: 'run-2',
+        label: 'run-2',
+        updatedAtMs: 2_000,
+        versionToken: 'run-2',
+      },
+      pendingRun: null,
+      supportsSwitch: false,
+    };
+
+    let resolveAccept!: (value: Awaited<ReturnType<typeof acceptPendingRemoteRunFromApi>>) => void;
+    const acceptDeferred = new Promise<Awaited<ReturnType<typeof acceptPendingRemoteRunFromApi>>>(
+      (resolve) => {
+        resolveAccept = resolve;
+      },
+    );
+    acceptPendingRemoteRunFromApi.mockReturnValue(acceptDeferred);
+
+    const { container, root } = renderHarness();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      readResult(container).acceptButton?.click();
+      await Promise.resolve();
+    });
+    expect(readResult(container).accepting).toBe('true');
+
+    const resetBtn = container.querySelectorAll('button')[1];
+    await act(() => {
+      resetBtn?.click();
+    });
+    expect(readResult(container)).toMatchObject({
+      project: '',
+      source: '',
+      pending: '',
+    });
+
+    await act(async () => {
+      resolveAccept({
+        status: remoteAcceptedStatus,
+        result: loadResult('run-2', 'remote'),
+      });
+      await acceptDeferred;
+      await Promise.resolve();
+    });
+
+    expect(acceptPendingRemoteRunFromApi).toHaveBeenCalledWith('run-2');
+    expect(readResult(container)).toMatchObject({
+      project: '',
+      source: '',
+      pending: '',
+      error: '',
+    });
+
+    cleanupRoot(root, container);
+  });
+
   it('keeps pending banner and shows error when accept succeeds but refetch returns null', async () => {
     loadCurrentManagedArtifacts.mockResolvedValue({
       status: {
