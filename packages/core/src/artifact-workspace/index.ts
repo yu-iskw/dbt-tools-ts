@@ -50,6 +50,12 @@ export type {
 
 export interface ArtifactWorkspaceLoadOptions {
   onProgress?: ArtifactLoadProgressCallback;
+  /**
+   * When the target is bound but no snapshot is in memory (for example after
+   * `clearCachedTargets`), allow `refreshIfChanged` to run a full load.
+   * Background poll passes `false` so `--dbt-target` alone does not auto-load.
+   */
+  coldLoadIfUnloaded?: boolean;
 }
 
 export interface ArtifactWorkspaceOptions {
@@ -292,11 +298,12 @@ export class ArtifactWorkspace {
       options?.onProgress != null ? this.progressHub.subscribe(options.onProgress) : undefined;
     try {
       if (this.refreshPromise == null) {
-        this.refreshPromise = this.runSerialized(() => this.refreshIfChangedInternal()).finally(
-          () => {
-            this.refreshPromise = null;
-          },
-        );
+        const coldLoadIfUnloaded = options?.coldLoadIfUnloaded !== false;
+        this.refreshPromise = this.runSerialized(() =>
+          this.refreshIfChangedInternal({ coldLoadIfUnloaded }),
+        ).finally(() => {
+          this.refreshPromise = null;
+        });
       }
       return await this.refreshPromise;
     } finally {
@@ -354,12 +361,18 @@ export class ArtifactWorkspace {
     });
   }
 
-  private async refreshIfChangedInternal(): Promise<ArtifactWorkspaceStatus> {
+  private async refreshIfChangedInternal(options?: {
+    coldLoadIfUnloaded?: boolean;
+  }): Promise<ArtifactWorkspaceStatus> {
     if (this.dbtTarget == null) {
       return this.status();
     }
 
     if (this.loaded == null) {
+      if (options?.coldLoadIfUnloaded === false) {
+        return this.status();
+      }
+      await this.ensureInitialized();
       return this.status();
     }
 

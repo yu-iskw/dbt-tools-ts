@@ -12,12 +12,12 @@ compatibility: dbt-tools MCP server enabled; bind-target already succeeded.
 
 - **Inputs:** none
 - **Outputs:** updated status shape; `versionToken` may change; `stale` cleared on success
-- **Done when:** a snapshot is already loaded and `dbt_tools_refresh` (or background poll) updates it to match the latest artifacts on the bound target
+- **Done when:** `dbt_tools_refresh` has loaded or updated the in-memory snapshot for the bound target (`stale` cleared on success)
 
 ## Preconditions
 
 - [`bind-target`](../bind-target/SKILL.md) succeeded for this target
-- A snapshot is loaded (after `bind-target`, an analysis tool, or `dbt_tools_set_target` with a full load). After **`dbt_tools_clear_cached_targets`**, call **`dbt_tools_set_target`** again or any analysis tool before expecting refresh to reload artifacts
+- After **`dbt_tools_clear_cached_targets`**, call **`dbt_tools_refresh`** (or **`dbt_tools_set_target`** / an analysis tool) to reload artifacts into memory
 
 ## Out of scope
 

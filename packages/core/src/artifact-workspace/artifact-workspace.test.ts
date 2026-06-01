@@ -175,10 +175,25 @@ describe('ArtifactWorkspace', () => {
     await expect(workspace.refreshIfChanged()).resolves.toMatchObject({ target: null });
   });
 
-  it('refreshIfChanged does not cold-load an unbound snapshot', async () => {
+  it('refreshIfChanged cold-loads after clearCachedTargets when target stays bound', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 123 });
+    await workspace.setTarget(tempDir);
+
+    const cleared = await workspace.clearCachedTargets();
+    expect(cleared.stale).toBe(true);
+    expect(cleared.loadedAtMs).toBeNull();
+
+    const status = await workspace.refreshIfChanged();
+    expect(status.stale).toBe(false);
+    expect(status.loadedAtMs).toBe(123);
+    expect(status.versionToken).not.toBeNull();
+  });
+
+  it('refreshIfChanged does not cold-load when coldLoadIfUnloaded is false', async () => {
     await writeArtifacts(tempDir);
     const workspace = new ArtifactWorkspace({ dbtTarget: tempDir, now: () => 123 });
-    await workspace.refreshIfChanged();
+    await workspace.refreshIfChanged({ coldLoadIfUnloaded: false });
     const status = await workspace.getStatus();
     expect(status.loadedAtMs).toBeNull();
     expect(status.versionToken).toBeNull();

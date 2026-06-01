@@ -39,7 +39,7 @@ export function startRefreshPolling(
   if (pollIntervalMs == null || pollIntervalMs <= 0) return undefined;
 
   const timer = setInterval(() => {
-    void workspace.refreshIfChanged().catch(() => undefined);
+    void workspace.refreshIfChanged({ coldLoadIfUnloaded: false }).catch(() => undefined);
   }, pollIntervalMs);
   timer.unref?.();
   return timer;
