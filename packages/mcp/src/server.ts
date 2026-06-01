@@ -5,7 +5,6 @@ import {
   getDbtToolsMaxCachedTargetsFromEnv,
 } from '@dbt-tools/core';
 import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
-import type { ArtifactWorkspaceLoadOptions } from '@dbt-tools/core/artifact-workspace';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
@@ -21,6 +20,8 @@ import { registerDbtToolsPrompts } from './prompts/register-prompts.js';
 import { registerDbtToolsResources } from './resources/register-resources.js';
 import { registerDbtToolsTools } from './tools/register-tools.js';
 import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
+
+import type { ArtifactWorkspaceLoadOptions } from '@dbt-tools/core/artifact-workspace';
 
 type RefreshTimer = ReturnType<typeof setInterval>;
 
