@@ -34,6 +34,7 @@ export interface UseAnalysisPageResult {
   pendingRemoteRun: RemoteArtifactRun | null;
   acceptingRemoteRun: boolean;
   onLoadDifferent: () => void;
+  onManagedLoadStarted: () => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
@@ -63,6 +64,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
   const pendingMetricsRef = useRef<AnalysisLoadResult['metrics'] | null>(null);
   const preloadSupersededRef = useRef(false);
   const loadGenerationRef = useRef(0);
+  const managedLoadGenerationRef = useRef<number | null>(null);
 
   const bumpLoadGeneration = useCallback(() => {
     loadGenerationRef.current += 1;
@@ -99,7 +101,14 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     onArtifactSourceStatus: mergeSnapshotFromStatus,
   });
 
-  useDbtArtifactsReload(analysisSource, setAnalysis, setError, pendingMetricsRef);
+  useDbtArtifactsReload(
+    analysisSource,
+    setAnalysis,
+    setError,
+    pendingMetricsRef,
+    loadGenerationRef,
+    preloadSupersededRef,
+  );
 
   useRemoteArtifactPoll(
     analysisSource,
@@ -157,9 +166,20 @@ export function useAnalysisPage(): UseAnalysisPageResult {
         missingSources: false,
       });
     },
-    onManagedAnalysisLoaded: (result, source, optionalArtifacts) => {
-      bumpLoadGeneration();
+    onManagedLoadStarted: () => {
+      managedLoadGenerationRef.current = bumpLoadGeneration();
       preloadSupersededRef.current = true;
+      invalidateAnalysisWorkerPendingLoads();
+    },
+    onManagedAnalysisLoaded: (result, source, optionalArtifacts) => {
+      const generationAtStart = managedLoadGenerationRef.current;
+      managedLoadGenerationRef.current = null;
+      if (
+        generationAtStart != null &&
+        loadGenerationRef.current !== generationAtStart
+      ) {
+        return;
+      }
       pendingMetricsRef.current = result.metrics;
       setAnalysisSource(source);
       setPendingRemoteRun(null);

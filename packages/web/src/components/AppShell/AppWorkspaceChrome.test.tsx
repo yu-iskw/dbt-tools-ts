@@ -123,6 +123,7 @@ function renderChrome(
         preloadLoading={false}
         pendingRemoteRun={null}
         acceptingRemoteRun={false}
+        onManagedLoadStarted={vi.fn()}
         onManagedAnalysisLoaded={vi.fn()}
         onError={vi.fn()}
         onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -255,7 +256,8 @@ describe('AppWorkspaceChrome header', () => {
           preloadLoading={false}
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
-          onManagedAnalysisLoaded={vi.fn()}
+          onManagedLoadStarted={vi.fn()}
+        onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="system"
@@ -317,7 +319,8 @@ describe('AppWorkspaceChrome header', () => {
           preloadLoading={false}
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
-          onManagedAnalysisLoaded={vi.fn()}
+          onManagedLoadStarted={vi.fn()}
+        onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="system"
@@ -373,7 +376,8 @@ describe('AppWorkspaceChrome header', () => {
           preloadLoading={false}
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
-          onManagedAnalysisLoaded={vi.fn()}
+          onManagedLoadStarted={vi.fn()}
+        onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="light"
@@ -427,7 +431,8 @@ describe('AppWorkspaceChrome header', () => {
           preloadLoading={false}
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
-          onManagedAnalysisLoaded={vi.fn()}
+          onManagedLoadStarted={vi.fn()}
+        onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="light"
@@ -481,7 +486,8 @@ describe('AppWorkspaceChrome header', () => {
             versionToken: 'v1',
           }}
           acceptingRemoteRun={false}
-          onManagedAnalysisLoaded={vi.fn()}
+          onManagedLoadStarted={vi.fn()}
+        onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="light"

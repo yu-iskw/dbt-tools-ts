@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type RefObject } from 'react';
 
 import { debug } from '../debug';
 import { refetchFromApi } from '../services/artifact-api';
@@ -16,14 +16,24 @@ export function useDbtArtifactsReload(
   setAnalysis: (a: AnalysisState | null) => void,
   setError: (e: string | null) => void,
   pendingMetricsRef: { current: AnalysisLoadResult['metrics'] | null },
+  loadGenerationRef: RefObject<number>,
+  preloadSupersededRef: RefObject<boolean>,
 ): void {
   useEffect(() => {
     if (analysisSource !== 'preload' || !import.meta.hot) return;
 
     const handler = () => {
+      const generationAtStart = loadGenerationRef.current;
       debug('Reload: dbt-artifacts-changed received, refetching');
       refetchFromApi('preload')
         .then((result) => {
+          if (
+            preloadSupersededRef.current ||
+            loadGenerationRef.current !== generationAtStart
+          ) {
+            debug('Reload: skipped stale HMR refetch');
+            return;
+          }
           if (result) {
             pendingMetricsRef.current = result.metrics;
             setAnalysis(result.analysis);
@@ -32,11 +42,24 @@ export function useDbtArtifactsReload(
           }
         })
         .catch((err) => {
+          if (
+            preloadSupersededRef.current ||
+            loadGenerationRef.current !== generationAtStart
+          ) {
+            return;
+          }
           setError(err instanceof Error ? err.message : 'Failed to reload artifacts from server');
         });
     };
 
     import.meta.hot.on('dbt-artifacts-changed', handler);
     return () => import.meta.hot?.off('dbt-artifacts-changed', handler);
-  }, [analysisSource, pendingMetricsRef, setAnalysis, setError]);
+  }, [
+    analysisSource,
+    loadGenerationRef,
+    pendingMetricsRef,
+    preloadSupersededRef,
+    setAnalysis,
+    setError,
+  ]);
 }

@@ -12,6 +12,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ArtifactSourceService, type RemoteObjectStoreClient } from './source-service';
 
+import type { ResolvedArtifactRun } from './discovery';
+
 class FakeRemoteClient implements RemoteObjectStoreClient {
   constructor(
     private readonly objects: Array<{
@@ -372,6 +374,96 @@ describe('ArtifactSourceService', () => {
     const readsAfterWarm = readSpy.mock.calls.length;
     await service.getCurrentArtifacts();
     expect(readSpy.mock.calls.length).toBe(readsAfterWarm);
+  });
+
+  it('does not commit stale loadedArtifactCache when accept refresh races configure', async () => {
+    const client = new FakeRemoteClient([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 2_000,
+        etag: 'manifest-v1',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"remote-v1"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 2_000,
+        etag: 'results-v1',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"remote-v1"}}'),
+      },
+    ]);
+
+    const service = new ArtifactSourceService({
+      remoteConfig: {
+        provider: 's3',
+        bucket: 'dbt-artifacts',
+        prefix: 'scheduled',
+        pollIntervalMs: 15_000,
+      },
+      remoteClient: client,
+    });
+    await service.getStatus();
+    await service.getCurrentArtifacts();
+
+    client.replaceObjects([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 3_000,
+        etag: 'manifest-v2',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"remote-v2"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 3_000,
+        etag: 'results-v2',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"remote-v2"}}'),
+      },
+    ]);
+    await service.refreshRemoteArtifactDiscovery();
+    const pending = (await service.getStatus()).pendingRun;
+    expect(pending).not.toBeNull();
+
+    const localDir = await mkdtempValidated(
+      path.join(os.tmpdir(), 'dbt-tools-artifact-accept-race-'),
+    );
+    tempDirs.push(localDir);
+    await writeValidatedUtf8(
+      resolveJoinedSafe(localDir, 'manifest.json'),
+      '{"metadata":{"project_name":"local-wins"}}',
+    );
+    await writeValidatedUtf8(
+      resolveJoinedSafe(localDir, 'run_results.json'),
+      '{"metadata":{"project_name":"local-wins"}}',
+    );
+
+    let releaseAcceptRead: (() => void) | undefined;
+    const acceptReadGate = new Promise<void>((resolve) => {
+      releaseAcceptRead = resolve;
+    });
+    const serviceInternals = service as unknown as {
+      readCurrentArtifactPayload: (
+        run: ResolvedArtifactRun,
+      ) => Promise<{ manifestBytes: Uint8Array } | null>;
+    };
+    const originalRead = serviceInternals.readCurrentArtifactPayload.bind(service);
+    serviceInternals.readCurrentArtifactPayload = async (run) => {
+      const payload = await originalRead(run);
+      const manifestText = payload?.manifestBytes
+        ? new TextDecoder().decode(payload.manifestBytes)
+        : '';
+      if (manifestText.includes('remote-v2')) {
+        await acceptReadGate;
+      }
+      return payload;
+    };
+
+    const acceptPromise = service.acceptPendingRemoteRun(pending!.runId);
+    const configurePromise = service.configureArtifactSource('local', localDir);
+    releaseAcceptRead?.();
+    await Promise.all([acceptPromise, configurePromise]);
+
+    const payload = await service.getCurrentArtifacts();
+    expect(new TextDecoder().decode(payload?.manifestBytes)).toContain('local-wins');
+    expect(new TextDecoder().decode(payload?.manifestBytes)).not.toContain('remote-v2');
   });
 
   it('does not apply stale remote refresh errors after configure changes session', async () => {

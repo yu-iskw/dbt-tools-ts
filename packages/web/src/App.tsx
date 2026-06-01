@@ -25,6 +25,7 @@ function AppContent() {
     preloadLoading,
     pendingRemoteRun,
     acceptingRemoteRun,
+    onManagedLoadStarted,
     onManagedAnalysisLoaded,
     artifactCapability,
     onError,
@@ -76,6 +77,7 @@ function AppContent() {
         preloadLoading={preloadLoading}
         pendingRemoteRun={pendingRemoteRun}
         acceptingRemoteRun={acceptingRemoteRun}
+        onManagedLoadStarted={onManagedLoadStarted}
         onManagedAnalysisLoaded={onManagedAnalysisLoaded}
         onError={onError}
         onAcceptPendingRemoteRun={onAcceptPendingRemoteRun}

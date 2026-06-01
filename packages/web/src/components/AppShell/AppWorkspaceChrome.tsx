@@ -34,6 +34,7 @@ export interface AppWorkspaceChromeProps {
   preloadLoading: boolean;
   pendingRemoteRun: RemoteArtifactRun | null;
   acceptingRemoteRun: boolean;
+  onManagedLoadStarted: () => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
@@ -57,6 +58,7 @@ export function AppWorkspaceChrome({
   preloadLoading,
   pendingRemoteRun,
   acceptingRemoteRun,
+  onManagedLoadStarted,
   onManagedAnalysisLoaded,
   onError,
   onAcceptPendingRemoteRun,
@@ -156,6 +158,7 @@ export function AppWorkspaceChrome({
           setPreferences={setPreferences}
           themePreference={themePreference}
           setThemePreference={setThemePreference}
+          onManagedLoadStarted={onManagedLoadStarted}
           onManagedAnalysisLoaded={onManagedAnalysisLoaded}
           onError={onError}
           onAcceptPendingRemoteRun={onAcceptPendingRemoteRun}

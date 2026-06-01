@@ -93,6 +93,13 @@ function HookHarness() {
       </button>
       <button
         type="button"
+        data-testid="simulate-managed-start"
+        onClick={() => result.onManagedLoadStarted()}
+      >
+        managed-start
+      </button>
+      <button
+        type="button"
         data-testid="simulate-managed-load"
         onClick={() =>
           result.onManagedAnalysisLoaded(loadResult('managed', 'preload'), 'preload', {
@@ -456,6 +463,49 @@ describe('use-analysis-page', () => {
       source: '',
       pending: '',
       error: '',
+    });
+
+    cleanupRoot(root, container);
+  });
+
+  it('discards stale managed analysis when the user resets before load completes', async () => {
+    loadCurrentManagedArtifacts.mockResolvedValue({
+      status: {
+        mode: 'none',
+        currentSource: null,
+        label: 'Waiting for artifacts',
+        checkedAtMs: Date.now(),
+        remoteProvider: null,
+        remoteLocation: null,
+        pollIntervalMs: null,
+        currentRun: null,
+        pendingRun: null,
+        supportsSwitch: false,
+        sourceKind: null,
+        locationDisplay: null,
+      },
+      result: null,
+    });
+
+    const { container, root } = renderHarness();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const startBtn = container.querySelector('[data-testid="simulate-managed-start"]');
+    const managedBtn = container.querySelector('[data-testid="simulate-managed-load"]');
+    const resetBtn = container.querySelectorAll('button')[1];
+
+    await act(() => {
+      startBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      resetBtn?.click();
+      managedBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(readResult(container)).toMatchObject({
+      project: '',
+      source: '',
     });
 
     cleanupRoot(root, container);

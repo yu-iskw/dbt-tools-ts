@@ -68,6 +68,7 @@ function gcsClientOptionsFromRefs(
 }
 
 export interface ArtifactLoadPanelProps {
+  onManagedLoadStarted?: () => void;
   onManagedLoad: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
@@ -77,6 +78,7 @@ export interface ArtifactLoadPanelProps {
 }
 
 export function ArtifactLoadPanel({
+  onManagedLoadStarted,
   onManagedLoad,
   onError,
 }: ArtifactLoadPanelProps): ReactElement {
@@ -148,6 +150,7 @@ export function ArtifactLoadPanel({
     }
     setLoadLoading(true);
     onError(null);
+    onManagedLoadStarted?.();
     try {
       const status = await configureArtifactSourceFromApi(
         sourceKindRef.current,
@@ -191,7 +194,7 @@ export function ArtifactLoadPanel({
     } finally {
       setLoadLoading(false);
     }
-  }, [onError, onManagedLoad, toast]);
+  }, [onError, onManagedLoad, onManagedLoadStarted, toast]);
 
   const runDiscovery = useCallback(
     async (force?: boolean) => {

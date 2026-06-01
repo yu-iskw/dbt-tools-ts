@@ -35,12 +35,14 @@ function ChangeArtifactLocationModal({
   open,
   onClose,
   returnFocusRef,
+  onManagedLoadStarted,
   onManagedAnalysisLoaded,
   onError,
 }: {
   open: boolean;
   onClose: () => void;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
+  onManagedLoadStarted: () => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
@@ -119,7 +121,11 @@ function ChangeArtifactLocationModal({
           </button>
         </header>
         <div className="settings-artifact-dialog__body">
-          <ArtifactLoadPanel onManagedLoad={onManagedAnalysisLoaded} onError={onError} />
+          <ArtifactLoadPanel
+            onManagedLoadStarted={onManagedLoadStarted}
+            onManagedLoad={onManagedAnalysisLoaded}
+            onError={onError}
+          />
         </div>
       </div>
     </div>
@@ -532,6 +538,7 @@ export function SettingsView({
   analysisSource,
   artifactLocationSnapshot,
   executionCount,
+  onManagedLoadStarted,
   onManagedAnalysisLoaded,
   onError,
   pendingRemoteRun,
@@ -545,6 +552,7 @@ export function SettingsView({
   analysisSource: WorkspaceArtifactSource | null;
   artifactLocationSnapshot: ArtifactLocationSnapshot | null;
   executionCount: number | null;
+  onManagedLoadStarted: () => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
@@ -588,6 +596,7 @@ export function SettingsView({
           setChangeLocationOpen(false);
         }}
         returnFocusRef={changeLocationTriggerRef}
+        onManagedLoadStarted={onManagedLoadStarted}
         onManagedAnalysisLoaded={handleManagedFromModal}
         onError={onError}
       />

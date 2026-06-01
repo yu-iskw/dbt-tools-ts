@@ -267,6 +267,7 @@ export function WorkspaceContent({
   setPreferences,
   themePreference,
   setThemePreference,
+  onManagedLoadStarted,
   onManagedAnalysisLoaded,
   onError,
   onAcceptPendingRemoteRun,
@@ -295,6 +296,7 @@ export function WorkspaceContent({
   setPreferences: Dispatch<SetStateAction<WorkspacePreferences>>;
   themePreference: ThemePreference;
   setThemePreference: Dispatch<SetStateAction<ThemePreference>>;
+  onManagedLoadStarted: () => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
@@ -326,6 +328,7 @@ export function WorkspaceContent({
         analysisSource={analysisSource}
         artifactLocationSnapshot={artifactLocationSnapshot}
         executionCount={analysis?.summary.total_nodes ?? null}
+        onManagedLoadStarted={onManagedLoadStarted}
         onManagedAnalysisLoaded={onManagedAnalysisLoaded}
         onError={onError}
         pendingRemoteRun={pendingRemoteRun}
@@ -362,5 +365,11 @@ export function WorkspaceContent({
     return <LoadingCard />;
   }
 
-  return <ArtifactLoadPanel onManagedLoad={onManagedAnalysisLoaded} onError={onError} />;
+  return (
+    <ArtifactLoadPanel
+      onManagedLoadStarted={onManagedLoadStarted}
+      onManagedLoad={onManagedAnalysisLoaded}
+      onError={onError}
+    />
+  );
 }
