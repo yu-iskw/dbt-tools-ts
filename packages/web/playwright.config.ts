@@ -1,9 +1,14 @@
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { existsValidated } from '@dbt-tools/core';
 import { defineConfig, devices } from '@playwright/test';
+
+/** Playwright loads this file as native ESM; @dbt-tools/core is CJS. */
+const { existsValidated } = createRequire(import.meta.url)('@dbt-tools/core') as {
+  existsValidated: (pathInput: string) => boolean;
+};
 
 /** Directory containing this config (always use for preview so `dist/` resolves correctly). */
 const webPackageDir = path.dirname(fileURLToPath(import.meta.url));
