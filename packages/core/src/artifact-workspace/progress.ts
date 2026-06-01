@@ -13,6 +13,10 @@ export class ArtifactLoadProgressHub {
     return this.callback;
   }
 
+  hasConsumers(): boolean {
+    return this.callback != null || this.listeners.size > 0;
+  }
+
   setCallback(callback: ArtifactLoadProgressCallback | undefined): void {
     this.callback = callback;
   }

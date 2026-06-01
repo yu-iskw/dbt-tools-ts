@@ -475,6 +475,27 @@ describe('ArtifactWorkspace', () => {
     expect(events.some((event) => event.phase === 'ready' && event.progress === 100)).toBe(true);
   });
 
+  it('reports ready progress when refresh reloads after remote artifact change', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-a/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+
+    const workspace = new ArtifactWorkspace({
+      dbtTarget: 's3://bucket/prefix-a',
+      maxCachedTargets: 1,
+      remoteClient,
+      now: () => 100,
+    });
+    await workspace.initialize();
+
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 2);
+
+    const events: Array<{ phase: string; progress: number }> = [];
+    await workspace.refreshIfChanged({ onProgress: (event) => events.push(event) });
+
+    expect(events.some((event) => event.phase === 'ready' && event.progress === 100)).toBe(true);
+  });
+
   it('reports ready progress when cached target revalidates after remote artifact change', async () => {
     const remoteClient = new FakeRemoteObjectStoreClient();
     remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 1);

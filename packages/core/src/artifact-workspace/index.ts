@@ -254,7 +254,7 @@ export class ArtifactWorkspace {
   }
 
   private reportSnapshotReadyIfListening(): void {
-    if (this.progressHub.getCallback() != null) {
+    if (this.progressHub.hasConsumers()) {
       this.reportProgress('ready', 100, SNAPSHOT_READY_PROGRESS_MESSAGE);
     }
   }
@@ -370,6 +370,9 @@ export class ArtifactWorkspace {
         this.loaded.run.versionToken,
         this.selectedRunId,
       );
+      if (reloaded) {
+        this.reportSnapshotReadyIfListening();
+      }
       if (!reloaded && !this.bindingStillActive(binding)) {
         return this.status();
       }
