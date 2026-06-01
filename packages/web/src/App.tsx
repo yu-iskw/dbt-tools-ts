@@ -26,6 +26,7 @@ function AppContent() {
     pendingRemoteRun,
     acceptingRemoteRun,
     onManagedLoadStarted,
+    onManagedLoadEnded,
     onManagedAnalysisLoaded,
     artifactCapability,
     onError,
@@ -78,6 +79,7 @@ function AppContent() {
         pendingRemoteRun={pendingRemoteRun}
         acceptingRemoteRun={acceptingRemoteRun}
         onManagedLoadStarted={onManagedLoadStarted}
+        onManagedLoadEnded={onManagedLoadEnded}
         onManagedAnalysisLoaded={onManagedAnalysisLoaded}
         onError={onError}
         onAcceptPendingRemoteRun={onAcceptPendingRemoteRun}

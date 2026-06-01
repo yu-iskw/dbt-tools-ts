@@ -68,17 +68,20 @@ function gcsClientOptionsFromRefs(
 }
 
 export interface ArtifactLoadPanelProps {
-  onManagedLoadStarted?: () => void;
+  onManagedLoadStarted?: () => number;
+  onManagedLoadEnded?: (loadGeneration: number) => void;
   onManagedLoad: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
     optionalArtifacts: MissingOptionalArtifactsState,
+    loadGeneration: number,
   ) => void;
   onError: (message: string | null) => void;
 }
 
 export function ArtifactLoadPanel({
   onManagedLoadStarted,
+  onManagedLoadEnded,
   onManagedLoad,
   onError,
 }: ArtifactLoadPanelProps): ReactElement {
@@ -150,7 +153,8 @@ export function ArtifactLoadPanel({
     }
     setLoadLoading(true);
     onError(null);
-    onManagedLoadStarted?.();
+    const managedLoadTracked = onManagedLoadStarted != null;
+    const loadGeneration = onManagedLoadStarted?.() ?? 0;
     try {
       const status = await configureArtifactSourceFromApi(
         sourceKindRef.current,
@@ -181,7 +185,7 @@ export function ArtifactLoadPanel({
         onError('Could not read artifact bytes from the server.');
         return;
       }
-      onManagedLoad(result, source, caps);
+      onManagedLoad(result, source, caps, loadGeneration);
       if (sourceKindRef.current === 'gcs') {
         lastScannedKeyRef.current = '';
         setLastScannedKey('');
@@ -192,9 +196,12 @@ export function ArtifactLoadPanel({
       onError(message);
       toast(message, 'danger');
     } finally {
+      if (managedLoadTracked) {
+        onManagedLoadEnded?.(loadGeneration);
+      }
       setLoadLoading(false);
     }
-  }, [onError, onManagedLoad, onManagedLoadStarted, toast]);
+  }, [onError, onManagedLoad, onManagedLoadEnded, onManagedLoadStarted, toast]);
 
   const runDiscovery = useCallback(
     async (force?: boolean) => {

@@ -268,6 +268,7 @@ export function WorkspaceContent({
   themePreference,
   setThemePreference,
   onManagedLoadStarted,
+  onManagedLoadEnded,
   onManagedAnalysisLoaded,
   onError,
   onAcceptPendingRemoteRun,
@@ -296,11 +297,13 @@ export function WorkspaceContent({
   setPreferences: Dispatch<SetStateAction<WorkspacePreferences>>;
   themePreference: ThemePreference;
   setThemePreference: Dispatch<SetStateAction<ThemePreference>>;
-  onManagedLoadStarted: () => void;
+  onManagedLoadStarted: () => number;
+  onManagedLoadEnded: (loadGeneration: number) => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
     optionalArtifacts: MissingOptionalArtifactsState,
+    loadGeneration: number,
   ) => void;
   onError: (error: string | null) => void;
   onAcceptPendingRemoteRun: () => Promise<void>;
@@ -329,6 +332,7 @@ export function WorkspaceContent({
         artifactLocationSnapshot={artifactLocationSnapshot}
         executionCount={analysis?.summary.total_nodes ?? null}
         onManagedLoadStarted={onManagedLoadStarted}
+        onManagedLoadEnded={onManagedLoadEnded}
         onManagedAnalysisLoaded={onManagedAnalysisLoaded}
         onError={onError}
         pendingRemoteRun={pendingRemoteRun}
@@ -368,6 +372,7 @@ export function WorkspaceContent({
   return (
     <ArtifactLoadPanel
       onManagedLoadStarted={onManagedLoadStarted}
+      onManagedLoadEnded={onManagedLoadEnded}
       onManagedLoad={onManagedAnalysisLoaded}
       onError={onError}
     />

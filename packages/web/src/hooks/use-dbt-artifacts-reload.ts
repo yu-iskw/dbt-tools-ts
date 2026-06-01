@@ -7,6 +7,16 @@ import type { AnalysisLoadResult } from '../services/analysis-loader';
 import type { WorkspaceArtifactSource } from '../services/artifact-source-api';
 import type { AnalysisState } from '@web/types';
 
+/** Returns true when an HMR refetch result must not be applied to page state. */
+export function shouldIgnorePreloadHmrResult(
+  preloadSuperseded: boolean,
+  managedLoadInFlight: boolean,
+  loadGeneration: number,
+  generationAtStart: number,
+): boolean {
+  return preloadSuperseded || managedLoadInFlight || loadGeneration !== generationAtStart;
+}
+
 /**
  * Subscribes to dbt-artifacts-changed (Vite HMR) when analysis came from preload.
  * Refetches from /api/* and updates state on file change.
@@ -18,6 +28,7 @@ export function useDbtArtifactsReload(
   pendingMetricsRef: { current: AnalysisLoadResult['metrics'] | null },
   loadGenerationRef: RefObject<number>,
   preloadSupersededRef: RefObject<boolean>,
+  managedLoadInFlightRef: RefObject<boolean>,
 ): void {
   useEffect(() => {
     if (analysisSource !== 'preload' || !import.meta.hot) return;
@@ -27,7 +38,14 @@ export function useDbtArtifactsReload(
       debug('Reload: dbt-artifacts-changed received, refetching');
       refetchFromApi('preload')
         .then((result) => {
-          if (preloadSupersededRef.current || loadGenerationRef.current !== generationAtStart) {
+          if (
+            shouldIgnorePreloadHmrResult(
+              preloadSupersededRef.current,
+              managedLoadInFlightRef.current,
+              loadGenerationRef.current,
+              generationAtStart,
+            )
+          ) {
             debug('Reload: skipped stale HMR refetch');
             return;
           }
@@ -39,7 +57,14 @@ export function useDbtArtifactsReload(
           }
         })
         .catch((err) => {
-          if (preloadSupersededRef.current || loadGenerationRef.current !== generationAtStart) {
+          if (
+            shouldIgnorePreloadHmrResult(
+              preloadSupersededRef.current,
+              managedLoadInFlightRef.current,
+              loadGenerationRef.current,
+              generationAtStart,
+            )
+          ) {
             return;
           }
           setError(err instanceof Error ? err.message : 'Failed to reload artifacts from server');
@@ -53,6 +78,7 @@ export function useDbtArtifactsReload(
     loadGenerationRef,
     pendingMetricsRef,
     preloadSupersededRef,
+    managedLoadInFlightRef,
     setAnalysis,
     setError,
   ]);

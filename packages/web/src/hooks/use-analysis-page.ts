@@ -34,11 +34,13 @@ export interface UseAnalysisPageResult {
   pendingRemoteRun: RemoteArtifactRun | null;
   acceptingRemoteRun: boolean;
   onLoadDifferent: () => void;
-  onManagedLoadStarted: () => void;
+  onManagedLoadStarted: () => number;
+  onManagedLoadEnded: (loadGeneration: number) => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
     optionalArtifacts: MissingOptionalArtifactsState,
+    loadGeneration: number,
   ) => void;
   onError: (error: string | null) => void;
   onAcceptPendingRemoteRun: () => Promise<void>;
@@ -63,8 +65,8 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     useState<ArtifactLocationSnapshot | null>(null);
   const pendingMetricsRef = useRef<AnalysisLoadResult['metrics'] | null>(null);
   const preloadSupersededRef = useRef(false);
+  const managedLoadInFlightRef = useRef(false);
   const loadGenerationRef = useRef(0);
-  const managedLoadGenerationRef = useRef<number | null>(null);
 
   const bumpLoadGeneration = useCallback(() => {
     loadGenerationRef.current += 1;
@@ -108,6 +110,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     pendingMetricsRef,
     loadGenerationRef,
     preloadSupersededRef,
+    managedLoadInFlightRef,
   );
 
   useRemoteArtifactPoll(
@@ -167,16 +170,22 @@ export function useAnalysisPage(): UseAnalysisPageResult {
       });
     },
     onManagedLoadStarted: () => {
-      managedLoadGenerationRef.current = bumpLoadGeneration();
-      preloadSupersededRef.current = true;
+      managedLoadInFlightRef.current = true;
       invalidateAnalysisWorkerPendingLoads();
+      return bumpLoadGeneration();
     },
-    onManagedAnalysisLoaded: (result, source, optionalArtifacts) => {
-      const generationAtStart = managedLoadGenerationRef.current;
-      managedLoadGenerationRef.current = null;
-      if (generationAtStart != null && loadGenerationRef.current !== generationAtStart) {
+    onManagedLoadEnded: (loadGeneration) => {
+      if (loadGenerationRef.current !== loadGeneration) {
         return;
       }
+      managedLoadInFlightRef.current = false;
+    },
+    onManagedAnalysisLoaded: (result, source, optionalArtifacts, loadGeneration) => {
+      if (loadGenerationRef.current !== loadGeneration) {
+        return;
+      }
+      managedLoadInFlightRef.current = false;
+      preloadSupersededRef.current = true;
       pendingMetricsRef.current = result.metrics;
       setAnalysisSource(source);
       setPendingRemoteRun(null);

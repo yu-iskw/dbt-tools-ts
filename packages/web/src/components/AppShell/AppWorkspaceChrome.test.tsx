@@ -124,6 +124,7 @@ function renderChrome(
         pendingRemoteRun={null}
         acceptingRemoteRun={false}
         onManagedLoadStarted={vi.fn()}
+        onManagedLoadEnded={vi.fn()}
         onManagedAnalysisLoaded={vi.fn()}
         onError={vi.fn()}
         onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -257,6 +258,7 @@ describe('AppWorkspaceChrome header', () => {
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -320,6 +322,7 @@ describe('AppWorkspaceChrome header', () => {
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -377,6 +380,7 @@ describe('AppWorkspaceChrome header', () => {
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -432,6 +436,7 @@ describe('AppWorkspaceChrome header', () => {
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
@@ -487,6 +492,7 @@ describe('AppWorkspaceChrome header', () => {
           }}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
+          onManagedLoadEnded={vi.fn()}
           onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}

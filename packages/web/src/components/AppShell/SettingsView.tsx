@@ -36,17 +36,20 @@ function ChangeArtifactLocationModal({
   onClose,
   returnFocusRef,
   onManagedLoadStarted,
+  onManagedLoadEnded,
   onManagedAnalysisLoaded,
   onError,
 }: {
   open: boolean;
   onClose: () => void;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
-  onManagedLoadStarted: () => void;
+  onManagedLoadStarted: () => number;
+  onManagedLoadEnded: (loadGeneration: number) => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
     optionalArtifacts: MissingOptionalArtifactsState,
+    loadGeneration: number,
   ) => void;
   onError: (message: string | null) => void;
 }) {
@@ -123,6 +126,7 @@ function ChangeArtifactLocationModal({
         <div className="settings-artifact-dialog__body">
           <ArtifactLoadPanel
             onManagedLoadStarted={onManagedLoadStarted}
+            onManagedLoadEnded={onManagedLoadEnded}
             onManagedLoad={onManagedAnalysisLoaded}
             onError={onError}
           />
@@ -539,6 +543,7 @@ export function SettingsView({
   artifactLocationSnapshot,
   executionCount,
   onManagedLoadStarted,
+  onManagedLoadEnded,
   onManagedAnalysisLoaded,
   onError,
   pendingRemoteRun,
@@ -552,11 +557,13 @@ export function SettingsView({
   analysisSource: WorkspaceArtifactSource | null;
   artifactLocationSnapshot: ArtifactLocationSnapshot | null;
   executionCount: number | null;
-  onManagedLoadStarted: () => void;
+  onManagedLoadStarted: () => number;
+  onManagedLoadEnded: (loadGeneration: number) => void;
   onManagedAnalysisLoaded: (
     result: AnalysisLoadResult,
     source: 'preload' | 'remote',
     optionalArtifacts: MissingOptionalArtifactsState,
+    loadGeneration: number,
   ) => void;
   onError: (message: string | null) => void;
   pendingRemoteRun: RemoteArtifactRun | null;
@@ -571,9 +578,10 @@ export function SettingsView({
       result: AnalysisLoadResult,
       source: 'preload' | 'remote',
       optionalArtifacts: MissingOptionalArtifactsState,
+      loadGeneration: number,
     ) => {
       setChangeLocationOpen(false);
-      onManagedAnalysisLoaded(result, source, optionalArtifacts);
+      onManagedAnalysisLoaded(result, source, optionalArtifacts, loadGeneration);
     },
     [onManagedAnalysisLoaded],
   );
@@ -597,6 +605,7 @@ export function SettingsView({
         }}
         returnFocusRef={changeLocationTriggerRef}
         onManagedLoadStarted={onManagedLoadStarted}
+        onManagedLoadEnded={onManagedLoadEnded}
         onManagedAnalysisLoaded={handleManagedFromModal}
         onError={onError}
       />
