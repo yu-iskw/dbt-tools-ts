@@ -27,10 +27,7 @@ export function useDbtArtifactsReload(
       debug('Reload: dbt-artifacts-changed received, refetching');
       refetchFromApi('preload')
         .then((result) => {
-          if (
-            preloadSupersededRef.current ||
-            loadGenerationRef.current !== generationAtStart
-          ) {
+          if (preloadSupersededRef.current || loadGenerationRef.current !== generationAtStart) {
             debug('Reload: skipped stale HMR refetch');
             return;
           }
@@ -42,10 +39,7 @@ export function useDbtArtifactsReload(
           }
         })
         .catch((err) => {
-          if (
-            preloadSupersededRef.current ||
-            loadGenerationRef.current !== generationAtStart
-          ) {
+          if (preloadSupersededRef.current || loadGenerationRef.current !== generationAtStart) {
             return;
           }
           setError(err instanceof Error ? err.message : 'Failed to reload artifacts from server');

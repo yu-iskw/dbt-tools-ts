@@ -174,10 +174,7 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     onManagedAnalysisLoaded: (result, source, optionalArtifacts) => {
       const generationAtStart = managedLoadGenerationRef.current;
       managedLoadGenerationRef.current = null;
-      if (
-        generationAtStart != null &&
-        loadGenerationRef.current !== generationAtStart
-      ) {
+      if (generationAtStart != null && loadGenerationRef.current !== generationAtStart) {
         return;
       }
       pendingMetricsRef.current = result.metrics;

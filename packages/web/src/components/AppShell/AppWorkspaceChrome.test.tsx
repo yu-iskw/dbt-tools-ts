@@ -257,7 +257,7 @@ describe('AppWorkspaceChrome header', () => {
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
-        onManagedAnalysisLoaded={vi.fn()}
+          onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="system"
@@ -320,7 +320,7 @@ describe('AppWorkspaceChrome header', () => {
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
-        onManagedAnalysisLoaded={vi.fn()}
+          onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="system"
@@ -377,7 +377,7 @@ describe('AppWorkspaceChrome header', () => {
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
-        onManagedAnalysisLoaded={vi.fn()}
+          onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="light"
@@ -432,7 +432,7 @@ describe('AppWorkspaceChrome header', () => {
           pendingRemoteRun={null}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
-        onManagedAnalysisLoaded={vi.fn()}
+          onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="light"
@@ -487,7 +487,7 @@ describe('AppWorkspaceChrome header', () => {
           }}
           acceptingRemoteRun={false}
           onManagedLoadStarted={vi.fn()}
-        onManagedAnalysisLoaded={vi.fn()}
+          onManagedAnalysisLoaded={vi.fn()}
           onError={vi.fn()}
           onAcceptPendingRemoteRun={vi.fn(async () => {})}
           themePreference="light"
