@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { applyArtifactSession } from '@web/lib/artifact-session-state';
 import {
   artifactLocationSnapshotFromStatus,
   type ArtifactLocationSnapshot,
 } from '@web/lib/artifact-source';
 
 import { debug, markDebug, measureDebug } from '../debug';
+import { invalidateAnalysisWorkerPendingLoads } from '../services/analysis-loader';
 import {
+  acceptPendingRemoteRunFromApi,
   fetchArtifactSourceStatus,
-  refetchFromApi,
-  switchToArtifactRun,
   type MissingOptionalArtifactsState,
   type RemoteArtifactRun,
   type WorkspaceArtifactSource,
@@ -60,6 +61,13 @@ export function useAnalysisPage(): UseAnalysisPageResult {
   const [artifactLocationSnapshot, setArtifactLocationSnapshot] =
     useState<ArtifactLocationSnapshot | null>(null);
   const pendingMetricsRef = useRef<AnalysisLoadResult['metrics'] | null>(null);
+  const preloadSupersededRef = useRef(false);
+  const loadGenerationRef = useRef(0);
+
+  const bumpLoadGeneration = useCallback(() => {
+    loadGenerationRef.current += 1;
+    return loadGenerationRef.current;
+  }, []);
 
   const mergeSnapshotFromStatus = useCallback((status: ArtifactSourceStatus) => {
     setArtifactLocationSnapshot((prev) => {
@@ -78,6 +86,8 @@ export function useAnalysisPage(): UseAnalysisPageResult {
   }, []);
 
   useAnalysisPreload({
+    preloadSupersededRef,
+    loadGenerationRef,
     setPreloadLoading,
     setAnalysis,
     setAnalysisSource,
@@ -97,6 +107,12 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     setRemotePollIntervalMs,
     remotePollIntervalMs,
     mergeSnapshotFromStatus,
+    (pollMessage) => {
+      if (pollMessage != null) {
+        setError(pollMessage);
+      }
+    },
+    acceptingRemoteRun,
   );
 
   useEffect(() => {
@@ -127,6 +143,9 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     pendingRemoteRun,
     acceptingRemoteRun,
     onLoadDifferent: () => {
+      bumpLoadGeneration();
+      preloadSupersededRef.current = true;
+      invalidateAnalysisWorkerPendingLoads();
       setAnalysis(null);
       setAnalysisSource(null);
       setPendingRemoteRun(null);
@@ -139,6 +158,8 @@ export function useAnalysisPage(): UseAnalysisPageResult {
       });
     },
     onManagedAnalysisLoaded: (result, source, optionalArtifacts) => {
+      bumpLoadGeneration();
+      preloadSupersededRef.current = true;
       pendingMetricsRef.current = result.metrics;
       setAnalysisSource(source);
       setPendingRemoteRun(null);
@@ -152,33 +173,53 @@ export function useAnalysisPage(): UseAnalysisPageResult {
     },
     onError: setError,
     onAcceptPendingRemoteRun: async () => {
-      if (pendingRemoteRun == null) return;
+      if (pendingRemoteRun == null || acceptingRemoteRun) return;
+      const pendingRun = pendingRemoteRun;
 
+      const generationAtAccept = bumpLoadGeneration();
+      invalidateAnalysisWorkerPendingLoads();
       setAcceptingRemoteRun(true);
       try {
-        const status = await switchToArtifactRun(pendingRemoteRun.runId);
-        const result = await refetchFromApi('remote');
-        if (result != null) {
-          pendingMetricsRef.current = result.metrics;
-          setAnalysis(result.analysis);
-          setAnalysisSource(status.currentSource);
-          setRemotePollIntervalMs(status.pollIntervalMs);
-          setError(null);
-          setArtifactCapability(
-            status.missingOptionalArtifacts ?? {
-              missingCatalog: false,
-              missingSources: false,
-            },
-          );
+        const { status, result } = await acceptPendingRemoteRunFromApi(pendingRun.runId);
+        if (loadGenerationRef.current !== generationAtAccept) {
+          return;
         }
-        setPendingRemoteRun(status.pendingRun);
+        if (result != null) {
+          applyArtifactSession({
+            status,
+            analysis: result,
+            setPendingRemoteRun,
+            setRemotePollIntervalMs,
+            setAnalysisSource,
+            setArtifactCapability,
+            setAnalysis,
+            setError,
+            onMetrics: (metrics) => {
+              pendingMetricsRef.current = metrics;
+            },
+          });
+        } else {
+          setError(
+            'Remote run was selected on the server but artifact files could not be loaded. Try again or reload the page.',
+          );
+          applyArtifactSession({
+            status,
+            setPendingRemoteRun,
+            setRemotePollIntervalMs,
+            setAnalysisSource,
+            setArtifactCapability,
+          });
+          setPendingRemoteRun(pendingRun);
+        }
         mergeSnapshotFromStatus(status);
       } catch (switchError) {
-        setError(
-          switchError instanceof Error
-            ? switchError.message
-            : 'Failed to switch remote artifact run',
-        );
+        if (loadGenerationRef.current === generationAtAccept) {
+          setError(
+            switchError instanceof Error
+              ? switchError.message
+              : 'Failed to switch remote artifact run',
+          );
+        }
       } finally {
         setAcceptingRemoteRun(false);
       }

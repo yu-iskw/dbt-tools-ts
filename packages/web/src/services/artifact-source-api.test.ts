@@ -75,37 +75,13 @@ describe('artifact-source-api', () => {
     );
   });
 
-  it('falls back to legacy artifacts when artifact source status returns 500', async () => {
-    const analysisResult = {
-      analysis: { projectName: 'legacy-run' },
-      metrics: { source: 'preload' },
-    };
-    loadAnalysisFromBuffers.mockResolvedValue(analysisResult);
-    fetchMock
-      .mockResolvedValueOnce(new Response(null, { status: 500 }))
-      .mockResolvedValueOnce(
-        new Response('manifest', {
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response('run-results', {
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      )
-      .mockResolvedValueOnce(new Response(null, { status: 404 }))
-      .mockResolvedValueOnce(new Response(null, { status: 404 }));
+  it('throws when artifact source status returns 500', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
 
-    const result = await loadCurrentManagedArtifacts();
-
-    expect(result.status).toEqual(
-      expect.objectContaining({
-        mode: 'preload',
-        currentSource: 'preload',
-        label: 'Live target',
-      }),
+    await expect(loadCurrentManagedArtifacts()).rejects.toThrow(
+      'Failed to load artifact source status (500)',
     );
-    expect(result.result).toBe(analysisResult);
+    expect(loadAnalysisFromBuffers).not.toHaveBeenCalled();
   });
 
   it('falls back to legacy artifacts when artifact source status fetch throws', async () => {
@@ -141,24 +117,12 @@ describe('artifact-source-api', () => {
     expect(result.result).toBe(analysisResult);
   });
 
-  it('returns waiting status when artifact source fails and legacy artifacts are unavailable', async () => {
-    fetchMock
-      .mockResolvedValueOnce(new Response(null, { status: 503 }))
-      .mockResolvedValueOnce(new Response(null, { status: 404 }))
-      .mockResolvedValueOnce(new Response(null, { status: 404 }))
-      .mockResolvedValueOnce(new Response(null, { status: 404 }))
-      .mockResolvedValueOnce(new Response(null, { status: 404 }));
+  it('throws when artifact source status returns 503', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
 
-    const result = await loadCurrentManagedArtifacts();
-
-    expect(result).toEqual({
-      status: expect.objectContaining({
-        mode: 'none',
-        currentSource: null,
-        label: 'Waiting for artifacts',
-      }),
-      result: null,
-    });
+    await expect(loadCurrentManagedArtifacts()).rejects.toThrow(
+      'Failed to load artifact source status (503)',
+    );
     expect(loadAnalysisFromBuffers).not.toHaveBeenCalled();
   });
 

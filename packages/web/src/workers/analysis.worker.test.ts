@@ -136,6 +136,46 @@ describe('analysis worker contract', () => {
     expect(searchResponse.resources.length).toBeLessThanOrEqual(8);
   });
 
+  it('keeps search cache when a follow-up load fails', async () => {
+    const manifestJson = loadTestManifest('v12', 'manifest_1.10.json') as Record<string, unknown>;
+    const runResultsJson = loadTestRunResults('v6', 'run_results.json') as Record<string, unknown>;
+
+    await handleAnalysisWorkerRequest({
+      type: 'load-analysis',
+      protocolVersion: ANALYSIS_WORKER_PROTOCOL_VERSION,
+      requestId: 40,
+      artifactBuffers: {
+        manifestBytes: encodeJson(manifestJson),
+        runResultsBytes: encodeJson(runResultsJson),
+      },
+      source: 'upload',
+    });
+
+    const failedLoad = await handleAnalysisWorkerRequest({
+      type: 'load-analysis',
+      protocolVersion: ANALYSIS_WORKER_PROTOCOL_VERSION,
+      requestId: 41,
+      artifactBuffers: {
+        manifestBytes: encodeJson({ bad: true }),
+        runResultsBytes: encodeJson(runResultsJson),
+      },
+      source: 'remote',
+    });
+
+    expect(failedLoad.type).toBe('analysis-error');
+
+    const searchResponse = await handleAnalysisWorkerRequest({
+      type: 'search-resources',
+      protocolVersion: ANALYSIS_WORKER_PROTOCOL_VERSION,
+      requestId: 42,
+      query: 'model',
+    });
+
+    expect(searchResponse.type).toBe('search-resources-ready');
+    if (searchResponse.type !== 'search-resources-ready') return;
+    expect(searchResponse.resources.length).toBeGreaterThan(0);
+  });
+
   it('loads optional catalog and sources buffers without requiring them', async () => {
     const manifestJson = loadTestManifest('v12', 'manifest_1.11.json') as Record<string, unknown>;
     const runResultsJson = loadTestRunResults('v6', 'run_results_1.11.json') as Record<

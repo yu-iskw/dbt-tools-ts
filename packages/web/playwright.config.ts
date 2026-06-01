@@ -1,7 +1,14 @@
+import { createRequire } from 'node:module';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { defineConfig, devices } from '@playwright/test';
+
+/** Playwright loads this file as native ESM; @dbt-tools/core is CJS. */
+const { existsValidated } = createRequire(import.meta.url)('@dbt-tools/core') as {
+  existsValidated: (pathInput: string) => boolean;
+};
 
 /** Directory containing this config (always use for preview so `dist/` resolves correctly). */
 const webPackageDir = path.dirname(fileURLToPath(import.meta.url));
@@ -9,6 +16,19 @@ const webPackageDir = path.dirname(fileURLToPath(import.meta.url));
 /** Preview port; override if 4173 is already taken locally (e.g. another `vite preview`). */
 const e2ePort = Number(process.env.PLAYWRIGHT_E2E_PORT ?? '4173');
 const e2eOrigin = `http://127.0.0.1:${e2ePort}`;
+
+const systemChromePath = '/usr/local/bin/google-chrome';
+const bundledHeadlessShell = path.join(
+  os.homedir(),
+  '.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell',
+);
+
+/** Fall back to system Chrome when Playwright browser bundles are not installed. */
+const chromiumUse =
+  process.env.PLAYWRIGHT_CHANNEL === 'chrome' ||
+  (!existsValidated(bundledHeadlessShell) && existsValidated(systemChromePath))
+    ? { ...devices['Desktop Chrome'], channel: 'chrome' as const }
+    : { ...devices['Desktop Chrome'] };
 
 export default defineConfig({
   testDir: './e2e',
@@ -34,5 +54,5 @@ export default defineConfig({
     reuseExistingServer: process.env.GITHUB_ACTIONS !== 'true',
     timeout: 120_000,
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [{ name: 'chromium', use: chromiumUse }],
 });

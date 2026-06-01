@@ -333,11 +333,109 @@ describe('ArtifactSourceService', () => {
       },
     ]);
 
-    const refreshed = await service.getStatus();
+    const refreshed = await service.refreshRemoteArtifactDiscovery();
     expect(refreshed.currentRun?.runId).toBe('current');
     expect(refreshed.pendingRun?.runId).toBe('current');
     expect(refreshed.pendingRun?.versionToken).not.toBe(initial.currentRun?.versionToken);
     expect(refreshed.supportsSwitch).toBe(true);
+  });
+
+  it('reuses loadedArtifactCache on getCurrentArtifacts without extra remote reads', async () => {
+    const client = new FakeRemoteClient([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 2_000,
+        etag: 'manifest-1',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-1"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 2_000,
+        etag: 'results-1',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"run-1"}}'),
+      },
+    ]);
+    const readSpy = vi.spyOn(client, 'readObjectBytes');
+
+    const service = new ArtifactSourceService({
+      remoteConfig: {
+        provider: 's3',
+        bucket: 'dbt-artifacts',
+        prefix: 'scheduled',
+        pollIntervalMs: 15_000,
+      },
+      remoteClient: client,
+    });
+
+    await service.getStatus();
+    await service.getCurrentArtifacts();
+    const readsAfterWarm = readSpy.mock.calls.length;
+    await service.getCurrentArtifacts();
+    expect(readSpy.mock.calls.length).toBe(readsAfterWarm);
+  });
+
+  it('does not apply stale remote refresh errors after configure changes session', async () => {
+    const client = new FakeRemoteClient([
+      {
+        key: 'scheduled/manifest.json',
+        updatedAtMs: 2_000,
+        etag: 'manifest-remote',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"remote"}}'),
+      },
+      {
+        key: 'scheduled/run_results.json',
+        updatedAtMs: 2_000,
+        etag: 'results-remote',
+        bytes: new TextEncoder().encode('{"metadata":{"project_name":"remote"}}'),
+      },
+    ]);
+
+    const service = new ArtifactSourceService({
+      remoteConfig: {
+        provider: 's3',
+        bucket: 'dbt-artifacts',
+        prefix: 'scheduled',
+        pollIntervalMs: 15_000,
+      },
+      remoteClient: client,
+    });
+    await service.getStatus();
+
+    const localDir = await mkdtempValidated(
+      path.join(os.tmpdir(), 'dbt-tools-artifact-stale-refresh-'),
+    );
+    tempDirs.push(localDir);
+    await writeValidatedUtf8(
+      resolveJoinedSafe(localDir, 'manifest.json'),
+      '{"metadata":{"project_name":"local"}}',
+    );
+    await writeValidatedUtf8(
+      resolveJoinedSafe(localDir, 'run_results.json'),
+      '{"metadata":{"project_name":"local"}}',
+    );
+
+    let releaseRefresh: (() => void) | undefined;
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    (
+      service as unknown as {
+        discoverRemoteConfiguration: (..._args: unknown[]) => Promise<unknown>;
+      }
+    ).discoverRemoteConfiguration = async () => {
+      await refreshGate;
+      throw new Error('stale remote list failed');
+    };
+
+    const refreshPromise = service.refreshRemoteArtifactDiscovery();
+    const configurePromise = service.configureArtifactSource('local', localDir);
+    releaseRefresh?.();
+    await Promise.all([refreshPromise, configurePromise]);
+
+    const status = await service.getStatus();
+    expect(status.mode).toBe('preload');
+    expect(status.discoveryError).toBeNull();
+    expect(status.currentSource).toBe('preload');
   });
 
   it('seeds remote artifact root from DBT_TOOLS_DBT_TARGET at startup', async () => {
