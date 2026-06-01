@@ -37,6 +37,7 @@
     "site:build": "pnpm --filter @dbt-tools/site build",
     "site:dev": "pnpm --filter @dbt-tools/site dev",
     "site:preview": "pnpm --filter @dbt-tools/site preview",
+    "smoke:mcp": "pnpm --filter @dbt-tools/mcp build && pnpm --filter @dbt-tools/mcp smoke:protocol",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm --filter @dbt-tools/web test:e2e",

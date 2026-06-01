@@ -16,13 +16,17 @@ import {
   parseMcpServerOptions,
 } from './options.js';
 import { readMcpPackageVersion } from './package-version.js';
+import { registerDbtToolsPrompts } from './prompts/register-prompts.js';
+import { registerDbtToolsResources } from './resources/register-resources.js';
 import { registerDbtToolsTools } from './tools/register-tools.js';
 import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
+
+import type { ArtifactWorkspaceLoadOptions } from '@dbt-tools/core/artifact-workspace';
 
 type RefreshTimer = ReturnType<typeof setInterval>;
 
 interface RefreshableWorkspace {
-  refreshIfChanged(): Promise<unknown>;
+  refreshIfChanged(options?: ArtifactWorkspaceLoadOptions): Promise<unknown>;
 }
 
 export interface DbtToolsMcpCliIo {
@@ -37,7 +41,7 @@ export function startRefreshPolling(
   if (pollIntervalMs == null || pollIntervalMs <= 0) return undefined;
 
   const timer = setInterval(() => {
-    void workspace.refreshIfChanged().catch(() => undefined);
+    void workspace.refreshIfChanged({ coldLoadIfUnloaded: false }).catch(() => undefined);
   }, pollIntervalMs);
   timer.unref?.();
   return timer;
@@ -83,6 +87,8 @@ export async function createDbtToolsMcpStack(
     version: readMcpPackageVersion(),
   });
   registerDbtToolsTools(server, handlers);
+  registerDbtToolsResources(server, { workspace, useCases });
+  registerDbtToolsPrompts(server);
   return { server, workspace };
 }
 

@@ -134,9 +134,17 @@ Use one MCP config for many projects; set the artifact path per session:
 
 Then call **`dbt_tools_set_target`** with `{ "target": "./target" }` or a remote URI. GCS impersonation and S3 region stay in startup `env` / flags—not on the tool.
 
+## Resources, prompts, and output schemas
+
+- **Resources** — `dbt-tools://status`, `dbt-tools://runs/current/summary`, and templates for resource metadata, SQL (`text/sql`, size-bounded), and dependencies. See [docs/site/reference/mcp-resources.md](../../docs/site/reference/mcp-resources.md).
+- **Prompts** — `triage_dbt_run`, `analyze_model_blast_radius`, `inspect_dbt_resource`, `optimize_dbt_run`, `review_artifact_snapshot`. See [docs/site/reference/mcp-prompts.md](../../docs/site/reference/mcp-prompts.md).
+- **Output schemas** — every tool publishes `outputSchema` aligned with `structuredContent`. Validation is on by default (`DBT_TOOLS_VALIDATE_OUTPUT` unset or any value other than `0` / `false`). Set **`DBT_TOOLS_VALIDATE_OUTPUT=0`** in production if you prefer to skip server-side output re-parsing. Top-level tool envelopes are strict; nested resource fields use passthrough for forward compatibility.
+
+Protocol smoke (after build): `pnpm smoke:mcp` from the monorepo root.
+
 ## Suggested agent workflow
 
-1. **`dbt_tools_status`** — confirm target is set, loaded, and whether `stale` is true
+1. **`dbt_tools_status`** or read **`dbt-tools://status`** — confirm target is set, loaded, and whether `stale` is true
 2. **`dbt_tools_set_target`** — when `target` is `null`, point at local `target/` or `s3://` / `gs://` prefix
 3. **`dbt_tools_search_resources`** — find models/sources by name or filters
 4. **`dbt_tools_get_resource`** — details for a `unique_id` (set `includeCode: true` when you need SQL)

@@ -36,7 +36,7 @@ dbt-tools-mcp:<skill-directory>
 | `dbt-tools-mcp:query-executions`   | [`query-executions`](skills/query-executions/SKILL.md)     | `dbt_tools_query_executions`   |
 | `dbt-tools-mcp:summarize-run`      | [`summarize-run`](skills/summarize-run/SKILL.md)           | `dbt_tools_get_run_summary`    |
 
-Full tool reference: [`packages/mcp/REFERENCE.md`](../../packages/mcp/REFERENCE.md).
+Full tool reference: [`packages/mcp/REFERENCE.md`](../../packages/mcp/REFERENCE.md). The server also exposes **MCP resources** (`dbt-tools://…`) and **prompts** — see [MCP resources](../../docs/site/reference/mcp-resources.md) and [MCP prompts](../../docs/site/reference/mcp-prompts.md) on the docs site.
 
 ## Configure MCP for your environment
 
