@@ -1,0 +1,56 @@
+import { toolErrorSchema } from '@dbt-tools/core/contracts';
+
+import type { McpJsonToolResult } from './tool-handlers.js';
+import type * as z from 'zod/v4';
+
+function isOutputValidationEnabled(): boolean {
+  const flag = process.env.DBT_TOOLS_VALIDATE_OUTPUT;
+  if (flag === '0' || flag === 'false') return false;
+  return true;
+}
+
+export function jsonResult<T>(
+  schema: z.ZodType<T>,
+  payload: T,
+  options?: { isError?: boolean },
+): McpJsonToolResult {
+  const text = JSON.stringify(payload, null, 2);
+  const base = {
+    content: [{ type: 'text', text } as const],
+    ...(options?.isError === true ? { isError: true } : {}),
+  };
+
+  if (!isOutputValidationEnabled()) {
+    return {
+      ...base,
+      ...(payload !== null && typeof payload === 'object'
+        ? { structuredContent: payload as Record<string, unknown> }
+        : {}),
+    };
+  }
+
+  const parsed = schema.safeParse(payload);
+  if (!parsed.success) {
+    return jsonToolError({
+      error: 'Internal tool output contract validation failed.',
+      hint: parsed.error.message,
+      code: 'output_schema_validation',
+    });
+  }
+
+  return {
+    ...base,
+    ...(payload !== null && typeof payload === 'object'
+      ? { structuredContent: payload as Record<string, unknown> }
+      : {}),
+  };
+}
+
+export function jsonToolError(
+  payload: z.input<typeof toolErrorSchema>,
+  options?: { isError?: boolean },
+): McpJsonToolResult {
+  return jsonResult(toolErrorSchema, toolErrorSchema.parse(payload), {
+    isError: options?.isError ?? true,
+  });
+}

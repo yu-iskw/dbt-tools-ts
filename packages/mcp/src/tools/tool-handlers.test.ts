@@ -30,7 +30,10 @@ class FakeWorkspaceControl implements ArtifactWorkspaceControl {
 
   lastSetTarget: string | null = null;
 
-  async setTarget(target: string): Promise<ArtifactWorkspaceStatus> {
+  async setTarget(
+    target: string,
+    _options?: { onProgress?: (event: unknown) => void },
+  ): Promise<ArtifactWorkspaceStatus> {
     this.lastSetTarget = target;
     this.status = { ...this.status, target, loadedAtMs: 300 };
     return this.status;
@@ -185,7 +188,7 @@ describe('createDbtToolsMcpToolHandlers', () => {
     const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), new FakeUseCases());
     const result = await handlers.dbt_tools_set_target({});
     expect(result.isError).toBe(true);
-    expect(parseToolJson(result)).toMatchObject({ error: 'target is required.' });
+    expect(parseToolJson(result)).toMatchObject({ error: 'Invalid tool input.' });
   });
 
   it('returns isError when analysis runs before target is configured', async () => {
@@ -202,6 +205,15 @@ describe('createDbtToolsMcpToolHandlers', () => {
     });
   });
 
+  it('returns null JSON for missing resources', async () => {
+    const useCases = new FakeUseCases();
+    useCases.getResource = async () => null;
+    const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
+    const result = await handlers.dbt_tools_get_resource({ uniqueId: 'model.pkg.missing' });
+    expect(result.isError).not.toBe(true);
+    expect(parseToolJson(result)).toBeNull();
+  });
+
   it('maps validation errors to isError tool results', async () => {
     const useCases = new FakeUseCases();
     useCases.queryExecutions = async () => {
@@ -211,7 +223,7 @@ describe('createDbtToolsMcpToolHandlers', () => {
       });
     };
     const handlers = createDbtToolsMcpToolHandlers(new FakeWorkspaceControl(), useCases);
-    const result = await handlers.dbt_tools_query_executions({ sort: 'slot_ms_desc' });
+    const result = await handlers.dbt_tools_query_executions({ sort: 'execution_time_desc' });
     expect(result.isError).toBe(true);
     expect(parseToolJson(result)).toMatchObject({
       error: 'bad sort',

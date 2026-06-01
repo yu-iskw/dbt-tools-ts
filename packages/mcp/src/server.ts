@@ -16,6 +16,8 @@ import {
   parseMcpServerOptions,
 } from './options.js';
 import { readMcpPackageVersion } from './package-version.js';
+import { registerDbtToolsPrompts } from './prompts/register-prompts.js';
+import { registerDbtToolsResources } from './resources/register-resources.js';
 import { registerDbtToolsTools } from './tools/register-tools.js';
 import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
 
@@ -83,6 +85,8 @@ export async function createDbtToolsMcpStack(
     version: readMcpPackageVersion(),
   });
   registerDbtToolsTools(server, handlers);
+  registerDbtToolsResources(server, { workspace, useCases });
+  registerDbtToolsPrompts(server);
   return { server, workspace };
 }
 

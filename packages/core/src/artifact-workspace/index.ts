@@ -53,7 +53,25 @@ import type { DependencyResult } from '../analysis/dependencies/service';
 import type { ManifestGraph } from '../analysis/manifest/graph';
 import type { QueryExecutionsRequest } from '../analysis/search/types';
 import type { AnalysisSnapshot, ResourceNode } from '../analysis/snapshot';
+import type {
+  ArtifactWorkspaceCachedTargetRef,
+  ArtifactWorkspaceStatus,
+} from '../contracts/artifact-workspace-status.js';
+import type {
+  ArtifactLoadPhase,
+  ArtifactLoadProgressCallback,
+} from '../progress/artifact-load-progress.js';
 import type { GraphNodeAttributes } from '../types';
+
+export type {
+  ArtifactWorkspaceCachedTargetRef,
+  ArtifactWorkspaceRunRef,
+  ArtifactWorkspaceStatus,
+} from '../contracts/artifact-workspace-status.js';
+
+export interface ArtifactWorkspaceLoadOptions {
+  onProgress?: ArtifactLoadProgressCallback;
+}
 
 export interface ArtifactWorkspaceOptions {
   dbtTarget?: string;
@@ -66,6 +84,8 @@ export interface ArtifactWorkspaceOptions {
   remoteClient?: RemoteObjectStoreClient;
   gcsRequestOptions?: GcsArtifactSourceRequestOptions;
   remoteClientOverrides?: RemoteSourceClientOverrides;
+  /** Optional protocol-level progress for expensive loads (MCP maps when progressToken is set). */
+  onProgress?: ArtifactLoadProgressCallback;
 }
 
 export interface ResolvedArtifactRun {
@@ -76,32 +96,6 @@ export interface ResolvedArtifactRun {
   sourcesKey?: string;
   updatedAtMs: number;
   versionToken: string;
-}
-
-export interface ArtifactWorkspaceRunRef {
-  runId: string;
-  versionToken: string;
-}
-
-export interface ArtifactWorkspaceCachedTargetRef {
-  target: string;
-  loadedAtMs: number;
-  versionToken: string;
-  lastAccessedAtMs: number;
-}
-
-export interface ArtifactWorkspaceStatus {
-  target: string | null;
-  selectedRunId: string | null;
-  versionToken: string | null;
-  loadedAtMs: number | null;
-  stale: boolean;
-  lastRefreshError?: string;
-  runs: ArtifactWorkspaceRunRef[];
-  warehouse_type?: ReturnType<typeof normalizeWarehouseAdapterType>;
-  cachedTargets?: ArtifactWorkspaceCachedTargetRef[];
-  cachePolicy?: { maxTargets: number; ttlMs: number };
-  fromCache?: boolean;
 }
 
 interface LoadedArtifactWorkspace {
@@ -180,6 +174,8 @@ export interface DbtToolsUseCases {
 
 export const SEARCH_RESOURCES_DEFAULT_LIMIT = 20;
 export const SEARCH_RESOURCES_MAX_LIMIT = 200;
+
+const SNAPSHOT_READY_PROGRESS_MESSAGE = 'Snapshot ready';
 
 function clampLimit(value: number | undefined, defaultValue: number, maxValue: number): number {
   if (value == null || !Number.isFinite(value)) return defaultValue;
@@ -296,6 +292,8 @@ export class ArtifactWorkspace {
   private initializePromise: Promise<void> | null = null;
   /** Bumped when the active target binding changes; stale loads must not assign `loaded`. */
   private loadGeneration = 0;
+  private loadProgressCallback: ArtifactLoadProgressCallback | undefined;
+  private readonly refreshProgressListeners = new Set<ArtifactLoadProgressCallback>();
 
   constructor(options: ArtifactWorkspaceOptions) {
     this.dbtTarget = options.dbtTarget ?? null;
@@ -306,44 +304,50 @@ export class ArtifactWorkspace {
     this.injectedRemoteClient = options.remoteClient;
     this.gcsRequestOptions = options.gcsRequestOptions;
     this.remoteClientOverrides = options.remoteClientOverrides;
+    this.loadProgressCallback = options.onProgress;
   }
 
-  async setTarget(target: string): Promise<ArtifactWorkspaceStatus> {
+  private reportProgress(phase: ArtifactLoadPhase, progress: number, message: string): void {
+    const event = { phase, progress, message };
+    this.loadProgressCallback?.(event);
+    for (const listener of [...this.refreshProgressListeners]) {
+      listener(event);
+    }
+  }
+
+  async setTarget(
+    target: string,
+    options?: ArtifactWorkspaceLoadOptions,
+  ): Promise<ArtifactWorkspaceStatus> {
     return this.runSerialized(async () => {
-      const trimmed = target.trim();
-      if (trimmed === '') {
-        throw new Error('target is required.');
+      const previousProgress = this.loadProgressCallback;
+      if (options?.onProgress != null) {
+        this.loadProgressCallback = options.onProgress;
       }
-      this.evictExpired();
-      const cacheKey = trimmed;
-      const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
-      this.dbtTarget = trimmed;
-      this.stale = false;
-      this.lastRefreshError = undefined;
-      if (cached != null) {
-        this.touchCacheEntry(cacheKey, cached);
-        this.runs = cached.runs;
-        this.selectedRunId = cached.selectedRunId;
-        this.loaded = cached.loaded;
-        try {
-          const revalidated = await this.revalidateCachedLoad(cached);
-          if (revalidated) {
-            this.syncActiveToCache();
-            return this.status();
-          }
-        } catch (error) {
-          this.stale = true;
-          this.lastRefreshError = error instanceof Error ? error.message : String(error);
+      try {
+        const trimmed = target.trim();
+        if (trimmed === '') {
+          throw new Error('target is required.');
         }
-        return this.status({ fromCache: true });
+        this.evictExpired();
+        const cacheKey = trimmed;
+        const cached = this.maxCachedTargets > 0 ? this.targetCache.get(cacheKey) : undefined;
+        this.dbtTarget = trimmed;
+        this.stale = false;
+        this.lastRefreshError = undefined;
+        if (cached != null) {
+          return await this.applyCachedTarget(cacheKey, cached);
+        }
+        this.bumpLoadGeneration();
+        this.selectedRunId = null;
+        this.runs = [];
+        this.loaded = null;
+        await this.ensureInitialized();
+        this.syncActiveToCache();
+        return this.status();
+      } finally {
+        this.loadProgressCallback = previousProgress;
       }
-      this.bumpLoadGeneration();
-      this.selectedRunId = null;
-      this.runs = [];
-      this.loaded = null;
-      await this.ensureInitialized();
-      this.syncActiveToCache();
-      return this.status();
     });
   }
 
@@ -394,6 +398,7 @@ export class ArtifactWorkspace {
     const startedAt = dbtToolsDebugNow();
     const configuredTarget = this.requireTarget();
     dbtToolsDebugLog(`initialize start target=${configuredTarget}`);
+    this.reportProgress('validate-target', 5, 'Validating artifact target');
     const source = await this.discoverSource();
     if (!this.bindingStillActive(binding)) {
       dbtToolsDebugLog(`initialize aborted (stale) target=${configuredTarget}`);
@@ -427,18 +432,63 @@ export class ArtifactWorkspace {
     this.stale = false;
     this.lastRefreshError = undefined;
     this.syncActiveToCache();
+    this.reportProgress('ready', 100, SNAPSHOT_READY_PROGRESS_MESSAGE);
     dbtToolsDebugLogPhase('initialize complete', startedAt, `runId=${run.runId}`);
   }
 
-  async refreshIfChanged(): Promise<ArtifactWorkspaceStatus> {
+  private reportSnapshotReadyIfListening(): void {
+    if (this.loadProgressCallback != null) {
+      this.reportProgress('ready', 100, SNAPSHOT_READY_PROGRESS_MESSAGE);
+    }
+  }
+
+  private async applyCachedTarget(
+    cacheKey: string,
+    cached: CachedTargetEntry,
+  ): Promise<ArtifactWorkspaceStatus> {
+    this.touchCacheEntry(cacheKey, cached);
+    this.runs = cached.runs;
+    this.selectedRunId = cached.selectedRunId;
+    this.loaded = cached.loaded;
+    try {
+      const revalidated = await this.revalidateCachedLoad(cached);
+      if (revalidated) {
+        this.syncActiveToCache();
+        this.reportSnapshotReadyIfListening();
+        return this.status();
+      }
+    } catch (error) {
+      this.stale = true;
+      this.lastRefreshError = error instanceof Error ? error.message : String(error);
+    }
+    if (!this.stale) {
+      this.reportProgress('ready', 100, SNAPSHOT_READY_PROGRESS_MESSAGE);
+    }
+    return this.status({ fromCache: true });
+  }
+
+  async refreshIfChanged(options?: ArtifactWorkspaceLoadOptions): Promise<ArtifactWorkspaceStatus> {
     if (this.dbtTarget == null) {
       return this.status();
     }
-    if (this.refreshPromise != null) return this.refreshPromise;
-    this.refreshPromise = this.runSerialized(() => this.refreshIfChangedInternal()).finally(() => {
-      this.refreshPromise = null;
-    });
-    return this.refreshPromise;
+    const listener = options?.onProgress;
+    if (listener != null) {
+      this.refreshProgressListeners.add(listener);
+    }
+    try {
+      if (this.refreshPromise == null) {
+        this.refreshPromise = this.runSerialized(() => this.refreshIfChangedInternal()).finally(
+          () => {
+            this.refreshPromise = null;
+          },
+        );
+      }
+      return await this.refreshPromise;
+    } finally {
+      if (listener != null) {
+        this.refreshProgressListeners.delete(listener);
+      }
+    }
   }
 
   async getStatus(): Promise<ArtifactWorkspaceStatus> {
@@ -717,11 +767,13 @@ export class ArtifactWorkspace {
     const parsed = parseDbtToolsArtifactTarget(this.requireTarget(), this.cwd);
     dbtToolsDebugLog(`discoverSource kind=${parsed.kind}`);
     if (parsed.kind === 'local') {
+      this.reportProgress('discover-bundle', 25, 'Discovering artifact bundle');
       const { discovery, runs } = await discoverLocalArtifactRunPaths(parsed.resolvedPath);
       dbtToolsDebugLogPhase('discoverSource local done', startedAt, `runs=${runs.length}`);
       return { kind: 'local', discovery, runs };
     }
 
+    this.reportProgress('list-objects', 15, 'Listing artifact objects');
     const { gcsRequestOptions, remoteClientOverrides } = this.mergeRemoteClientEnvLayers(
       getDbtToolsRemoteClientEnvFromEnv(),
       {
@@ -738,6 +790,7 @@ export class ArtifactWorkspace {
     const client = this.injectedRemoteClient ?? (await createRemoteObjectStoreClient(config));
     const prefix = normalizeArtifactPrefix(config.prefix);
     const objects = await client.listObjects(config.bucket, prefix);
+    this.reportProgress('discover-bundle', 25, 'Discovering artifact bundle');
     const discovery = discoverArtifactCandidates(remoteKeysToListedArtifacts(objects, prefix));
     dbtToolsDebugLog(`discoverSource remote listed=${objects.length} discoveryOk=${discovery.ok}`);
     const runs: ResolvedArtifactRun[] = discovery.ok
@@ -772,6 +825,7 @@ export class ArtifactWorkspace {
     dbtToolsDebugLog(
       `loadRun read bytes manifest=${manifestBytes.byteLength} run_results=${runResultsBytes.byteLength}`,
     );
+    this.reportProgress('parse-artifacts', 75, 'Parsing dbt artifacts');
     const manifestJson = decodeJson(manifestBytes);
     const runResultsJson = decodeJson(runResultsBytes);
     const catalogJson = optionalDecodeJson(catalogBytes);
@@ -780,6 +834,7 @@ export class ArtifactWorkspace {
     const runResults = parseRunResults(runResultsJson);
     const catalog = catalogJson == null ? undefined : parseCatalog(catalogJson);
     const sources = sourcesJson == null ? undefined : parseSources(sourcesJson);
+    this.reportProgress('build-graph', 85, 'Building dependency graph');
     const { analysis, graph } = buildAnalysisSnapshotFromParsedArtifactBundle({
       manifestJson,
       runResultsJson,
@@ -790,6 +845,7 @@ export class ArtifactWorkspace {
       catalog,
       sources,
     });
+    this.reportProgress('build-snapshot', 95, 'Building analysis snapshot');
     dbtToolsDebugLogPhase('loadRun complete', startedAt, `resources=${analysis.resources.length}`);
     return {
       run,
@@ -838,9 +894,12 @@ export class ArtifactWorkspace {
         return null;
       }
     };
-    const [manifestBytes, runResultsBytes, catalogBytes, sourcesBytes] = await Promise.all([
-      source.client.readObjectBytes(source.bucket, run.manifestKey),
-      source.client.readObjectBytes(source.bucket, run.runResultsKey),
+    this.reportProgress('download-manifest', 40, 'Downloading manifest');
+    const manifestBytes = await source.client.readObjectBytes(source.bucket, run.manifestKey);
+    this.reportProgress('download-run-results', 50, 'Downloading run results');
+    const runResultsBytes = await source.client.readObjectBytes(source.bucket, run.runResultsKey);
+    this.reportProgress('download-optional-artifacts', 60, 'Downloading optional artifacts');
+    const [catalogBytes, sourcesBytes] = await Promise.all([
       readOptional(run.catalogKey),
       readOptional(run.sourcesKey),
     ]);

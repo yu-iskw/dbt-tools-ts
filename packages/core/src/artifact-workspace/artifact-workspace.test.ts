@@ -423,6 +423,73 @@ describe('ArtifactWorkspace', () => {
     expect(remoteClient.reads.length).toBeGreaterThan(readsAfterA);
   });
 
+  it('fans out refresh progress to coalesced refreshIfChanged callers', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ maxCachedTargets: 1, now: () => 100 });
+    await workspace.setTarget(tempDir);
+
+    let releaseRefresh: (() => void) | undefined;
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    const originalDiscover = (
+      workspace as unknown as { discoverSource: () => Promise<unknown> }
+    ).discoverSource.bind(workspace);
+    (workspace as unknown as { discoverSource: () => Promise<unknown> }).discoverSource =
+      async () => {
+        await refreshGate;
+        return originalDiscover();
+      };
+
+    const eventsA: Array<{ phase: string }> = [];
+    const eventsB: Array<{ phase: string }> = [];
+    const refreshA = workspace.refreshIfChanged({ onProgress: (event) => eventsA.push(event) });
+    const refreshB = workspace.refreshIfChanged({ onProgress: (event) => eventsB.push(event) });
+    releaseRefresh?.();
+    await Promise.all([refreshA, refreshB]);
+
+    expect(eventsA.length).toBeGreaterThan(0);
+    expect(eventsB.length).toBeGreaterThan(0);
+  });
+
+  it('reports ready progress when serving setTarget from cache', async () => {
+    await writeArtifacts(tempDir);
+    const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 100 });
+    await workspace.setTarget(tempDir);
+
+    const events: Array<{ phase: string; progress: number }> = [];
+    const status = await workspace.setTarget(tempDir, {
+      onProgress: (event) => events.push(event),
+    });
+
+    expect(status.fromCache).toBe(true);
+    expect(events.some((event) => event.phase === 'ready' && event.progress === 100)).toBe(true);
+  });
+
+  it('reports ready progress when cached target revalidates after remote artifact change', async () => {
+    const remoteClient = new FakeRemoteObjectStoreClient();
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`prefix-a/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+    remoteClient.put(`other/${DBT_MANIFEST_JSON}`, manifestJson, 1);
+    remoteClient.put(`other/${DBT_RUN_RESULTS_JSON}`, runResultsJson, 1);
+
+    const workspace = new ArtifactWorkspace({
+      maxCachedTargets: 2,
+      remoteClient,
+      now: () => 100,
+    });
+    await workspace.setTarget('s3://bucket/prefix-a');
+    await workspace.setTarget('s3://bucket/other');
+    remoteClient.put(`prefix-a/${DBT_MANIFEST_JSON}`, manifestJson, 2);
+
+    const events: Array<{ phase: string; progress: number }> = [];
+    await workspace.setTarget('s3://bucket/prefix-a', {
+      onProgress: (event) => events.push(event),
+    });
+
+    expect(events.some((event) => event.phase === 'ready' && event.progress === 100)).toBe(true);
+  });
+
   it('clearCachedTargets drops cache and active loaded state', async () => {
     await writeArtifacts(tempDir);
     const workspace = new ArtifactWorkspace({ maxCachedTargets: 2, now: () => 123 });

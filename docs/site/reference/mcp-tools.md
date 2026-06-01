@@ -15,7 +15,7 @@ Set **remote client flags** (GCS impersonation, S3 region/endpoint) at **server 
 | `dbt_tools_unset_target`         | Clear active target; retain LRU cache                |
 | `dbt_tools_clear_cached_targets` | Drop all in-memory parsed caches                     |
 | `dbt_tools_refresh`              | Reload when upstream artifacts change                |
-| `dbt_tools_search_resources`     | Search / discover resources                          |
+| `dbt_tools_search_resources`     | Search / discover resources (default `limit: 20`)    |
 | `dbt_tools_get_resource`         | Resource details by `uniqueId`                       |
 | `dbt_tools_query_dependencies`   | Upstream / downstream lineage                        |
 | `dbt_tools_query_executions`     | Filter and sort executions                           |
@@ -51,8 +51,33 @@ Besides `target`, `loadedAtMs`, `stale`, and `runs[]`, status may include:
 
 Full examples and per-tool inputs: [`packages/mcp/REFERENCE.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/REFERENCE.md).
 
+### `dbt_tools_search_resources` pagination
+
+When `limit` is omitted, the MCP tool applies **`limit: 20`** (agent-safe cap). The core search API without a limit returns all matches; only the MCP tool input layer applies this default.
+
+## Output schemas
+
+Each tool publishes an **`outputSchema`** (Zod-derived JSON Schema) matching `structuredContent`. Tool JSON shapes are unchanged from prior releases. When `DBT_TOOLS_VALIDATE_OUTPUT` is enabled (default), outputs are validated but **extra fields are preserved** (forward-compatible with newer `ResourceNode` fields). Internal contract drift returns `isError: true` with **`Internal tool output contract validation failed.`** (and optional `code: "output_schema_validation"`) — not a user input error. Disable validation with `DBT_TOOLS_VALIDATE_OUTPUT=0` if needed.
+
+## SQL size limits
+
+`dbt_tools_get_resource` with `includeCode: true` returns the same byte-bounded SQL as [MCP resources](./mcp-resources.md) (256 KiB default, 1 MiB absolute cap). Truncated SQL includes a trailing `dbt-tools:` notice line.
+
+## Errors (tools)
+
+| Condition                                   | Tool behavior                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| No target configured                        | `isError: true` with `error` and `hint`                            |
+| Invalid tool input                          | `isError: true` (`Invalid tool input: …` from Zod)                 |
+| Unknown resource (`dbt_tools_get_resource`) | Success with JSON `null` (not `isError`)                           |
+| Output contract validation (server-side)    | `isError: true` with internal contract message and optional `code` |
+
+Resources use MCP protocol errors (`InvalidParams`) for missing targets and unknown resources — see [MCP resources](./mcp-resources.md#errors-resources).
+
 ## Learn more
 
+- [MCP resources](./mcp-resources.md) — `dbt-tools://` URIs and templates
+- [MCP prompts](./mcp-prompts.md) — user-invoked workflows
 - [Configuration](./configuration.md) — all `DBT_TOOLS_*` variables
 - [Local and remote artifacts](../concepts/local-and-remote-artifacts.md) — S3, GCS, impersonation
 - [MCP getting started](../guide/mcp/getting-started.md)

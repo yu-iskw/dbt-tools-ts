@@ -13,6 +13,15 @@ export default {
         repoRoot,
         'packages/core/src/artifact-workspace.ts',
       ),
+      '@dbt-tools/core/contracts': path.resolve(repoRoot, 'packages/core/src/contracts/index.ts'),
+      '@dbt-tools/core/progress/artifact-load-progress': path.resolve(
+        repoRoot,
+        'packages/core/src/progress/artifact-load-progress.ts',
+      ),
+      '@dbt-tools/core/util/sql-truncation': path.resolve(
+        repoRoot,
+        'packages/core/src/util/sql-truncation.ts',
+      ),
       '@dbt-tools/core/browser': path.resolve(repoRoot, 'packages/core/src/browser.ts'),
       '@dbt-tools/core': path.resolve(repoRoot, 'packages/core/src/index.ts'),
       'dbt-artifacts-parser/test-utils': path.resolve(
