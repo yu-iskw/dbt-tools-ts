@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { mkdtempValidated, resolveJoinedSafe, writeValidatedUtf8 } from '@dbt-tools/core';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolveCliArtifactPaths, resolveEffectiveDbtTarget } from './cli-artifact-resolve';
+import { resolveCliArtifactPaths, resolveEffectiveDbtTarget } from './cli-artifact-resolve.js';
 
 describe('cli-artifact-resolve', () => {
   const prevDbtTarget = process.env.DBT_TOOLS_DBT_TARGET;

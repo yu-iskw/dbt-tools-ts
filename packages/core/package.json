@@ -65,19 +65,19 @@
     "test:watch": "vitest --project @dbt-tools/core"
   },
   "dependencies": {
-    "zod": "^4.4.3",
-    "@aws-sdk/client-s3": "^3.1025.0",
-    "@google-cloud/storage": "^7.19.0",
-    "google-auth-library": "^9.15.1",
-    "dbt-artifacts-parser": "^0.5.5",
+    "@aws-sdk/client-s3": "^3.1076.0",
+    "@google-cloud/storage": "^7.21.0",
+    "dbt-artifacts-parser": "^0.5.6",
+    "google-auth-library": "^10.9.0",
     "graphology": "^0.26.0",
     "graphology-dag": "^0.4.1",
-    "node-sql-parser": "^5.4.0"
+    "node-sql-parser": "^5.4.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.2"
+    "@types/node": "^26.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
   },
   "publishConfig": {
     "access": "public"

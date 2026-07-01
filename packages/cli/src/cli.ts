@@ -33,10 +33,10 @@ import {
   statusAction,
   queryExecutionsAction,
   runSummaryAction,
-} from './cli-actions';
-import { resolveCliArtifactPaths } from './internal/cli-artifact-resolve';
-import { registerQueryExecutionsCommand } from './internal/cli-query-executions-register';
-import { CLI_PACKAGE_VERSION } from './internal/version';
+} from './cli-actions.js';
+import { resolveCliArtifactPaths } from './internal/cli-artifact-resolve.js';
+import { registerQueryExecutionsCommand } from './internal/cli-query-executions-register.js';
+import { CLI_PACKAGE_VERSION } from './internal/version.js';
 
 const program = new Command();
 

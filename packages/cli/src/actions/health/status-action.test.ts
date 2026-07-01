@@ -9,9 +9,9 @@ import {
 } from '@dbt-tools/core';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { statusAction, formatStatus } from './status-action';
+import { statusAction, formatStatus } from './status-action.js';
 
-import type { StatusResult } from './status-action';
+import type { StatusResult } from './status-action.js';
 
 describe('statusAction', () => {
   const handleError = (error: unknown) => {

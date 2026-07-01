@@ -7,9 +7,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createJaffleArtifactBundleDir,
   createJaffleManifestOnlyDir,
-} from '../../internal/cli-test-bundle-dir';
+} from '../../internal/cli-test-bundle-dir.js';
 
-import { inventoryAction, formatInventory } from './inventory-action';
+import { inventoryAction, formatInventory } from './inventory-action.js';
 
 describe('inventoryAction', () => {
   const handleError = (error: unknown) => {

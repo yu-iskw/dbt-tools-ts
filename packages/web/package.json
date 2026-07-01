@@ -51,21 +51,21 @@
   },
   "dependencies": {
     "@dbt-tools/core": "workspace:*",
-    "@tanstack/react-virtual": "^3.13.23",
-    "dbt-artifacts-parser": "^0.5.5",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "@tanstack/react-virtual": "^3.14.4",
+    "dbt-artifacts-parser": "^0.5.6",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
-    "@types/node": "^25.5.2",
-    "@types/react": "^19.2.14",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.5"
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.2"
   },
   "publishConfig": {
     "access": "public"

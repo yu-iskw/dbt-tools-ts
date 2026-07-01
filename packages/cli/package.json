@@ -21,6 +21,7 @@
   "engines": {
     "node": ">=20"
   },
+  "type": "module",
   "bin": {
     "dbt-tools": "./dist/cli.js"
   },
@@ -37,13 +38,13 @@
   },
   "dependencies": {
     "@dbt-tools/core": "workspace:*",
-    "commander": "^14.0.3",
-    "dbt-artifacts-parser": "^0.5.5"
+    "commander": "^15.0.0",
+    "dbt-artifacts-parser": "^0.5.6"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.2"
+    "@types/node": "^26.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
   },
   "publishConfig": {
     "access": "public"

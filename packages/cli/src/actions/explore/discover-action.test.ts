@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createJaffleArtifactBundleDir,
   createJaffleManifestOnlyDir,
-} from '../../internal/cli-test-bundle-dir';
+} from '../../internal/cli-test-bundle-dir.js';
 
-import { discoverAction, formatDiscoverHuman } from './discover-action';
+import { discoverAction, formatDiscoverHuman } from './discover-action.js';
 
 describe('discoverAction', () => {
   const handleError = (error: unknown) => {

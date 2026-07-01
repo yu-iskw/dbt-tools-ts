@@ -1,5 +1,5 @@
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
-import { Storage } from '@google-cloud/storage';
+import { Storage, type StorageOptions } from '@google-cloud/storage';
 import { GoogleAuth, Impersonated } from 'google-auth-library';
 
 import {
@@ -135,9 +135,11 @@ async function createGcsStorage(config: DbtToolsRemoteSourceConfig): Promise<Sto
     delegates: [],
     targetScopes: ['https://www.googleapis.com/auth/devstorage.read_only'],
   });
+  // @google-cloud/storage types pin google-auth-library v9 (`gaxios`); runtime accepts v10 clients.
+  const authClient = impersonatedClient as unknown as NonNullable<StorageOptions['authClient']>;
   const storage = new Storage({
     projectId: config.projectId,
-    authClient: impersonatedClient,
+    authClient,
   });
   dbtToolsDebugLogPhase('GCS client ready (impersonated)', startedAt);
   return storage;

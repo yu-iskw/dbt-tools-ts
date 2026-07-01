@@ -19,7 +19,7 @@ import {
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve';
+} from '../../internal/cli-artifact-resolve.js';
 
 import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 

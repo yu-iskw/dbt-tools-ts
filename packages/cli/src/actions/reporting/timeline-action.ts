@@ -25,7 +25,7 @@ import {
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve';
+} from '../../internal/cli-artifact-resolve.js';
 
 export type TimelineOptions = ArtifactRootCliOptions & {
   sort?: string;

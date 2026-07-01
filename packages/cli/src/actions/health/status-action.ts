@@ -20,7 +20,7 @@ import {
   resolveCliArtifactPaths,
   resolveEffectiveDbtTarget,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve';
+} from '../../internal/cli-artifact-resolve.js';
 
 export type StatusOptions = ArtifactRootCliOptions & {
   json?: boolean;

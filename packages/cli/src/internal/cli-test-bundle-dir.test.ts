@@ -5,7 +5,7 @@ import {
   createJaffleArtifactBundleDir,
   createJaffleManifestOnlyDir,
   createJaffleRunResultsOnlyDir,
-} from './cli-test-bundle-dir';
+} from './cli-test-bundle-dir.js';
 
 describe('cli-test-bundle-dir', () => {
   it('creates a bundle dir with manifest and run_results', async () => {

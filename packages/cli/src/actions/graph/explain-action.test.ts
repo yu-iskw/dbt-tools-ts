@@ -1,9 +1,9 @@
 import { rmValidated } from '@dbt-tools/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createJaffleArtifactBundleDir } from '../../internal/cli-test-bundle-dir';
+import { createJaffleArtifactBundleDir } from '../../internal/cli-test-bundle-dir.js';
 
-import { explainAction } from './explain-action';
+import { explainAction } from './explain-action.js';
 
 describe('explainAction', () => {
   const handleError = (error: unknown) => {
