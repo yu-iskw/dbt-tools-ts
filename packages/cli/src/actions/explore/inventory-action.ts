@@ -15,8 +15,8 @@ import {
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve.js';
-import { applyListPaging } from '../../internal/cli-pagination.js';
+} from '../../internal/cli-artifact-resolve';
+import { applyListPaging } from '../../internal/cli-pagination';
 
 export type InventoryOptions = ArtifactRootCliOptions & {
   type?: string;

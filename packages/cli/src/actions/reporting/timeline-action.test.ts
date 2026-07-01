@@ -7,9 +7,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createJaffleArtifactBundleDir,
   createJaffleRunResultsOnlyDir,
-} from '../../internal/cli-test-bundle-dir.js';
+} from '../../internal/cli-test-bundle-dir';
 
-import { timelineAction, formatTimeline, formatTimelineCsv } from './timeline-action.js';
+import { timelineAction, formatTimeline, formatTimelineCsv } from './timeline-action';
 
 describe('timelineAction', () => {
   const handleError = (error: unknown) => {

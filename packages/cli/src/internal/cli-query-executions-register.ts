@@ -1,4 +1,4 @@
-import type { QueryExecutionsOptions } from '../actions/reporting/query-executions-action.js';
+import type { QueryExecutionsOptions } from '../actions/reporting/query-executions-action';
 import type { Command } from 'commander';
 
 type RegisterOpts = {

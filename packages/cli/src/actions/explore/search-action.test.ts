@@ -7,9 +7,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createJaffleArtifactBundleDir,
   createJaffleManifestOnlyDir,
-} from '../../internal/cli-test-bundle-dir.js';
+} from '../../internal/cli-test-bundle-dir';
 
-import { searchAction, formatSearch } from './search-action.js';
+import { searchAction, formatSearch } from './search-action';
 
 describe('searchAction', () => {
   const handleError = (error: unknown) => {

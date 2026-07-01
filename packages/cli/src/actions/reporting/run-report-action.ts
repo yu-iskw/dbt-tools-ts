@@ -30,12 +30,12 @@ import {
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve.js';
+} from '../../internal/cli-artifact-resolve';
 import {
   parseListOffset,
   assertOffsetRequiresLimit,
   parseOptionalListLimit,
-} from '../../internal/cli-pagination.js';
+} from '../../internal/cli-pagination';
 
 type RunReportOptions = ArtifactRootCliOptions & {
   fields?: string;

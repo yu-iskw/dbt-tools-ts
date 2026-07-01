@@ -23,8 +23,8 @@ import {
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve.js';
-import { parseListOffset, resolveFailuresLimit } from '../../internal/cli-pagination.js';
+} from '../../internal/cli-artifact-resolve';
+import { parseListOffset, resolveFailuresLimit } from '../../internal/cli-pagination';
 
 export type FailuresOptions = ArtifactRootCliOptions & {
   fields?: string;

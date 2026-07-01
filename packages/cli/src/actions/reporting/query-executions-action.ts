@@ -16,8 +16,8 @@ import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve.js';
-import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination.js';
+} from '../../internal/cli-artifact-resolve';
+import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination';
 
 export type QueryExecutionsOptions = ArtifactRootCliOptions & {
   warehouse?: WarehouseAdapterType;

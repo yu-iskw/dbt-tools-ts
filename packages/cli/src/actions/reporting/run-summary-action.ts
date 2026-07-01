@@ -13,7 +13,7 @@ import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve.js';
+} from '../../internal/cli-artifact-resolve';
 
 export type RunSummaryOptions = ArtifactRootCliOptions & {
   fields?: string;

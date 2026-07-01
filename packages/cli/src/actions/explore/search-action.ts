@@ -15,7 +15,7 @@ import {
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve.js';
+} from '../../internal/cli-artifact-resolve';
 
 export type SearchOptions = ArtifactRootCliOptions & {
   type?: string;

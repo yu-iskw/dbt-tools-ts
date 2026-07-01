@@ -1,9 +1,9 @@
 import { rmValidated } from '@dbt-tools/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createJaffleArtifactBundleDir } from '../../internal/cli-test-bundle-dir.js';
+import { createJaffleArtifactBundleDir } from '../../internal/cli-test-bundle-dir';
 
-import { impactAction } from './impact-action.js';
+import { impactAction } from './impact-action';
 
 describe('impactAction', () => {
   const handleError = (error: unknown) => {

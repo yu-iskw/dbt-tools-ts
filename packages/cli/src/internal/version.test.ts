@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { readValidatedUtf8Sync } from '@dbt-tools/core';
 import { describe, expect, it } from 'vitest';
 
-import { CLI_PACKAGE_VERSION } from './version.js';
+import { CLI_PACKAGE_VERSION } from './version';
 
 describe('CLI package version', () => {
   it('matches package.json (guards __dirname depth under dist/internal/)', () => {
