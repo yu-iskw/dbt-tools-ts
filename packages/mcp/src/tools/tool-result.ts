@@ -69,3 +69,10 @@ export function outputSchemaValidationToolResult(hint: string): McpJsonToolResul
     code: 'output_schema_validation',
   });
 }
+
+export function invalidToolInputResult(error: z.ZodError): McpJsonToolResult {
+  return jsonToolError({
+    error: 'Invalid tool input.',
+    hint: error.message,
+  });
+}

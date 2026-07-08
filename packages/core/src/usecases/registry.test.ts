@@ -89,17 +89,20 @@ describe('USE_CASE_REGISTRY', () => {
     expect(output.summary.total_nodes).toBeGreaterThan(0);
   });
 
+  it('resource.search defaults limit when omitted', () => {
+    const useCase = USE_CASE_REGISTRY.find((entry) => entry.name === 'resource.search')!;
+    const output = useCase.run(loaded, { query: 'model' });
+    expect(output.limit).toBe(20);
+    expect(output.results.length).toBeLessThanOrEqual(20);
+    expect(useCase.output.safeParse(output).success).toBe(true);
+  });
+
   it('resource.dependencies returns contract-valid output for a model', () => {
     const useCase = USE_CASE_REGISTRY.find((entry) => entry.name === 'resource.dependencies')!;
     const output = useCase.run(loaded, {
       uniqueId: 'model.jaffle_shop.customers',
       direction: 'upstream',
     });
-    const parsed = useCase.output.safeParse(output);
-    if (!parsed.success) {
-      expect(parsed.error?.issues.length).toBeGreaterThan(0);
-    } else {
-      expect(parsed.success).toBe(true);
-    }
+    expect(useCase.output.safeParse(output).success).toBe(true);
   });
 });

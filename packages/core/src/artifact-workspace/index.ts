@@ -1,9 +1,5 @@
 import { normalizeWarehouseAdapterType } from '../analysis/search/warehouse';
 import { DEFAULT_MAX_CACHED_TARGETS, type DbtToolsRemoteClientEnv } from '../config/dbt-tools-env';
-import { queryDependenciesInputSchema } from '../contracts/dependency-query-input.js';
-import { getResourceInputSchema } from '../contracts/get-resource-input.js';
-import { queryExecutionsInputSchema } from '../contracts/query-executions-input.js';
-import { searchResourcesInputSchema } from '../contracts/search-resources-input.js';
 import {
   dbtToolsDebugLog,
   dbtToolsDebugLogPhase,
@@ -664,58 +660,29 @@ export class ArtifactWorkspace {
 }
 
 export function createDbtToolsUseCases(workspace: ArtifactWorkspace): DbtToolsUseCases {
-  const runLoaded = async <In, Out>(useCaseName: string, input: In): Promise<Out> => {
-    const loaded = await workspace.getLoadedWorkspace();
-    const useCase = findUseCaseByName(useCaseName);
-    if (useCase == null) {
-      throw new Error(`Unknown use case: ${useCaseName}`);
-    }
-    return useCase.run(loaded, input) as Out;
-  };
-
   return {
-    async searchResources(input) {
-      const parsed = searchResourcesInputSchema.parse({
-        query: input.query,
-        type: input.type,
-        package: input.package,
-        tag: input.tag,
-        path: input.path,
-        limit: input.limit,
-        offset: input.offset ?? 0,
-      });
-      return runLoaded('resource.search', parsed);
+    searchResources(input) {
+      return workspace.runUseCase('resource.search', input);
     },
 
     async getResource(input) {
-      const parsed = getResourceInputSchema.parse({
-        uniqueId: input.uniqueId,
-        includeCode: input.includeCode,
-      });
-      const result = await runLoaded<
-        typeof parsed,
+      const result = await workspace.runUseCase<
+        { uniqueId: string; includeCode?: boolean },
         { resource: ResourceDetails | null }
-      >('resource.details', parsed);
+      >('resource.details', input);
       return result.resource;
     },
 
-    async queryDependencies(input) {
-      const parsed = queryDependenciesInputSchema.parse({
-        uniqueId: input.uniqueId,
-        direction: input.direction,
-        depth: input.depth,
-        buildOrder: input.buildOrder,
-      });
-      return runLoaded('resource.dependencies', parsed);
+    queryDependencies(input) {
+      return workspace.runUseCase('resource.dependencies', input);
     },
 
-    async queryExecutions(input) {
-      const parsed = queryExecutionsInputSchema.parse(input);
-      return runLoaded('runs.query', parsed);
+    queryExecutions(input) {
+      return workspace.runUseCase('runs.query', input);
     },
 
-    async getRunSummary() {
-      return runLoaded('runs.summary', {});
+    getRunSummary() {
+      return workspace.runUseCase('runs.summary', {});
     },
   };
 }

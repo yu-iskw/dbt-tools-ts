@@ -14,3 +14,13 @@ export const searchResourcesInputSchema = z.object({
 });
 
 export type SearchResourcesInputContract = z.infer<typeof searchResourcesInputSchema>;
+
+export function normalizeSearchResourcesInput(
+  input: SearchResourcesInputContract,
+): SearchResourcesInputContract {
+  return {
+    ...input,
+    limit: input.limit ?? SEARCH_RESOURCES_DEFAULT_LIMIT,
+    offset: input.offset ?? 0,
+  };
+}

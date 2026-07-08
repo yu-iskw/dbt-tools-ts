@@ -9,11 +9,10 @@ import {
 
 import { createRegistryAnalysisToolHandlers } from './register-registry-analysis-tools.js';
 import { setTargetInputSchema } from './tool-input-schemas.js';
-import { jsonResult, jsonToolError } from './tool-result.js';
+import { invalidToolInputResult, jsonResult, jsonToolError } from './tool-result.js';
 
 import type { ArtifactWorkspaceControl } from '../workspace-control.js';
 import type { DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
-import type * as z from 'zod/v4';
 
 export type { ArtifactWorkspaceControl } from '../workspace-control.js';
 
@@ -25,13 +24,6 @@ export interface McpJsonToolResult {
 }
 
 type ToolInput = Record<string, unknown>;
-
-function invalidInputResult(error: z.ZodError): McpJsonToolResult {
-  return jsonToolError({
-    error: 'Invalid tool input.',
-    hint: error.message,
-  });
-}
 
 function validationErrorResult(error: QueryExecutionsValidationError): McpJsonToolResult {
   return jsonToolError({
@@ -74,7 +66,7 @@ export function createDbtToolsMcpToolHandlers(
     ): Promise<McpJsonToolResult> => {
       const parsed = setTargetInputSchema.safeParse(input);
       if (!parsed.success) {
-        return invalidInputResult(parsed.error);
+        return invalidToolInputResult(parsed.error);
       }
       try {
         assertRemoteFlagsMatchTarget(parsed.data.target, startupOptions);

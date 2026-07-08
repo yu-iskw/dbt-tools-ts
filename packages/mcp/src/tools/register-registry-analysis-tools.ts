@@ -2,6 +2,7 @@ import { getResourceToolOutputSchema, toQueryExecutionsRequest } from '@dbt-tool
 import {
   MCP_ANALYSIS_TOOL_NAMES,
   USE_CASE_REGISTRY,
+  findUseCaseByName,
 } from '@dbt-tools/core/usecases';
 
 import { runToolWithLoadedUseCases } from '../loaded-use-cases.js';
@@ -14,7 +15,7 @@ import {
   searchResourcesInputSchema,
   toSearchResourcesInput,
 } from './tool-input-schemas.js';
-import { jsonToolError } from './tool-result.js';
+import { invalidToolInputResult } from './tool-result.js';
 
 import type { DbtToolsMcpToolHandlers } from './tool-handlers.js';
 import type { DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
@@ -23,12 +24,12 @@ import type * as z from 'zod/v4';
 
 type ToolInput = Record<string, unknown>;
 
-function invalidInputResult(error: z.ZodError) {
-  return jsonToolError({
-    error: 'Invalid tool input.',
-    hint: error.message,
-  });
-}
+const MCP_INPUT_SCHEMAS: Record<string, z.ZodType<unknown>> = {
+  'resource.search': searchResourcesInputSchema,
+  'resource.details': getResourceInputSchema,
+  'resource.dependencies': queryDependenciesInputSchema,
+  'runs.query': queryExecutionsInputSchema,
+};
 
 /**
  * Register analysis tools from the shared use-case registry (RFC-0001 §4.4).
@@ -40,14 +41,6 @@ export function registerRegistryAnalysisTools(
     'dbt_tools_get_resource' | 'dbt_tools_get_run_summary' | 'dbt_tools_query_dependencies' | 'dbt_tools_query_executions' | 'dbt_tools_search_resources'
   >,
 ): void {
-  const inputSchemas: Record<string, z.ZodType<unknown>> = {
-    'resource.search': searchResourcesInputSchema,
-    'resource.details': getResourceInputSchema,
-    'resource.dependencies': queryDependenciesInputSchema,
-    'runs.query': queryExecutionsInputSchema,
-    'runs.summary': USE_CASE_REGISTRY.find((entry) => entry.name === 'runs.summary')!.input,
-  };
-
   for (const useCase of USE_CASE_REGISTRY) {
     const toolName = MCP_ANALYSIS_TOOL_NAMES[useCase.name];
     if (toolName == null) {
@@ -59,7 +52,7 @@ export function registerRegistryAnalysisTools(
       {
         title: useCase.title,
         description: useCase.title,
-        inputSchema: inputSchemas[useCase.name] ?? useCase.input,
+        inputSchema: MCP_INPUT_SCHEMAS[useCase.name] ?? useCase.input,
         outputSchema: useCase.output,
         annotations: { readOnlyHint: true, idempotentHint: true },
       },
@@ -74,14 +67,18 @@ export function createRegistryAnalysisToolHandlers(
   DbtToolsMcpToolHandlers,
   'dbt_tools_get_resource' | 'dbt_tools_get_run_summary' | 'dbt_tools_query_dependencies' | 'dbt_tools_query_executions' | 'dbt_tools_search_resources'
 > {
+  const searchUseCase = findUseCaseByName('resource.search')!;
+  const dependenciesUseCase = findUseCaseByName('resource.dependencies')!;
+  const executionsUseCase = findUseCaseByName('runs.query')!;
+  const summaryUseCase = findUseCaseByName('runs.summary')!;
+
   return {
     dbt_tools_search_resources: async (input: ToolInput) => {
-      const useCase = USE_CASE_REGISTRY.find((entry) => entry.name === 'resource.search')!;
       const parsed = searchResourcesInputSchema.safeParse(input);
       if (!parsed.success) {
-        return invalidInputResult(parsed.error);
+        return invalidToolInputResult(parsed.error);
       }
-      return runToolWithLoadedUseCases(useCase.output, useCases, (uc) =>
+      return runToolWithLoadedUseCases(searchUseCase.output, useCases, (uc) =>
         uc.searchResources(toSearchResourcesInput(parsed.data)),
       );
     },
@@ -89,7 +86,7 @@ export function createRegistryAnalysisToolHandlers(
     dbt_tools_get_resource: async (input: ToolInput) => {
       const parsed = getResourceInputSchema.safeParse(input);
       if (!parsed.success) {
-        return invalidInputResult(parsed.error);
+        return invalidToolInputResult(parsed.error);
       }
       return runToolWithLoadedUseCases(
         getResourceToolOutputSchema,
@@ -107,35 +104,27 @@ export function createRegistryAnalysisToolHandlers(
     },
 
     dbt_tools_query_dependencies: async (input: ToolInput) => {
-      const useCase = USE_CASE_REGISTRY.find((entry) => entry.name === 'resource.dependencies')!;
       const parsed = queryDependenciesInputSchema.safeParse(input);
       if (!parsed.success) {
-        return invalidInputResult(parsed.error);
+        return invalidToolInputResult(parsed.error);
       }
-      return runToolWithLoadedUseCases(useCase.output, useCases, (uc) =>
-        uc.queryDependencies({
-          uniqueId: parsed.data.uniqueId,
-          direction: parsed.data.direction,
-          depth: parsed.data.depth,
-          buildOrder: parsed.data.buildOrder === true,
-        }),
+      return runToolWithLoadedUseCases(dependenciesUseCase.output, useCases, (uc) =>
+        uc.queryDependencies(parsed.data),
       );
     },
 
     dbt_tools_query_executions: async (input: ToolInput) => {
-      const useCase = USE_CASE_REGISTRY.find((entry) => entry.name === 'runs.query')!;
       const parsed = queryExecutionsInputSchema.safeParse(input);
       if (!parsed.success) {
-        return invalidInputResult(parsed.error);
+        return invalidToolInputResult(parsed.error);
       }
-      return runToolWithLoadedUseCases(useCase.output, useCases, (uc) =>
+      return runToolWithLoadedUseCases(executionsUseCase.output, useCases, (uc) =>
         uc.queryExecutions(toQueryExecutionsRequest(parsed.data)),
       );
     },
 
     dbt_tools_get_run_summary: async (_input: ToolInput) => {
-      const useCase = USE_CASE_REGISTRY.find((entry) => entry.name === 'runs.summary')!;
-      return runToolWithLoadedUseCases(useCase.output, useCases, (uc) => uc.getRunSummary());
+      return runToolWithLoadedUseCases(summaryUseCase.output, useCases, (uc) => uc.getRunSummary());
     },
   };
 }
