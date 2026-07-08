@@ -6,20 +6,8 @@ import {
 import { dependencyQueryOutputSchema } from '../contracts/dependency-query.js';
 
 import type { UseCase } from './types.js';
-import type { QueryDependenciesInput } from '../analysis/dependencies/query.js';
 import type { LoadedArtifactWorkspace } from '../artifact-workspace/types.js';
 import type { DependencyQueryOutputContract } from '../contracts/dependency-query.js';
-
-function toQueryDependenciesInput(
-  parsed: QueryDependenciesInputContract,
-): QueryDependenciesInput {
-  return {
-    uniqueId: parsed.uniqueId,
-    direction: parsed.direction,
-    depth: parsed.depth,
-    buildOrder: parsed.buildOrder === true,
-  };
-}
 
 function stripUndefinedRecord(value: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -42,7 +30,12 @@ export const queryDependenciesUseCase: UseCase<
   output: dependencyQueryOutputSchema,
   read: 'snapshot',
   run(snapshot: LoadedArtifactWorkspace, input: QueryDependenciesInputContract) {
-    const result = queryDependencies(snapshot.graph, toQueryDependenciesInput(input));
+    const result = queryDependencies(snapshot.graph, {
+      uniqueId: input.uniqueId,
+      direction: input.direction,
+      depth: input.depth,
+      buildOrder: input.buildOrder === true,
+    });
     return {
       ...result,
       dependencies: result.dependencies.map((node) =>

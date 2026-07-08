@@ -1,8 +1,4 @@
-/** Thin web adapter over core `ArtifactWorkspace` for artifact byte loading (RFC-0001 phase 4). */
-import { readValidatedUtf8, type DbtToolsRemoteSourceConfig } from '@dbt-tools/core';
-import { ArtifactWorkspace } from '@dbt-tools/core/node';
-
-import { normalizeArtifactPrefix } from './prefix';
+import { readValidatedUtf8 } from '@dbt-tools/core';
 
 import type { RemoteObjectStoreClient } from '@dbt-tools/core/artifact-io';
 import type { ResolvedArtifactRun } from '@dbt-tools/core/artifact-workspace';
@@ -12,17 +8,6 @@ export interface ArtifactRunBytes {
   runResultsBytes: Uint8Array;
   catalogBytes?: Uint8Array;
   sourcesBytes?: Uint8Array;
-}
-
-export interface ArtifactWorkspaceBridgeOptions {
-  cwd?: string;
-  dbtTarget: string;
-  remoteClient?: RemoteObjectStoreClient;
-}
-
-export function remoteConfigToDbtTarget(config: DbtToolsRemoteSourceConfig): string {
-  const prefix = normalizeArtifactPrefix(config.prefix);
-  return `${config.provider}://${config.bucket}/${prefix}`;
 }
 
 export async function readLocalRunArtifactBytes(run: ResolvedArtifactRun): Promise<ArtifactRunBytes> {
@@ -77,30 +62,4 @@ export async function readRemoteRunArtifactBytes(
     ...(catalogBytes != null ? { catalogBytes } : {}),
     ...(sourcesBytes != null ? { sourcesBytes } : {}),
   };
-}
-
-export class ArtifactWorkspaceBridge {
-  readonly workspace: ArtifactWorkspace;
-
-  constructor(options: ArtifactWorkspaceBridgeOptions) {
-    this.workspace = new ArtifactWorkspace({
-      cwd: options.cwd,
-      dbtTarget: options.dbtTarget,
-      remoteClient: options.remoteClient,
-      maxCachedTargets: 1,
-      autoReloadOnPoll: false,
-    });
-  }
-
-  readLocalRunBytes(run: ResolvedArtifactRun): Promise<ArtifactRunBytes> {
-    return readLocalRunArtifactBytes(run);
-  }
-
-  readRemoteRunBytes(
-    run: ResolvedArtifactRun,
-    bucket: string,
-    client: RemoteObjectStoreClient,
-  ): Promise<ArtifactRunBytes> {
-    return readRemoteRunArtifactBytes(run, bucket, client);
-  }
 }

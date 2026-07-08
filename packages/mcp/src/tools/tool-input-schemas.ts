@@ -1,6 +1,6 @@
 import {
-  SEARCH_RESOURCES_DEFAULT_LIMIT,
   emptyUseCaseInputSchema,
+  normalizeSearchResourcesInput,
   queryExecutionsInputSchema,
   searchResourcesInputSchema,
   toQueryExecutionsRequest,
@@ -37,13 +37,5 @@ export const queryDependenciesInputSchema = z.object({
 export function toSearchResourcesInput(
   parsed: z.infer<typeof searchResourcesInputSchema>,
 ): SearchResourcesInput {
-  return {
-    query: parsed.query,
-    type: parsed.type,
-    package: parsed.package,
-    tag: parsed.tag,
-    path: parsed.path,
-    limit: parsed.limit ?? SEARCH_RESOURCES_DEFAULT_LIMIT,
-    offset: parsed.offset ?? 0,
-  };
+  return normalizeSearchResourcesInput(parsed);
 }

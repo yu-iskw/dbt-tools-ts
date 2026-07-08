@@ -16,6 +16,7 @@ import type {
 import type { GraphNodeAttributes } from '../types';
 export type SearchResourcesInput = SearchResourcesInputContract;
 export type SearchResourcesOutput = SearchResourcesOutputContract;
+export type { SearchResourceResult } from '../contracts/search-resources.js';
 export { SEARCH_RESOURCES_DEFAULT_LIMIT, SEARCH_RESOURCES_MAX_LIMIT };
 
 function clampLimit(value: number | undefined, defaultValue: number, maxValue: number): number {

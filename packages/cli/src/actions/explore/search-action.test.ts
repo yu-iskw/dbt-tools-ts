@@ -29,13 +29,22 @@ describe('searchAction', () => {
     await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
-  it('returns all resources when no query or filters', async () => {
+  it('returns a default-limited page when no query or filters', async () => {
     await searchAction(undefined, { dbtTarget: dbtTargetDir, json: true }, handleError);
 
     const output = consoleLogSpy.mock.calls[0][0] as string;
-    const parsed = JSON.parse(output) as { total: number; results: unknown[] };
+    const parsed = JSON.parse(output) as {
+      total: number;
+      results: unknown[];
+      limit?: number;
+      has_more?: boolean;
+    };
     expect(parsed.total).toBeGreaterThan(0);
-    expect(parsed.results.length).toBe(parsed.total);
+    expect(parsed.limit).toBe(20);
+    expect(parsed.results.length).toBe(20);
+    if (parsed.total > 20) {
+      expect(parsed.has_more).toBe(true);
+    }
   });
 
   it('works when only manifest.json is present', async () => {

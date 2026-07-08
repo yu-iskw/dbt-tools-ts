@@ -30,10 +30,8 @@ import {
 import { normalizeArtifactPrefix } from './prefix';
 import { resolveLocalArtifactTargetDirFromEnv } from './resolve-local-target-dir';
 import {
-  ArtifactWorkspaceBridge,
   readLocalRunArtifactBytes,
   readRemoteRunArtifactBytes,
-  remoteConfigToDbtTarget,
 } from './workspace-bridge';
 
 import type {
@@ -69,8 +67,6 @@ export interface ArtifactSourceServiceOptions {
   adapter?: ArtifactSourceAdapter | null;
   cwd?: string;
   seedFromEnv?: boolean;
-  /** When true (default), preload/remote byte reads go through `ArtifactWorkspaceBridge`. */
-  useWorkspaceBridge?: boolean;
 }
 
 function debugLog(...args: unknown[]) {
@@ -125,11 +121,9 @@ interface DiscoveredArtifactSource {
 export class ArtifactSourceService {
   private readonly cwd: string;
   private readonly seedFromEnv: boolean;
-  private readonly useWorkspaceBridge: boolean;
 
   private delegatedAdapter: ArtifactSourceAdapter | null = null;
   private initPromise: Promise<void> | null = null;
-  private workspaceBridge: ArtifactWorkspaceBridge | null = null;
 
   private mode: 'none' | 'preload' | 'remote' = 'none';
 
@@ -157,7 +151,6 @@ export class ArtifactSourceService {
   constructor(options: ArtifactSourceServiceOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
     this.seedFromEnv = options.seedFromEnv !== false;
-    this.useWorkspaceBridge = options.useWorkspaceBridge !== false;
 
     if (options.adapter !== undefined) {
       this.delegatedAdapter = options.adapter;
@@ -415,10 +408,7 @@ export class ArtifactSourceService {
   }
 
   private async readPreloadArtifacts(run: ResolvedArtifactRun): Promise<CurrentArtifactPayload> {
-    const bytes =
-      this.workspaceBridge != null
-        ? await this.workspaceBridge.readLocalRunBytes(run)
-        : await this.readPreloadArtifactsDirect(run);
+    const bytes = await readLocalRunArtifactBytes(run);
 
     return {
       source: 'preload',
@@ -429,24 +419,12 @@ export class ArtifactSourceService {
     };
   }
 
-  private async readPreloadArtifactsDirect(run: ResolvedArtifactRun): Promise<{
-    manifestBytes: Uint8Array;
-    runResultsBytes: Uint8Array;
-    catalogBytes?: Uint8Array;
-    sourcesBytes?: Uint8Array;
-  }> {
-    return readLocalRunArtifactBytes(run);
-  }
-
   private async readRemoteArtifacts(
     run: ResolvedArtifactRun,
     bucket: string,
     client: RemoteObjectStoreClient,
   ): Promise<CurrentArtifactPayload> {
-    const bytes =
-      this.workspaceBridge != null
-        ? await this.workspaceBridge.readRemoteRunBytes(run, bucket, client)
-        : await this.readRemoteArtifactsDirect(run, bucket, client);
+    const bytes = await readRemoteRunArtifactBytes(run, bucket, client);
 
     return {
       source: 'remote',
@@ -455,19 +433,6 @@ export class ArtifactSourceService {
       ...(bytes.catalogBytes != null ? { catalogBytes: bytes.catalogBytes } : {}),
       ...(bytes.sourcesBytes != null ? { sourcesBytes: bytes.sourcesBytes } : {}),
     };
-  }
-
-  private async readRemoteArtifactsDirect(
-    run: ResolvedArtifactRun,
-    bucket: string,
-    client: RemoteObjectStoreClient,
-  ): Promise<{
-    manifestBytes: Uint8Array;
-    runResultsBytes: Uint8Array;
-    catalogBytes?: Uint8Array;
-    sourcesBytes?: Uint8Array;
-  }> {
-    return readRemoteRunArtifactBytes(run, bucket, client);
   }
 
   private resolveConfiguredRunId(discovery: DiscoveredArtifactSource, runId?: string): string {
@@ -485,34 +450,11 @@ export class ArtifactSourceService {
     return sole.runId;
   }
 
-  private syncWorkspaceBridge(discovery: DiscoveredArtifactSource): void {
-    if (!this.useWorkspaceBridge) {
-      this.workspaceBridge = null;
-      return;
-    }
-    const dbtTarget =
-      discovery.mode === 'preload'
-        ? discovery.localDir
-        : discovery.remoteConfig != null
-          ? remoteConfigToDbtTarget(discovery.remoteConfig)
-          : null;
-    if (dbtTarget == null) {
-      this.workspaceBridge = null;
-      return;
-    }
-    this.workspaceBridge = new ArtifactWorkspaceBridge({
-      cwd: this.cwd,
-      dbtTarget,
-      ...(discovery.remoteClient != null ? { remoteClient: discovery.remoteClient } : {}),
-    });
-  }
-
   private applyDiscoveredArtifactSource(
     discovery: DiscoveredArtifactSource,
     selectedRunId: string | null,
     options?: { commitLoadedVersion?: boolean },
   ): void {
-    this.syncWorkspaceBridge(discovery);
     this.mode = discovery.mode;
     this.localDir = discovery.localDir;
     this.locationDisplay = discovery.locationDisplay;
