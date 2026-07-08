@@ -107,6 +107,17 @@ export type {
 export { DISCOVER_SCHEMA_VERSION } from './discovery';
 
 export {
+  searchResourcesInGraph,
+  SEARCH_RESOURCES_DEFAULT_LIMIT,
+  SEARCH_RESOURCES_MAX_LIMIT,
+} from './discovery/graph-search.js';
+export type {
+  SearchResourceResult,
+  SearchResourcesInput,
+  SearchResourcesOutput,
+} from './discovery/graph-search.js';
+
+export {
   getObjectProperty,
   setObjectProperty,
   groupByToMap,

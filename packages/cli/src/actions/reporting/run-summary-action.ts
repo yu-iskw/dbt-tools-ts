@@ -1,32 +1,20 @@
+import { FieldFilter, shouldOutputJSON } from '@dbt-tools/core';
+
+import { type ArtifactRootCliOptions } from '../../internal/cli-artifact-resolve';
 import {
-  buildAnalysisSnapshotFromParsedArtifacts,
-  formatOutput,
-  FieldFilter,
-  getRunSummaryFromSnapshot,
-  readValidatedUtf8,
-  shouldOutputJSON,
-  validateSafePath,
-} from '@dbt-tools/core';
-import { parseManifest } from 'dbt-artifacts-parser/manifest';
-import { parseRunResults } from 'dbt-artifacts-parser/run_results';
+  createCliUseCaseRunner,
+  emitCliUseCaseOutput,
+  type CliUseCaseRunOptions,
+} from '../../internal/cli-use-case-runner';
 
-import {
-  resolveCliArtifactPaths,
-  type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve';
+import type { RunSummaryOutput } from '@dbt-tools/core/contracts';
 
-export type RunSummaryOptions = ArtifactRootCliOptions & {
-  fields?: string;
-  json?: boolean;
-  noJson?: boolean;
-};
+export type RunSummaryOptions = ArtifactRootCliOptions &
+  CliUseCaseRunOptions & {
+    fields?: string;
+  };
 
-async function readArtifactJson(path: string): Promise<Record<string, unknown>> {
-  const text = await readValidatedUtf8(path);
-  return JSON.parse(text) as Record<string, unknown>;
-}
-
-function formatRunSummaryHuman(output: ReturnType<typeof getRunSummaryFromSnapshot>): string {
+function formatRunSummaryHuman(output: RunSummaryOutput): string {
   const lines: string[] = [];
   lines.push('dbt-tools run-summary');
   lines.push('====================');
@@ -48,35 +36,15 @@ export async function runSummaryAction(
   handleError: (error: unknown, preferStructuredErrors: boolean) => void,
 ): Promise<void> {
   try {
-    const paths = await resolveCliArtifactPaths(
-      { dbtTarget: options.dbtTarget },
-      { manifest: true, runResults: true },
-    );
-    validateSafePath(paths.runResults);
-    validateSafePath(paths.manifest);
+    const runner = await createCliUseCaseRunner({ dbtTarget: options.dbtTarget });
+    const output = await runner.runUseCase<RunSummaryOutput>('runs.summary', {});
 
-    const [manifestJson, runResultsJson] = await Promise.all([
-      readArtifactJson(paths.manifest),
-      readArtifactJson(paths.runResults),
-    ]);
-    const { analysis } = buildAnalysisSnapshotFromParsedArtifacts(
-      manifestJson,
-      runResultsJson,
-      parseManifest(manifestJson),
-      parseRunResults(runResultsJson),
-    );
-    const output = getRunSummaryFromSnapshot(analysis);
-
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-    if (useJson) {
-      let payload: unknown = output;
-      if (options.fields) {
-        payload = FieldFilter.filterFields(output, options.fields);
-      }
-      console.log(formatOutput(payload, true));
-    } else {
-      console.log(formatRunSummaryHuman(output));
+    if (options.json && options.fields) {
+      emitCliUseCaseOutput(FieldFilter.filterFields(output, options.fields), options);
+      return;
     }
+
+    emitCliUseCaseOutput(output, options, formatRunSummaryHuman);
   } catch (error) {
     handleError(error, shouldOutputJSON(options.json, options.noJson));
   }

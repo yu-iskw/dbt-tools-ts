@@ -12,6 +12,8 @@ export const searchResourceResultSchema = z
   })
   .passthrough();
 
+export type SearchResourceResult = z.infer<typeof searchResourceResultSchema>;
+
 export const searchResourcesOutputSchema = z
   .object({
     query: z.string().optional(),

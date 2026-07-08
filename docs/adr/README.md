@@ -16,8 +16,14 @@ The records here were curated from earlier dbt-tools history during the reposito
 - [0008](./0008-dbt-tools-operational-intelligence-and-positioning-boundaries.md) - product positioning and package boundaries
 - [0009](./0009-npm-releases-authenticate-via-github-actions-oidc-trusted-publishing.md) - npm release trust model for `@dbt-tools/*` packages
 - [0010](./0010-shared-discovery-ranker-intent-commands-and-cli-web-deep-links.md) - shared discovery ranker, intent CLI, web discover view, and CLI-web handoff
+- [0011](./0011-session-binding-for-artifact-investigation.md) - session binding for artifact investigation
+- [0012](./0012-protocol-native-mcp-resources-prompts-and-output-schemas.md) - protocol-native MCP resources, prompts, and output schemas
+- [0013](./0013-pure-default-core-and-node-boundary.md) - pure default core entry and `@dbt-tools/core/node` boundary
+- [0014](./0014-use-case-registry-cross-surface-contract.md) - use-case registry as single cross-surface contract
+- [0015](./0015-threat-model-controls.md) - threat model pointer and constructive security controls
 
 ## Supporting Docs
 
+- [../rfc/README.md](../rfc/README.md) — proposed designs (RFCs propose; ADRs record).
 - [../architecture/web-investigation-workspace-evolution.md](../architecture/web-investigation-workspace-evolution.md) preserves useful non-ADR UI and workflow history.
 - ADR authoring guidance lives in [../../.claude/skills/manage-adr/SKILL.md](../../.claude/skills/manage-adr/SKILL.md).

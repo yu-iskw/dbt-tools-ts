@@ -1,8 +1,9 @@
-import { queryDependencies } from '../analysis/dependencies/query';
-import { queryExecutions } from '../analysis/search/run-results';
 import { normalizeWarehouseAdapterType } from '../analysis/search/warehouse';
-import { getRunSummaryFromSnapshot } from '../analysis/snapshot/run-summary';
 import { DEFAULT_MAX_CACHED_TARGETS, type DbtToolsRemoteClientEnv } from '../config/dbt-tools-env';
+import { queryDependenciesInputSchema } from '../contracts/dependency-query-input.js';
+import { getResourceInputSchema } from '../contracts/get-resource-input.js';
+import { queryExecutionsInputSchema } from '../contracts/query-executions-input.js';
+import { searchResourcesInputSchema } from '../contracts/search-resources-input.js';
 import {
   dbtToolsDebugLog,
   dbtToolsDebugLogPhase,
@@ -18,8 +19,8 @@ import {
   isSessionBindingCurrent,
   type SessionBinding,
 } from '../session-binding';
+import { findUseCaseByName } from '../usecases/registry.js';
 
-import { copyResourceForOutput, searchResourcesInGraph } from './graph-search.js';
 import { ArtifactLoadPipeline } from './load-pipeline.js';
 import { ArtifactLoadProgressHub } from './progress.js';
 import {
@@ -28,6 +29,7 @@ import {
   type DiscoveredSource,
   type DbtToolsUseCases,
   type LoadedArtifactWorkspace,
+  type ResourceDetails,
   type ResolvedArtifactRun,
 } from './types.js';
 
@@ -64,6 +66,11 @@ export interface ArtifactWorkspaceOptions {
   maxCachedTargets?: number;
   /** Evict cached entries idle longer than this ms. Default 0 (disabled). */
   cacheTtlMs?: number;
+  /**
+   * When false (web UX), poll detects newer runs but does not auto-reload;
+   * call `acceptPendingRun` to load. MCP defaults to true (ADR-0004).
+   */
+  autoReloadOnPoll?: boolean;
   now?: () => number;
   cwd?: string;
   remoteClient?: RemoteObjectStoreClient;
@@ -94,6 +101,7 @@ export class ArtifactWorkspace {
   private readonly now: () => number;
   private readonly maxCachedTargets: number;
   private readonly cacheTtlMs: number;
+  private readonly autoReloadOnPoll: boolean;
   private readonly injectedRemoteClient: RemoteObjectStoreClient | undefined;
   private readonly gcsRequestOptions: GcsArtifactSourceRequestOptions | undefined;
   private readonly remoteClientOverrides: RemoteSourceClientOverrides | undefined;
@@ -108,6 +116,7 @@ export class ArtifactWorkspace {
   private initializePromise: Promise<void> | null = null;
   /** Bumped when the active target binding changes; stale loads must not assign `loaded`. */
   private loadGeneration = 0;
+  private pendingRun: ResolvedArtifactRun | null = null;
   private readonly progressHub = new ArtifactLoadProgressHub();
   private readonly loadPipeline: ArtifactLoadPipeline;
 
@@ -117,6 +126,7 @@ export class ArtifactWorkspace {
     this.now = options.now ?? Date.now;
     this.maxCachedTargets = options.maxCachedTargets ?? DEFAULT_MAX_CACHED_TARGETS;
     this.cacheTtlMs = options.cacheTtlMs ?? 0;
+    this.autoReloadOnPoll = options.autoReloadOnPoll !== false;
     this.injectedRemoteClient = options.remoteClient;
     this.gcsRequestOptions = options.gcsRequestOptions;
     this.remoteClientOverrides = options.remoteClientOverrides;
@@ -361,6 +371,46 @@ export class ArtifactWorkspace {
     });
   }
 
+  async runUseCase<In, Out>(useCaseName: string, input: In): Promise<Out> {
+    const loaded = await this.getLoadedWorkspace();
+    const useCase = findUseCaseByName(useCaseName);
+    if (useCase == null) {
+      throw new Error(`Unknown use case: ${useCaseName}`);
+    }
+    const parsedInput = useCase.input.parse(input);
+    return useCase.run(loaded, parsedInput) as Out;
+  }
+
+  async acceptPendingRun(): Promise<ArtifactWorkspaceStatus> {
+    return this.runSerialized(async () => {
+      const pending = this.pendingRun;
+      if (pending == null) {
+        return this.status();
+      }
+      const binding = this.captureBinding();
+      const source = await this.discoverSource();
+      if (!this.bindingStillActive(binding)) {
+        return this.status();
+      }
+      try {
+        const loaded = await this.loadRun(source, pending);
+        if (!this.bindingStillActive(binding)) {
+          return this.status();
+        }
+        this.loaded = loaded;
+        this.selectedRunId = pending.runId;
+        this.pendingRun = null;
+        this.stale = false;
+        this.lastRefreshError = undefined;
+        this.syncActiveToCache();
+      } catch (error) {
+        this.stale = true;
+        this.lastRefreshError = error instanceof Error ? error.message : String(error);
+      }
+      return this.status();
+    });
+  }
+
   private async refreshIfChangedInternal(options?: {
     coldLoadIfUnloaded?: boolean;
   }): Promise<ArtifactWorkspaceStatus> {
@@ -416,6 +466,9 @@ export class ArtifactWorkspace {
       ...(this.lastRefreshError != null ? { lastRefreshError: this.lastRefreshError } : {}),
       ...(cachedTargets.length > 0 ? { cachedTargets } : {}),
       cachePolicy: { maxTargets: this.maxCachedTargets, ttlMs: this.cacheTtlMs },
+      ...(this.pendingRun != null
+        ? { pendingRun: { runId: this.pendingRun.runId, versionToken: this.pendingRun.versionToken } }
+        : {}),
       ...(options?.fromCache === true ? { fromCache: true } : {}),
     };
   }
@@ -479,6 +532,13 @@ export class ArtifactWorkspace {
     this.selectedRunId = run.runId;
 
     if (run.versionToken === previousVersionToken) {
+      this.pendingRun = null;
+      return false;
+    }
+
+    if (!this.autoReloadOnPoll) {
+      this.pendingRun = run;
+      this.stale = true;
       return false;
     }
 
@@ -490,6 +550,7 @@ export class ArtifactWorkspace {
       this.loaded = loaded;
       this.stale = false;
       this.lastRefreshError = undefined;
+      this.pendingRun = null;
       this.syncActiveToCache();
       return true;
     } catch (error) {
@@ -603,36 +664,58 @@ export class ArtifactWorkspace {
 }
 
 export function createDbtToolsUseCases(workspace: ArtifactWorkspace): DbtToolsUseCases {
+  const runLoaded = async <In, Out>(useCaseName: string, input: In): Promise<Out> => {
+    const loaded = await workspace.getLoadedWorkspace();
+    const useCase = findUseCaseByName(useCaseName);
+    if (useCase == null) {
+      throw new Error(`Unknown use case: ${useCaseName}`);
+    }
+    return useCase.run(loaded, input) as Out;
+  };
+
   return {
     async searchResources(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      return searchResourcesInGraph(loaded.graph, input);
+      const parsed = searchResourcesInputSchema.parse({
+        query: input.query,
+        type: input.type,
+        package: input.package,
+        tag: input.tag,
+        path: input.path,
+        limit: input.limit,
+        offset: input.offset ?? 0,
+      });
+      return runLoaded('resource.search', parsed);
     },
 
     async getResource(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      const resource =
-        loaded.analysis.resources.find((candidate) => candidate.uniqueId === input.uniqueId) ??
-        null;
-      return resource == null ? null : copyResourceForOutput(resource, input.includeCode === true);
+      const parsed = getResourceInputSchema.parse({
+        uniqueId: input.uniqueId,
+        includeCode: input.includeCode,
+      });
+      const result = await runLoaded<
+        typeof parsed,
+        { resource: ResourceDetails | null }
+      >('resource.details', parsed);
+      return result.resource;
     },
 
     async queryDependencies(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      return queryDependencies(loaded.graph, input);
+      const parsed = queryDependenciesInputSchema.parse({
+        uniqueId: input.uniqueId,
+        direction: input.direction,
+        depth: input.depth,
+        buildOrder: input.buildOrder,
+      });
+      return runLoaded('resource.dependencies', parsed);
     },
 
     async queryExecutions(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      return queryExecutions(loaded.analysis.executions, input, {
-        warehouseType: loaded.analysis.warehouseType,
-        graph: loaded.graph,
-      });
+      const parsed = queryExecutionsInputSchema.parse(input);
+      return runLoaded('runs.query', parsed);
     },
 
     async getRunSummary() {
-      const loaded = await workspace.getLoadedWorkspace();
-      return getRunSummaryFromSnapshot(loaded.analysis);
+      return runLoaded('runs.summary', {});
     },
   };
 }

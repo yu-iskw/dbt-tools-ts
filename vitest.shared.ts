@@ -23,6 +23,8 @@ export default {
         'packages/core/src/util/sql-truncation.ts',
       ),
       '@dbt-tools/core/browser': path.resolve(repoRoot, 'packages/core/src/browser.ts'),
+      '@dbt-tools/core/node': path.resolve(repoRoot, 'packages/core/src/node.ts'),
+      '@dbt-tools/core/usecases': path.resolve(repoRoot, 'packages/core/src/usecases.ts'),
       '@dbt-tools/core': path.resolve(repoRoot, 'packages/core/src/index.ts'),
       'dbt-artifacts-parser/test-utils': path.resolve(
         repoRoot,
@@ -33,5 +35,11 @@ export default {
   test: {
     exclude: ['.trunk/**', '**/node_modules/**'],
     pool: 'threads' as const,
+  },
+  server: {
+    deps: {
+      inline: ['uuid', 'gaxios', '@google-cloud/storage', 'google-auth-library'],
+      fallbackCJS: true,
+    },
   },
 };
