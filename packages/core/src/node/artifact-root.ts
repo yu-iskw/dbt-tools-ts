@@ -58,17 +58,30 @@ export class ArtifactRoot {
     return normalized;
   }
 
-  async read(rel: string, opts?: ArtifactRootReadOptions): Promise<Uint8Array> {
+  private assertTargetUnderRoot(targetPath: string, rel: string): string {
+    if (targetPath !== this.realRoot && !targetPath.startsWith(`${this.realRoot}${path.sep}`)) {
+      throw new Error(`Path escapes artifact root: ${rel}`);
+    }
+    return targetPath;
+  }
+
+  private async resolveReadableFile(rel: string): Promise<string> {
     const target = this.resolveRelative(rel);
+    const realTarget = await fsp.realpath(target);
+    return this.assertTargetUnderRoot(realTarget, rel);
+  }
+
+  async read(rel: string, opts?: ArtifactRootReadOptions): Promise<Uint8Array> {
+    const realTarget = await this.resolveReadableFile(rel);
     const maxBytes = opts?.maxBytes ?? DEFAULT_MAX_READ_BYTES;
-    const stat = await fsp.stat(target);
+    const stat = await fsp.stat(realTarget);
     if (!stat.isFile()) {
       throw new Error(`Not a file: ${rel}`);
     }
     if (stat.size > maxBytes) {
       throw new Error(`File exceeds maxBytes (${maxBytes}): ${rel}`);
     }
-    return fsp.readFile(target);
+    return fsp.readFile(realTarget);
   }
 
   async readUtf8(rel: string, opts?: ArtifactRootReadOptions): Promise<string> {

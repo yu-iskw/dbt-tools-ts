@@ -1,7 +1,7 @@
 /**
  * Search CLI action handler – fast manifest search across dbt entities.
  */
-import { FieldFilter, shouldOutputJSON, validateNoControlChars } from '@dbt-tools/core';
+import { shouldOutputJSON, validateNoControlChars } from '@dbt-tools/core';
 
 import { type ArtifactRootCliOptions } from '../../internal/cli-artifact-resolve';
 import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination';
@@ -98,11 +98,6 @@ export async function searchAction(
       limit: options.limit,
       offset,
     });
-
-    if (options.json && options.fields) {
-      emitCliUseCaseOutput(FieldFilter.filterFields(output, options.fields), options);
-      return;
-    }
 
     emitCliUseCaseOutput(output, options, formatSearch);
   } catch (error) {

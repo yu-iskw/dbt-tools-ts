@@ -1,4 +1,4 @@
-import { formatOutput, shouldOutputJSON } from '@dbt-tools/core';
+import { FieldFilter, formatOutput, shouldOutputJSON } from '@dbt-tools/core';
 import { ArtifactWorkspace } from '@dbt-tools/core/node';
 
 import { resolveEffectiveDbtTarget } from './cli-artifact-resolve.js';
@@ -8,6 +8,7 @@ import type { ArtifactRootCliOptions } from './cli-artifact-resolve.js';
 export interface CliUseCaseRunOptions extends ArtifactRootCliOptions {
   json?: boolean;
   noJson?: boolean;
+  fields?: string;
 }
 
 export interface CliUseCaseRunner {
@@ -38,7 +39,11 @@ export function emitCliUseCaseOutput<T>(
 ): void {
   const asJson = shouldOutputJSON(options.json, options.noJson);
   if (asJson) {
-    console.log(formatOutput(data, true));
+    const payload =
+      options.fields != null && options.fields.trim() !== ''
+        ? FieldFilter.filterFields(data, options.fields)
+        : data;
+    console.log(formatOutput(payload, true));
     return;
   }
   if (humanFormatter != null) {
