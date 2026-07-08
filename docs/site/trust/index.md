@@ -11,6 +11,8 @@ dbt-tools reads dbt artifacts and turns them into operational signals for humans
 | [Production hardening](./production-hardening.md) | You are deploying in CI, cloud storage, or shared environments          |
 | [Licensing](./licensing.md)                       | You are evaluating dbt-tools for commercial or internal platform use    |
 
+Contributors: formal threat register in the [repository threat model](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/security/threat-model.md) (RFC-0001).
+
 ## Core principles
 
 **dbt-tools reads artifacts, not warehouses.** The default tools in this repository parse local or remote artifact files. They do not issue queries against your warehouse unless you explicitly configure a feature that does so.

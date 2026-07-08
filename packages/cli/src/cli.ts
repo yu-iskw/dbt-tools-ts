@@ -33,6 +33,9 @@ import {
   statusAction,
   queryExecutionsAction,
   runSummaryAction,
+  impactAction,
+  failuresAction,
+  runReportAction,
 } from './cli-actions';
 import { resolveCliArtifactPaths } from './internal/cli-artifact-resolve';
 import { registerQueryExecutionsCommand } from './internal/cli-query-executions-register';
@@ -330,6 +333,56 @@ program
     },
   );
 
+program
+  .command('failures')
+  .description('Bounded bundle of non-successful run_results rows')
+  .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_FILTER_TYPE, DESC_FILTER_TYPE)
+  .option('--status <status>', 'Filter by status (comma-separated)')
+  .option(OPT_LIMIT_N, 'Max rows to return')
+  .option(OPT_OFFSET_N, DESC_OFFSET_REQUIRES_LIMIT)
+  .option(OPT_FIELDS, DESC_FIELDS)
+  .option(OPT_JSON, DESC_JSON)
+  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .action(
+    async (
+      options: ArtifactRootFlags & {
+        type?: string;
+        status?: string;
+        limit?: number;
+        offset?: number;
+        fields?: string;
+        json?: boolean;
+        noJson?: boolean;
+      },
+    ) => {
+      await failuresAction(options, handleCliError);
+    },
+  );
+
+program
+  .command('run-report')
+  .description('Detailed run report with adapter metrics and bottlenecks')
+  .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_LIMIT_N, 'Max adapter-heavy nodes to list')
+  .option(OPT_OFFSET_N, DESC_OFFSET_REQUIRES_LIMIT)
+  .option(OPT_FIELDS, DESC_FIELDS)
+  .option(OPT_JSON, DESC_JSON)
+  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .action(
+    async (
+      options: ArtifactRootFlags & {
+        limit?: number;
+        offset?: number;
+        fields?: string;
+        json?: boolean;
+        noJson?: boolean;
+      },
+    ) => {
+      await runReportAction(options, handleCliError);
+    },
+  );
+
 /**
  * Deps command: Get upstream or downstream dependencies
  */
@@ -546,6 +599,29 @@ program
       },
     ) => {
       await explainAction(resource, options, handleCliError);
+    },
+  );
+
+program
+  .command('impact')
+  .description('Upstream/downstream counts and notable dependents for a resource')
+  .argument(ARG_RESOURCE, DESC_ARG_RESOURCE_OR_DISCOVER)
+  .option(OPT_FIELDS, DESC_FIELDS)
+  .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_JSON, DESC_JSON)
+  .option(OPT_NO_JSON, DESC_NO_JSON)
+  .option(OPT_TRACE, DESC_TRACE)
+  .action(
+    async (
+      resource: string,
+      options: ArtifactRootFlags & {
+        fields?: string;
+        json?: boolean;
+        noJson?: boolean;
+        trace?: boolean;
+      },
+    ) => {
+      await impactAction(resource, options, handleCliError);
     },
   );
 

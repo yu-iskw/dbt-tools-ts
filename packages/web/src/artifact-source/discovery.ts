@@ -10,18 +10,9 @@ import {
 } from '@dbt-tools/core';
 
 import type { RemoteArtifactProvider, RemoteArtifactRun } from '../services/artifact-source-api';
+import type { ResolvedArtifactRun } from '@dbt-tools/core/artifact-workspace';
 
-export type { RemoteObjectMetadata };
-
-export interface ResolvedArtifactRun {
-  runId: string;
-  manifestKey: string;
-  runResultsKey: string;
-  catalogKey?: string;
-  sourcesKey?: string;
-  updatedAtMs: number;
-  versionToken: string;
-}
+export type { RemoteObjectMetadata, ResolvedArtifactRun };
 
 function mapCoreCandidatesToResolvedRuns(
   disc: Extract<ArtifactDiscoveryResult, { ok: true }>,

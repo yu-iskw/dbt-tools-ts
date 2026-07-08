@@ -1,33 +1,26 @@
 /**
  * Search CLI action handler – fast manifest search across dbt entities.
  */
-import {
-  ManifestGraph,
-  loadManifest,
-  validateSafePath,
-  validateNoControlChars,
-  FieldFilter,
-  formatOutput,
-  shouldOutputJSON,
-  searchResourcesInGraph,
-} from '@dbt-tools/core';
+import { FieldFilter, shouldOutputJSON, validateNoControlChars } from '@dbt-tools/core';
 
+import { type ArtifactRootCliOptions } from '../../internal/cli-artifact-resolve';
+import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination';
 import {
-  resolveCliArtifactPaths,
-  type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve';
+  createCliUseCaseRunner,
+  emitCliUseCaseOutput,
+  type CliUseCaseRunOptions,
+} from '../../internal/cli-use-case-runner';
 
-export type SearchOptions = ArtifactRootCliOptions & {
-  type?: string;
-  package?: string;
-  tag?: string;
-  path?: string;
-  fields?: string;
-  limit?: number;
-  offset?: number;
-  json?: boolean;
-  noJson?: boolean;
-};
+export type SearchOptions = ArtifactRootCliOptions &
+  CliUseCaseRunOptions & {
+    type?: string;
+    package?: string;
+    tag?: string;
+    path?: string;
+    fields?: string;
+    limit?: number;
+    offset?: number;
+  };
 
 export type SearchResult = {
   unique_id: string;
@@ -92,37 +85,26 @@ export async function searchAction(
       validateNoControlChars(query);
     }
 
-    const paths = await resolveCliArtifactPaths(
-      {
-        dbtTarget: options.dbtTarget,
-      },
-      { manifest: true, runResults: false },
-    );
-    validateSafePath(paths.manifest);
+    const offset = parseListOffset(options.offset);
+    assertOffsetRequiresLimit(options.limit, offset);
 
-    const manifest = loadManifest(paths.manifest);
-    const graph = new ManifestGraph(manifest);
-    const output = searchResourcesInGraph(graph, {
+    const runner = await createCliUseCaseRunner({ dbtTarget: options.dbtTarget });
+    const output = await runner.runUseCase<SearchOutput>('resource.search', {
       query,
       type: options.type,
       package: options.package,
       tag: options.tag,
       path: options.path,
       limit: options.limit,
-      offset: options.offset,
+      offset,
     });
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-
-    if (useJson) {
-      let out: unknown = output;
-      if (options.fields) {
-        out = FieldFilter.filterFields(output, options.fields);
-      }
-      console.log(formatOutput(out, true));
-    } else {
-      console.log(formatSearch(output));
+    if (options.json && options.fields) {
+      emitCliUseCaseOutput(FieldFilter.filterFields(output, options.fields), options);
+      return;
     }
+
+    emitCliUseCaseOutput(output, options, formatSearch);
   } catch (error) {
     handleError(error, shouldOutputJSON(options.json, options.noJson));
   }

@@ -31,12 +31,13 @@ import {
   type RemoteObjectStoreClient,
 } from '../io/remote-object-store';
 import { readValidatedUtf8 } from '../io/safe-fs';
+import { parseUntrustedJson } from '../node/parse-untrusted-json.js';
 
 import type { DiscoveredSource, LoadedArtifactWorkspace, ResolvedArtifactRun } from './types.js';
 import type { ArtifactLoadPhase } from '../progress/artifact-load-progress.js';
 
 export function decodeJson(bytes: Uint8Array): Record<string, unknown> {
-  return JSON.parse(Buffer.from(bytes).toString('utf8')) as Record<string, unknown>;
+  return parseUntrustedJson(Buffer.from(bytes).toString('utf8')) as Record<string, unknown>;
 }
 
 export function optionalDecodeJson(bytes: Uint8Array | null): Record<string, unknown> | undefined {

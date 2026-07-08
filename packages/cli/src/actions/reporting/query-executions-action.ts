@@ -1,51 +1,34 @@
-import {
-  buildAnalysisSnapshotFromParsedArtifacts,
-  formatOutput,
-  FieldFilter,
-  queryExecutions,
-  readValidatedUtf8,
-  shouldOutputJSON,
-  validateSafePath,
-  type QueryExecutionsOutput,
-  type QueryExecutionsRequest,
-  type WarehouseAdapterType,
-} from '@dbt-tools/core';
-import { parseManifest } from 'dbt-artifacts-parser/manifest';
-import { parseRunResults } from 'dbt-artifacts-parser/run_results';
+import { FieldFilter, shouldOutputJSON, type QueryExecutionsOutput, type WarehouseAdapterType } from '@dbt-tools/core';
 
-import {
-  resolveCliArtifactPaths,
-  type ArtifactRootCliOptions,
-} from '../../internal/cli-artifact-resolve';
+import { type ArtifactRootCliOptions } from '../../internal/cli-artifact-resolve';
 import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination';
+import {
+  createCliUseCaseRunner,
+  emitCliUseCaseOutput,
+  type CliUseCaseRunOptions,
+} from '../../internal/cli-use-case-runner';
 
-export type QueryExecutionsOptions = ArtifactRootCliOptions & {
-  warehouse?: WarehouseAdapterType;
-  sort?: string;
-  status?: string;
-  limit?: number;
-  offset?: number;
-  resourceTypes?: string;
-  uniqueIdPattern?: string;
-  minExecutionTime?: number;
-  maxExecutionTime?: number;
-  minSlotMs?: number;
-  minBytesProcessed?: number;
-  minBytesBilled?: number;
-  minRowsAffected?: number;
-  minRowsInserted?: number;
-  minRowsUpdated?: number;
-  minRowsDeleted?: number;
-  minRowsDuplicated?: number;
-  fields?: string;
-  json?: boolean;
-  noJson?: boolean;
-};
-
-async function readArtifactJson(path: string): Promise<Record<string, unknown>> {
-  const text = await readValidatedUtf8(path);
-  return JSON.parse(text) as Record<string, unknown>;
-}
+export type QueryExecutionsOptions = ArtifactRootCliOptions &
+  CliUseCaseRunOptions & {
+    warehouse?: WarehouseAdapterType;
+    sort?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+    resourceTypes?: string;
+    uniqueIdPattern?: string;
+    minExecutionTime?: number;
+    maxExecutionTime?: number;
+    minSlotMs?: number;
+    minBytesProcessed?: number;
+    minBytesBilled?: number;
+    minRowsAffected?: number;
+    minRowsInserted?: number;
+    minRowsUpdated?: number;
+    minRowsDeleted?: number;
+    minRowsDuplicated?: number;
+    fields?: string;
+  };
 
 function parseResourceTypes(csv: string | undefined): string[] | undefined {
   if (csv == null || csv.trim() === '') return undefined;
@@ -55,9 +38,31 @@ function parseResourceTypes(csv: string | undefined): string[] | undefined {
     .filter(Boolean);
 }
 
-function buildRequest(options: QueryExecutionsOptions): QueryExecutionsRequest {
-  const sort = options.sort as QueryExecutionsRequest['sort'] | undefined;
-  const base: QueryExecutionsRequest = {
+function buildRegistryInput(options: QueryExecutionsOptions) {
+  const sort = options.sort as
+    | 'execution_time_asc'
+    | 'execution_time_desc'
+    | 'unique_id'
+    | undefined;
+  const warehouse = options.warehouse;
+  const warehouseBlock =
+    warehouse == null
+      ? {}
+      : {
+          [warehouse]: {
+            ...(sort != null ? { sort } : {}),
+            minSlotMs: options.minSlotMs,
+            minBytesProcessed: options.minBytesProcessed,
+            minBytesBilled: options.minBytesBilled,
+            minRowsAffected: options.minRowsAffected,
+            minRowsInserted: options.minRowsInserted,
+            minRowsUpdated: options.minRowsUpdated,
+            minRowsDeleted: options.minRowsDeleted,
+            minRowsDuplicated: options.minRowsDuplicated,
+          },
+        };
+
+  return {
     resourceTypes: parseResourceTypes(options.resourceTypes),
     status: options.status,
     limit: options.limit,
@@ -65,25 +70,8 @@ function buildRequest(options: QueryExecutionsOptions): QueryExecutionsRequest {
     uniqueIdPattern: options.uniqueIdPattern,
     minExecutionTime: options.minExecutionTime,
     maxExecutionTime: options.maxExecutionTime,
-    ...(sort != null ? { sort } : {}),
-  };
-
-  const warehouse = options.warehouse;
-  if (warehouse == null) return base;
-
-  return {
-    ...base,
-    [warehouse]: {
-      ...(sort != null ? { sort } : {}),
-      minSlotMs: options.minSlotMs,
-      minBytesProcessed: options.minBytesProcessed,
-      minBytesBilled: options.minBytesBilled,
-      minRowsAffected: options.minRowsAffected,
-      minRowsInserted: options.minRowsInserted,
-      minRowsUpdated: options.minRowsUpdated,
-      minRowsDeleted: options.minRowsDeleted,
-      minRowsDuplicated: options.minRowsDuplicated,
-    },
+    ...(sort != null && warehouse == null ? { sort } : {}),
+    ...warehouseBlock,
   };
 }
 
@@ -116,40 +104,18 @@ export async function queryExecutionsAction(
     const offset = parseListOffset(options.offset);
     assertOffsetRequiresLimit(options.limit, offset);
 
-    const paths = await resolveCliArtifactPaths(
-      { dbtTarget: options.dbtTarget },
-      { manifest: true, runResults: true },
+    const runner = await createCliUseCaseRunner({ dbtTarget: options.dbtTarget });
+    const output = await runner.runUseCase<QueryExecutionsOutput>(
+      'runs.query',
+      buildRegistryInput({ ...options, offset }),
     );
-    validateSafePath(paths.runResults);
-    validateSafePath(paths.manifest);
 
-    const [manifestJson, runResultsJson] = await Promise.all([
-      readArtifactJson(paths.manifest),
-      readArtifactJson(paths.runResults),
-    ]);
-    const manifest = parseManifest(manifestJson);
-    const runResults = parseRunResults(runResultsJson);
-    const { analysis, graph } = buildAnalysisSnapshotFromParsedArtifacts(
-      manifestJson,
-      runResultsJson,
-      manifest,
-      runResults,
-    );
-    const output = queryExecutions(analysis.executions, buildRequest(options), {
-      warehouseType: manifest.metadata?.adapter_type ?? null,
-      graph,
-    });
-
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-    if (useJson) {
-      let payload: unknown = output;
-      if (options.fields) {
-        payload = FieldFilter.filterFields(output, options.fields);
-      }
-      console.log(formatOutput(payload, true));
-    } else {
-      console.log(formatQueryExecutionsHuman(output));
+    if (options.json && options.fields) {
+      emitCliUseCaseOutput(FieldFilter.filterFields(output, options.fields), options);
+      return;
     }
+
+    emitCliUseCaseOutput(output, options, formatQueryExecutionsHuman);
   } catch (error) {
     handleError(error, shouldOutputJSON(options.json, options.noJson));
   }

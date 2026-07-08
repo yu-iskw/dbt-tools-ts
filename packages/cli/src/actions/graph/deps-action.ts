@@ -20,7 +20,9 @@ import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
+import { createCliUseCaseRunner } from '../../internal/cli-use-case-runner';
 
+import type { DependencyQueryOutputContract } from '@dbt-tools/core/contracts';
 import type { ParsedManifest } from 'dbt-artifacts-parser/manifest';
 
 type DepsOptions = ArtifactRootCliOptions & {
@@ -105,6 +107,26 @@ export async function depsAction(
 
     if (options.buildOrder && direction !== 'upstream') {
       throw new Error(`--build-order is only valid with --direction upstream`);
+    }
+
+    if (format === 'flat' && !options.field && !options.fields) {
+      const runner = await createCliUseCaseRunner({ dbtTarget: options.dbtTarget });
+      const result = await runner.runUseCase<DependencyQueryOutputContract>(
+        'resource.dependencies',
+        {
+          uniqueId: resourceId,
+          direction,
+          depth: options.depth,
+          buildOrder: options.buildOrder,
+        },
+      );
+      const useJson = shouldOutputJSON(options.json, options.noJson);
+      if (useJson) {
+        console.log(formatOutput(result, true));
+      } else {
+        console.log(formatDeps(result, format));
+      }
+      return;
     }
 
     const paths = await resolveCliArtifactPaths(

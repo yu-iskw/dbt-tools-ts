@@ -49,6 +49,14 @@
     "./util/sql-truncation": {
       "types": "./dist/util/sql-truncation.d.ts",
       "default": "./dist/util/sql-truncation.js"
+    },
+    "./usecases": {
+      "types": "./dist/usecases.d.ts",
+      "default": "./dist/usecases.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
     }
   },
   "main": "dist/index.js",

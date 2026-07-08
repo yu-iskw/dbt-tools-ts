@@ -1,33 +1,14 @@
 import { QueryExecutionsValidationError } from '@dbt-tools/core';
-import {
-  artifactWorkspaceStatusSchema,
-  dependencyQueryOutputSchema,
-  getResourceToolOutputSchema,
-  queryExecutionsOutputSchema,
-  runSummaryOutputSchema,
-  searchResourcesOutputSchema,
-} from '@dbt-tools/core/contracts';
+import { artifactWorkspaceStatusSchema } from '@dbt-tools/core/contracts';
 
-import { runToolWithLoadedUseCases } from '../loaded-use-cases.js';
 import { assertRemoteFlagsMatchTarget, type McpRemoteClientFlagOptions } from '../options.js';
 import {
   createMcpLoadProgressNotifier,
   type McpToolRequestExtra,
 } from '../progress/map-load-progress.js';
-import { loadResourceNode, toGetResourceToolOutput } from '../resources/fetch-resource.js';
 
-import {
-  emptyToolInputSchema,
-  getResourceInputSchema,
-  queryDependenciesInputSchema,
-  queryExecutionsInputSchema,
-  searchResourcesInputSchema,
-  setTargetInputSchema,
-  toGetResourceInput,
-  toQueryDependenciesInput,
-  toQueryExecutionsRequest,
-  toSearchResourcesInput,
-} from './tool-input-schemas.js';
+import { createRegistryAnalysisToolHandlers } from './register-registry-analysis-tools.js';
+import { setTargetInputSchema } from './tool-input-schemas.js';
 import { jsonResult, jsonToolError } from './tool-result.js';
 
 import type { ArtifactWorkspaceControl } from '../workspace-control.js';
@@ -81,6 +62,8 @@ export function createDbtToolsMcpToolHandlers(
   useCases: DbtToolsUseCases,
   startupOptions: McpRemoteClientFlagOptions = {},
 ): DbtToolsMcpToolHandlers {
+  const registryHandlers = createRegistryAnalysisToolHandlers(useCases);
+
   return {
     dbt_tools_status: async (_input: ToolInput): Promise<McpJsonToolResult> =>
       jsonResult(artifactWorkspaceStatusSchema, await workspace.getStatus()),
@@ -124,56 +107,13 @@ export function createDbtToolsMcpToolHandlers(
       );
     },
 
-    dbt_tools_search_resources: async (input: ToolInput): Promise<McpJsonToolResult> => {
-      const parsed = searchResourcesInputSchema.safeParse(input);
-      if (!parsed.success) {
-        return invalidInputResult(parsed.error);
-      }
-      return runToolWithLoadedUseCases(searchResourcesOutputSchema, useCases, (uc) =>
-        uc.searchResources(toSearchResourcesInput(parsed.data)),
-      );
-    },
-
-    dbt_tools_get_resource: async (input: ToolInput): Promise<McpJsonToolResult> => {
-      const parsed = getResourceInputSchema.safeParse(input);
-      if (!parsed.success) {
-        return invalidInputResult(parsed.error);
-      }
-      const request = toGetResourceInput(parsed.data);
-      return runToolWithLoadedUseCases(
-        getResourceToolOutputSchema,
-        useCases,
-        async (uc) =>
-          toGetResourceToolOutput(
-            await loadResourceNode(
-              uc,
-              request.uniqueId,
-              request.includeCode ? 'truncate-for-json' : 'omit',
-            ),
-          ),
-        { contentPayload: (body) => body.resource },
-      );
-    },
-
-    dbt_tools_query_dependencies: async (input: ToolInput): Promise<McpJsonToolResult> => {
-      const parsed = queryDependenciesInputSchema.safeParse(input);
-      if (!parsed.success) {
-        return invalidInputResult(parsed.error);
-      }
-      return runToolWithLoadedUseCases(dependencyQueryOutputSchema, useCases, (uc) =>
-        uc.queryDependencies(toQueryDependenciesInput(parsed.data)),
-      );
-    },
+    dbt_tools_search_resources: registryHandlers.dbt_tools_search_resources,
+    dbt_tools_get_resource: registryHandlers.dbt_tools_get_resource,
+    dbt_tools_query_dependencies: registryHandlers.dbt_tools_query_dependencies,
 
     dbt_tools_query_executions: async (input: ToolInput): Promise<McpJsonToolResult> => {
-      const parsed = queryExecutionsInputSchema.safeParse(input);
-      if (!parsed.success) {
-        return invalidInputResult(parsed.error);
-      }
       try {
-        return await runToolWithLoadedUseCases(queryExecutionsOutputSchema, useCases, (uc) =>
-          uc.queryExecutions(toQueryExecutionsRequest(parsed.data)),
-        );
+        return await registryHandlers.dbt_tools_query_executions(input);
       } catch (error) {
         if (error instanceof QueryExecutionsValidationError) {
           return validationErrorResult(error);
@@ -182,14 +122,6 @@ export function createDbtToolsMcpToolHandlers(
       }
     },
 
-    dbt_tools_get_run_summary: async (input: ToolInput): Promise<McpJsonToolResult> => {
-      const parsed = emptyToolInputSchema.safeParse(input);
-      if (!parsed.success) {
-        return invalidInputResult(parsed.error);
-      }
-      return runToolWithLoadedUseCases(runSummaryOutputSchema, useCases, (uc) =>
-        uc.getRunSummary(),
-      );
-    },
+    dbt_tools_get_run_summary: registryHandlers.dbt_tools_get_run_summary,
   };
 }

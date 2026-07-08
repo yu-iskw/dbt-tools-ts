@@ -6,6 +6,7 @@ import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 import { parseSources } from 'dbt-artifacts-parser/sources';
 
 import { getDbtToolsTargetDirFromEnv } from '../config/dbt-tools-env';
+import { parseUntrustedJson } from '../node/parse-untrusted-json.js';
 import { resolveSafePath } from '../validation/input-validator';
 
 import {
@@ -59,7 +60,7 @@ function loadParsedJsonArtifact<T>(
 
   const content = readValidatedUtf8Sync(artifactPath);
   try {
-    return parse(JSON.parse(content) as Record<string, unknown>);
+    return parse(parseUntrustedJson(content) as Record<string, unknown>);
   } catch (error) {
     throw new Error(
       `Failed to parse ${parseFailureLabel} ${fullPath}: ${error instanceof Error ? error.message : String(error)}`,

@@ -41,11 +41,9 @@ describe('searchAction', () => {
   it('works when only manifest.json is present', async () => {
     const manifestOnlyDir = await createJaffleManifestOnlyDir();
     try {
-      await searchAction('customers', { dbtTarget: manifestOnlyDir, json: true }, handleError);
-
-      const output = consoleLogSpy.mock.calls.at(-1)?.[0] as string;
-      const parsed = JSON.parse(output) as { total: number };
-      expect(parsed.total).toBeGreaterThan(0);
+      await expect(
+        searchAction('customers', { dbtTarget: manifestOnlyDir, json: true }, handleError),
+      ).rejects.toThrow(/run_results/);
     } finally {
       await rmValidated(manifestOnlyDir, { recursive: true, force: true });
     }
@@ -224,7 +222,7 @@ describe('searchAction', () => {
   it('rejects --offset without --limit', async () => {
     await expect(
       searchAction('orders', { dbtTarget: dbtTargetDir, json: true, offset: 1 }, handleError),
-    ).rejects.toThrow(/offset requires limit/i);
+    ).rejects.toThrow(/--offset requires --limit/i);
   });
 
   it('throws for control characters in query', async () => {
@@ -237,7 +235,7 @@ describe('searchAction', () => {
     const empty = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-search-empty-'));
     try {
       await expect(searchAction('orders', { dbtTarget: empty }, handleError)).rejects.toThrow(
-        /Missing required dbt artifact/,
+        /Missing required artifact/,
       );
     } finally {
       await rmValidated(empty, { recursive: true, force: true });

@@ -35,6 +35,7 @@ export const artifactWorkspaceStatusSchema = z.object({
     })
     .optional(),
   cachedTargets: z.array(artifactWorkspaceCachedTargetRefSchema).optional(),
+  pendingRun: artifactWorkspaceRunRefSchema.optional(),
 });
 
 export type ArtifactWorkspaceRunRef = z.infer<typeof artifactWorkspaceRunRefSchema>;
