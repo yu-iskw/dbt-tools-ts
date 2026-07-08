@@ -1,4 +1,4 @@
-import { FieldFilter, shouldOutputJSON } from '@dbt-tools/core';
+import { shouldOutputJSON } from '@dbt-tools/core';
 
 import { type ArtifactRootCliOptions } from '../../internal/cli-artifact-resolve';
 import {
@@ -38,11 +38,6 @@ export async function runSummaryAction(
   try {
     const runner = await createCliUseCaseRunner({ dbtTarget: options.dbtTarget });
     const output = await runner.runUseCase<RunSummaryOutput>('runs.summary', {});
-
-    if (options.json && options.fields) {
-      emitCliUseCaseOutput(FieldFilter.filterFields(output, options.fields), options);
-      return;
-    }
 
     emitCliUseCaseOutput(output, options, formatRunSummaryHuman);
   } catch (error) {

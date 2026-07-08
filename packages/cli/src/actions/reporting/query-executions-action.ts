@@ -1,6 +1,6 @@
 import {
-  FieldFilter,
   shouldOutputJSON,
+  setObjectProperty,
   type QueryExecutionsOutput,
   type WarehouseAdapterType,
 } from '@dbt-tools/core';
@@ -32,7 +32,6 @@ export type QueryExecutionsOptions = ArtifactRootCliOptions &
     minRowsUpdated?: number;
     minRowsDeleted?: number;
     minRowsDuplicated?: number;
-    fields?: string;
   };
 
 function parseResourceTypes(csv: string | undefined): string[] | undefined {
@@ -43,6 +42,55 @@ function parseResourceTypes(csv: string | undefined): string[] | undefined {
     .filter(Boolean);
 }
 
+function definedOnly<T extends Record<string, unknown>>(values: T): Partial<T> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined) {
+      out[key] = value;
+    }
+  }
+  return out as Partial<T>;
+}
+
+function buildWarehouseBlock(
+  warehouse: WarehouseAdapterType,
+  options: QueryExecutionsOptions,
+): Record<string, unknown> | undefined {
+  const sort = options.sort;
+  switch (warehouse) {
+    case 'bigquery': {
+      const block = definedOnly({
+        sort,
+        minSlotMs: options.minSlotMs,
+        minBytesProcessed: options.minBytesProcessed,
+        minBytesBilled: options.minBytesBilled,
+        minRowsAffected: options.minRowsAffected,
+      });
+      return Object.keys(block).length > 0 ? block : undefined;
+    }
+    case 'snowflake': {
+      const block = definedOnly({
+        sort,
+        minBytesProcessed: options.minBytesProcessed,
+        minRowsAffected: options.minRowsAffected,
+        minRowsInserted: options.minRowsInserted,
+        minRowsUpdated: options.minRowsUpdated,
+        minRowsDeleted: options.minRowsDeleted,
+        minRowsDuplicated: options.minRowsDuplicated,
+      });
+      return Object.keys(block).length > 0 ? block : undefined;
+    }
+    default: {
+      const block = definedOnly({
+        sort,
+        minBytesProcessed: options.minBytesProcessed,
+        minRowsAffected: options.minRowsAffected,
+      });
+      return Object.keys(block).length > 0 ? block : undefined;
+    }
+  }
+}
+
 function buildRegistryInput(options: QueryExecutionsOptions) {
   const sort = options.sort as
     | 'execution_time_asc'
@@ -50,24 +98,7 @@ function buildRegistryInput(options: QueryExecutionsOptions) {
     | 'unique_id'
     | undefined;
   const warehouse = options.warehouse;
-  const warehouseBlock =
-    warehouse == null
-      ? {}
-      : {
-          [warehouse]: {
-            ...(sort != null ? { sort } : {}),
-            minSlotMs: options.minSlotMs,
-            minBytesProcessed: options.minBytesProcessed,
-            minBytesBilled: options.minBytesBilled,
-            minRowsAffected: options.minRowsAffected,
-            minRowsInserted: options.minRowsInserted,
-            minRowsUpdated: options.minRowsUpdated,
-            minRowsDeleted: options.minRowsDeleted,
-            minRowsDuplicated: options.minRowsDuplicated,
-          },
-        };
-
-  return {
+  const base = {
     resourceTypes: parseResourceTypes(options.resourceTypes),
     status: options.status,
     limit: options.limit,
@@ -76,8 +107,17 @@ function buildRegistryInput(options: QueryExecutionsOptions) {
     minExecutionTime: options.minExecutionTime,
     maxExecutionTime: options.maxExecutionTime,
     ...(sort != null && warehouse == null ? { sort } : {}),
-    ...warehouseBlock,
   };
+  if (warehouse == null) {
+    return base;
+  }
+  const block = buildWarehouseBlock(warehouse, options);
+  if (block == null) {
+    return base;
+  }
+  const withWarehouse: Record<string, unknown> = { ...base };
+  setObjectProperty(withWarehouse, warehouse, block);
+  return withWarehouse;
 }
 
 function formatQueryExecutionsHuman(output: QueryExecutionsOutput): string {
@@ -114,11 +154,6 @@ export async function queryExecutionsAction(
       'runs.query',
       buildRegistryInput({ ...options, offset }),
     );
-
-    if (options.json && options.fields) {
-      emitCliUseCaseOutput(FieldFilter.filterFields(output, options.fields), options);
-      return;
-    }
 
     emitCliUseCaseOutput(output, options, formatQueryExecutionsHuman);
   } catch (error) {

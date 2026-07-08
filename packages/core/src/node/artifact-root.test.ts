@@ -1,3 +1,4 @@
+import * as fsp from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
@@ -39,5 +40,20 @@ describe('ArtifactRoot', () => {
 
   it('open rejects path traversal candidates', async () => {
     await expect(ArtifactRoot.open('../../etc/passwd', { cwd: tempDir })).rejects.toThrow();
+  });
+
+  it('rejects symlink targets outside the root', async () => {
+    const outsideDir = await mkdtempValidated(
+      path.join(os.tmpdir(), 'dbt-tools-artifact-outside-'),
+    );
+    try {
+      await writeValidatedUtf8(resolveJoinedSafe(outsideDir, 'secret.json'), '{"leak":true}');
+      const linkPath = resolveJoinedSafe(tempDir, 'manifest.json');
+      await fsp.symlink(resolveJoinedSafe(outsideDir, 'secret.json'), linkPath);
+      const root = await ArtifactRoot.open(tempDir);
+      await expect(root.readUtf8('manifest.json')).rejects.toThrow(/escapes artifact root/);
+    } finally {
+      await rmValidated(outsideDir, { recursive: true, force: true });
+    }
   });
 });
