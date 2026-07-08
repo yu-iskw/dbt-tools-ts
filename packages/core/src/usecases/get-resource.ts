@@ -23,7 +23,10 @@ export const getResourceUseCase: UseCase<GetResourceInputContract, GetResourceTo
       resource:
         resource == null
           ? null
-          : (copyResourceForOutput(resource, input.includeCode === true) as GetResourceToolOutput['resource']),
+          : (copyResourceForOutput(
+              resource,
+              input.includeCode === true,
+            ) as GetResourceToolOutput['resource']),
     };
   },
 };

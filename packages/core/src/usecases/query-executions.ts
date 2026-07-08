@@ -22,13 +22,9 @@ export const queryExecutionsUseCase: UseCase<
   output: queryExecutionsOutputSchema,
   read: 'snapshot',
   run(snapshot: LoadedArtifactWorkspace, input: QueryExecutionsInputContract) {
-    return queryExecutions(
-      snapshot.analysis.executions,
-      toQueryExecutionsRequest(input),
-      {
-        warehouseType: snapshot.analysis.warehouseType,
-        graph: snapshot.graph,
-      },
-    );
+    return queryExecutions(snapshot.analysis.executions, toQueryExecutionsRequest(input), {
+      warehouseType: snapshot.analysis.warehouseType,
+      graph: snapshot.graph,
+    });
   },
 };

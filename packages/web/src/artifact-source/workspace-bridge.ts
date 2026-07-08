@@ -10,7 +10,9 @@ export interface ArtifactRunBytes {
   sourcesBytes?: Uint8Array;
 }
 
-export async function readLocalRunArtifactBytes(run: ResolvedArtifactRun): Promise<ArtifactRunBytes> {
+export async function readLocalRunArtifactBytes(
+  run: ResolvedArtifactRun,
+): Promise<ArtifactRunBytes> {
   const encoder = new TextEncoder();
   const [manifestText, runResultsText, catalogText, sourcesText] = await Promise.all([
     readValidatedUtf8(run.manifestKey),

@@ -80,12 +80,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "unique_id",
-                "resource_type",
-                "name",
-                "package_name"
-              ],
+              "required": ["unique_id", "resource_type", "name", "package_name"],
               "additionalProperties": {}
             }
           },
@@ -103,11 +98,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "total",
-          "results",
-          "offset"
-        ],
+        "required": ["total", "results", "offset"],
         "additionalProperties": false
       }
     },
@@ -127,9 +118,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "uniqueId"
-        ],
+        "required": ["uniqueId"],
         "additionalProperties": false
       },
       "output": {
@@ -261,13 +250,7 @@
                   },
                   "statusTone": {
                     "type": "string",
-                    "enum": [
-                      "danger",
-                      "neutral",
-                      "positive",
-                      "skipped",
-                      "warning"
-                    ]
+                    "enum": ["danger", "neutral", "positive", "skipped", "warning"]
                   },
                   "executionTime": {
                     "anyOf": [
@@ -363,9 +346,7 @@
             ]
           }
         },
-        "required": [
-          "resource"
-        ],
+        "required": ["resource"],
         "additionalProperties": false,
         "$defs": {
           "__schema0": {
@@ -417,10 +398,7 @@
           "direction": {
             "default": "upstream",
             "type": "string",
-            "enum": [
-              "upstream",
-              "downstream"
-            ]
+            "enum": ["upstream", "downstream"]
           },
           "depth": {
             "type": "integer",
@@ -431,10 +409,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "uniqueId",
-          "direction"
-        ],
+        "required": ["uniqueId", "direction"],
         "additionalProperties": false
       },
       "output": {
@@ -446,10 +421,7 @@
           },
           "direction": {
             "type": "string",
-            "enum": [
-              "downstream",
-              "upstream"
-            ]
+            "enum": ["downstream", "upstream"]
           },
           "build_order": {
             "type": "boolean"
@@ -477,13 +449,7 @@
                   "maximum": 9007199254740991
                 }
               },
-              "required": [
-                "unique_id",
-                "resource_type",
-                "name",
-                "package_name",
-                "depth"
-              ],
+              "required": ["unique_id", "resource_type", "name", "package_name", "depth"],
               "additionalProperties": {
                 "$ref": "#/$defs/__schema0"
               }
@@ -495,12 +461,7 @@
             "maximum": 9007199254740991
           }
         },
-        "required": [
-          "resource_id",
-          "direction",
-          "dependencies",
-          "count"
-        ],
+        "required": ["resource_id", "direction", "dependencies", "count"],
         "additionalProperties": false,
         "$defs": {
           "__schema0": {
@@ -585,11 +546,7 @@
           },
           "sort": {
             "type": "string",
-            "enum": [
-              "execution_time_desc",
-              "execution_time_asc",
-              "unique_id"
-            ]
+            "enum": ["execution_time_desc", "execution_time_asc", "unique_id"]
           },
           "bigquery": {
             "type": "object",
@@ -658,10 +615,7 @@
             "properties": {
               "sort": {
                 "type": "string",
-                "enum": [
-                  "bytes_processed_desc",
-                  "rows_affected_desc"
-                ]
+                "enum": ["bytes_processed_desc", "rows_affected_desc"]
               },
               "minBytesProcessed": {
                 "type": "number"
@@ -677,10 +631,7 @@
             "properties": {
               "sort": {
                 "type": "string",
-                "enum": [
-                  "bytes_processed_desc",
-                  "rows_affected_desc"
-                ]
+                "enum": ["bytes_processed_desc", "rows_affected_desc"]
               },
               "minBytesProcessed": {
                 "type": "number"
@@ -696,10 +647,7 @@
             "properties": {
               "sort": {
                 "type": "string",
-                "enum": [
-                  "bytes_processed_desc",
-                  "rows_affected_desc"
-                ]
+                "enum": ["bytes_processed_desc", "rows_affected_desc"]
               },
               "minBytesProcessed": {
                 "type": "number"
@@ -715,10 +663,7 @@
             "properties": {
               "sort": {
                 "type": "string",
-                "enum": [
-                  "bytes_processed_desc",
-                  "rows_affected_desc"
-                ]
+                "enum": ["bytes_processed_desc", "rows_affected_desc"]
               },
               "minBytesProcessed": {
                 "type": "number"
@@ -738,27 +683,11 @@
         "properties": {
           "warehouse": {
             "type": "string",
-            "enum": [
-              "athena",
-              "bigquery",
-              "postgres",
-              "redshift",
-              "snowflake",
-              "spark",
-              "unknown"
-            ]
+            "enum": ["athena", "bigquery", "postgres", "redshift", "snowflake", "spark", "unknown"]
           },
           "run_warehouse": {
             "type": "string",
-            "enum": [
-              "athena",
-              "bigquery",
-              "postgres",
-              "redshift",
-              "snowflake",
-              "spark",
-              "unknown"
-            ]
+            "enum": ["athena", "bigquery", "postgres", "redshift", "snowflake", "spark", "unknown"]
           },
           "warehouse_criteria": {
             "anyOf": [
@@ -836,11 +765,7 @@
                   "$ref": "#/$defs/__schema0"
                 }
               },
-              "required": [
-                "unique_id",
-                "status",
-                "execution_time"
-              ],
+              "required": ["unique_id", "status", "execution_time"],
               "additionalProperties": false
             }
           }
@@ -969,22 +894,10 @@
                 },
                 "tone": {
                   "type": "string",
-                  "enum": [
-                    "danger",
-                    "neutral",
-                    "positive",
-                    "skipped",
-                    "warning"
-                  ]
+                  "enum": ["danger", "neutral", "positive", "skipped", "warning"]
                 }
               },
-              "required": [
-                "status",
-                "count",
-                "duration",
-                "share",
-                "tone"
-              ],
+              "required": ["status", "count", "duration", "share", "tone"],
               "additionalProperties": {}
             }
           },
@@ -1017,13 +930,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "unique_id",
-                    "execution_time",
-                    "rank",
-                    "pct_of_total",
-                    "status"
-                  ],
+                  "required": ["unique_id", "execution_time", "rank", "pct_of_total", "status"],
                   "additionalProperties": {}
                 }
               },
@@ -1032,17 +939,10 @@
               },
               "criteria_used": {
                 "type": "string",
-                "enum": [
-                  "threshold",
-                  "top_n"
-                ]
+                "enum": ["threshold", "top_n"]
               }
             },
-            "required": [
-              "nodes",
-              "total_execution_time",
-              "criteria_used"
-            ],
+            "required": ["nodes", "total_execution_time", "criteria_used"],
             "additionalProperties": {}
           },
           "adapterTotals": {
@@ -1080,9 +980,7 @@
                     "type": "number"
                   }
                 },
-                "required": [
-                  "nodesWithAdapterData"
-                ],
+                "required": ["nodesWithAdapterData"],
                 "additionalProperties": {}
               },
               {
@@ -1092,23 +990,10 @@
           },
           "warehouse_type": {
             "type": "string",
-            "enum": [
-              "athena",
-              "bigquery",
-              "postgres",
-              "redshift",
-              "snowflake",
-              "spark",
-              "unknown"
-            ]
+            "enum": ["athena", "bigquery", "postgres", "redshift", "snowflake", "spark", "unknown"]
           }
         },
-        "required": [
-          "summary",
-          "statusBreakdown",
-          "adapterTotals",
-          "warehouse_type"
-        ],
+        "required": ["summary", "statusBreakdown", "adapterTotals", "warehouse_type"],
         "additionalProperties": false,
         "$defs": {
           "__schema0": {

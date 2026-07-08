@@ -11,27 +11,27 @@ Distilled from [RFC-0001](../rfc/RFC-0001-clean-slate-redesign.md) §6–§7. Th
 
 ## Trust boundaries
 
-| Boundary | Untrusted side | Trusted side | Primary controls |
-| --- | --- | --- | --- |
-| TB1 Parse | Artifact JSON/SQL | dbt-tools process | Parser dispatch, `parseUntrustedJson`, Zod validation |
-| TB2 MCP input | Agent-driven tool args | MCP server | stdio transport, input/output schema validation |
-| TB3 Local HTTP | LAN / other local processes | Web server API | Loopback bind, Host/Origin checks, POST-only mutations |
-| TB4 Supply chain | npm dependencies | Installed tree | Lockfile, `ignore-scripts`, release-age cooldown, scanners |
-| TB5 Filesystem | User-supplied paths | Read scope | `ArtifactRoot` / `resolveSafePath` containment |
+| Boundary         | Untrusted side              | Trusted side      | Primary controls                                           |
+| ---------------- | --------------------------- | ----------------- | ---------------------------------------------------------- |
+| TB1 Parse        | Artifact JSON/SQL           | dbt-tools process | Parser dispatch, `parseUntrustedJson`, Zod validation      |
+| TB2 MCP input    | Agent-driven tool args      | MCP server        | stdio transport, input/output schema validation            |
+| TB3 Local HTTP   | LAN / other local processes | Web server API    | Loopback bind, Host/Origin checks, POST-only mutations     |
+| TB4 Supply chain | npm dependencies            | Installed tree    | Lockfile, `ignore-scripts`, release-age cooldown, scanners |
+| TB5 Filesystem   | User-supplied paths         | Read scope        | `ArtifactRoot` / `resolveSafePath` containment             |
 
 ## Threat register
 
-| ID | Threat | Vector | Control |
-| --- | --- | --- | --- |
-| T1 | Path traversal / arbitrary file read | CLI flags, MCP `set_target`, web source API | Root-scoped `ArtifactRoot`; realpath before containment check |
-| T2 | Prototype pollution from hostile JSON | `manifest.json` keys like `__proto__` | Null-prototype parse; `Map` collections; Zod at edges |
-| T3 | Resource exhaustion | Large artifacts, unbounded outputs | Size caps, bounded output envelopes, server timeouts |
-| T4 | Stored XSS in web UI | Artifact-sourced strings | React escaping; no raw HTML in markdown; CSP |
-| T5 | Stale-snapshot answers | Concurrent loads, remote polling | `SessionBinding` in unified `Workspace` |
-| T6 | Abuse of local web server | DNS rebinding, cross-origin POST | `127.0.0.1` default bind; Host/Origin validation |
-| T7 | MCP abuse | Token passthrough, over-broad tools | stdio-only v1; read-only analysis surface |
-| T8 | Supply-chain compromise | Dependencies or published packages | OIDC trusted publishing; provenance; CI scanners |
-| T9 | Credential leakage | Remote sources, debug logs | Server-side providers only; structured logging with redaction |
+| ID  | Threat                                | Vector                                      | Control                                                       |
+| --- | ------------------------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| T1  | Path traversal / arbitrary file read  | CLI flags, MCP `set_target`, web source API | Root-scoped `ArtifactRoot`; realpath before containment check |
+| T2  | Prototype pollution from hostile JSON | `manifest.json` keys like `__proto__`       | Null-prototype parse; `Map` collections; Zod at edges         |
+| T3  | Resource exhaustion                   | Large artifacts, unbounded outputs          | Size caps, bounded output envelopes, server timeouts          |
+| T4  | Stored XSS in web UI                  | Artifact-sourced strings                    | React escaping; no raw HTML in markdown; CSP                  |
+| T5  | Stale-snapshot answers                | Concurrent loads, remote polling            | `SessionBinding` in unified `Workspace`                       |
+| T6  | Abuse of local web server             | DNS rebinding, cross-origin POST            | `127.0.0.1` default bind; Host/Origin validation              |
+| T7  | MCP abuse                             | Token passthrough, over-broad tools         | stdio-only v1; read-only analysis surface                     |
+| T8  | Supply-chain compromise               | Dependencies or published packages          | OIDC trusted publishing; provenance; CI scanners              |
+| T9  | Credential leakage                    | Remote sources, debug logs                  | Server-side providers only; structured logging with redaction |
 
 ## Out of scope (accepted risks)
 

@@ -11,7 +11,7 @@ dbt-tools reads dbt artifacts and turns them into operational signals for humans
 | [Production hardening](./production-hardening.md) | You are deploying in CI, cloud storage, or shared environments          |
 | [Licensing](./licensing.md)                       | You are evaluating dbt-tools for commercial or internal platform use    |
 
-Contributors: formal threat register in the [repository threat model](https://github.com/yu-iskw/dbt-tools-ts/blob/main/docs/security/threat-model.md) (RFC-0001).
+Contributors: formal threat register in the [repository threat model](../../security/threat-model.md) (RFC-0001).
 
 ## Core principles
 

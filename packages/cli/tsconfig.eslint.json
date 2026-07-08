@@ -5,7 +5,8 @@
     "paths": {
       "@dbt-tools/core": ["../core/src/index.ts"],
       "@dbt-tools/core/artifact-io": ["../core/src/artifact-io.ts"],
-      "@dbt-tools/core/browser": ["../core/src/browser.ts"]
+      "@dbt-tools/core/browser": ["../core/src/browser.ts"],
+      "@dbt-tools/core/node": ["../core/src/node.ts"]
     }
   },
   "include": ["src", "vitest.config.ts", "coverage.policy.ts"],

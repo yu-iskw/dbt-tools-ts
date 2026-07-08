@@ -29,10 +29,7 @@ import {
 } from './discovery';
 import { normalizeArtifactPrefix } from './prefix';
 import { resolveLocalArtifactTargetDirFromEnv } from './resolve-local-target-dir';
-import {
-  readLocalRunArtifactBytes,
-  readRemoteRunArtifactBytes,
-} from './workspace-bridge';
+import { readLocalRunArtifactBytes, readRemoteRunArtifactBytes } from './workspace-bridge';
 
 import type {
   ArtifactSourceDiscoveryResult,

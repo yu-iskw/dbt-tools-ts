@@ -1,4 +1,9 @@
-import { FieldFilter, shouldOutputJSON, type QueryExecutionsOutput, type WarehouseAdapterType } from '@dbt-tools/core';
+import {
+  FieldFilter,
+  shouldOutputJSON,
+  type QueryExecutionsOutput,
+  type WarehouseAdapterType,
+} from '@dbt-tools/core';
 
 import { type ArtifactRootCliOptions } from '../../internal/cli-artifact-resolve';
 import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination';

@@ -11,7 +11,9 @@
       "@dbt-tools/core/progress/artifact-load-progress": [
         "../core/src/progress/artifact-load-progress.ts"
       ],
-      "@dbt-tools/core/util/sql-truncation": ["../core/src/util/sql-truncation.ts"]
+      "@dbt-tools/core/util/sql-truncation": ["../core/src/util/sql-truncation.ts"],
+      "@dbt-tools/core/node": ["../core/src/node.ts"],
+      "@dbt-tools/core/usecases": ["../core/src/usecases.ts"]
     }
   },
   "include": ["src/**/*.ts", "vitest.config.ts", "coverage.policy.ts"],
