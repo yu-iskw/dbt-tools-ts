@@ -6,6 +6,7 @@
       "@dbt-tools/core": ["../core/src/index.ts"],
       "@dbt-tools/core/artifact-io": ["../core/src/artifact-io.ts"],
       "@dbt-tools/core/browser": ["../core/src/browser.ts"],
+      "@dbt-tools/core/contracts": ["../core/src/contracts/index.ts"],
       "@dbt-tools/core/node": ["../core/src/node.ts"]
     }
   },
