@@ -14,12 +14,12 @@ Accepted
 2. **`@dbt-tools/core/node` is the only Node I/O boundary.** Filesystem (`ArtifactRoot`), artifact sources (local, S3, GCS), `Workspace`, `SessionBinding`, and env config live under `core/node` and are exported via the `./node` subpath.
 3. **Layer imports are enforced structurally:**
 
-   | Layer | May import | Must never import |
-   | --- | --- | --- |
-   | `contracts/` | Zod only | anything else |
-   | `domain/` | `contracts/`, graphology, parser types | `node:*`, cloud SDKs, `node/` |
-   | `usecases/` | `contracts/`, `domain/` | `node:*`, cloud SDKs |
-   | `node/` | layers above + `node:*`, cloud SDKs | UI code |
+   | Layer        | May import                             | Must never import             |
+   | ------------ | -------------------------------------- | ----------------------------- |
+   | `contracts/` | Zod only                               | anything else                 |
+   | `domain/`    | `contracts/`, graphology, parser types | `node:*`, cloud SDKs, `node/` |
+   | `usecases/`  | `contracts/`, `domain/`                | `node:*`, cloud SDKs          |
+   | `node/`      | layers above + `node:*`, cloud SDKs    | UI code                       |
 
 4. **Surface import rules:** CLI, MCP, and web server import `core` + `core/node`. Web browser code and analysis workers import the pure `core` entry only (or `./browser` where that alias remains).
 5. **Enforcement:** export map + ESLint `import-x/no-restricted-paths` + knip verify the table; we do not split into a second npm package.

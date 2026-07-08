@@ -3,7 +3,10 @@ import {
   searchResourcesInputSchema,
   type SearchResourcesInputContract,
 } from '../contracts/search-resources-input.js';
-import { searchResourcesOutputSchema, type SearchResourcesOutputContract } from '../contracts/search-resources.js';
+import {
+  searchResourcesOutputSchema,
+  type SearchResourcesOutputContract,
+} from '../contracts/search-resources.js';
 import { searchResourcesInGraph } from '../discovery/graph-search.js';
 
 import type { UseCase } from './types.js';

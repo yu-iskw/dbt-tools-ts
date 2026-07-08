@@ -1,7 +1,6 @@
 import type { LoadedArtifactWorkspace } from '../artifact-workspace/types.js';
 import type * as z from 'zod/v4';
 
-
 export type UseCaseReadMode = 'snapshot';
 
 export interface UseCase<In, Out> {

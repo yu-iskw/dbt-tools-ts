@@ -12,10 +12,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
-const OUTPUT_JSON = resolve(
-  REPO_ROOT,
-  'packages/core/generated/use-case-schemas.json',
-);
+const OUTPUT_JSON = resolve(REPO_ROOT, 'packages/core/generated/use-case-schemas.json');
 
 function ensureCoreBuilt() {
   const build = spawnSync('pnpm', ['--filter', '@dbt-tools/core', 'build'], {
@@ -37,9 +34,7 @@ function toJsonSchema(zodSchema) {
 async function main() {
   ensureCoreBuilt();
 
-  const usecasesModule = pathToFileURL(
-    resolve(REPO_ROOT, 'packages/core/dist/usecases.js'),
-  ).href;
+  const usecasesModule = pathToFileURL(resolve(REPO_ROOT, 'packages/core/dist/usecases.js')).href;
   const { USE_CASE_REGISTRY } = await import(usecasesModule);
 
   const useCases = USE_CASE_REGISTRY.map((entry) => ({

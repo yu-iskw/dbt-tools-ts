@@ -2,8 +2,8 @@
 
 RFCs propose substantial design changes for dbt-tools. Accepted RFC invariants are distilled into [ADRs](../adr/README.md).
 
-| RFC | Status | Title |
-| --- | ------ | ----- |
+| RFC                                            | Status   | Title                                                         |
+| ---------------------------------------------- | -------- | ------------------------------------------------------------- |
 | [RFC-0001](./RFC-0001-clean-slate-redesign.md) | Proposed | Clean-slate redesign — architecture, security, and governance |
 
 ## Process

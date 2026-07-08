@@ -3,7 +3,12 @@ import * as path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { mkdtempValidated, resolveJoinedSafe, rmValidated, writeValidatedUtf8 } from '../io/safe-fs.js';
+import {
+  mkdtempValidated,
+  resolveJoinedSafe,
+  rmValidated,
+  writeValidatedUtf8,
+} from '../io/safe-fs.js';
 
 import { ArtifactRoot } from './artifact-root.js';
 
@@ -27,7 +32,9 @@ describe('ArtifactRoot', () => {
 
   it('rejects reads outside the root', async () => {
     const root = await ArtifactRoot.open(tempDir);
-    await expect(root.readUtf8('../outside.json')).rejects.toThrow(/Path traversal|escapes artifact root/);
+    await expect(root.readUtf8('../outside.json')).rejects.toThrow(
+      /Path traversal|escapes artifact root/,
+    );
   });
 
   it('open rejects path traversal candidates', async () => {

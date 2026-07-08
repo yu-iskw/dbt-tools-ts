@@ -463,7 +463,12 @@ export class ArtifactWorkspace {
       ...(cachedTargets.length > 0 ? { cachedTargets } : {}),
       cachePolicy: { maxTargets: this.maxCachedTargets, ttlMs: this.cacheTtlMs },
       ...(this.pendingRun != null
-        ? { pendingRun: { runId: this.pendingRun.runId, versionToken: this.pendingRun.versionToken } }
+        ? {
+            pendingRun: {
+              runId: this.pendingRun.runId,
+              versionToken: this.pendingRun.versionToken,
+            },
+          }
         : {}),
       ...(options?.fromCache === true ? { fromCache: true } : {}),
     };

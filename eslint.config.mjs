@@ -484,7 +484,15 @@ export default [
         {
           patterns: [
             {
-              group: ['./io/*', './io/**', './config/*', './config/**', './artifact-workspace/*', './node/*', './node/**'],
+              group: [
+                './io/*',
+                './io/**',
+                './config/*',
+                './config/**',
+                './artifact-workspace/*',
+                './node/*',
+                './node/**',
+              ],
               message: 'browser entry must not import Node I/O or workspace modules.',
             },
             {

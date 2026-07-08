@@ -38,7 +38,11 @@ export function registerRegistryAnalysisTools(
   server: McpServer,
   handlers: Pick<
     DbtToolsMcpToolHandlers,
-    'dbt_tools_get_resource' | 'dbt_tools_get_run_summary' | 'dbt_tools_query_dependencies' | 'dbt_tools_query_executions' | 'dbt_tools_search_resources'
+    | 'dbt_tools_get_resource'
+    | 'dbt_tools_get_run_summary'
+    | 'dbt_tools_query_dependencies'
+    | 'dbt_tools_query_executions'
+    | 'dbt_tools_search_resources'
   >,
 ): void {
   for (const useCase of USE_CASE_REGISTRY) {
@@ -65,7 +69,11 @@ export function createRegistryAnalysisToolHandlers(
   useCases: DbtToolsUseCases,
 ): Pick<
   DbtToolsMcpToolHandlers,
-  'dbt_tools_get_resource' | 'dbt_tools_get_run_summary' | 'dbt_tools_query_dependencies' | 'dbt_tools_query_executions' | 'dbt_tools_search_resources'
+  | 'dbt_tools_get_resource'
+  | 'dbt_tools_get_run_summary'
+  | 'dbt_tools_query_dependencies'
+  | 'dbt_tools_query_executions'
+  | 'dbt_tools_search_resources'
 > {
   const searchUseCase = findUseCaseByName('resource.search')!;
   const dependenciesUseCase = findUseCaseByName('resource.dependencies')!;
