@@ -160,4 +160,20 @@ describe('runReportAction', () => {
       ),
     ).rejects.toThrow(/offset requires --limit/i);
   });
+
+  it('caps node_executions in JSON when CLI --limit is set', async () => {
+    await runReportAction(
+      {
+        dbtTarget: dbtTargetDir,
+        json: true,
+        limit: 3,
+        offset: 0,
+      },
+      handleError,
+    );
+    const capped = JSON.parse(consoleLogSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+    expect((capped.node_executions as unknown[]).length).toBe(3);
+    expect(capped.node_executions_limit).toBe(3);
+    expect(capped.node_executions_truncated).toBe(true);
+  });
 });

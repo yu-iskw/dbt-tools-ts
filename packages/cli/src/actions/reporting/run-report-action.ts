@@ -50,6 +50,10 @@ type RunReportOptions = ArtifactRootCliOptions & {
   adapterMinBytes?: number;
   adapterMinSlotMs?: number;
   adapterMinRowsAffected?: number;
+  /** CLI `--limit` — aliases `nodeExecutionsLimit` for JSON `node_executions` paging. */
+  limit?: number;
+  /** CLI `--offset` — aliases `nodeExecutionsOffset`. */
+  offset?: number;
   /** When set with JSON output, slice `node_executions` after computing summaries. */
   nodeExecutionsLimit?: number;
   nodeExecutionsOffset?: number;
@@ -263,8 +267,8 @@ export async function runReportAction(
       }
       Object.assign(report, adapterJson);
 
-      const lim = parseOptionalListLimit(options.nodeExecutionsLimit);
-      const off = parseListOffset(options.nodeExecutionsOffset);
+      const lim = parseOptionalListLimit(options.nodeExecutionsLimit ?? options.limit);
+      const off = parseListOffset(options.nodeExecutionsOffset ?? options.offset);
       assertOffsetRequiresLimit(lim, off);
       if (lim !== undefined) {
         const full = filteredSummary.node_executions;

@@ -56,4 +56,19 @@ describe('ArtifactRoot', () => {
       await rmValidated(outsideDir, { recursive: true, force: true });
     }
   });
+
+  it('rejects listing through a symlink directory outside the root', async () => {
+    const outsideDir = await mkdtempValidated(
+      path.join(os.tmpdir(), 'dbt-tools-artifact-outside-list-'),
+    );
+    try {
+      await writeValidatedUtf8(resolveJoinedSafe(outsideDir, 'secret.json'), '{"leak":true}');
+      const linkPath = resolveJoinedSafe(tempDir, 'escape-dir');
+      await fsp.symlink(outsideDir, linkPath);
+      const root = await ArtifactRoot.open(tempDir);
+      await expect(root.list('escape-dir')).rejects.toThrow(/escapes artifact root/);
+    } finally {
+      await rmValidated(outsideDir, { recursive: true, force: true });
+    }
+  });
 });

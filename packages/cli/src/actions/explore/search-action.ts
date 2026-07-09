@@ -1,12 +1,22 @@
 /**
  * Search CLI action handler – fast manifest search across dbt entities.
  */
-import { shouldOutputJSON, validateNoControlChars } from '@dbt-tools/core';
+import {
+  ManifestGraph,
+  loadManifest,
+  searchResourcesInGraph,
+  shouldOutputJSON,
+  validateNoControlChars,
+  validateSafePath,
+} from '@dbt-tools/core';
+import { normalizeSearchResourcesInput } from '@dbt-tools/core/contracts';
 
-import { type ArtifactRootCliOptions } from '../../internal/cli-artifact-resolve';
+import {
+  resolveCliArtifactPaths,
+  type ArtifactRootCliOptions,
+} from '../../internal/cli-artifact-resolve';
 import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination';
 import {
-  createCliUseCaseRunner,
   emitCliUseCaseOutput,
   type CliUseCaseRunOptions,
 } from '../../internal/cli-use-case-runner';
@@ -73,7 +83,7 @@ export function formatSearch(output: SearchOutput): string {
 }
 
 /**
- * Search action handler
+ * Search action handler — manifest-only (same resolution as discover/deps).
  */
 export async function searchAction(
   query: string | undefined,
@@ -88,16 +98,26 @@ export async function searchAction(
     const offset = parseListOffset(options.offset);
     assertOffsetRequiresLimit(options.limit, offset);
 
-    const runner = await createCliUseCaseRunner({ dbtTarget: options.dbtTarget });
-    const output = await runner.runUseCase<SearchOutput>('resource.search', {
-      query,
-      type: options.type,
-      package: options.package,
-      tag: options.tag,
-      path: options.path,
-      limit: options.limit,
-      offset,
-    });
+    const paths = await resolveCliArtifactPaths(
+      { dbtTarget: options.dbtTarget },
+      { manifest: true, runResults: false },
+    );
+    validateSafePath(paths.manifest);
+
+    const manifest = loadManifest(paths.manifest);
+    const graph = new ManifestGraph(manifest);
+    const output = searchResourcesInGraph(
+      graph,
+      normalizeSearchResourcesInput({
+        query,
+        type: options.type,
+        package: options.package,
+        tag: options.tag,
+        path: options.path,
+        limit: options.limit,
+        offset,
+      }),
+    );
 
     emitCliUseCaseOutput(output, options, formatSearch);
   } catch (error) {
