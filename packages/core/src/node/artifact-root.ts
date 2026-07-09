@@ -91,7 +91,9 @@ export class ArtifactRoot {
 
   async list(rel: string): Promise<ArtifactRootEntry[]> {
     const target = rel === '.' ? this.realRoot : this.resolveRelative(rel);
-    const entries = await fsp.readdir(target, { withFileTypes: true });
+    const realTarget = await fsp.realpath(target);
+    this.assertTargetUnderRoot(realTarget, rel);
+    const entries = await fsp.readdir(realTarget, { withFileTypes: true });
     return entries.map((entry) => ({
       name: entry.name,
       isDirectory: entry.isDirectory(),

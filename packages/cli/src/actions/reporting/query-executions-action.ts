@@ -1,6 +1,8 @@
 import {
+  COMMON_EXECUTION_SORTS,
   shouldOutputJSON,
   setObjectProperty,
+  type CommonExecutionSort,
   type QueryExecutionsOutput,
   type WarehouseAdapterType,
 } from '@dbt-tools/core';
@@ -52,11 +54,25 @@ function definedOnly<T extends Record<string, unknown>>(values: T): Partial<T> {
   return out as Partial<T>;
 }
 
+function isCommonExecutionSort(sort: string | undefined): sort is CommonExecutionSort {
+  return sort != null && (COMMON_EXECUTION_SORTS as readonly string[]).includes(sort);
+}
+
+/**
+ * Adapter-metric sorts belong in warehouse blocks; common sorts stay at the root.
+ */
+function adapterSortForBlock(sort: string | undefined): string | undefined {
+  if (sort == null || isCommonExecutionSort(sort)) {
+    return undefined;
+  }
+  return sort;
+}
+
 function buildWarehouseBlock(
   warehouse: WarehouseAdapterType,
   options: QueryExecutionsOptions,
 ): Record<string, unknown> | undefined {
-  const sort = options.sort;
+  const sort = adapterSortForBlock(options.sort);
   switch (warehouse) {
     case 'bigquery': {
       const block = definedOnly({
@@ -91,12 +107,9 @@ function buildWarehouseBlock(
   }
 }
 
-function buildRegistryInput(options: QueryExecutionsOptions) {
-  const sort = options.sort as
-    | 'execution_time_asc'
-    | 'execution_time_desc'
-    | 'unique_id'
-    | undefined;
+/** Exported for unit tests — shapes CLI options into registry Zod input. */
+export function buildRegistryInput(options: QueryExecutionsOptions): Record<string, unknown> {
+  const sort = options.sort;
   const warehouse = options.warehouse;
   const base = {
     resourceTypes: parseResourceTypes(options.resourceTypes),
@@ -106,7 +119,7 @@ function buildRegistryInput(options: QueryExecutionsOptions) {
     uniqueIdPattern: options.uniqueIdPattern,
     minExecutionTime: options.minExecutionTime,
     maxExecutionTime: options.maxExecutionTime,
-    ...(sort != null && warehouse == null ? { sort } : {}),
+    ...(isCommonExecutionSort(sort) ? { sort } : {}),
   };
   if (warehouse == null) {
     return base;

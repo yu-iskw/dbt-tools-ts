@@ -1,6 +1,8 @@
 import { queryExecutionsInputSchema } from '@dbt-tools/core/contracts';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 
+import { buildRegistryInput } from '../actions/reporting/query-executions-action';
+
 import { emitCliUseCaseOutput } from './cli-use-case-runner';
 
 describe('emitCliUseCaseOutput', () => {
@@ -59,5 +61,27 @@ describe('query executions registry input', () => {
       },
     });
     expect(valid.success).toBe(true);
+  });
+
+  it('keeps common sorts at the root for warehouse subcommands', () => {
+    const input = buildRegistryInput({
+      warehouse: 'bigquery',
+      sort: 'execution_time_desc',
+      minSlotMs: 1000,
+    });
+    expect(input.sort).toBe('execution_time_desc');
+    expect(input.bigquery).toEqual({ minSlotMs: 1000 });
+    expect(queryExecutionsInputSchema.safeParse(input).success).toBe(true);
+  });
+
+  it('places adapter-metric sorts inside the warehouse block', () => {
+    const input = buildRegistryInput({
+      warehouse: 'bigquery',
+      sort: 'slot_ms_desc',
+      minSlotMs: 1000,
+    });
+    expect(input.sort).toBeUndefined();
+    expect(input.bigquery).toEqual({ sort: 'slot_ms_desc', minSlotMs: 1000 });
+    expect(queryExecutionsInputSchema.safeParse(input).success).toBe(true);
   });
 });
