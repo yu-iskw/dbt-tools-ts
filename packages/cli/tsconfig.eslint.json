@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@dbt-tools/core": ["../core/src/index.ts"],
       "@dbt-tools/core/artifact-io": ["../core/src/artifact-io.ts"],

@@ -8,6 +8,10 @@ dbt-tools requires Node.js 20 or later. The exact version used by the maintainer
 | ------------------------- | --------------- |
 | Current                   | 20              |
 
+## TypeScript
+
+Published packages are plain JavaScript; consumers do not need a specific TypeScript version. Maintainers build with **TypeScript 7** (`tsc` via `@typescript/native`). Type-aware tooling that still needs the TypeScript 6 programmatic API (for example typescript-eslint) uses the `@typescript/typescript6` compatibility package under the `typescript` dependency name until TypeScript 7.1 ships a stable API.
+
 ## dbt artifact schema versions
 
 dbt-tools parses artifact files produced by dbt. The minimum supported manifest schema is **v10** (enforced at runtime). The supported range and the `dbt-artifacts-parser` dependency version bundled with each release together determine which schema versions are accepted.

@@ -6,9 +6,8 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "baseUrl": ".",
     "paths": {
-      "@web/*": ["src/*"]
+      "@web/*": ["./src/*"]
     }
   },
   "include": ["vite.config.ts", "vite.server.config.ts", "src/dbt-target-plugin.ts"]

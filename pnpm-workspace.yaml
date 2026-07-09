@@ -5,6 +5,7 @@ packages:
 # Supply-chain protection (pnpm 11 defaults, with 7-day quarantine)
 # https://pnpm.io/blog/releases/11.0
 minimumReleaseAge: 10080 # 7 days * 1440 min; RFC-0001 §8.1
+minimumReleaseAgeIgnoreMissingTime: true # some registry mirrors omit package "time"
 # blockExoticSubdeps: true # explicit; matches v11 default
 # resolution-mode: highest # tolerate registry metadata missing "time" for transitive deps
 
@@ -42,3 +43,26 @@ minimumReleaseAgeExclude:
   - '@dbt-tools/*'
   - vite@6.4.2
   - '@vitejs/plugin-vue@5.2.4'
+  # TypeScript 7 GA (2026-07-08): native tsc + TS 6 API shim for typescript-eslint
+  - typescript
+  - '@typescript/typescript6'
+  - '@typescript/typescript-aix-ppc64'
+  - '@typescript/typescript-darwin-arm64'
+  - '@typescript/typescript-darwin-x64'
+  - '@typescript/typescript-freebsd-arm64'
+  - '@typescript/typescript-freebsd-x64'
+  - '@typescript/typescript-linux-arm'
+  - '@typescript/typescript-linux-arm64'
+  - '@typescript/typescript-linux-loong64'
+  - '@typescript/typescript-linux-mips64el'
+  - '@typescript/typescript-linux-ppc64'
+  - '@typescript/typescript-linux-riscv64'
+  - '@typescript/typescript-linux-s390x'
+  - '@typescript/typescript-linux-x64'
+  - '@typescript/typescript-netbsd-arm64'
+  - '@typescript/typescript-netbsd-x64'
+  - '@typescript/typescript-openbsd-arm64'
+  - '@typescript/typescript-openbsd-x64'
+  - '@typescript/typescript-sunos-x64'
+  - '@typescript/typescript-win32-arm64'
+  - '@typescript/typescript-win32-x64'

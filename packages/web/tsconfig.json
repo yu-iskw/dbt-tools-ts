@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
     "paths": {
-      "@web/*": ["src/*"],
+      "@web/*": ["./src/*"],
       "@dbt-tools/core": ["../core/src/index.ts"],
       "@dbt-tools/core/artifact-io": ["../core/src/artifact-io.ts"],
       "@dbt-tools/core/browser": ["../core/src/browser.ts"]
