@@ -4,7 +4,7 @@ packages:
 
 # Supply-chain protection (pnpm 11 defaults, with 7-day quarantine)
 # https://pnpm.io/blog/releases/11.0
-# minimumReleaseAge: 10080 # 7 days * 1440 min; override of v11 default of 1440 (1 day)
+minimumReleaseAge: 10080 # 7 days * 1440 min; RFC-0001 §8.1
 # blockExoticSubdeps: true # explicit; matches v11 default
 # resolution-mode: highest # tolerate registry metadata missing "time" for transitive deps
 
@@ -24,7 +24,7 @@ overrides:
   postcss@<8.5.10: ^8.5.10
   rollup: '>=4.59.0'
   tar: ^7.5.13
-  uuid@<14.0.0: ^14.0.0
+  uuid: ^11.1.1
   vitepress>vite: ^6.4.2
 
 minimumReleaseAgeExclude:
@@ -38,7 +38,6 @@ minimumReleaseAgeExclude:
   - postcss@8.5.10
   - semver@7.7.4
   - tar@7.5.13
-  - uuid@14.0.0
   - yaml@2.8.3
   - '@dbt-tools/*'
   - vite@6.4.2

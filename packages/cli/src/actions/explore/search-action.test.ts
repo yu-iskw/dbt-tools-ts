@@ -29,23 +29,32 @@ describe('searchAction', () => {
     await rmValidated(dbtTargetDir, { recursive: true, force: true });
   });
 
-  it('returns all resources when no query or filters', async () => {
+  it('returns a default-limited page when no query or filters', async () => {
     await searchAction(undefined, { dbtTarget: dbtTargetDir, json: true }, handleError);
 
     const output = consoleLogSpy.mock.calls[0][0] as string;
-    const parsed = JSON.parse(output) as { total: number; results: unknown[] };
+    const parsed = JSON.parse(output) as {
+      total: number;
+      results: unknown[];
+      limit?: number;
+      has_more?: boolean;
+    };
     expect(parsed.total).toBeGreaterThan(0);
-    expect(parsed.results.length).toBe(parsed.total);
+    expect(parsed.limit).toBe(20);
+    expect(parsed.results.length).toBe(20);
+    if (parsed.total > 20) {
+      expect(parsed.has_more).toBe(true);
+    }
   });
 
   it('works when only manifest.json is present', async () => {
     const manifestOnlyDir = await createJaffleManifestOnlyDir();
     try {
       await searchAction('customers', { dbtTarget: manifestOnlyDir, json: true }, handleError);
-
-      const output = consoleLogSpy.mock.calls.at(-1)?.[0] as string;
-      const parsed = JSON.parse(output) as { total: number };
+      const output = consoleLogSpy.mock.calls[0]![0] as string;
+      const parsed = JSON.parse(output) as { total: number; results: unknown[] };
       expect(parsed.total).toBeGreaterThan(0);
+      expect(parsed.results.length).toBeGreaterThan(0);
     } finally {
       await rmValidated(manifestOnlyDir, { recursive: true, force: true });
     }
@@ -224,7 +233,7 @@ describe('searchAction', () => {
   it('rejects --offset without --limit', async () => {
     await expect(
       searchAction('orders', { dbtTarget: dbtTargetDir, json: true, offset: 1 }, handleError),
-    ).rejects.toThrow(/offset requires limit/i);
+    ).rejects.toThrow(/--offset requires --limit/i);
   });
 
   it('throws for control characters in query', async () => {
@@ -237,7 +246,7 @@ describe('searchAction', () => {
     const empty = await mkdtempValidated(path.join(os.tmpdir(), 'dbt-search-empty-'));
     try {
       await expect(searchAction('orders', { dbtTarget: empty }, handleError)).rejects.toThrow(
-        /Missing required dbt artifact/,
+        /Missing required (dbt )?artifact/,
       );
     } finally {
       await rmValidated(empty, { recursive: true, force: true });

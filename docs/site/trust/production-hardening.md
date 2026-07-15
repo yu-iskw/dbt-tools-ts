@@ -44,6 +44,21 @@ Or pre-install a pinned version:
 
 **Log output for audit.** Capture `dbt-tools status` and `dbt-tools summary` output as CI artifacts. This creates a record of what was seen at each run without exposing it further.
 
+## Node.js permission model (defense in depth)
+
+dbt-tools does **not** re-exec published binaries under Node's [permission model](https://nodejs.org/api/permissions.html) by default — that would surprise operators who expect normal filesystem access for `--dbt-target`.
+
+For defense in depth after a compromised dependency, you can run CLI or MCP invocations under explicit read scope (Node 20.5+):
+
+```bash
+node --permission --allow-fs-read="$(realpath ./target)" \
+  ./node_modules/.bin/dbt-tools status --dbt-target ./target --json
+```
+
+Grant only the artifact root (or parent directory) the process needs. Omit `--allow-fs-write` unless you use `export --out` to a known path, then add a single `--allow-fs-write` for that output directory.
+
+**CI smoke recommendation:** add an optional job that runs `status` or `check-session` against a fixture target under `--permission --allow-fs-read=<fixture-dir>` to verify the binary still works when filesystem access is constrained. This is a smoke check, not a substitute for credential scoping or network controls.
+
 ## Network controls for the Web UI
 
 The Web UI (`@dbt-tools/web`) binds to `localhost` by default. If you expose it on a network interface reachable by others:

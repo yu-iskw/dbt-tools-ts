@@ -1,7 +1,4 @@
-import { queryDependencies } from '../analysis/dependencies/query';
-import { queryExecutions } from '../analysis/search/run-results';
 import { normalizeWarehouseAdapterType } from '../analysis/search/warehouse';
-import { getRunSummaryFromSnapshot } from '../analysis/snapshot/run-summary';
 import { DEFAULT_MAX_CACHED_TARGETS, type DbtToolsRemoteClientEnv } from '../config/dbt-tools-env';
 import {
   dbtToolsDebugLog,
@@ -18,8 +15,8 @@ import {
   isSessionBindingCurrent,
   type SessionBinding,
 } from '../session-binding';
+import { findUseCaseByName } from '../usecases/registry.js';
 
-import { copyResourceForOutput, searchResourcesInGraph } from './graph-search.js';
 import { ArtifactLoadPipeline } from './load-pipeline.js';
 import { ArtifactLoadProgressHub } from './progress.js';
 import {
@@ -28,6 +25,7 @@ import {
   type DiscoveredSource,
   type DbtToolsUseCases,
   type LoadedArtifactWorkspace,
+  type ResourceDetails,
   type ResolvedArtifactRun,
 } from './types.js';
 
@@ -64,6 +62,11 @@ export interface ArtifactWorkspaceOptions {
   maxCachedTargets?: number;
   /** Evict cached entries idle longer than this ms. Default 0 (disabled). */
   cacheTtlMs?: number;
+  /**
+   * When false (web UX), poll detects newer runs but does not auto-reload;
+   * call `acceptPendingRun` to load. MCP defaults to true (ADR-0004).
+   */
+  autoReloadOnPoll?: boolean;
   now?: () => number;
   cwd?: string;
   remoteClient?: RemoteObjectStoreClient;
@@ -94,6 +97,7 @@ export class ArtifactWorkspace {
   private readonly now: () => number;
   private readonly maxCachedTargets: number;
   private readonly cacheTtlMs: number;
+  private readonly autoReloadOnPoll: boolean;
   private readonly injectedRemoteClient: RemoteObjectStoreClient | undefined;
   private readonly gcsRequestOptions: GcsArtifactSourceRequestOptions | undefined;
   private readonly remoteClientOverrides: RemoteSourceClientOverrides | undefined;
@@ -108,6 +112,7 @@ export class ArtifactWorkspace {
   private initializePromise: Promise<void> | null = null;
   /** Bumped when the active target binding changes; stale loads must not assign `loaded`. */
   private loadGeneration = 0;
+  private pendingRun: ResolvedArtifactRun | null = null;
   private readonly progressHub = new ArtifactLoadProgressHub();
   private readonly loadPipeline: ArtifactLoadPipeline;
 
@@ -117,6 +122,7 @@ export class ArtifactWorkspace {
     this.now = options.now ?? Date.now;
     this.maxCachedTargets = options.maxCachedTargets ?? DEFAULT_MAX_CACHED_TARGETS;
     this.cacheTtlMs = options.cacheTtlMs ?? 0;
+    this.autoReloadOnPoll = options.autoReloadOnPoll !== false;
     this.injectedRemoteClient = options.remoteClient;
     this.gcsRequestOptions = options.gcsRequestOptions;
     this.remoteClientOverrides = options.remoteClientOverrides;
@@ -361,6 +367,46 @@ export class ArtifactWorkspace {
     });
   }
 
+  async runUseCase<In, Out>(useCaseName: string, input: In): Promise<Out> {
+    const loaded = await this.getLoadedWorkspace();
+    const useCase = findUseCaseByName(useCaseName);
+    if (useCase == null) {
+      throw new Error(`Unknown use case: ${useCaseName}`);
+    }
+    const parsedInput = useCase.input.parse(input);
+    return useCase.run(loaded, parsedInput) as Out;
+  }
+
+  async acceptPendingRun(): Promise<ArtifactWorkspaceStatus> {
+    return this.runSerialized(async () => {
+      const pending = this.pendingRun;
+      if (pending == null) {
+        return this.status();
+      }
+      const binding = this.captureBinding();
+      const source = await this.discoverSource();
+      if (!this.bindingStillActive(binding)) {
+        return this.status();
+      }
+      try {
+        const loaded = await this.loadRun(source, pending);
+        if (!this.bindingStillActive(binding)) {
+          return this.status();
+        }
+        this.loaded = loaded;
+        this.selectedRunId = pending.runId;
+        this.pendingRun = null;
+        this.stale = false;
+        this.lastRefreshError = undefined;
+        this.syncActiveToCache();
+      } catch (error) {
+        this.stale = true;
+        this.lastRefreshError = error instanceof Error ? error.message : String(error);
+      }
+      return this.status();
+    });
+  }
+
   private async refreshIfChangedInternal(options?: {
     coldLoadIfUnloaded?: boolean;
   }): Promise<ArtifactWorkspaceStatus> {
@@ -416,6 +462,14 @@ export class ArtifactWorkspace {
       ...(this.lastRefreshError != null ? { lastRefreshError: this.lastRefreshError } : {}),
       ...(cachedTargets.length > 0 ? { cachedTargets } : {}),
       cachePolicy: { maxTargets: this.maxCachedTargets, ttlMs: this.cacheTtlMs },
+      ...(this.pendingRun != null
+        ? {
+            pendingRun: {
+              runId: this.pendingRun.runId,
+              versionToken: this.pendingRun.versionToken,
+            },
+          }
+        : {}),
       ...(options?.fromCache === true ? { fromCache: true } : {}),
     };
   }
@@ -479,6 +533,13 @@ export class ArtifactWorkspace {
     this.selectedRunId = run.runId;
 
     if (run.versionToken === previousVersionToken) {
+      this.pendingRun = null;
+      return false;
+    }
+
+    if (!this.autoReloadOnPoll) {
+      this.pendingRun = run;
+      this.stale = true;
       return false;
     }
 
@@ -490,6 +551,7 @@ export class ArtifactWorkspace {
       this.loaded = loaded;
       this.stale = false;
       this.lastRefreshError = undefined;
+      this.pendingRun = null;
       this.syncActiveToCache();
       return true;
     } catch (error) {
@@ -604,35 +666,28 @@ export class ArtifactWorkspace {
 
 export function createDbtToolsUseCases(workspace: ArtifactWorkspace): DbtToolsUseCases {
   return {
-    async searchResources(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      return searchResourcesInGraph(loaded.graph, input);
+    searchResources(input) {
+      return workspace.runUseCase('resource.search', input);
     },
 
     async getResource(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      const resource =
-        loaded.analysis.resources.find((candidate) => candidate.uniqueId === input.uniqueId) ??
-        null;
-      return resource == null ? null : copyResourceForOutput(resource, input.includeCode === true);
+      const result = await workspace.runUseCase<
+        { uniqueId: string; includeCode?: boolean },
+        { resource: ResourceDetails | null }
+      >('resource.details', input);
+      return result.resource;
     },
 
-    async queryDependencies(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      return queryDependencies(loaded.graph, input);
+    queryDependencies(input) {
+      return workspace.runUseCase('resource.dependencies', input);
     },
 
-    async queryExecutions(input) {
-      const loaded = await workspace.getLoadedWorkspace();
-      return queryExecutions(loaded.analysis.executions, input, {
-        warehouseType: loaded.analysis.warehouseType,
-        graph: loaded.graph,
-      });
+    queryExecutions(input) {
+      return workspace.runUseCase('runs.query', input);
     },
 
-    async getRunSummary() {
-      const loaded = await workspace.getLoadedWorkspace();
-      return getRunSummaryFromSnapshot(loaded.analysis);
+    getRunSummary() {
+      return workspace.runUseCase('runs.summary', {});
     },
   };
 }

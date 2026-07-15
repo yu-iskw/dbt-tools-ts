@@ -1,6 +1,6 @@
 {
   "name": "dbt-tools",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "private": true,
   "description": "Standalone monorepo for the @dbt-tools packages.",
   "keywords": [
@@ -42,6 +42,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm --filter @dbt-tools/web test:e2e",
     "tokens:check": "pnpm tokens:sync && git diff --exit-code packages/web/src/constants/theme-colors.generated.ts",
+    "schemas:sync": "node scripts/generate-use-case-schemas.mjs",
     "tokens:sync": "node scripts/sync-css-tokens-to-ts.mjs && prettier --write packages/web/src/constants/theme-colors.generated.ts",
     "trunk": "trunk",
     "verify:normalize": "pnpm format && pnpm lint",

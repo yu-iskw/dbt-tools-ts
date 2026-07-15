@@ -4,30 +4,33 @@
 import {
   ManifestGraph,
   loadManifest,
-  validateSafePath,
-  validateNoControlChars,
-  FieldFilter,
-  formatOutput,
-  shouldOutputJSON,
   searchResourcesInGraph,
+  shouldOutputJSON,
+  validateNoControlChars,
+  validateSafePath,
 } from '@dbt-tools/core';
+import { normalizeSearchResourcesInput } from '@dbt-tools/core/contracts';
 
 import {
   resolveCliArtifactPaths,
   type ArtifactRootCliOptions,
 } from '../../internal/cli-artifact-resolve';
+import { assertOffsetRequiresLimit, parseListOffset } from '../../internal/cli-pagination';
+import {
+  emitCliUseCaseOutput,
+  type CliUseCaseRunOptions,
+} from '../../internal/cli-use-case-runner';
 
-export type SearchOptions = ArtifactRootCliOptions & {
-  type?: string;
-  package?: string;
-  tag?: string;
-  path?: string;
-  fields?: string;
-  limit?: number;
-  offset?: number;
-  json?: boolean;
-  noJson?: boolean;
-};
+export type SearchOptions = ArtifactRootCliOptions &
+  CliUseCaseRunOptions & {
+    type?: string;
+    package?: string;
+    tag?: string;
+    path?: string;
+    fields?: string;
+    limit?: number;
+    offset?: number;
+  };
 
 export type SearchResult = {
   unique_id: string;
@@ -80,7 +83,7 @@ export function formatSearch(output: SearchOutput): string {
 }
 
 /**
- * Search action handler
+ * Search action handler — manifest-only (same resolution as discover/deps).
  */
 export async function searchAction(
   query: string | undefined,
@@ -92,37 +95,31 @@ export async function searchAction(
       validateNoControlChars(query);
     }
 
+    const offset = parseListOffset(options.offset);
+    assertOffsetRequiresLimit(options.limit, offset);
+
     const paths = await resolveCliArtifactPaths(
-      {
-        dbtTarget: options.dbtTarget,
-      },
+      { dbtTarget: options.dbtTarget },
       { manifest: true, runResults: false },
     );
     validateSafePath(paths.manifest);
 
     const manifest = loadManifest(paths.manifest);
     const graph = new ManifestGraph(manifest);
-    const output = searchResourcesInGraph(graph, {
-      query,
-      type: options.type,
-      package: options.package,
-      tag: options.tag,
-      path: options.path,
-      limit: options.limit,
-      offset: options.offset,
-    });
+    const output = searchResourcesInGraph(
+      graph,
+      normalizeSearchResourcesInput({
+        query,
+        type: options.type,
+        package: options.package,
+        tag: options.tag,
+        path: options.path,
+        limit: options.limit,
+        offset,
+      }),
+    );
 
-    const useJson = shouldOutputJSON(options.json, options.noJson);
-
-    if (useJson) {
-      let out: unknown = output;
-      if (options.fields) {
-        out = FieldFilter.filterFields(output, options.fields);
-      }
-      console.log(formatOutput(out, true));
-    } else {
-      console.log(formatSearch(output));
-    }
+    emitCliUseCaseOutput(output, options, formatSearch);
   } catch (error) {
     handleError(error, shouldOutputJSON(options.json, options.noJson));
   }

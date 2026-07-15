@@ -65,7 +65,7 @@ For documentation-only and agent-resource edits, the default repo policy still e
 ## Commands
 
 ```bash
-pnpm install
+pnpm install   # respects root .npmrc ignore-scripts=true; pnpm-workspace minimumReleaseAge
 pnpm build
 pnpm test
 pnpm lint:report

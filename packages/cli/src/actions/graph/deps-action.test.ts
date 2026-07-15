@@ -65,6 +65,28 @@ describe('depsAction', () => {
     }
   });
 
+  it('works when only manifest.json is present (flat format)', async () => {
+    const manifestOnlyDir = await createJaffleManifestOnlyDir();
+    try {
+      await depsAction(
+        'model.jaffle_shop.stg_products',
+        {
+          dbtTarget: manifestOnlyDir,
+          direction: 'upstream',
+          format: 'flat',
+          json: true,
+        },
+        handleError,
+      );
+
+      const output = consoleLogSpy.mock.calls.at(-1)?.[0] as string;
+      const parsed = JSON.parse(output) as { resource_id: string };
+      expect(parsed.resource_id).toBe('model.jaffle_shop.stg_products');
+    } finally {
+      await rmValidated(manifestOnlyDir, { recursive: true, force: true });
+    }
+  });
+
   it('outputs upstream deps with flat format', async () => {
     await depsAction(
       'model.jaffle_shop.stg_products',

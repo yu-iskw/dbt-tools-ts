@@ -1,6 +1,6 @@
 {
   "name": "@dbt-tools/mcp",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "MCP server for long-lived dbt artifact analysis backed by @dbt-tools/core",
   "keywords": [
     "dbt",

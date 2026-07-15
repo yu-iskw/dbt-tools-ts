@@ -1,20 +1,7 @@
-import {
-  artifactWorkspaceStatusSchema,
-  dependencyQueryOutputSchema,
-  getResourceToolOutputSchema,
-  queryExecutionsOutputSchema,
-  runSummaryOutputSchema,
-  searchResourcesOutputSchema,
-} from '@dbt-tools/core/contracts';
+import { artifactWorkspaceStatusSchema } from '@dbt-tools/core/contracts';
 
-import {
-  emptyToolInputSchema,
-  getResourceInputSchema,
-  queryDependenciesInputSchema,
-  queryExecutionsInputSchema,
-  searchResourcesInputSchema,
-  setTargetInputSchema,
-} from './tool-input-schemas.js';
+import { registerRegistryAnalysisTools } from './register-registry-analysis-tools.js';
+import { emptyToolInputSchema, setTargetInputSchema } from './tool-input-schemas.js';
 
 import type { DbtToolsMcpToolHandlers } from './tool-handlers.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -84,67 +71,5 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
     handlers.dbt_tools_refresh,
   );
 
-  server.registerTool(
-    'dbt_tools_search_resources',
-    {
-      title: 'dbt-tools search resources',
-      description:
-        'Search dbt resources by terms and optional type/package/tag/path filters. Default limit is 20 when omitted.',
-      inputSchema: searchResourcesInputSchema,
-      outputSchema: searchResourcesOutputSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true },
-    },
-    handlers.dbt_tools_search_resources,
-  );
-
-  server.registerTool(
-    'dbt_tools_get_resource',
-    {
-      title: 'dbt-tools get resource',
-      description: 'Return details for one dbt resource by unique_id.',
-      inputSchema: getResourceInputSchema,
-      outputSchema: getResourceToolOutputSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true },
-    },
-    handlers.dbt_tools_get_resource,
-  );
-
-  server.registerTool(
-    'dbt_tools_query_dependencies',
-    {
-      title: 'dbt-tools query dependencies',
-      description:
-        'Return upstream or downstream dependencies for a dbt resource (replaces lineage and impact).',
-      inputSchema: queryDependenciesInputSchema,
-      outputSchema: dependencyQueryOutputSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true },
-    },
-    handlers.dbt_tools_query_dependencies,
-  );
-
-  server.registerTool(
-    'dbt_tools_query_executions',
-    {
-      title: 'dbt-tools query executions',
-      description:
-        'Filter and sort executed nodes from run_results. Use get_run_summary for totals. Catalog: search_resources.',
-      inputSchema: queryExecutionsInputSchema,
-      outputSchema: queryExecutionsOutputSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true },
-    },
-    handlers.dbt_tools_query_executions,
-  );
-
-  server.registerTool(
-    'dbt_tools_get_run_summary',
-    {
-      title: 'dbt-tools get run summary',
-      description:
-        'Return run summary, status breakdown, bottlenecks, and adapter totals (no per-node list).',
-      inputSchema: emptyToolInputSchema,
-      outputSchema: runSummaryOutputSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true },
-    },
-    handlers.dbt_tools_get_run_summary,
-  );
+  registerRegistryAnalysisTools(server, handlers);
 }

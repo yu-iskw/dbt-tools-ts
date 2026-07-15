@@ -431,6 +431,79 @@ export default [
       ],
     },
   },
+  /** @dbt-tools/core: pure input contracts (RFC-0001 §4.2) */
+  {
+    files: [
+      'packages/core/src/contracts/search-resources-input.ts',
+      'packages/core/src/contracts/get-resource-input.ts',
+      'packages/core/src/contracts/dependency-query-input.ts',
+      'packages/core/src/contracts/empty-input.ts',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../*', '../**/*', '@dbt-tools/core', '@dbt-tools/core/*'],
+              message: 'contracts/ must depend on zod only; no domain or node imports.',
+            },
+            {
+              group: ['node:*'],
+              message: 'contracts/ must not import Node built-ins.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  /** @dbt-tools/core: usecases/ pure layer — no node I/O */
+  {
+    files: ['packages/core/src/usecases/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['node:*', '../io/*', '../io/**', '../config/*', '../config/**'],
+              message: 'usecases/ must stay pure; import domain and contracts only.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  /** @dbt-tools/core: browser facade must not pull Node I/O */
+  {
+    files: ['packages/core/src/browser.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                './io/*',
+                './io/**',
+                './config/*',
+                './config/**',
+                './artifact-workspace/*',
+                './node/*',
+                './node/**',
+              ],
+              message: 'browser entry must not import Node I/O or workspace modules.',
+            },
+            {
+              group: ['node:*'],
+              message: 'browser entry must not import Node built-ins.',
+            },
+          ],
+        },
+      ],
+    },
+  },
   {
     files: ['**/*.js'],
     ignores: ['**/dist/**', '**/dist-serve/**', '**/node_modules/**'],

@@ -2,6 +2,7 @@
 
 import {
   buildAnalysisSnapshotFromParsedArtifactBundle,
+  searchResourcesInGraph,
   type AnalysisSnapshot,
   type ManifestGraph,
 } from '@dbt-tools/core/browser';
@@ -9,8 +10,6 @@ import { parseCatalog } from 'dbt-artifacts-parser/catalog';
 import { parseManifest } from 'dbt-artifacts-parser/manifest';
 import { parseRunResults } from 'dbt-artifacts-parser/run_results';
 import { parseSources } from 'dbt-artifacts-parser/sources';
-
-import { matchesResource } from '../lib/analysis-workspace/utils';
 
 import {
   ANALYSIS_WORKER_PROTOCOL_VERSION,
@@ -107,12 +106,20 @@ export function handleSearchResourcesMessage(
       `Unsupported protocol version: ${payload.protocolVersion}`,
     );
   }
-  if (!cachedResources) {
+  if (!cachedResources || !cachedGraph) {
     return buildSearchResourcesErrorResponse(payload.requestId, MSG_NO_ANALYSIS_LOADED);
   }
-  const matches = cachedResources
-    .filter((resource) => matchesResource(resource, payload.query))
-    .slice(0, OMNIBOX_LIMIT);
+  const query = payload.query.trim();
+  let matches: AnalysisSnapshot['resources'];
+  if (query) {
+    const byId = new Map(cachedResources.map((resource) => [resource.uniqueId, resource]));
+    const searchOutput = searchResourcesInGraph(cachedGraph, { query, limit: OMNIBOX_LIMIT });
+    matches = searchOutput.results
+      .map((hit) => byId.get(hit.unique_id) ?? null)
+      .filter((resource): resource is NonNullable<typeof resource> => resource != null);
+  } else {
+    matches = cachedResources.slice(0, OMNIBOX_LIMIT);
+  }
   return {
     type: 'search-resources-ready',
     protocolVersion: ANALYSIS_WORKER_PROTOCOL_VERSION,
