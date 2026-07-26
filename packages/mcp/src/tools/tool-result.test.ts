@@ -3,7 +3,7 @@ import {
   getResourceToolOutputSchema,
   toolErrorSchema,
 } from '@dbt-tools/core/contracts';
-import { normalizeObjectSchema } from '@modelcontextprotocol/sdk/server/zod-compat.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { describe, expect, it } from 'vitest';
 
 import { jsonResult, jsonToolError } from './tool-result.js';
@@ -39,8 +39,15 @@ describe('tool-result', () => {
     });
   });
 
-  it('exposes get_resource output as an object schema for MCP SDK', () => {
-    expect(normalizeObjectSchema(getResourceToolOutputSchema)).toBeDefined();
+  it('registers get_resource output through the public MCP server API', () => {
+    const server = new McpServer({ name: 'test', version: '1.0.0' });
+    expect(
+      server.registerTool(
+        'get_resource',
+        { outputSchema: getResourceToolOutputSchema },
+        async () => jsonResult(getResourceToolOutputSchema, { resource: null }),
+      ),
+    ).toBeDefined();
   });
 
   it('keeps legacy content text while structuredContent uses the resource envelope', () => {
