@@ -4,7 +4,7 @@ import {
   runSummaryResourceBodySchema,
   statusResourceBodySchema,
 } from '@dbt-tools/core/contracts';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { ProtocolError, ProtocolErrorCode } from '@modelcontextprotocol/server';
 
 import { runResourceWithLoadedUseCases } from '../loaded-use-cases.js';
 import { loadResourceNode, loadResourceSqlText } from './fetch-resource.js';
@@ -18,7 +18,7 @@ import {
 
 import type { DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import type { ArtifactWorkspaceControl } from '../workspace-control.js';
-import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
+import type { ReadResourceResult } from '@modelcontextprotocol/server';
 
 export interface DbtToolsResourceContext {
   workspace: ArtifactWorkspaceControl;
@@ -26,7 +26,7 @@ export interface DbtToolsResourceContext {
 }
 
 function resourceNotFound(message: string): never {
-  throw new McpError(ErrorCode.InvalidParams, message);
+  throw new ProtocolError(ProtocolErrorCode.InvalidParams, message);
 }
 
 function invalidResourceUri(error: unknown): never {
@@ -36,7 +36,7 @@ function invalidResourceUri(error: unknown): never {
       : error instanceof Error
         ? error.message
         : String(error);
-  throw new McpError(ErrorCode.InvalidParams, message);
+  throw new ProtocolError(ProtocolErrorCode.InvalidParams, message);
 }
 
 async function readJsonResourceWithEnvelope<T>(
