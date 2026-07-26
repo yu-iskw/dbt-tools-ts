@@ -34,7 +34,7 @@ export const resourceDetailsSchema = z
 
 export type ResourceDetailsContract = z.infer<typeof resourceDetailsSchema>;
 
-/** MCP tool output: object envelope required by @modelcontextprotocol/sdk outputSchema normalization. */
+/** MCP tool output: object envelope required by @modelcontextprotocol/server output-schema registration. */
 export const getResourceToolOutputSchema = z
   .object({
     resource: resourceDetailsSchema.nullable(),
