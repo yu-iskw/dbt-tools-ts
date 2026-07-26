@@ -36,7 +36,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          pnpm install --no-frozen-lockfile --config.resolution-mode=highest --reporter=append-only > /tmp/pnpm-install.log 2>&1
+          pnpm install --no-frozen-lockfile --reporter=append-only > /tmp/pnpm-install.log 2>&1
 
       - name: Upload pnpm failure log
         if: steps.install.outcome == 'failure'
