@@ -42,10 +42,8 @@ describe('tool-result', () => {
   it('registers get_resource output through the public MCP server API', () => {
     const server = new McpServer({ name: 'test', version: '1.0.0' });
     expect(
-      server.registerTool(
-        'get_resource',
-        { outputSchema: getResourceToolOutputSchema },
-        async () => jsonResult(getResourceToolOutputSchema, { resource: null }),
+      server.registerTool('get_resource', { outputSchema: getResourceToolOutputSchema }, async () =>
+        jsonResult(getResourceToolOutputSchema, { resource: null }),
       ),
     ).toBeDefined();
   });
