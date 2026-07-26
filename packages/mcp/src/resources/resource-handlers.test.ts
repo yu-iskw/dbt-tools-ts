@@ -1,5 +1,5 @@
 import { ArtifactTargetNotConfiguredError } from '@dbt-tools/core';
-import { McpError } from '@modelcontextprotocol/sdk/types.js';
+import { ProtocolError } from '@modelcontextprotocol/server';
 import { describe, expect, it } from 'vitest';
 
 import { readDbtToolsResource } from './resource-handlers.js';
@@ -134,7 +134,7 @@ describe('readDbtToolsResource', () => {
     expect(body.loadedAtMs).toBeNull();
   });
 
-  it('throws McpError when target is not configured', async () => {
+  it('throws ProtocolError when target is not configured', async () => {
     const useCases = new FakeUseCases();
     useCases.getResource = async () => {
       throw new ArtifactTargetNotConfiguredError();
@@ -144,7 +144,7 @@ describe('readDbtToolsResource', () => {
         { workspace: new FakeWorkspace(loadedStatus), useCases },
         'dbt-tools://resources/model.pkg.orders',
       ),
-    ).rejects.toBeInstanceOf(McpError);
+    ).rejects.toBeInstanceOf(ProtocolError);
   });
 
   it('calls getStatus once for resource-details envelope after load', async () => {
@@ -178,7 +178,7 @@ describe('readDbtToolsResource', () => {
     expect(workspace.getStatusCalls).toBe(1);
   });
 
-  it('throws McpError when resource body does not match contract', async () => {
+  it('throws ProtocolError when resource body does not match contract', async () => {
     const useCases = new FakeUseCases();
     useCases.getResource = async () =>
       ({
