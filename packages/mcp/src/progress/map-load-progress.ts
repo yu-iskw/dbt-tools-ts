@@ -8,8 +8,9 @@ export type McpToolRequestExtra = ServerContext;
 export function createMcpLoadProgressNotifier(
   ctx: McpToolRequestExtra | undefined,
 ): ((event: ArtifactLoadProgress) => void) | undefined {
-  const progressToken = ctx?.mcpReq._meta?.progressToken;
-  if (progressToken === undefined || ctx == null) return undefined;
+  const request = ctx?.mcpReq;
+  const progressToken = request?._meta?.progressToken;
+  if (progressToken === undefined || request == null) return undefined;
 
   let lastEmitMs = 0;
   let lastProgress = -1;
@@ -27,7 +28,7 @@ export function createMcpLoadProgressNotifier(
     }
     lastEmitMs = now;
     lastProgress = event.progress;
-    void ctx.mcpReq.notify({
+    void request.notify({
       method: 'notifications/progress',
       params: {
         progressToken,
