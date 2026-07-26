@@ -1,5 +1,5 @@
 import { ArtifactTargetNotConfiguredError } from '@dbt-tools/core';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { ProtocolError, ProtocolErrorCode } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 
 import { MCP_TARGET_NOT_CONFIGURED_HINT, MCP_TARGET_NOT_CONFIGURED_MESSAGE } from './mcp-errors.js';
@@ -20,7 +20,7 @@ export function targetNotConfiguredToolResult(): McpJsonToolResult {
 }
 
 export function throwTargetNotConfiguredResourceError(): never {
-  throw new McpError(ErrorCode.InvalidParams, MCP_TARGET_NOT_CONFIGURED_MESSAGE);
+  throw new ProtocolError(ProtocolErrorCode.InvalidParams, MCP_TARGET_NOT_CONFIGURED_MESSAGE);
 }
 
 export async function runToolWithLoadedUseCases<T>(
