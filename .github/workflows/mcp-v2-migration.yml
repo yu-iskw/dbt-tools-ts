@@ -31,12 +31,12 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Regenerate lockfile
+      - name: Regenerate MCP lockfile entries
         id: install
         continue-on-error: true
         shell: bash
         run: |
-          pnpm install --no-frozen-lockfile --reporter=append-only > /tmp/pnpm-install.log 2>&1
+          pnpm install --filter @dbt-tools/mcp --lockfile-only --no-frozen-lockfile --reporter=append-only > /tmp/pnpm-install.log 2>&1
 
       - name: Upload pnpm failure log
         if: steps.install.outcome == 'failure'
@@ -48,6 +48,9 @@ jobs:
       - name: Stop after pnpm failure
         if: steps.install.outcome == 'failure'
         run: exit 1
+
+      - name: Install workspace from regenerated lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Finalize migration metadata
         shell: bash
