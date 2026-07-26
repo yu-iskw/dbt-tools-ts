@@ -24,7 +24,7 @@ import { registerDbtToolsTools } from './tools/register-tools.js';
 import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
 
 import type { DbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 
 class RecordingMcpServer {
   readonly tools: Array<{ name: string; config: unknown; handler: unknown }> = [];
