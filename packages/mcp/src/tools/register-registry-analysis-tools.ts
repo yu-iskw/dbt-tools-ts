@@ -19,12 +19,13 @@ import { invalidToolInputResult } from './tool-result.js';
 
 import type { DbtToolsMcpToolHandlers } from './tool-handlers.js';
 import type { DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import type * as z from 'zod/v4';
 
 type ToolInput = Record<string, unknown>;
+type McpToolInputSchema = z.ZodType<ToolInput>;
 
-const MCP_INPUT_SCHEMAS: Record<string, z.ZodType<unknown>> = {
+const MCP_INPUT_SCHEMAS: Record<string, McpToolInputSchema> = {
   'resource.search': searchResourcesInputSchema,
   'resource.details': getResourceInputSchema,
   'resource.dependencies': queryDependenciesInputSchema,
@@ -51,16 +52,17 @@ export function registerRegistryAnalysisTools(
       throw new Error(`Missing MCP tool mapping for use case ${useCase.name}`);
     }
     const handler = handlers[toolName as keyof typeof handlers];
+    const inputSchema = (MCP_INPUT_SCHEMAS[useCase.name] ?? useCase.input) as McpToolInputSchema;
     server.registerTool(
       toolName,
       {
         title: useCase.title,
         description: useCase.title,
-        inputSchema: MCP_INPUT_SCHEMAS[useCase.name] ?? useCase.input,
+        inputSchema,
         outputSchema: useCase.output,
         annotations: { readOnlyHint: true, idempotentHint: true },
       },
-      handler as Parameters<McpServer['registerTool']>[2],
+      handler,
     );
   }
 }
