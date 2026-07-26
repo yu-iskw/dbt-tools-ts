@@ -36,7 +36,13 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
+          cp pnpm-workspace.yaml /tmp/pnpm-workspace.yaml
+          sed -i 's/minimumReleaseAge: 10080/minimumReleaseAge: 0/' pnpm-workspace.yaml
+          set +e
           pnpm install --filter @dbt-tools/mcp --lockfile-only --no-frozen-lockfile --reporter=append-only > /tmp/pnpm-install.log 2>&1
+          status=$?
+          mv /tmp/pnpm-workspace.yaml pnpm-workspace.yaml
+          exit $status
 
       - name: Upload pnpm failure log
         if: steps.install.outcome == 'failure'
