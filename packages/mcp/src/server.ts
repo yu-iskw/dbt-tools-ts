@@ -21,8 +21,8 @@ import { registerDbtToolsResources } from './resources/register-resources.js';
 import { registerDbtToolsTools } from './tools/register-tools.js';
 import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
 
-import type { ArtifactWorkspaceLoadOptions, DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import type { DbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
+import type { ArtifactWorkspaceLoadOptions, DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 
 type RefreshTimer = ReturnType<typeof setInterval>;
 
