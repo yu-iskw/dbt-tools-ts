@@ -7,8 +7,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(packageRoot, '../..');
@@ -51,7 +51,7 @@ async function smokeNoTargetErrors(client) {
   assert(typeof parsed.error === 'string', 'tool error should include error field');
 }
 
-async function smokeGetResource(client, targetDir) {
+async function smokeGetResource(client) {
   const uniqueId = 'model.jaffle_shop.stg_orders';
   const found = await client.callTool({
     name: 'dbt_tools_get_resource',
@@ -82,6 +82,7 @@ async function main() {
   });
   const coldClient = new Client({ name: 'smoke-mcp-protocol-cold', version: '1.0.0' });
   await coldClient.connect(coldTransport);
+  assert(coldClient.getProtocolEra() === 'legacy', 'default client should negotiate legacy era');
   try {
     await smokeNoTargetErrors(coldClient);
   } finally {
@@ -95,8 +96,12 @@ async function main() {
     stderr: 'pipe',
   });
 
-  const client = new Client({ name: 'smoke-mcp-protocol', version: '1.0.0' });
+  const client = new Client(
+    { name: 'smoke-mcp-protocol', version: '1.0.0' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
   await client.connect(transport);
+  assert(client.getProtocolEra() === 'modern', 'auto client should negotiate the 2026-07-28 era');
 
   try {
     const tools = await client.listTools();
@@ -130,7 +135,7 @@ async function main() {
     const uniqueId = 'model.jaffle_shop.stg_orders';
     await client.readResource({ uri: `dbt-tools://resources/${encodeURIComponent(uniqueId)}` });
 
-    await smokeGetResource(client, targetDir);
+    await smokeGetResource(client);
 
     const prompt = await client.getPrompt({
       name: 'triage_dbt_run',
@@ -138,7 +143,7 @@ async function main() {
     });
     assert(prompt.messages.length > 0, 'triage prompt empty');
 
-    console.log('smoke-protocol: ok');
+    console.log('smoke-protocol: ok (legacy + modern)');
   } finally {
     await client.close();
     await fs.rm(targetDir, { recursive: true, force: true });
