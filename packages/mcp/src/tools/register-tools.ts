@@ -4,7 +4,7 @@ import { registerRegistryAnalysisTools } from './register-registry-analysis-tool
 import { emptyToolInputSchema, setTargetInputSchema } from './tool-input-schemas.js';
 
 import type { DbtToolsMcpToolHandlers } from './tool-handlers.js';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 
 export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpToolHandlers): void {
   server.registerTool(
