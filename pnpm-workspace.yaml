@@ -6,6 +6,7 @@ packages:
 # https://pnpm.io/blog/releases/11.0
 minimumReleaseAge: 10080 # 7 days * 1440 min; RFC-0001 §8.1
 # blockExoticSubdeps: true # explicit; matches v11 default
+# resolution-mode: highest # tolerate registry metadata missing "time" for transitive deps
 
 # Build scripts: pnpm 11 requires explicit approval for dependencies that run install scripts.
 # Approved for Vite/Vitest toolchain (esbuild native binary, unrs-resolver postinstall).
@@ -30,10 +31,8 @@ minimumReleaseAgeExclude:
   - '@modelcontextprotocol/client@2.0.0-beta.5'
   - '@modelcontextprotocol/core@2.0.0-beta.5'
   - '@modelcontextprotocol/server@2.0.0-beta.5'
-  - '@smithy/signature-v4'
   - '@tootallnate/once@3.0.1'
   - '@types/node@25.7.0'
-  - '@typescript-eslint/types'
   - dbt-artifacts-parser@0.5.5
   - eslint-plugin-react-hooks
   - eslint-plugin-react-hooks@7.0.1
