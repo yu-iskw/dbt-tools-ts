@@ -32,13 +32,22 @@ jobs:
           cache: pnpm
 
       - name: Regenerate lockfile
+        id: install
+        continue-on-error: true
         shell: bash
         run: |
-          set +e
           pnpm install --no-frozen-lockfile --reporter=append-only > /tmp/pnpm-install.log 2>&1
-          status=$?
-          tail -n 120 /tmp/pnpm-install.log
-          exit $status
+
+      - name: Upload pnpm failure log
+        if: steps.install.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pnpm-install-error
+          path: /tmp/pnpm-install.log
+
+      - name: Stop after pnpm failure
+        if: steps.install.outcome == 'failure'
+        run: exit 1
 
       - name: Finalize migration metadata
         shell: bash
