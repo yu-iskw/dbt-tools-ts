@@ -32,7 +32,13 @@ jobs:
           cache: pnpm
 
       - name: Regenerate lockfile
-        run: pnpm install --no-frozen-lockfile
+        shell: bash
+        run: |
+          set +e
+          pnpm install --no-frozen-lockfile --reporter=append-only > /tmp/pnpm-install.log 2>&1
+          status=$?
+          tail -n 120 /tmp/pnpm-install.log
+          exit $status
 
       - name: Finalize migration metadata
         shell: bash
