@@ -1,0 +1,27 @@
+name: MCP v2 trunk diagnostics
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  trunk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - id: trunk
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx --yes @trunkio/launcher check -y 2>&1 | tee /tmp/trunk.log
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trunk-log
+          path: /tmp/trunk.log
+      - if: steps.trunk.outcome == 'failure'
+        run: exit 1
