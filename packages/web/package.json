@@ -52,7 +52,7 @@
   "dependencies": {
     "@dbt-tools/core": "workspace:*",
     "@tanstack/react-virtual": "^3.13.23",
-    "dbt-artifacts-parser": "^0.5.5",
+    "dbt-artifacts-parser": "^0.7.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
