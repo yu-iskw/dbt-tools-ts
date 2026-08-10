@@ -30,7 +30,7 @@ overrides:
 minimumReleaseAgeExclude:
   - '@tootallnate/once@3.0.1'
   - '@types/node@25.7.0'
-  - dbt-artifacts-parser@0.5.5
+  - dbt-artifacts-parser@0.7.0
   - eslint-plugin-react-hooks
   - eslint-plugin-react-hooks@7.0.1
   - fast-xml-parser@5.7.0
