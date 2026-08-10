@@ -112,8 +112,8 @@ importers:
         specifier: ^14.0.3
         version: 14.0.3
       dbt-artifacts-parser:
-        specifier: ^0.5.5
-        version: 0.5.5
+        specifier: ^0.7.0
+        version: 0.7.0
     devDependencies:
       '@types/node':
         specifier: ^25.5.2
@@ -134,8 +134,8 @@ importers:
         specifier: ^7.19.0
         version: 7.19.0
       dbt-artifacts-parser:
-        specifier: ^0.5.5
-        version: 0.5.5
+        specifier: ^0.7.0
+        version: 0.7.0
       google-auth-library:
         specifier: ^9.15.1
         version: 9.15.1
@@ -193,8 +193,8 @@ importers:
         specifier: ^3.13.23
         version: 3.13.24(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       dbt-artifacts-parser:
-        specifier: ^0.5.5
-        version: 0.5.5
+        specifier: ^0.7.0
+        version: 0.7.0
       react:
         specifier: ^19.2.4
         version: 19.2.6
@@ -2474,8 +2474,8 @@ packages:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
 
-  dbt-artifacts-parser@0.5.5:
-    resolution: {integrity: sha512-qIIOuwwzHOAx9A5dzHNk9QtUdI92WF6b5HsxqG+cMQUpAOiV3HR4jjrpEJnpKiGIaN9XuuYXrl3GWcisc2L9jA==}
+  dbt-artifacts-parser@0.7.0:
+    resolution: {integrity: sha512-OeFVhZIMQjgQVMEXxuiQbiZeTE7eqsvSDMcHH1+Zxihxdmj7dpJM0k3sLPxsXyq6MGch/06jY3d2sX3lX8cHyw==}
     engines: {node: '>=20'}
 
   debug@4.4.3:
@@ -7237,7 +7237,7 @@ snapshots:
       es-errors: 1.3.0
       is-data-view: 1.0.2
 
-  dbt-artifacts-parser@0.5.5: {}
+  dbt-artifacts-parser@0.7.0: {}
 
   debug@4.4.3:
     dependencies:
