@@ -77,7 +77,7 @@
     "@aws-sdk/client-s3": "^3.1025.0",
     "@google-cloud/storage": "^7.19.0",
     "google-auth-library": "^9.15.1",
-    "dbt-artifacts-parser": "^0.5.5",
+    "dbt-artifacts-parser": "^0.7.0",
     "graphology": "^0.26.0",
     "graphology-dag": "^0.4.1",
     "node-sql-parser": "^5.4.0"
