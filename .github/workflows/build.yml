@@ -51,7 +51,13 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Upload generated pnpm lockfile
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pnpm-lock-generated
+          path: pnpm-lock.yaml
 
       - name: Build @dbt-tools/core for ESLint
         run: pnpm --filter @dbt-tools/core build
