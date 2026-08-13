@@ -1,6 +1,6 @@
 import { artifactWorkspaceStatusSchema } from '@dbt-tools/core/contracts';
 
-import { bindMcpToolHandler } from './bind-tool-handler.js';
+import { bindMcpToolHandlers } from './bind-tool-handler.js';
 import { registerRegistryAnalysisTools } from './register-registry-analysis-tools.js';
 import { emptyToolInputSchema, setTargetInputSchema } from './tool-input-schemas.js';
 
@@ -8,6 +8,8 @@ import type { DbtToolsMcpToolHandlers } from './tool-handlers.js';
 import type { McpServer } from '@modelcontextprotocol/server';
 
 export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpToolHandlers): void {
+  const bound = bindMcpToolHandlers(handlers);
+
   server.registerTool(
     'dbt_tools_status',
     {
@@ -18,7 +20,7 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
       outputSchema: artifactWorkspaceStatusSchema,
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
-    bindMcpToolHandler(handlers.dbt_tools_status),
+    bound.dbt_tools_status,
   );
 
   server.registerTool(
@@ -31,7 +33,7 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
       outputSchema: artifactWorkspaceStatusSchema,
       annotations: { readOnlyHint: false, idempotentHint: true },
     },
-    bindMcpToolHandler(handlers.dbt_tools_set_target),
+    bound.dbt_tools_set_target,
   );
 
   server.registerTool(
@@ -44,7 +46,7 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
       outputSchema: artifactWorkspaceStatusSchema,
       annotations: { readOnlyHint: false, idempotentHint: true },
     },
-    bindMcpToolHandler(handlers.dbt_tools_unset_target),
+    bound.dbt_tools_unset_target,
   );
 
   server.registerTool(
@@ -57,7 +59,7 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
       outputSchema: artifactWorkspaceStatusSchema,
       annotations: { readOnlyHint: false, idempotentHint: true },
     },
-    bindMcpToolHandler(handlers.dbt_tools_clear_cached_targets),
+    bound.dbt_tools_clear_cached_targets,
   );
 
   server.registerTool(
@@ -69,8 +71,8 @@ export function registerDbtToolsTools(server: McpServer, handlers: DbtToolsMcpTo
       outputSchema: artifactWorkspaceStatusSchema,
       annotations: { readOnlyHint: false, idempotentHint: true },
     },
-    bindMcpToolHandler(handlers.dbt_tools_refresh),
+    bound.dbt_tools_refresh,
   );
 
-  registerRegistryAnalysisTools(server, handlers);
+  registerRegistryAnalysisTools(server, bound);
 }

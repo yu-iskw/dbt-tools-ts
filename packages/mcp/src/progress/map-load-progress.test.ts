@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createMcpLoadProgressNotifier, progressExtraFromContext } from './map-load-progress.js';
+import { createMcpLoadProgressNotifier } from './map-load-progress.js';
 
 describe('createMcpLoadProgressNotifier', () => {
   it('returns undefined when progressToken is missing', () => {
@@ -45,20 +45,5 @@ describe('createMcpLoadProgressNotifier', () => {
     expect(notify).toHaveBeenCalledTimes(3);
 
     vi.useRealTimers();
-  });
-});
-
-describe('progressExtraFromContext', () => {
-  it('maps mcpReq._meta and notify onto the local extra shape', async () => {
-    const notify = vi.fn().mockResolvedValue(undefined);
-    const extra = progressExtraFromContext({
-      mcpReq: { _meta: { progressToken: 'tok' }, notify },
-    });
-    expect(extra._meta?.progressToken).toBe('tok');
-    await extra.notify({
-      method: 'notifications/progress',
-      params: { progressToken: 'tok', progress: 10 },
-    });
-    expect(notify).toHaveBeenCalledTimes(1);
   });
 });
