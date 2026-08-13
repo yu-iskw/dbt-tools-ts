@@ -87,11 +87,11 @@ const importXRules = {
     },
   ],
   'import-x/no-cycle': ['error', { maxDepth: 3 }],
-  // import-x does not understand the MCP SDK wildcard ESM exports with .js subpaths.
+  // import-x does not understand MCP SDK wildcard ESM exports (v1 subpaths and v2 package roots).
   'import-x/no-unresolved': [
     'error',
     {
-      ignore: ['^@modelcontextprotocol/sdk/', '\\.js$'],
+      ignore: ['^@modelcontextprotocol/(sdk|server|client|core)(/|$)', '\\.js$'],
     },
   ],
 };

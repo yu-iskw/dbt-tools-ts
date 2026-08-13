@@ -41,3 +41,4 @@ Security controls were spread across AGENTS.md policy, per-call-site helpers, an
 - [RFC-0001 §6–§8](../rfc/RFC-0001-clean-slate-redesign.md)
 - [ADR-0013](0013-pure-default-core-and-node-boundary.md) — `core/node` boundary
 - [ADR-0009](0009-npm-releases-authenticate-via-github-actions-oidc-trusted-publishing.md) — outbound supply chain
+- [ADR-0016](0016-mcp-sdk-v2-dual-era-stdio-without-http.md) — MCP SDK v2 dual-era stdio (T7 stays stdio-only)

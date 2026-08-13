@@ -1,13 +1,40 @@
 import type { ArtifactLoadProgress } from '@dbt-tools/core/progress/artifact-load-progress';
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
 const MIN_NOTIFY_INTERVAL_MS = 200;
 
-export type McpToolRequestExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+export type McpProgressToken = number | string;
+
+export interface McpProgressNotification {
+  method: 'notifications/progress';
+  params: {
+    progressToken: McpProgressToken;
+    progress: number;
+    total?: number;
+    message?: string;
+  };
+}
+
+export interface McpToolProgressExtra {
+  _meta?: { progressToken?: McpProgressToken };
+  notify(notification: McpProgressNotification): Promise<void>;
+}
+
+export interface McpProgressNotifyContext {
+  mcpReq: {
+    _meta?: { progressToken?: McpProgressToken };
+    notify(notification: McpProgressNotification): Promise<void>;
+  };
+}
+
+export function progressExtraFromContext(ctx: McpProgressNotifyContext): McpToolProgressExtra {
+  return {
+    _meta: ctx.mcpReq._meta,
+    notify: (notification) => ctx.mcpReq.notify(notification),
+  };
+}
 
 export function createMcpLoadProgressNotifier(
-  extra: McpToolRequestExtra | undefined,
+  extra: McpToolProgressExtra | undefined,
 ): ((event: ArtifactLoadProgress) => void) | undefined {
   const progressToken = extra?._meta?.progressToken;
   if (progressToken === undefined || extra == null) return undefined;
@@ -28,7 +55,7 @@ export function createMcpLoadProgressNotifier(
     }
     lastEmitMs = now;
     lastProgress = event.progress;
-    void extra.sendNotification({
+    void extra.notify({
       method: 'notifications/progress',
       params: {
         progressToken,

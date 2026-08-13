@@ -1,8 +1,6 @@
-import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceTemplate, type McpServer } from '@modelcontextprotocol/server';
 
 import { readDbtToolsResource, type DbtToolsResourceContext } from './resource-handlers.js';
-
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 export function registerDbtToolsResources(server: McpServer, ctx: DbtToolsResourceContext): void {
   server.registerResource(

@@ -15,7 +15,9 @@ import { createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  createDbtToolsMcpRuntime,
   createDbtToolsMcpServer,
+  createDbtToolsMcpServerFromRuntime,
   createDbtToolsMcpStack,
   runDbtToolsMcpCli,
   startRefreshPolling,
@@ -24,7 +26,7 @@ import { registerDbtToolsTools } from './tools/register-tools.js';
 import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
 
 import type { DbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 
 class RecordingMcpServer {
   readonly tools: Array<{ name: string; config: unknown; handler: unknown }> = [];
@@ -132,6 +134,13 @@ describe('dbt-tools MCP server wiring', () => {
     const server = await createDbtToolsMcpServer(['--dbt-target', tempDir]);
 
     expect(server).toBeInstanceOf(Object);
+  });
+
+  it('builds independent McpServer instances from one process runtime', () => {
+    const runtime = createDbtToolsMcpRuntime([]);
+    const first = createDbtToolsMcpServerFromRuntime(runtime);
+    const second = createDbtToolsMcpServerFromRuntime(runtime);
+    expect(first).not.toBe(second);
   });
 
   it('loads artifacts after set_target when no startup target is configured', async () => {

@@ -2,7 +2,7 @@ import * as z from 'zod/v4';
 
 import { mcpOptionalBooleanSchema } from '../mcp-coercions.js';
 
-import type { PromptMessage } from '@modelcontextprotocol/sdk/types.js';
+import type { PromptMessage } from '@modelcontextprotocol/server';
 
 const NO_DBT_EXECUTION_LINE = 'Do not modify files or execute dbt commands.';
 

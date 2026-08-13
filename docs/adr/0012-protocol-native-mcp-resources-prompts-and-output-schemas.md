@@ -23,10 +23,11 @@ Backward compatibility: tool names and successful tool JSON shapes are unchanged
 
 - MCP hosts can attach resources and list output schemas without new specialized tools.
 - `ResourceNode` contract tests use permissive nested schemas to limit drift pain.
-- Streamable HTTP, OAuth, roots, and resource subscriptions remain deferred.
+- Streamable HTTP, OAuth, roots, and resource subscriptions remain deferred ([ADR-0016](0016-mcp-sdk-v2-dual-era-stdio-without-http.md) keeps that deferral on SDK v2).
 
 ## Related
 
 - [packages/mcp/README.md](../../packages/mcp/README.md)
 - [docs/site/reference/mcp-resources.md](../site/reference/mcp-resources.md)
 - [docs/site/reference/mcp-prompts.md](../site/reference/mcp-prompts.md)
+- [ADR-0016](0016-mcp-sdk-v2-dual-era-stdio-without-http.md) — SDK v2 dual-era stdio
