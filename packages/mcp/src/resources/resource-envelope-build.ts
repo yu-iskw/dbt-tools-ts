@@ -1,4 +1,4 @@
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { ProtocolError, ProtocolErrorCode } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 
 import type { ArtifactWorkspaceStatus } from '@dbt-tools/core/artifact-workspace';
@@ -15,8 +15,8 @@ export function snapshotMetadataFromStatus(status: ArtifactWorkspaceStatus) {
 export function parseResourceBody<T>(schema: z.ZodType<T>, data: unknown): T {
   const parsed = schema.safeParse(data);
   if (!parsed.success) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
+    throw new ProtocolError(
+      ProtocolErrorCode.InvalidParams,
       `Resource payload did not match contract: ${parsed.error.message}`,
     );
   }

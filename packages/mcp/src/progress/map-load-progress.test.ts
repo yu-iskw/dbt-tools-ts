@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createMcpLoadProgressNotifier } from './map-load-progress.js';
+import { createMcpLoadProgressNotifier, progressExtraFromContext } from './map-load-progress.js';
 
 describe('createMcpLoadProgressNotifier', () => {
   it('returns undefined when progressToken is missing', () => {
@@ -10,11 +10,11 @@ describe('createMcpLoadProgressNotifier', () => {
 
   it('throttles intermediate updates and allows phase reset', async () => {
     vi.useFakeTimers();
-    const sendNotification = vi.fn().mockResolvedValue(undefined);
+    const notify = vi.fn().mockResolvedValue(undefined);
     const notifier = createMcpLoadProgressNotifier({
       _meta: { progressToken: 'tok' },
-      sendNotification,
-    } as never);
+      notify,
+    });
 
     notifier?.({
       phase: 'validate-target',
@@ -26,7 +26,7 @@ describe('createMcpLoadProgressNotifier', () => {
       progress: 25,
       message: 'Discovering',
     });
-    expect(sendNotification).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledTimes(1);
 
     vi.advanceTimersByTime(250);
     notifier?.({
@@ -34,7 +34,7 @@ describe('createMcpLoadProgressNotifier', () => {
       progress: 100,
       message: 'Ready',
     });
-    expect(sendNotification).toHaveBeenCalledTimes(2);
+    expect(notify).toHaveBeenCalledTimes(2);
 
     vi.advanceTimersByTime(250);
     notifier?.({
@@ -42,8 +42,23 @@ describe('createMcpLoadProgressNotifier', () => {
       progress: 5,
       message: 'Retry',
     });
-    expect(sendNotification).toHaveBeenCalledTimes(3);
+    expect(notify).toHaveBeenCalledTimes(3);
 
     vi.useRealTimers();
+  });
+});
+
+describe('progressExtraFromContext', () => {
+  it('maps mcpReq._meta and notify onto the local extra shape', async () => {
+    const notify = vi.fn().mockResolvedValue(undefined);
+    const extra = progressExtraFromContext({
+      mcpReq: { _meta: { progressToken: 'tok' }, notify },
+    });
+    expect(extra._meta?.progressToken).toBe('tok');
+    await extra.notify({
+      method: 'notifications/progress',
+      params: { progressToken: 'tok', progress: 10 },
+    });
+    expect(notify).toHaveBeenCalledTimes(1);
   });
 });

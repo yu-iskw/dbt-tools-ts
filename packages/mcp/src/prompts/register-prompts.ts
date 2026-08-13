@@ -11,7 +11,7 @@ import {
   triageDbtRunMcpArgsSchema,
 } from './prompt-definitions.js';
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 
 export function registerDbtToolsPrompts(server: McpServer): void {
   server.registerPrompt(
@@ -19,7 +19,7 @@ export function registerDbtToolsPrompts(server: McpServer): void {
     {
       title: 'Triage dbt run',
       description: 'Investigate the loaded run: failures, skips, and bottlenecks.',
-      argsSchema: triageDbtRunMcpArgsSchema.shape,
+      argsSchema: triageDbtRunMcpArgsSchema,
     },
     (args) => ({ messages: buildTriageDbtRunMessages(triageDbtRunMcpArgsSchema.parse(args)) }),
   );
@@ -29,7 +29,7 @@ export function registerDbtToolsPrompts(server: McpServer): void {
     {
       title: 'Analyze model blast radius',
       description: 'Review upstream or downstream impact for one dbt resource.',
-      argsSchema: analyzeModelBlastRadiusMcpArgsSchema.shape,
+      argsSchema: analyzeModelBlastRadiusMcpArgsSchema,
     },
     (args) => ({
       messages: buildAnalyzeModelBlastRadiusMessages(
@@ -43,7 +43,7 @@ export function registerDbtToolsPrompts(server: McpServer): void {
     {
       title: 'Inspect dbt resource',
       description: 'Compact review packet for a single dbt resource.',
-      argsSchema: inspectDbtResourceMcpArgsSchema.shape,
+      argsSchema: inspectDbtResourceMcpArgsSchema,
     },
     (args) => ({
       messages: buildInspectDbtResourceMessages(inspectDbtResourceMcpArgsSchema.parse(args)),
@@ -55,7 +55,7 @@ export function registerDbtToolsPrompts(server: McpServer): void {
     {
       title: 'Optimize dbt run',
       description: 'Find runtime and cost optimization candidates.',
-      argsSchema: optimizeDbtRunMcpArgsSchema.shape,
+      argsSchema: optimizeDbtRunMcpArgsSchema,
     },
     (args) => ({
       messages: buildOptimizeDbtRunMessages(optimizeDbtRunMcpArgsSchema.parse(args)),
@@ -67,7 +67,7 @@ export function registerDbtToolsPrompts(server: McpServer): void {
     {
       title: 'Review artifact snapshot',
       description: 'Check target binding, freshness, and cache readiness.',
-      argsSchema: reviewArtifactSnapshotArgsSchema.shape,
+      argsSchema: reviewArtifactSnapshotArgsSchema,
     },
     () => ({ messages: buildReviewArtifactSnapshotMessages() }),
   );

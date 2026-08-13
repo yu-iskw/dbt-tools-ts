@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 /**
  * Stdio protocol smoke test for dbt-tools-mcp (RFC §18.3).
+ * Runs the same assertions against a 2025-era (legacy) client and a
+ * 2026-07-28-pinned (modern) client.
  */
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(packageRoot, '../..');
@@ -21,6 +23,11 @@ const fixtureRunResults = path.join(
   repoRoot,
   'packages/test-fixtures/dbt-artifacts-parser/resources/run_results/v6/jaffle_shop/run_results.json',
 );
+
+const ERAS = [
+  { label: 'legacy', versionNegotiation: undefined },
+  { label: 'modern', versionNegotiation: { mode: { pin: '2026-07-28' } } },
+];
 
 async function prepareArtifactDir() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dbt-tools-mcp-smoke-'));
@@ -41,6 +48,24 @@ function parseToolContentText(result) {
   return block.text;
 }
 
+async function withClient(name, args, versionNegotiation, fn) {
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args,
+    cwd: packageRoot,
+    stderr: 'pipe',
+  });
+  const client = versionNegotiation
+    ? new Client({ name, version: '1.0.0' }, { versionNegotiation })
+    : new Client({ name, version: '1.0.0' });
+  await client.connect(transport);
+  try {
+    await fn(client);
+  } finally {
+    await client.close();
+  }
+}
+
 async function smokeNoTargetErrors(client) {
   const result = await client.callTool({
     name: 'dbt_tools_search_resources',
@@ -51,7 +76,7 @@ async function smokeNoTargetErrors(client) {
   assert(typeof parsed.error === 'string', 'tool error should include error field');
 }
 
-async function smokeGetResource(client, targetDir) {
+async function smokeGetResource(client) {
   const uniqueId = 'model.jaffle_shop.stg_orders';
   const found = await client.callTool({
     name: 'dbt_tools_get_resource',
@@ -71,76 +96,63 @@ async function smokeGetResource(client, targetDir) {
   assert(parseToolContentText(missing) === 'null', 'content text is JSON null');
 }
 
+async function smokeWarmSession(client, targetDir) {
+  const tools = await client.listTools();
+  assert(tools.tools.length >= 10, 'expected at least ten tools');
+
+  const resources = await client.listResources();
+  const resourceUris = resources.resources.map((r) => r.uri);
+  assert(resourceUris.includes('dbt-tools://status'), 'missing status resource');
+  assert(resourceUris.includes('dbt-tools://runs/current/summary'), 'missing run summary resource');
+
+  const templates = await client.listResourceTemplates();
+  assert(templates.resourceTemplates.length >= 4, 'expected resource templates');
+
+  const prompts = await client.listPrompts();
+  assert(prompts.prompts.length >= 5, 'expected curated prompts');
+
+  await client.callTool({ name: 'dbt_tools_set_target', arguments: { target: targetDir } });
+  await client.callTool({ name: 'dbt_tools_status', arguments: {} });
+
+  const statusResource = await client.readResource({ uri: 'dbt-tools://status' });
+  assert(statusResource.contents.length > 0, 'status resource empty');
+
+  const summaryResource = await client.readResource({
+    uri: 'dbt-tools://runs/current/summary',
+  });
+  assert(summaryResource.contents.length > 0, 'run summary resource empty');
+
+  const uniqueId = 'model.jaffle_shop.stg_orders';
+  await client.readResource({ uri: `dbt-tools://resources/${encodeURIComponent(uniqueId)}` });
+
+  await smokeGetResource(client);
+
+  const prompt = await client.getPrompt({
+    name: 'triage_dbt_run',
+    arguments: { focus: 'failures', limit: '5' },
+  });
+  assert(prompt.messages.length > 0, 'triage prompt empty');
+}
+
 async function main() {
   const targetDir = await prepareArtifactDir();
-
-  const coldTransport = new StdioClientTransport({
-    command: process.execPath,
-    args: [serverEntry],
-    cwd: packageRoot,
-    stderr: 'pipe',
-  });
-  const coldClient = new Client({ name: 'smoke-mcp-protocol-cold', version: '1.0.0' });
-  await coldClient.connect(coldTransport);
   try {
-    await smokeNoTargetErrors(coldClient);
+    for (const era of ERAS) {
+      await withClient(
+        `smoke-mcp-protocol-cold-${era.label}`,
+        [serverEntry],
+        era.versionNegotiation,
+        smokeNoTargetErrors,
+      );
+      await withClient(
+        `smoke-mcp-protocol-${era.label}`,
+        [serverEntry, '--dbt-target', targetDir],
+        era.versionNegotiation,
+        (client) => smokeWarmSession(client, targetDir),
+      );
+    }
+    console.log('smoke-protocol: ok (legacy + modern)');
   } finally {
-    await coldClient.close();
-  }
-
-  const transport = new StdioClientTransport({
-    command: process.execPath,
-    args: [serverEntry, '--dbt-target', targetDir],
-    cwd: packageRoot,
-    stderr: 'pipe',
-  });
-
-  const client = new Client({ name: 'smoke-mcp-protocol', version: '1.0.0' });
-  await client.connect(transport);
-
-  try {
-    const tools = await client.listTools();
-    assert(tools.tools.length >= 10, 'expected at least ten tools');
-
-    const resources = await client.listResources();
-    const resourceUris = resources.resources.map((r) => r.uri);
-    assert(resourceUris.includes('dbt-tools://status'), 'missing status resource');
-    assert(
-      resourceUris.includes('dbt-tools://runs/current/summary'),
-      'missing run summary resource',
-    );
-
-    const templates = await client.listResourceTemplates();
-    assert(templates.resourceTemplates.length >= 4, 'expected resource templates');
-
-    const prompts = await client.listPrompts();
-    assert(prompts.prompts.length >= 5, 'expected curated prompts');
-
-    await client.callTool({ name: 'dbt_tools_set_target', arguments: { target: targetDir } });
-    await client.callTool({ name: 'dbt_tools_status', arguments: {} });
-
-    const statusResource = await client.readResource({ uri: 'dbt-tools://status' });
-    assert(statusResource.contents.length > 0, 'status resource empty');
-
-    const summaryResource = await client.readResource({
-      uri: 'dbt-tools://runs/current/summary',
-    });
-    assert(summaryResource.contents.length > 0, 'run summary resource empty');
-
-    const uniqueId = 'model.jaffle_shop.stg_orders';
-    await client.readResource({ uri: `dbt-tools://resources/${encodeURIComponent(uniqueId)}` });
-
-    await smokeGetResource(client, targetDir);
-
-    const prompt = await client.getPrompt({
-      name: 'triage_dbt_run',
-      arguments: { focus: 'failures', limit: '5' },
-    });
-    assert(prompt.messages.length > 0, 'triage prompt empty');
-
-    console.log('smoke-protocol: ok');
-  } finally {
-    await client.close();
     await fs.rm(targetDir, { recursive: true, force: true });
   }
 }

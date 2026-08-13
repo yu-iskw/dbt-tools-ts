@@ -2,6 +2,8 @@
 
 Long-lived **MCP server** (stdio transport) for dbt artifact analysis. It keeps a selected artifact run parsed in memory so agent clients can issue many small queries without repeatedly downloading, loading, and parsing large `manifest.json` / `run_results.json` files.
 
+The server speaks **MCP `2026-07-28`** when the host negotiates it, and still serves 2025-era `initialize` clients (Cursor, Claude Desktop, and similar spawn-stdio hosts). It is stdio-only, not HTTP.
+
 ## When to use this server
 
 Use **`dbt-tools-mcp`** when an MCP client (Cursor, Claude Desktop, etc.) needs **many small queries** over the same dbt artifact run without reloading `manifest.json` / `run_results.json` on every call—especially for **large** artifacts or **S3/GCS** targets where parse and download cost dominates.
@@ -185,6 +187,6 @@ More symptoms: **[REFERENCE.md](REFERENCE.md#troubleshooting)**.
 
 ## Design notes
 
-The MCP package is intentionally thin. Shared artifact lifecycle, query semantics, pagination contracts, and output types live in `@dbt-tools/core`; this package adapts those use cases to MCP stdio transport and JSON tool responses.
+The MCP package is intentionally thin. Shared artifact lifecycle, query semantics, pagination contracts, and output types live in `@dbt-tools/core`; this package adapts those use cases to MCP stdio transport (SDK 2.0, dual-era) and JSON tool responses.
 
 **Multi-target cache:** `ArtifactWorkspace` keeps up to **three** parsed artifact roots in memory by default (`DBT_TOOLS_MAX_CACHED_TARGETS`, `--max-cached-targets`). Repeating `dbt_tools_set_target` for a recent root skips download/parse when the entry is still cached. Background poll and `dbt_tools_refresh` only touch the **active** target.

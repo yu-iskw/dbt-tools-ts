@@ -4,8 +4,8 @@ import type { McpJsonToolResult } from './tool-handlers.js';
 import type * as z from 'zod/v4';
 
 /**
- * @modelcontextprotocol/sdk@1.29 validateToolOutput skips outputSchema when result.isError is true
- * (see server/mcp.js). Tool errors use toolErrorSchema in structuredContent for clients that read it.
+ * MCP SDK v2 skips outputSchema validation when result.isError is true.
+ * Tool errors use toolErrorSchema in structuredContent for clients that read it.
  */
 
 function isOutputValidationEnabled(): boolean {

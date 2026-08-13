@@ -4,7 +4,7 @@ import { artifactWorkspaceStatusSchema } from '@dbt-tools/core/contracts';
 import { assertRemoteFlagsMatchTarget, type McpRemoteClientFlagOptions } from '../options.js';
 import {
   createMcpLoadProgressNotifier,
-  type McpToolRequestExtra,
+  type McpToolProgressExtra,
 } from '../progress/map-load-progress.js';
 
 import { createRegistryAnalysisToolHandlers } from './register-registry-analysis-tools.js';
@@ -34,7 +34,10 @@ function validationErrorResult(error: QueryExecutionsValidationError): McpJsonTo
   });
 }
 
-type McpToolHandler = (input: ToolInput, extra?: McpToolRequestExtra) => Promise<McpJsonToolResult>;
+type McpToolHandler = (
+  input: ToolInput,
+  extra?: McpToolProgressExtra,
+) => Promise<McpJsonToolResult>;
 
 export type DbtToolsMcpToolHandlers = {
   dbt_tools_status: McpToolHandler;
@@ -62,7 +65,7 @@ export function createDbtToolsMcpToolHandlers(
 
     dbt_tools_set_target: async (
       input: ToolInput,
-      extra?: McpToolRequestExtra,
+      extra?: McpToolProgressExtra,
     ): Promise<McpJsonToolResult> => {
       const parsed = setTargetInputSchema.safeParse(input);
       if (!parsed.success) {
@@ -90,7 +93,7 @@ export function createDbtToolsMcpToolHandlers(
 
     dbt_tools_refresh: async (
       _input: ToolInput,
-      extra?: McpToolRequestExtra,
+      extra?: McpToolProgressExtra,
     ): Promise<McpJsonToolResult> => {
       const onProgress = createMcpLoadProgressNotifier(extra);
       return jsonResult(

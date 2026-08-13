@@ -1,6 +1,6 @@
 # Connecting MCP clients
 
-`dbt-tools-mcp` is a **stdio** MCP server. It keeps a dbt artifact run parsed in memory so clients can issue many small queries without reloading large manifests on every call.
+`dbt-tools-mcp` is a **stdio** MCP server. It keeps a dbt artifact run parsed in memory so clients can issue many small queries without reloading large manifests on every call. It speaks MCP `2026-07-28` when the host can, and still accepts 2025-era `initialize` from spawn-stdio hosts. It is not an HTTP MCP server.
 
 ## When to use MCP vs CLI
 

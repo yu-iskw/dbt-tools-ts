@@ -21,6 +21,7 @@ The records here were curated from earlier dbt-tools history during the reposito
 - [0013](./0013-pure-default-core-and-node-boundary.md) - pure default core entry and `@dbt-tools/core/node` boundary
 - [0014](./0014-use-case-registry-cross-surface-contract.md) - use-case registry as single cross-surface contract
 - [0015](./0015-threat-model-controls.md) - threat model pointer and constructive security controls
+- [0016](./0016-mcp-sdk-v2-dual-era-stdio-without-http.md) - MCP SDK v2 dual-era stdio without HTTP
 
 ## Supporting Docs
 

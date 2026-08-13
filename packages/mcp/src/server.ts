@@ -4,9 +4,14 @@ import {
   getDbtToolsCacheTtlMsFromEnv,
   getDbtToolsMaxCachedTargetsFromEnv,
 } from '@dbt-tools/core';
-import { ArtifactWorkspace, createDbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  ArtifactWorkspace,
+  createDbtToolsUseCases,
+  type ArtifactWorkspaceLoadOptions,
+  type DbtToolsUseCases,
+} from '@dbt-tools/core/artifact-workspace';
+import { McpServer } from '@modelcontextprotocol/server';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 
 import { isCliEntrypoint } from './entrypoint.js';
 import {
@@ -19,9 +24,10 @@ import { readMcpPackageVersion } from './package-version.js';
 import { registerDbtToolsPrompts } from './prompts/register-prompts.js';
 import { registerDbtToolsResources } from './resources/register-resources.js';
 import { registerDbtToolsTools } from './tools/register-tools.js';
-import { createDbtToolsMcpToolHandlers } from './tools/tool-handlers.js';
-
-import type { ArtifactWorkspaceLoadOptions } from '@dbt-tools/core/artifact-workspace';
+import {
+  createDbtToolsMcpToolHandlers,
+  type DbtToolsMcpToolHandlers,
+} from './tools/tool-handlers.js';
 
 type RefreshTimer = ReturnType<typeof setInterval>;
 
@@ -59,14 +65,20 @@ function remoteClientOverridesFromOptions(options: ReturnType<typeof parseMcpSer
   };
 }
 
+export interface DbtToolsMcpRuntime {
+  workspace: ArtifactWorkspace;
+  useCases: DbtToolsUseCases;
+  handlers: DbtToolsMcpToolHandlers;
+}
+
 export interface DbtToolsMcpStack {
   server: McpServer;
   workspace: ArtifactWorkspace;
 }
 
-export async function createDbtToolsMcpStack(
+export function createDbtToolsMcpRuntime(
   argv: string[] = process.argv.slice(2),
-): Promise<DbtToolsMcpStack> {
+): DbtToolsMcpRuntime {
   const options = parseMcpServerOptions(argv);
   const remoteClientOverrides = remoteClientOverridesFromOptions(options);
   const workspace = new ArtifactWorkspace({
@@ -82,14 +94,25 @@ export async function createDbtToolsMcpStack(
   startRefreshPolling(workspace, options.pollIntervalMs);
   const useCases = createDbtToolsUseCases(workspace);
   const handlers = createDbtToolsMcpToolHandlers(workspace, useCases, options);
+  return { workspace, useCases, handlers };
+}
+
+export function createDbtToolsMcpServerFromRuntime(runtime: DbtToolsMcpRuntime): McpServer {
   const server = new McpServer({
     name: 'dbt-tools',
     version: readMcpPackageVersion(),
   });
-  registerDbtToolsTools(server, handlers);
-  registerDbtToolsResources(server, { workspace, useCases });
+  registerDbtToolsTools(server, runtime.handlers);
+  registerDbtToolsResources(server, { workspace: runtime.workspace, useCases: runtime.useCases });
   registerDbtToolsPrompts(server);
-  return { server, workspace };
+  return server;
+}
+
+export async function createDbtToolsMcpStack(
+  argv: string[] = process.argv.slice(2),
+): Promise<DbtToolsMcpStack> {
+  const runtime = createDbtToolsMcpRuntime(argv);
+  return { server: createDbtToolsMcpServerFromRuntime(runtime), workspace: runtime.workspace };
 }
 
 export async function createDbtToolsMcpServer(
@@ -104,9 +127,14 @@ export async function runDbtToolsMcpCli(
   io: DbtToolsMcpCliIo = { stdout: process.stdout, stderr: process.stderr },
 ): Promise<number> {
   try {
-    const server = await createDbtToolsMcpServer(argv);
-    await server.connect(new StdioServerTransport());
+    const runtime = createDbtToolsMcpRuntime(argv);
+    const handle = serveStdio(() => createDbtToolsMcpServerFromRuntime(runtime));
     dbtToolsDebugLog('MCP stdio transport connected');
+    const close = () => {
+      void handle.close();
+    };
+    process.once('SIGINT', close);
+    process.once('SIGTERM', close);
     return 0;
   } catch (error) {
     if (error instanceof McpHelpRequested) {

@@ -1,10 +1,6 @@
 packages:
   - packages/*
   - docs/site
-
-# Supply-chain protection (pnpm 11 defaults, with 7-day quarantine)
-# https://pnpm.io/blog/releases/11.0
-minimumReleaseAge: 10080 # 7 days * 1440 min; RFC-0001 §8.1
 # blockExoticSubdeps: true # explicit; matches v11 default
 # resolution-mode: highest # tolerate registry metadata missing "time" for transitive deps
 
@@ -14,18 +10,9 @@ allowBuilds:
   esbuild: true
   unrs-resolver: true
 
-overrides:
-  'brace-expansion@<5.0.6': ^5.0.6
-  '@tootallnate/once@<3.0.1': ^3.0.1
-  esbuild: ^0.27.2
-  fast-xml-parser@<5.7.0: ^5.7.0
-  flatted: '>=3.4.2'
-  lodash: ^4.18.0
-  postcss@<8.5.10: ^8.5.10
-  rollup: '>=4.59.0'
-  tar: ^7.5.13
-  uuid: ^11.1.1
-  vitepress>vite: ^6.4.2
+# Supply-chain protection (pnpm 11 defaults, with 7-day quarantine)
+# https://pnpm.io/blog/releases/11.0
+minimumReleaseAge: 10080 # 7 days * 1440 min; RFC-0001 §8.1
 
 minimumReleaseAgeExclude:
   - '@tootallnate/once@3.0.1'
@@ -42,3 +29,42 @@ minimumReleaseAgeExclude:
   - '@dbt-tools/*'
   - vite@6.4.2
   - '@vitejs/plugin-vue@5.2.4'
+  - esbuild@0.28.1
+  - form-data@2.5.6
+  - tar@7.5.16
+  - vite@6.4.3
+  - vite@8.0.16
+  - undici@7.28.0
+  - js-yaml@4.1.2
+  - '@babel/core@7.29.1'
+  - brace-expansion@5.0.7
+  - js-yaml@4.3.0
+  - tar@7.5.18
+  - tar@7.5.19
+  - tar@7.5.17
+  - fast-uri@3.1.4
+  - postcss@8.5.12
+  - tar@7.5.21
+  - postcss@8.5.18
+  - brace-expansion@5.0.8
+  - postcss@8.5.23
+  - undici@7.29.0
+  - fast-uri@3.1.5
+  - brace-expansion@5.0.9
+  - js-yaml@4.3.1
+  - fast-uri@3.1.3
+  - nanoid@3.3.16
+  - nanoid@3.3.17
+
+overrides:
+  '@tootallnate/once@<3.0.1': ^3.0.1
+  'brace-expansion@<5.0.6': ^5.0.6
+  esbuild: ^0.27.2
+  fast-xml-parser@<5.7.0: ^5.7.0
+  flatted: '>=3.4.2'
+  lodash: ^4.18.0
+  postcss@<8.5.10: ^8.5.10
+  rollup: '>=4.59.0'
+  tar: ^7.5.13
+  uuid: ^11.1.1
+  vitepress>vite: ^6.4.2

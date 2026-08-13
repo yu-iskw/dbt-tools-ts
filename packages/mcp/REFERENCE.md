@@ -217,7 +217,9 @@ Example shape (fields may be `null` before load):
 | `cachePolicy`      | Active `maxTargets` and `ttlMs` for the workspace                         |
 | `cachedTargets`    | Other roots still held in memory (when caching is enabled)                |
 
-## Breaking migration (v2)
+## Breaking migration (dbt-tools tool names)
+
+This table is a **dbt-tools** tool-rename map from an earlier package major. It is **not** MCP protocol v2 / SDK 2.0.
 
 | Removed tool           | Replacement                                                    |
 | ---------------------- | -------------------------------------------------------------- |
