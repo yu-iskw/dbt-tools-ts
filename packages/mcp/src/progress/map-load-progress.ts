@@ -19,20 +19,6 @@ export interface McpToolProgressExtra {
   notify(notification: McpProgressNotification): Promise<void>;
 }
 
-export interface McpProgressNotifyContext {
-  mcpReq: {
-    _meta?: { progressToken?: McpProgressToken };
-    notify(notification: McpProgressNotification): Promise<void>;
-  };
-}
-
-export function progressExtraFromContext(ctx: McpProgressNotifyContext): McpToolProgressExtra {
-  return {
-    _meta: ctx.mcpReq._meta,
-    notify: (notification) => ctx.mcpReq.notify(notification),
-  };
-}
-
 export function createMcpLoadProgressNotifier(
   extra: McpToolProgressExtra | undefined,
 ): ((event: ArtifactLoadProgress) => void) | undefined {
