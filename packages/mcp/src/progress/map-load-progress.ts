@@ -22,8 +22,9 @@ export interface McpToolProgressExtra {
 export function createMcpLoadProgressNotifier(
   extra: McpToolProgressExtra | undefined,
 ): ((event: ArtifactLoadProgress) => void) | undefined {
-  const progressToken = extra?._meta?.progressToken;
-  if (progressToken === undefined || extra == null) return undefined;
+  if (extra == null) return undefined;
+  const progressToken = extra._meta?.progressToken;
+  if (progressToken === undefined) return undefined;
 
   let lastEmitMs = 0;
   let lastProgress = -1;

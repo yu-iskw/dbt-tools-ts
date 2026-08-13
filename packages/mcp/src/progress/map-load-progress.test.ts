@@ -4,8 +4,10 @@ import { createMcpLoadProgressNotifier } from './map-load-progress.js';
 
 describe('createMcpLoadProgressNotifier', () => {
   it('returns undefined when progressToken is missing', () => {
+    const notify = async () => undefined;
     expect(createMcpLoadProgressNotifier(undefined)).toBeUndefined();
-    expect(createMcpLoadProgressNotifier({ _meta: {} } as never)).toBeUndefined();
+    expect(createMcpLoadProgressNotifier({ notify })).toBeUndefined();
+    expect(createMcpLoadProgressNotifier({ _meta: {}, notify })).toBeUndefined();
   });
 
   it('throttles intermediate updates and allows phase reset', async () => {

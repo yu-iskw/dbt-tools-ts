@@ -23,7 +23,7 @@ export interface McpJsonToolResult {
   isError?: boolean;
 }
 
-type ToolInput = Record<string, unknown>;
+export type ToolInput = Record<string, unknown>;
 
 function validationErrorResult(error: QueryExecutionsValidationError): McpJsonToolResult {
   return jsonToolError({
@@ -34,7 +34,7 @@ function validationErrorResult(error: QueryExecutionsValidationError): McpJsonTo
   });
 }
 
-type McpToolHandler = (
+export type McpToolHandler = (
   input: ToolInput,
   extra?: McpToolProgressExtra,
 ) => Promise<McpJsonToolResult>;

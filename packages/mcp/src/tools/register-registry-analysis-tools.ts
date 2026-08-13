@@ -18,12 +18,10 @@ import {
 import { invalidToolInputResult } from './tool-result.js';
 
 import type { BoundMcpToolHandlers } from './bind-tool-handler.js';
-import type { DbtToolsMcpToolHandlers } from './tool-handlers.js';
+import type { DbtToolsMcpToolHandlers, ToolInput } from './tool-handlers.js';
 import type { DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type * as z from 'zod/v4';
-
-type ToolInput = Record<string, unknown>;
 
 const MCP_INPUT_SCHEMAS: Record<string, z.ZodType<unknown>> = {
   'resource.search': searchResourcesInputSchema,

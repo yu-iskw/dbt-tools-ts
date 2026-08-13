@@ -1,26 +1,22 @@
-import type { DbtToolsMcpToolHandlers, McpJsonToolResult } from './tool-handlers.js';
+import type {
+  DbtToolsMcpToolHandlers,
+  McpJsonToolResult,
+  McpToolHandler,
+  ToolInput,
+} from './tool-handlers.js';
 import type { McpToolProgressExtra } from '../progress/map-load-progress.js';
-import type { ServerContext } from '@modelcontextprotocol/server';
-
-type ToolInput = Record<string, unknown>;
 
 export type BoundMcpToolHandler = (
   input: unknown,
-  ctx: ServerContext,
+  ctx: { mcpReq: McpToolProgressExtra },
 ) => Promise<McpJsonToolResult>;
 
 export type BoundMcpToolHandlers = {
   [K in keyof DbtToolsMcpToolHandlers]: BoundMcpToolHandler;
 };
 
-export function bindMcpToolHandler(
-  handler: (input: ToolInput, extra?: McpToolProgressExtra) => Promise<McpJsonToolResult>,
-): BoundMcpToolHandler {
-  return async (input, ctx) =>
-    handler(input as ToolInput, {
-      _meta: ctx.mcpReq._meta,
-      notify: (notification) => ctx.mcpReq.notify(notification),
-    });
+export function bindMcpToolHandler(handler: McpToolHandler): BoundMcpToolHandler {
+  return async (input, ctx) => handler(input as ToolInput, ctx.mcpReq);
 }
 
 export function bindMcpToolHandlers(handlers: DbtToolsMcpToolHandlers): BoundMcpToolHandlers {
