@@ -8,7 +8,6 @@ import {
 import { runToolWithLoadedUseCases } from '../loaded-use-cases.js';
 import { loadResourceNode, toGetResourceToolOutput } from '../resources/fetch-resource.js';
 
-import { bindMcpToolHandler } from './bind-tool-handler.js';
 import {
   getResourceInputSchema,
   queryDependenciesInputSchema,
@@ -18,12 +17,11 @@ import {
 } from './tool-input-schemas.js';
 import { invalidToolInputResult } from './tool-result.js';
 
-import type { DbtToolsMcpToolHandlers } from './tool-handlers.js';
+import type { BoundMcpToolHandlers } from './bind-tool-handler.js';
+import type { DbtToolsMcpToolHandlers, ToolInput } from './tool-handlers.js';
 import type { DbtToolsUseCases } from '@dbt-tools/core/artifact-workspace';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type * as z from 'zod/v4';
-
-type ToolInput = Record<string, unknown>;
 
 const MCP_INPUT_SCHEMAS: Record<string, z.ZodType<unknown>> = {
   'resource.search': searchResourcesInputSchema,
@@ -38,7 +36,7 @@ const MCP_INPUT_SCHEMAS: Record<string, z.ZodType<unknown>> = {
 export function registerRegistryAnalysisTools(
   server: McpServer,
   handlers: Pick<
-    DbtToolsMcpToolHandlers,
+    BoundMcpToolHandlers,
     | 'dbt_tools_get_resource'
     | 'dbt_tools_get_run_summary'
     | 'dbt_tools_query_dependencies'
@@ -61,7 +59,7 @@ export function registerRegistryAnalysisTools(
         outputSchema: useCase.output,
         annotations: { readOnlyHint: true, idempotentHint: true },
       },
-      bindMcpToolHandler(handler),
+      handler,
     );
   }
 }
