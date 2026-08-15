@@ -12,23 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build
+name: CI
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".agents/**"
+      - ".claude/**"
+      - ".cursor/**"
+      - ".vscode/**"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".agents/**"
+      - ".claude/**"
+      - ".cursor/**"
+      - ".vscode/**"
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions: read-all
+permissions:
+  contents: read
+  checks: write
 
 jobs:
-  build:
-    name: Run Build Process
+  ci:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    name: Test, analyze, and build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -70,3 +87,15 @@ jobs:
 
       - name: Run build
         run: pnpm build
+
+      - name: Run tests with coverage
+        run: pnpm coverage:report
+
+      - name: MCP protocol smoke
+        run: pnpm smoke:mcp
+
+      - name: Trunk Check
+        if: github.event_name != 'push'
+        uses: trunk-io/trunk-action@04ba50e7658c81db7356da96657e6e77f220bfa3 # v1.3.1
+        with:
+          setup-deps: true
