@@ -14,24 +14,25 @@
 
 name: CI
 
+# prettier-ignore
 on:
   push:
     branches: [main]
     paths-ignore:
       - "**/*.md"
-      - "docs/**"
-      - ".agents/**"
-      - ".claude/**"
-      - ".cursor/**"
-      - ".vscode/**"
+      - docs/**
+      - .agents/**
+      - .claude/**
+      - .cursor/**
+      - .vscode/**
   pull_request:
     paths-ignore:
       - "**/*.md"
-      - "docs/**"
-      - ".agents/**"
-      - ".claude/**"
-      - ".cursor/**"
-      - ".vscode/**"
+      - docs/**
+      - .agents/**
+      - .claude/**
+      - .cursor/**
+      - .vscode/**
   workflow_dispatch:
 
 concurrency:
