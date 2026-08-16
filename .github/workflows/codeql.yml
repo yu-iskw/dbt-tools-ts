@@ -14,26 +14,27 @@
 
 name: CodeQL
 
+# prettier-ignore
 on:
   push:
     branches: [main]
     paths:
-      - "packages/**/*.ts"
-      - "packages/**/*.tsx"
-      - "apps/**/*.ts"
-      - "apps/**/*.tsx"
+      - packages/**/*.ts
+      - packages/**/*.tsx
+      - apps/**/*.ts
+      - apps/**/*.tsx
       - "*.json"
-      - "tsconfig*.json"
+      - tsconfig*.json
       - .github/workflows/codeql.yml
   pull_request:
     types: [opened, reopened, ready_for_review]
     paths:
-      - "packages/**/*.ts"
-      - "packages/**/*.tsx"
-      - "apps/**/*.ts"
-      - "apps/**/*.tsx"
+      - packages/**/*.ts
+      - packages/**/*.tsx
+      - apps/**/*.ts
+      - apps/**/*.tsx
       - "*.json"
-      - "tsconfig*.json"
+      - tsconfig*.json
       - .github/workflows/codeql.yml
   workflow_dispatch:
 
