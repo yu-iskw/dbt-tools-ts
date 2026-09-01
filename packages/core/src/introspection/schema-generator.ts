@@ -52,17 +52,6 @@ const DESC_SCHEMA_FILTER_PATH = 'Filter by file path substring';
 const DESC_SCHEMA_ARG_UNIQUE_DISCOVER = 'unique_id or discover query string';
 const DESC_FIELDS = 'Comma-separated list of fields to include in response (e.g., unique_id,name)';
 
-const ADAPTER_HEAVY_METRICS = [
-  'bytes_billed',
-  'bytes_processed',
-  'rows_affected',
-  'rows_deleted',
-  'rows_duplicated',
-  'rows_inserted',
-  'rows_updated',
-  'slot_ms',
-];
-
 function getArtifactRootCliSchemaOptions(): SchemaOption[] {
   return [
     {
@@ -301,52 +290,6 @@ function getRunReportSchema(): CommandSchema {
     arguments: [],
     options: [
       {
-        name: '--bottlenecks',
-        type: TYPE_BOOLEAN,
-        description: 'Include bottleneck analysis',
-      },
-      {
-        name: '--bottlenecks-top',
-        type: TYPE_NUMBER,
-        description: 'Top N bottlenecks (default 10; requires --bottlenecks)',
-      },
-      {
-        name: '--bottlenecks-threshold',
-        type: TYPE_NUMBER,
-        description: 'Only include bottlenecks at or above this duration (requires --bottlenecks)',
-      },
-      {
-        name: '--adapter-summary',
-        type: TYPE_BOOLEAN,
-        description: 'Include aggregate adapter metrics',
-      },
-      {
-        name: '--adapter-top-by',
-        type: 'enum',
-        values: ADAPTER_HEAVY_METRICS,
-        description: 'Rank nodes by adapter metric',
-      },
-      {
-        name: '--adapter-top-n',
-        type: TYPE_NUMBER,
-        description: 'Number of adapter-heavy nodes to return (default 10)',
-      },
-      {
-        name: '--adapter-min-bytes',
-        type: TYPE_NUMBER,
-        description: 'Minimum bytes_processed for --adapter-top-by ranking',
-      },
-      {
-        name: '--adapter-min-slot-ms',
-        type: TYPE_NUMBER,
-        description: 'Minimum slot_ms for --adapter-top-by ranking',
-      },
-      {
-        name: '--adapter-min-rows-affected',
-        type: TYPE_NUMBER,
-        description: 'Minimum rows_affected for --adapter-top-by ranking',
-      },
-      {
         name: '--limit',
         type: TYPE_NUMBER,
         description: 'Max node_executions rows in JSON output',
@@ -362,7 +305,7 @@ function getRunReportSchema(): CommandSchema {
       ...getArtifactRootCliSchemaOptions(),
     ],
     output_format: OUTPUT_JSON_OR_HUMAN,
-    example: 'dbt-tools run-report --dbt-target ./target --bottlenecks --adapter-summary --json',
+    example: 'dbt-tools run-report --dbt-target ./target --limit 20 --json',
   };
 }
 
@@ -554,7 +497,8 @@ function getTimelineSchema(): CommandSchema {
       {
         name: '--adapter-text',
         type: TYPE_STRING,
-        description: 'Filter by normalized adapter text (query ID, code, message, location, project)',
+        description:
+          'Filter by normalized adapter text (query ID, code, message, location, project)',
       },
       {
         name: '--format',
