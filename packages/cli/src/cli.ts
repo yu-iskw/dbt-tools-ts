@@ -143,6 +143,7 @@ program
   .command('summary')
   .description('Provide summary statistics for dbt manifest')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option(OPT_FIELDS, DESC_FIELDS)
   .option(OPT_JSON, DESC_JSON)
   .option(OPT_NO_JSON, DESC_NO_JSON)
   .action(
@@ -364,24 +365,38 @@ program
   .command('run-report')
   .description('Detailed run report with adapter metrics and bottlenecks')
   .option(OPT_DBT_TARGET, DESC_DBT_TARGET)
+  .option('--bottlenecks', 'Include bottleneck analysis')
+  .option('--bottlenecks-top <n>', 'Top N bottlenecks (default 10; requires --bottlenecks)', parseInt)
+  .option(
+    '--bottlenecks-threshold <seconds>',
+    'Only include bottlenecks at or above this duration (requires --bottlenecks)',
+    parseFloat,
+  )
+  .option('--adapter-summary', 'Include aggregate adapter metrics')
+  .option(
+    '--adapter-top-by <metric>',
+    'Rank nodes by adapter metric: bytes_billed | bytes_processed | rows_affected | rows_deleted | rows_duplicated | rows_inserted | rows_updated | slot_ms',
+  )
+  .option('--adapter-top-n <n>', 'Number of adapter-heavy nodes to return (default 10)', parseInt)
+  .option(
+    '--adapter-min-bytes <n>',
+    'Minimum bytes_processed for --adapter-top-by ranking',
+    parseFloat,
+  )
+  .option('--adapter-min-slot-ms <n>', 'Minimum slot_ms for --adapter-top-by ranking', parseFloat)
+  .option(
+    '--adapter-min-rows-affected <n>',
+    'Minimum rows_affected for --adapter-top-by ranking',
+    parseFloat,
+  )
   .option(OPT_LIMIT_N, 'Max node_executions rows in JSON output', parseInt)
   .option(OPT_OFFSET_N, DESC_OFFSET_REQUIRES_LIMIT, parseInt)
   .option(OPT_FIELDS, DESC_FIELDS)
   .option(OPT_JSON, DESC_JSON)
   .option(OPT_NO_JSON, DESC_NO_JSON)
-  .action(
-    async (
-      options: ArtifactRootFlags & {
-        limit?: number;
-        offset?: number;
-        fields?: string;
-        json?: boolean;
-        noJson?: boolean;
-      },
-    ) => {
-      await runReportAction(options, handleCliError);
-    },
-  );
+  .action(async (options: Parameters<typeof runReportAction>[0]) => {
+    await runReportAction(options, handleCliError);
+  });
 
 /**
  * Deps command: Get upstream or downstream dependencies
