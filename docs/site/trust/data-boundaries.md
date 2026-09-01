@@ -57,9 +57,9 @@ If you deploy the Web UI to a remote server, the artifact data is accessible to 
 
 ## MCP tool responses
 
-The MCP server returns data from artifact files to the connected AI client. The client may include that data in its context window, summarize it, log it, or transmit it to third-party services depending on the client's own configuration and privacy settings.
+The MCP server returns data from artifact files to the connected coding agent. The agent may include that data in its context window, summarize it, log it, or transmit it to third-party services depending on the agent's own configuration and privacy settings.
 
-Review the privacy policy and data handling documentation of your AI client before connecting it to production artifacts.
+Review the privacy policy and data handling documentation of your coding agent before connecting it to production artifacts.
 
 ## Related
 

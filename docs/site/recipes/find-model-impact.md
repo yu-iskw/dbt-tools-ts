@@ -11,11 +11,11 @@ Use this recipe before changing a dbt model to understand which downstream model
 
 ## Recommended interface
 
-| Interface | Use when                                                                 |
-| --------- | ------------------------------------------------------------------------ |
-| CLI       | You need dependency lists as JSON for scripting or pre-change review     |
-| Web       | You want to visually explore the lineage graph around a model            |
-| MCP       | An AI agent needs to reason about impact scope and suggest test coverage |
+| Interface | Use when                                                                    |
+| --------- | --------------------------------------------------------------------------- |
+| CLI       | You need dependency lists as JSON for scripting or pre-change review        |
+| Web       | You want to visually explore the lineage graph around a model               |
+| MCP       | A coding agent needs to reason about impact scope and suggest test coverage |
 
 ## Step 1: Find the model by name
 

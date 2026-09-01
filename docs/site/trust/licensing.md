@@ -2,7 +2,7 @@
 
 ## dbt-tools license
 
-The `@dbt-tools/*` packages (`@dbt-tools/core`, `@dbt-tools/cli`, `@dbt-tools/web`) are released under a **source-available** license that is **not an OSI-approved open source license**. The full text is at [`packages/LICENSE`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/LICENSE) in the repository.
+The `@dbt-tools/*` packages (`@dbt-tools/core`, `@dbt-tools/cli`, `@dbt-tools/web`, `@dbt-tools/mcp`) are released under a **source-available** license that is **not an OSI-approved open source license**. The full text is at [`packages/LICENSE`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/LICENSE) in the repository.
 
 > **Important:** The root `LICENSE` file in this repository is Apache 2.0 and applies to shared repository infrastructure (scripts, tooling configuration, etc.), not to the published `@dbt-tools/*` packages. For package licensing, refer to `packages/LICENSE`. See [`LICENSES/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/LICENSES/README.md) for the authoritative path-to-license map.
 

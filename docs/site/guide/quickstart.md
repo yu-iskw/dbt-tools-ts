@@ -1,6 +1,6 @@
 # 5-minute quickstart
 
-Use dbt-tools to inspect dbt artifacts from the command line, a browser, or an AI agent—no warehouse connection required.
+Use dbt-tools to inspect dbt artifacts from the command line, a browser, or a coding agent—no warehouse connection required.
 
 ## Prerequisites
 
@@ -79,7 +79,7 @@ Open `http://localhost:3000` in a browser to explore lineage, run results, and e
 npx @dbt-tools/mcp --dbt-target ./target
 ```
 
-Point your AI client at this MCP server. The server parses the artifacts once and handles many tool calls without re-reading files. See [Connecting clients](./mcp/connecting-clients.md) for client configuration.
+Point your coding agent at this MCP server. The server parses the artifacts once and handles many tool calls without re-reading files. See [Connecting clients](./mcp/connecting-clients.md) for client configuration.
 
 ## Next steps
 

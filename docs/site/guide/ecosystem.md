@@ -9,6 +9,8 @@ dbt-tools turns dbt artifacts under a **target directory** into structured, repe
 | **Web** (`dbt-tools-web`) | Browser investigation UI; startup flags align with MCP (`--dbt-target`, remote client flags) |
 | **Agents** (plugins)      | Primitive **skills** that invoke CLI or MCP (Cursor, Codex, Claude Code)                     |
 
+These surfaces share `@dbt-tools/core` as the analysis library. End users install CLI, Web, or MCP — not core. See [Core (advanced)](../reference/core.md).
+
 Remote artifact roots (`s3://`, `gs://`, including GCS service-account impersonation): [Local and remote artifacts](../concepts/local-and-remote-artifacts.md) · [S3](../deploy/s3.md) · [GCS](../deploy/gcs.md).
 
 ## Quick examples

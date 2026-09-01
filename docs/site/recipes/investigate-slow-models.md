@@ -15,7 +15,7 @@ Use this recipe when a dbt run is taking longer than expected and you want to id
 | --------- | ----------------------------------------------------------------------- |
 | CLI       | You need timing data as JSON for scripts or CI reporting                |
 | Web       | You want a visual execution timeline and can compare runs interactively |
-| MCP       | An AI agent needs to correlate timing, lineage, and failure data        |
+| MCP       | A coding agent needs to correlate timing, lineage, and failure data     |
 
 ## Step 1: Confirm the run has timing data
 

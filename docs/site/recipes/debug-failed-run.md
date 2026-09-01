@@ -12,11 +12,11 @@ Use this recipe when a dbt run, test, or build has produced failures and you wan
 
 ## Recommended interface
 
-| Interface | Use when                                                                    |
-| --------- | --------------------------------------------------------------------------- |
-| CLI       | You need automation, scripting, or JSON output for downstream tools         |
-| Web       | You need visual lineage and execution context around the failure            |
-| MCP       | An AI agent needs to ask several follow-up questions about the same failure |
+| Interface | Use when                                                                       |
+| --------- | ------------------------------------------------------------------------------ |
+| CLI       | You need automation, scripting, or JSON output for downstream tools            |
+| Web       | You need visual lineage and execution context around the failure               |
+| MCP       | A coding agent needs to ask several follow-up questions about the same failure |
 
 ## Step 1: Confirm artifacts are readable
 
