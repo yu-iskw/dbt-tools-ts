@@ -2,24 +2,24 @@
 
 ## When to use this
 
-Use this recipe when you want an AI assistant to query dbt artifacts on your behalf. This is useful for natural-language questions about run results, model explanations, lineage, and failure context without running CLI commands manually.
+Use this recipe when you want a coding agent to query dbt artifacts on your behalf. This is useful for natural-language questions about run results, model explanations, lineage, and failure context without running CLI commands manually.
 
 ## Inputs required
 
 - `manifest.json` and `run_results.json` under a target directory
-- An AI client that supports CLI invocation, MCP, or agent skills
+- A coding agent that supports CLI invocation, MCP, or agent skills
 
 ## Choose your integration path
 
-| Path                       | Best for                                    | Setup effort                   |
-| -------------------------- | ------------------------------------------- | ------------------------------ |
-| CLI commands via the agent | Ad-hoc questions in any AI chat             | Low — no server needed         |
-| MCP server                 | Many follow-up questions in one session     | Medium — start `dbt-tools-mcp` |
-| Agent skills               | Repeatable named operations in an IDE agent | Low — install skills once      |
+| Path                       | Best for                                     | Setup effort                   |
+| -------------------------- | -------------------------------------------- | ------------------------------ |
+| CLI commands via the agent | Ad-hoc questions in any coding agent session | Low — no server needed         |
+| MCP server                 | Many follow-up questions in one session      | Medium — start `dbt-tools-mcp` |
+| Agent skills               | Repeatable named operations in an IDE agent  | Low — install skills once      |
 
 ## Path A: CLI via the agent
 
-Ask your AI assistant to run CLI commands on your behalf. This requires no additional setup—if the agent can run shell commands, it can use `@dbt-tools/cli`.
+Ask your coding agent to run CLI commands on your behalf. This requires no additional setup—if the agent can run shell commands, it can use `@dbt-tools/cli`.
 
 Example prompt:
 
@@ -30,7 +30,7 @@ Then explain what the output means for my dbt project health.
 
 The agent executes the command, receives the JSON, and responds with an interpretation.
 
-This works in Claude Code, Cursor, and any AI assistant with shell tool access.
+This works in Claude Code, Cursor, and any coding agent with shell tool access.
 
 ## Path B: MCP server
 
@@ -42,7 +42,7 @@ Start the server:
 npx @dbt-tools/mcp --dbt-target ./target
 ```
 
-Then configure your AI client to connect to it. See [Connecting clients](../guide/mcp/connecting-clients.md) for client-specific configuration.
+Then configure your coding agent to connect to it. See [Connecting clients](../guide/mcp/connecting-clients.md) for client-specific configuration.
 
 Once connected, you can ask questions like:
 
@@ -73,8 +73,8 @@ See the full [Skill catalog](../guide/agents/skill-catalog.md).
 
 Before pointing an agent at dbt artifacts, review [Agent safety](../trust/agent-safety.md). Key points:
 
-- The MCP server exposes everything returned by its tools to the AI client.
-- AI clients may persist, summarize, or transmit returned metadata depending on their own settings.
+- The MCP server exposes everything returned by its tools to the coding agent.
+- Coding agents may persist, summarize, or transmit returned metadata depending on their own settings.
 - Use read-only artifact paths. Do not expose credentials in artifact environment metadata.
 - Treat model names, error messages, and metadata as potentially sensitive in agent contexts.
 - Use artifacts from a [public sample project](../guide/try-with-sample-project.md) for public examples or shared sessions.

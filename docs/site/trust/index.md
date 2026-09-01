@@ -1,6 +1,6 @@
 # Trust & Safety
 
-dbt-tools reads dbt artifacts and turns them into operational signals for humans, scripts, and agents. Before using production artifacts, remote object storage, or AI-agent integrations, review the pages in this section.
+dbt-tools reads dbt artifacts and turns them into operational signals for humans, scripts, and agents. Before using production artifacts, remote object storage, or coding-agent integrations, review the pages in this section.
 
 ## Start here
 
@@ -19,7 +19,7 @@ Contributors: formal threat register in `docs/security/threat-model.md` (RFC-000
 
 **Output reflects artifact content.** CLI JSON, Web UI views, and MCP tool responses contain the same data that is in your artifact files. What you expose in artifacts, you expose in tool output.
 
-**Agent clients control their own data handling.** The MCP server returns data to the connected AI client. That client's own settings govern whether it persists, logs, or transmits the returned data. dbt-tools does not control what an AI client does with tool responses.
+**Agent clients control their own data handling.** The MCP server returns data to the connected coding agent. That agent's own settings govern whether it persists, logs, or transmits the returned data. dbt-tools does not control what a coding agent does with tool responses.
 
 **Read-only access is sufficient.** dbt-tools does not write to artifact files or modify your dbt project. Credential policies should grant read-only access to the artifact prefix.
 
