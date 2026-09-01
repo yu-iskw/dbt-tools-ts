@@ -52,6 +52,17 @@ const DESC_SCHEMA_FILTER_PATH = 'Filter by file path substring';
 const DESC_SCHEMA_ARG_UNIQUE_DISCOVER = 'unique_id or discover query string';
 const DESC_FIELDS = 'Comma-separated list of fields to include in response (e.g., unique_id,name)';
 
+const ADAPTER_HEAVY_METRICS = [
+  'bytes_billed',
+  'bytes_processed',
+  'rows_affected',
+  'rows_deleted',
+  'rows_duplicated',
+  'rows_inserted',
+  'rows_updated',
+  'slot_ms',
+];
+
 function getArtifactRootCliSchemaOptions(): SchemaOption[] {
   return [
     {
@@ -125,7 +136,7 @@ function getGraphSchema(): CommandSchema {
       },
       {
         name: '--focus-depth',
-        type: 'number',
+        type: TYPE_NUMBER,
         description: 'Max traversal hops for --focus (default: unlimited)',
       },
       {
@@ -178,12 +189,12 @@ function getQueryExecutionsCommonOptions(): SchemaOption[] {
     },
     {
       name: '--min-execution-time',
-      type: 'number',
+      type: TYPE_NUMBER,
       description: 'Minimum execution time in seconds',
     },
     {
       name: '--max-execution-time',
-      type: 'number',
+      type: TYPE_NUMBER,
       description: 'Maximum execution time in seconds',
     },
     { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
@@ -205,6 +216,35 @@ function getQueryExecutionsSchema(): CommandSchema {
   };
 }
 
+function getBaseWarehouseQueryOptions(): SchemaOption[] {
+  return [
+    {
+      name: '--min-bytes-processed',
+      type: TYPE_NUMBER,
+      description: 'Minimum bytes processed',
+    },
+    {
+      name: '--min-rows-affected',
+      type: TYPE_NUMBER,
+      description: 'Minimum rows affected',
+    },
+  ];
+}
+
+function getQueryExecutionsWarehouseSchema(
+  warehouse: 'athena' | 'bigquery' | 'postgres' | 'redshift' | 'snowflake' | 'spark',
+  warehouseOptions: SchemaOption[],
+): CommandSchema {
+  return {
+    command: `query-executions ${warehouse}`,
+    description: `Filter and sort ${warehouse} run_results executions with adapter metrics`,
+    arguments: [],
+    options: [...getQueryExecutionsCommonOptions(), ...warehouseOptions],
+    output_format: OUTPUT_JSON_OR_HUMAN,
+    example: `dbt-tools query-executions ${warehouse} --dbt-target ./target --limit 10 --json`,
+  };
+}
+
 function getRunSummarySchema(): CommandSchema {
   return {
     command: 'run-summary',
@@ -219,6 +259,110 @@ function getRunSummarySchema(): CommandSchema {
     ],
     output_format: OUTPUT_JSON_OR_HUMAN,
     example: 'dbt-tools run-summary --dbt-target ./target --json',
+  };
+}
+
+function getFailuresSchema(): CommandSchema {
+  return {
+    command: 'failures',
+    description: 'Bounded bundle of non-successful run_results rows',
+    arguments: [],
+    options: [
+      {
+        name: '--type',
+        type: TYPE_STRING,
+        description: 'Filter by resource type(s), comma-separated',
+      },
+      {
+        name: '--status',
+        type: TYPE_STRING,
+        description: 'Filter by status (comma-separated)',
+      },
+      { name: '--limit', type: TYPE_NUMBER, description: 'Max rows to return' },
+      {
+        name: '--offset',
+        type: TYPE_NUMBER,
+        description: 'Skip N rows after sort (requires --limit)',
+      },
+      { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
+      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
+      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getArtifactRootCliSchemaOptions(),
+    ],
+    output_format: OUTPUT_JSON_OR_HUMAN,
+    example: 'dbt-tools failures --dbt-target ./target --type model --json',
+  };
+}
+
+function getRunReportSchema(): CommandSchema {
+  return {
+    command: 'run-report',
+    description: 'Detailed run report with adapter metrics and bottlenecks',
+    arguments: [],
+    options: [
+      {
+        name: '--bottlenecks',
+        type: TYPE_BOOLEAN,
+        description: 'Include bottleneck analysis',
+      },
+      {
+        name: '--bottlenecks-top',
+        type: TYPE_NUMBER,
+        description: 'Top N bottlenecks (default 10; requires --bottlenecks)',
+      },
+      {
+        name: '--bottlenecks-threshold',
+        type: TYPE_NUMBER,
+        description: 'Only include bottlenecks at or above this duration (requires --bottlenecks)',
+      },
+      {
+        name: '--adapter-summary',
+        type: TYPE_BOOLEAN,
+        description: 'Include aggregate adapter metrics',
+      },
+      {
+        name: '--adapter-top-by',
+        type: 'enum',
+        values: ADAPTER_HEAVY_METRICS,
+        description: 'Rank nodes by adapter metric',
+      },
+      {
+        name: '--adapter-top-n',
+        type: TYPE_NUMBER,
+        description: 'Number of adapter-heavy nodes to return (default 10)',
+      },
+      {
+        name: '--adapter-min-bytes',
+        type: TYPE_NUMBER,
+        description: 'Minimum bytes_processed for --adapter-top-by ranking',
+      },
+      {
+        name: '--adapter-min-slot-ms',
+        type: TYPE_NUMBER,
+        description: 'Minimum slot_ms for --adapter-top-by ranking',
+      },
+      {
+        name: '--adapter-min-rows-affected',
+        type: TYPE_NUMBER,
+        description: 'Minimum rows_affected for --adapter-top-by ranking',
+      },
+      {
+        name: '--limit',
+        type: TYPE_NUMBER,
+        description: 'Max node_executions rows in JSON output',
+      },
+      {
+        name: '--offset',
+        type: TYPE_NUMBER,
+        description: 'Skip N rows after sort (requires --limit)',
+      },
+      { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
+      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
+      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      ...getArtifactRootCliSchemaOptions(),
+    ],
+    output_format: OUTPUT_JSON_OR_HUMAN,
+    example: 'dbt-tools run-report --dbt-target ./target --bottlenecks --adapter-summary --json',
   };
 }
 
@@ -243,7 +387,7 @@ function getDepsSchemaOptions(): SchemaOption[] {
     },
     {
       name: '--depth',
-      type: 'number',
+      type: TYPE_NUMBER,
       description: 'Max traversal depth; 1 = immediate neighbors, omit for all levels',
     },
     {
@@ -374,13 +518,27 @@ function getTimelineSchema(): CommandSchema {
       {
         name: '--sort',
         type: 'enum',
-        values: ['duration', 'start'],
+        values: [
+          'duration',
+          'start',
+          'query_id',
+          'adapter_code',
+          'adapter_message',
+          'bytes_processed',
+          'bytes_billed',
+          'slot_ms',
+          'rows_affected',
+          'rows_inserted',
+          'rows_updated',
+          'rows_deleted',
+          'rows_duplicated',
+        ],
         default: 'duration',
         description: 'Sort order for entries',
       },
       {
         name: '--top',
-        type: 'number',
+        type: TYPE_NUMBER,
         description: 'Show top N entries only',
       },
       {
@@ -392,6 +550,11 @@ function getTimelineSchema(): CommandSchema {
         name: '--status',
         type: TYPE_STRING,
         description: 'Filter by status (comma-separated, e.g. error,warn)',
+      },
+      {
+        name: '--adapter-text',
+        type: TYPE_STRING,
+        description: 'Filter by normalized adapter text (query ID, code, message, location, project)',
       },
       {
         name: '--format',
@@ -487,6 +650,41 @@ function getExplainSchema(): CommandSchema {
     ],
     output_format: OUTPUT_JSON_OR_HUMAN,
     example: 'dbt-tools explain --dbt-target ./target model.my_pkg.orders --json',
+  };
+}
+
+function getImpactSchema(): CommandSchema {
+  return {
+    command: 'impact',
+    description: 'Upstream/downstream counts and notable dependents for a resource',
+    arguments: [
+      {
+        name: 'resource',
+        required: true,
+        description: DESC_SCHEMA_ARG_UNIQUE_DISCOVER,
+      },
+    ],
+    options: [
+      { name: '--fields', type: TYPE_STRING, description: DESC_FIELDS },
+      { name: OPT_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_JSON },
+      { name: OPT_NO_JSON, type: TYPE_BOOLEAN, description: DESC_FORCE_HUMAN },
+      { name: OPT_TRACE, type: TYPE_BOOLEAN, description: DESC_TRACE },
+      ...getArtifactRootCliSchemaOptions(),
+    ],
+    output_format: OUTPUT_JSON_OR_HUMAN,
+    example: 'dbt-tools impact --dbt-target ./target model.my_pkg.orders --json',
+  };
+}
+
+function getDiagnoseSchema(): CommandSchema {
+  return {
+    command: 'diagnose',
+    description:
+      'Operational diagnosis facade (points to runSummary, query-executions, timeline, deps primitives)',
+    arguments: [],
+    options: [],
+    output_format: 'help text',
+    example: 'dbt-tools diagnose --help',
   };
 }
 
@@ -660,13 +858,78 @@ export function getAllSchemas(): Record<string, CommandSchema> {
     summary: getSummarySchema(),
     graph: getGraphSchema(),
     'query-executions': getQueryExecutionsSchema(),
+    'query-executions bigquery': getQueryExecutionsWarehouseSchema('bigquery', [
+      {
+        name: '--min-slot-ms',
+        type: TYPE_NUMBER,
+        description: 'Minimum BigQuery slot_ms',
+      },
+      {
+        name: '--min-bytes-processed',
+        type: TYPE_NUMBER,
+        description: 'Minimum bytes processed',
+      },
+      {
+        name: '--min-bytes-billed',
+        type: TYPE_NUMBER,
+        description: 'Minimum bytes billed',
+      },
+      {
+        name: '--min-rows-affected',
+        type: TYPE_NUMBER,
+        description: 'Minimum rows affected',
+      },
+    ]),
+    'query-executions snowflake': getQueryExecutionsWarehouseSchema('snowflake', [
+      ...getBaseWarehouseQueryOptions(),
+      {
+        name: '--min-rows-inserted',
+        type: TYPE_NUMBER,
+        description: 'Minimum rows inserted',
+      },
+      {
+        name: '--min-rows-updated',
+        type: TYPE_NUMBER,
+        description: 'Minimum rows updated',
+      },
+      {
+        name: '--min-rows-deleted',
+        type: TYPE_NUMBER,
+        description: 'Minimum rows deleted',
+      },
+      {
+        name: '--min-rows-duplicated',
+        type: TYPE_NUMBER,
+        description: 'Minimum rows duplicated',
+      },
+    ]),
+    'query-executions athena': getQueryExecutionsWarehouseSchema(
+      'athena',
+      getBaseWarehouseQueryOptions(),
+    ),
+    'query-executions postgres': getQueryExecutionsWarehouseSchema(
+      'postgres',
+      getBaseWarehouseQueryOptions(),
+    ),
+    'query-executions redshift': getQueryExecutionsWarehouseSchema(
+      'redshift',
+      getBaseWarehouseQueryOptions(),
+    ),
+    'query-executions spark': getQueryExecutionsWarehouseSchema(
+      'spark',
+      getBaseWarehouseQueryOptions(),
+    ),
     'run-summary': getRunSummarySchema(),
+    failures: getFailuresSchema(),
+    'run-report': getRunReportSchema(),
     deps: getDepsSchema(),
     inventory: getInventorySchema(),
     timeline: getTimelineSchema(),
     search: getSearchSchema(),
     discover: getDiscoverSchema(),
     explain: getExplainSchema(),
+    impact: getImpactSchema(),
+    diagnose: getDiagnoseSchema(),
     'diagnose run': getDiagnoseRunSchema(),
     'diagnose node': getDiagnoseNodeSchema(),
     export: getExportIntentSchema(),
