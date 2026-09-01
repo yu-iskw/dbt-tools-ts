@@ -7,7 +7,7 @@ cli:
 plugins:
   sources:
     - id: trunk
-      ref: v1.10.0
+      ref: v1.11.0
       uri: https://github.com/trunk-io/plugins
 # Many linters and tools depend on runtimes - configure them here. (https://docs.trunk.io/runtimes)
 runtimes:
@@ -27,20 +27,20 @@ lint:
     - markdownlint
   enabled:
     # - semgrep@1.155.0
-    - stylelint@17.12.0
-    - markdown-link-check@3.14.2
-    - markdownlint-cli2@0.22.1
-    - eslint@10.4.1
+    - stylelint@17.14.1
+    - markdown-link-check@3.15.0
+    - markdownlint-cli2@0.23.2
+    - eslint@10.9.1
     - taplo@0.10.0
     - shellcheck@0.11.0
-    - shfmt@3.6.0
+    - shfmt@3.14.0
     - actionlint@1.7.12
     - pre-commit-hooks@5.0.0
-    - trivy@0.70.0
-    - osv-scanner@2.3.8
+    - trivy@0.74.0
+    - osv-scanner@2.5.1
     - yamllint@1.38.0
     - git-diff-check
-    - prettier@3.8.3
+    - prettier@3.9.6
 actions:
   enabled:
     - trunk-upgrade-available
