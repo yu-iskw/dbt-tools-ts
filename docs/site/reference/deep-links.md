@@ -4,42 +4,62 @@ When the CLI and web UI run against the same project, you can jump from terminal
 
 ## Setup
 
-1. Start the web app and note its origin (for example `http://127.0.0.1:5173`).
+1. Start the published web app and note its origin (default **http://127.0.0.1:3000**).
 
 ```bash
 npx @dbt-tools/web --dbt-target ./target
 ```
 
-2. Export the base URL (no trailing path required):
+Vite **dev** (`pnpm dev:web`) uses **5173**—set the base URL to whatever origin the process printed.
+
+2. Export the base URL (no trailing path):
 
 ```bash
-export DBT_TOOLS_WEB_BASE_URL=http://127.0.0.1:5173
+export DBT_TOOLS_WEB_BASE_URL=http://127.0.0.1:3000
 ```
 
-3. Run CLI commands with `--json`. When the base URL is set, JSON may include `web_url` and `review_url`; human output can append an “Open in web” line.
+3. Run CLI commands with `--json`. When the base URL is set, JSON includes **`web_url`** and **`review_url`** (same target for `discover`, `explain`, and `impact`). Human output can append an “Open in web” line.
 
 ## URL shapes
 
-The CLI builds query-string URLs aligned with the web workspace:
+The CLI builds query-string URLs aligned with the web workspace. All three land in **Inventory**:
 
-| Command    | Typical `web_url` params                                                      |
-| ---------- | ----------------------------------------------------------------------------- |
-| `discover` | `view=inventory` and `q=` (discover query; omitted for filter-only discovery) |
-| `explain`  | `view=inventory`, `resource=<unique_id>`, `assetTab=summary`                  |
+| Command   | Typical `web_url` / `review_url` params                                      |
+| --------- | ---------------------------------------------------------------------------- |
+| `discover` | `view=inventory` and `q=` (omitted only when there is no query string to pass) |
+| `explain`  | `view=inventory`, `resource=<unique_id>`, `assetTab=summary`                 |
+| `impact`   | `view=inventory`, `resource=<unique_id>`, `assetTab=lineage`                 |
 
-Example discover output (conceptual):
-
-```text
-http://127.0.0.1:5173/?view=inventory&q=orders
-```
-
-Example explain output (conceptual):
+Example discover:
 
 ```text
-http://127.0.0.1:5173/?view=inventory&resource=model.my_project.orders&assetTab=summary
+http://127.0.0.1:3000/?view=inventory&q=orders
 ```
 
-Downstream impact in the web UI uses lineage tab semantics (`assetTab=lineage`) in helpers—pair CLI `deps --direction downstream` with the web lineage view when handoff links are enabled for impact-style flows.
+Example explain:
+
+```text
+http://127.0.0.1:3000/?view=inventory&resource=model.my_project.orders&assetTab=summary
+```
+
+Example impact:
+
+```text
+http://127.0.0.1:3000/?view=inventory&resource=model.my_project.orders&assetTab=lineage
+```
+
+You can also open **`?view=timeline`** and **`?view=runs`** by hand.
+
+## Extra params (compact)
+
+| Param      | View                         | Values / notes                                                                                          |
+| ---------- | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `assetTab` | Inventory                    | `summary`, `lineage`, `tests`, `sql`                                                                    |
+| `kind`     | Runs                         | `all`, `models`, `tests`, `seeds`, `snapshots`, `operations`                                            |
+| `adapter`  | Runs                         | Omit to show warehouse columns when data exists; `adapter=0` hides them                                 |
+| `up`/`down` | Inventory Lineage tab       | Upstream / downstream hop depths                                                                        |
+
+Full query-string contract: [Web README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md). CLI `web_url` / `review_url` fields: [CLI README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md) (discover section).
 
 ## Workflow
 
