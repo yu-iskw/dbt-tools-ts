@@ -30,12 +30,12 @@ Deprecated aliases still accepted, do not use: `DBT_TARGET_DIR`, `DBT_TARGET`, `
 
 Use with `s3://` or `gs://` in `DBT_TOOLS_DBT_TARGET` / `--dbt-target`:
 
-| Variable                                    | Purpose                                      |
-| ------------------------------------------- | -------------------------------------------- |
+| Variable                                    | Purpose                                                 |
+| ------------------------------------------- | ------------------------------------------------------- |
 | `DBT_TOOLS_GCS_PROJECT_ID`                  | GCP project for GCS (recommended when the SDK needs it) |
-| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | Impersonated service account (read-only GCS) |
-| `DBT_TOOLS_S3_REGION`                       | S3 region (recommended; falls back to `AWS_REGION`) |
-| `DBT_TOOLS_S3_ENDPOINT`                     | Custom S3-compatible endpoint                |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | Impersonated service account (read-only GCS)            |
+| `DBT_TOOLS_S3_REGION`                       | S3 region (recommended; falls back to `AWS_REGION`)     |
+| `DBT_TOOLS_S3_ENDPOINT`                     | Custom S3-compatible endpoint                           |
 
 **MCP and web** startup flags: `--dbt-target`, `--gcs-project-id`, `--gcs-impersonate-service-account`, `--s3-region`, `--s3-endpoint`, `-V` / `--version` (flags override env when both are set). MCP also supports `--poll-interval-ms`, `--max-cached-targets`, and `--cache-ttl-ms` (see [MCP tools](./mcp-tools.md)). See [Web server CLI](./web-cli.md) and [`packages/web/README.md`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md).
 

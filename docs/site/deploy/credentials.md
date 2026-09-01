@@ -19,10 +19,10 @@ dbt-tools inherits the AWS SDK for JavaScript credential chain in this order:
 
 ### dbt-tools-specific S3 variables
 
-| Variable                | Purpose                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
-| `DBT_TOOLS_S3_REGION`   | AWS region of the bucket (recommended when the SDK needs it; falls back to `AWS_REGION`)    |
-| `DBT_TOOLS_S3_ENDPOINT` | Custom S3-compatible endpoint URL (optional)                                                |
+| Variable                | Purpose                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| `DBT_TOOLS_S3_REGION`   | AWS region of the bucket (recommended when the SDK needs it; falls back to `AWS_REGION`) |
+| `DBT_TOOLS_S3_ENDPOINT` | Custom S3-compatible endpoint URL (optional)                                             |
 
 ### Least-privilege S3 policy
 
@@ -52,10 +52,10 @@ dbt-tools inherits the Google Cloud SDK Application Default Credentials (ADC) ch
 
 ### dbt-tools-specific GCS variables
 
-| Variable                                    | Purpose                                                                                          |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `DBT_TOOLS_GCS_PROJECT_ID`                  | GCP project ID for the GCS client (recommended when the SDK cannot infer it from ADC / env)      |
-| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | Service account email to impersonate (optional)                                                  |
+| Variable                                    | Purpose                                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `DBT_TOOLS_GCS_PROJECT_ID`                  | GCP project ID for the GCS client (recommended when the SDK cannot infer it from ADC / env) |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | Service account email to impersonate (optional)                                             |
 
 ### Least-privilege GCS IAM
 
