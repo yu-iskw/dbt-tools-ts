@@ -231,6 +231,7 @@ program
       },
     ) => {
       try {
+        // Resolve artifact paths
         const paths = await resolveCliArtifactPaths(
           {
             dbtTarget: options.dbtTarget,
@@ -238,6 +239,7 @@ program
           { manifest: true, runResults: false },
         );
 
+        // Validate path
         validateSafePath(paths.manifest);
         if (options.output) {
           validateSafePath(options.output);
@@ -252,15 +254,18 @@ program
           validateDepth(options.focusDepth);
         }
 
+        // Load manifest
         const manifest = loadManifest(paths.manifest);
         const graph = new ManifestGraph(manifest);
 
+        // Enhance with field-level lineage if requested
         if (options.fieldLevel && paths.catalog) {
           tryApplyFieldLevelLineageToGraph(graph, manifest, paths.catalog);
         }
 
         let targetGraph = graph.getGraph();
 
+        // Apply subgraph focus if requested
         if (options.focus) {
           validateResourceId(options.focus);
           const allowedTypes = options.resourceTypes
@@ -761,6 +766,7 @@ program
         result = getAllSchemas();
       }
 
+      // Schema command always outputs JSON
       console.log(formatOutput(result, true));
     } catch (error) {
       handleCliError(error, false);
@@ -769,6 +775,7 @@ program
 
 export { program };
 
+// Parse command line arguments when executed as the CLI entrypoint.
 if (require.main === module) {
   program.parse();
 }
