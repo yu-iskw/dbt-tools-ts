@@ -19,7 +19,7 @@ dbt-tools parses artifact files produced by dbt. The minimum supported manifest 
 | `catalog.json`     | v1                           |
 | `sources.json`     | v3                           |
 
-The minimum supported dbt version is **1.10.0**. With `dbt-artifacts-parser` 0.7.0, dbt-tools supports artifacts through **dbt Core 1.12**. Artifacts from earlier dbt versions (which may produce manifest v9 or older) are not supported and will cause a parse error at runtime.
+The **enforced** gate is **manifest schema ≥ v10**. dbt-tools does not reject artifacts based on `metadata.dbt_version`. **dbt 1.10.0** is recommended messaging (docs and error text), not a hard dbt-version check. With `dbt-artifacts-parser` 0.7.0, artifacts through **dbt Core 1.12** are in the supported schema range. Manifest **v9 and older** fail at parse time.
 
 To confirm which artifact schema version your dbt project produces, check the `metadata.dbt_schema_version` field:
 
@@ -27,7 +27,7 @@ To confirm which artifact schema version your dbt project produces, check the `m
 cat target/manifest.json | jq '.metadata.dbt_schema_version'
 ```
 
-If your artifact schema version is not supported, `dbt-tools status` will report a parse error. Use a supported dbt Core version (currently 1.10 through 1.12) to produce supported artifacts.
+If the schema version is below v10, `dbt-tools status` reports a parse error. Produce artifacts with a dbt Core release that emits schema v10 or later (recommended: **1.10** through **1.12**).
 
 ## dbt version mapping
 
@@ -39,7 +39,7 @@ dbt versions correspond to artifact schema versions approximately as follows:
 | dbt 1.9           | v11, v12               | v5, v6                    |
 | dbt 1.10–1.12     | v12                    | v6                        |
 
-These mappings are approximate. The minimum required version is dbt 1.10.0, and the currently tested upper bound is dbt Core 1.12. Refer to the [dbt artifacts documentation](https://docs.getdbt.com/reference/artifacts/dbt-artifacts) for authoritative schema version information.
+These mappings are approximate. The runtime check is schema version (≥ v10), not dbt version. Recommended operator floor is dbt **1.10.0**; currently tested upper bound is dbt Core **1.12**. Refer to the [dbt artifacts documentation](https://docs.getdbt.com/reference/artifacts/dbt-artifacts) for authoritative schema version information.
 
 ## Package compatibility
 

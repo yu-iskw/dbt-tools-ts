@@ -6,18 +6,20 @@
 
 | Use MCP                                                   | Use CLI instead                    |
 | --------------------------------------------------------- | ---------------------------------- |
-| An AI coding agent issues many tool calls on the same run | One-shot shell or CI command       |
+| A coding agent issues many tool calls on the same run     | One-shot shell or CI command       |
 | Parse cost dominates (large manifest, remote target)      | Simple `status` or `summary` check |
 
 Skills from [Install agent skills](../agents/install.md) run the **CLI** on your machine. MCP is optional for native MCP tool integration.
 
 ## Launch
 
+Canonical spawn (also used by the first-party MCP plugin):
+
 ```bash
-npx @dbt-tools/mcp --dbt-target ./target
+npx -y @dbt-tools/mcp --dbt-target ./target
 ```
 
-Or global install:
+Or a global `dbt-tools-mcp` binary:
 
 ```bash
 npm install -g @dbt-tools/mcp
@@ -35,7 +37,20 @@ export DBT_TOOLS_CACHE_TTL_MS=0          # idle eviction; 0 = disabled
 
 ## Client configuration (pattern)
 
-Point your MCP client at the `dbt-tools-mcp` binary with the same artifact root:
+**Plugin spawn** (`npx -y @dbt-tools/mcp`). Bind an artifact root later with `dbt_tools_set_target`, or add `--dbt-target` in `args`:
+
+```json
+{
+  "mcpServers": {
+    "dbt-tools": {
+      "command": "npx",
+      "args": ["-y", "@dbt-tools/mcp"]
+    }
+  }
+}
+```
+
+**Global binary** (`dbt-tools-mcp`) with an initial artifact root:
 
 ```json
 {

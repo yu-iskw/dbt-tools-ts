@@ -31,10 +31,12 @@ gs://my-bucket/dbt/prod/latest/run_results.json
 
 ## Environment variables
 
-| Variable                                    | Required | Description                               |
-| ------------------------------------------- | -------- | ----------------------------------------- |
-| `DBT_TOOLS_GCS_PROJECT_ID`                  | Yes      | GCP project ID used for billing and quota |
-| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | No       | Service account email to impersonate      |
+| Variable                                    | Required | Description                                                                                          |
+| ------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `DBT_TOOLS_GCS_PROJECT_ID`                  | No\*     | GCP project ID for the GCS client. Recommended when the SDK cannot infer it from ADC or other env.   |
+| `DBT_TOOLS_GCS_IMPERSONATE_SERVICE_ACCOUNT` | No       | Service account email to impersonate                                                                 |
+
+\*The Google Cloud SDK often resolves project id from Application Default Credentials or `GOOGLE_CLOUD_PROJECT`. Set `DBT_TOOLS_GCS_PROJECT_ID` when that inference is missing or wrong.
 
 Standard GCP credential variables also apply: `GOOGLE_APPLICATION_CREDENTIALS` and `GOOGLE_CLOUD_PROJECT`. dbt-tools inherits the standard Google Cloud SDK credential chain (Application Default Credentials).
 
@@ -95,7 +97,7 @@ Scoped to the specific bucket or with a condition on the object prefix. Do not g
 | ------------------- | --------------------------------------------------- | ---------------------------------------------------------- |
 | `Object not found`  | Object does not exist at the prefix                 | Confirm the prefix contains `manifest.json`                |
 | `403 Forbidden`     | IAM policy missing `storage.objects.get`            | Grant `roles/storage.objectViewer` to the caller           |
-| `Invalid project`   | `DBT_TOOLS_GCS_PROJECT_ID` not set                  | Export the variable before running the command             |
+| `Invalid project`   | GCS client has no project id                        | Set `DBT_TOOLS_GCS_PROJECT_ID`, or rely on ADC / `GOOGLE_CLOUD_PROJECT` |
 | Impersonation fails | Caller lacks `roles/iam.serviceAccountTokenCreator` | Grant the token creator role on the target service account |
 
 ## Related
