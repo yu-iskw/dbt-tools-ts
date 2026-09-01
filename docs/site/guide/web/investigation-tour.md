@@ -10,19 +10,19 @@ npx @dbt-tools/web --dbt-target ./target
 npx @dbt-tools/web --target ./target
 ```
 
-Open the URL printed in the terminal (default **http://127.0.0.1:3000**). Vite **dev** (`pnpm dev:web`) uses **5173**. See [Web server CLI](../../reference/web-cli.md) for remote and impersonation examples.
+Open the URL printed in the terminal (default `http://127.0.0.1:3000`). Vite **dev** (`pnpm dev:web`) uses **5173**. See [Web server CLI](../../reference/web-cli.md) for remote and impersonation examples.
 
 ## What to explore
 
 Sidebar (top to bottom), plus **Settings** in the footer:
 
-| Area                    | What you get                                                                                          |
-| ----------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Health**              | Run readiness, failing nodes, and bottleneck pressure before opening a single asset                   |
-| **Timeline**            | Gantt-style execution order, critical path, and sequencing from `run_results.json`                    |
-| **Inventory**           | Ranked resource search (same contract as CLI `discover`) plus asset tabs: **Summary / Lineage / Tests / SQL** |
-| **Runs**                | Filterable execution table (status, kind, warehouse adapter columns)                                  |
-| **Settings** (footer)   | Appearance, session, and default lenses for Timeline and Inventory                                    |
+| Area                  | What you get                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Health**            | Run readiness, failing nodes, and bottleneck pressure before opening a single asset                           |
+| **Timeline**          | Gantt-style execution order, critical path, and sequencing from `run_results.json`                            |
+| **Inventory**         | Ranked resource search (same contract as CLI `discover`) plus asset tabs: **Summary / Lineage / Tests / SQL** |
+| **Runs**              | Filterable execution table (status, kind, warehouse adapter columns)                                          |
+| **Settings** (footer) | Appearance, session, and default lenses for Timeline and Inventory                                            |
 
 Header **search** jumps to Inventory on a selected asset (**Summary** tab).
 

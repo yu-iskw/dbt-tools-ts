@@ -4,7 +4,7 @@ When the CLI and web UI run against the same project, you can jump from terminal
 
 ## Setup
 
-1. Start the published web app and note its origin (default **http://127.0.0.1:3000**).
+1. Start the published web app and note its origin (default `http://127.0.0.1:3000`).
 
 ```bash
 npx @dbt-tools/web --dbt-target ./target
@@ -24,11 +24,11 @@ export DBT_TOOLS_WEB_BASE_URL=http://127.0.0.1:3000
 
 The CLI builds query-string URLs aligned with the web workspace. All three land in **Inventory**:
 
-| Command   | Typical `web_url` / `review_url` params                                      |
-| --------- | ---------------------------------------------------------------------------- |
+| Command    | Typical `web_url` / `review_url` params                                        |
+| ---------- | ------------------------------------------------------------------------------ |
 | `discover` | `view=inventory` and `q=` (omitted only when there is no query string to pass) |
-| `explain`  | `view=inventory`, `resource=<unique_id>`, `assetTab=summary`                 |
-| `impact`   | `view=inventory`, `resource=<unique_id>`, `assetTab=lineage`                 |
+| `explain`  | `view=inventory`, `resource=<unique_id>`, `assetTab=summary`                   |
+| `impact`   | `view=inventory`, `resource=<unique_id>`, `assetTab=lineage`                   |
 
 Example discover:
 
@@ -52,12 +52,12 @@ You can also open **`?view=timeline`** and **`?view=runs`** by hand.
 
 ## Extra params (compact)
 
-| Param      | View                         | Values / notes                                                                                          |
-| ---------- | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `assetTab` | Inventory                    | `summary`, `lineage`, `tests`, `sql`                                                                    |
-| `kind`     | Runs                         | `all`, `models`, `tests`, `seeds`, `snapshots`, `operations`                                            |
-| `adapter`  | Runs                         | Omit to show warehouse columns when data exists; `adapter=0` hides them                                 |
-| `up`/`down` | Inventory Lineage tab       | Upstream / downstream hop depths                                                                        |
+| Param       | View                  | Values / notes                                                          |
+| ----------- | --------------------- | ----------------------------------------------------------------------- |
+| `assetTab`  | Inventory             | `summary`, `lineage`, `tests`, `sql`                                    |
+| `kind`      | Runs                  | `all`, `models`, `tests`, `seeds`, `snapshots`, `operations`            |
+| `adapter`   | Runs                  | Omit to show warehouse columns when data exists; `adapter=0` hides them |
+| `up`/`down` | Inventory Lineage tab | Upstream / downstream hop depths                                        |
 
 Full query-string contract: [Web README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md). CLI `web_url` / `review_url` fields: [CLI README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md) (discover section).
 
