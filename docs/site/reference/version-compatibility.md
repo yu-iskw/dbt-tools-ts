@@ -19,7 +19,7 @@ dbt-tools parses artifact files produced by dbt. The minimum supported manifest 
 | `catalog.json`     | v1                           |
 | `sources.json`     | v3                           |
 
-The **enforced** gate is **manifest schema ≥ v10**. dbt-tools does not reject artifacts based on `metadata.dbt_version`. **dbt 1.10.0** is recommended messaging (docs and error text), not a hard dbt-version check. With `dbt-artifacts-parser` 0.7.0, artifacts through **dbt Core 1.12** are in the supported schema range. Manifest **v9 and older** fail at parse time.
+The **enforced** gate is **manifest schema ≥ v10**, applied when analysis builds `ManifestGraph` (for example `summary`, `discover`, `explain`, MCP `dbt_tools_set_target`, or a web workspace load). dbt-tools does not reject artifacts based on `metadata.dbt_version`. **dbt 1.10.0** is recommended messaging (docs and error text), not a hard dbt-version check. With `dbt-artifacts-parser` 0.7.0, artifacts through **dbt Core 1.12** are in the supported schema range. Manifest **v9 and older** fail at that graph-load step with an unsupported-version error.
 
 To confirm which artifact schema version your dbt project produces, check the `metadata.dbt_schema_version` field:
 
@@ -27,7 +27,7 @@ To confirm which artifact schema version your dbt project produces, check the `m
 cat target/manifest.json | jq '.metadata.dbt_schema_version'
 ```
 
-If the schema version is below v10, `dbt-tools status` reports a parse error. Produce artifacts with a dbt Core release that emits schema v10 or later (recommended: **1.10** through **1.12**).
+`dbt-tools status` only checks whether `manifest.json` and `run_results.json` exist (`unavailable` / `manifest-only` / `full`). It does not parse the manifest or enforce the schema gate, so an old manifest can still report `full`. Produce artifacts with a dbt Core release that emits schema v10 or later (recommended: **1.10** through **1.12**).
 
 ## dbt version mapping
 

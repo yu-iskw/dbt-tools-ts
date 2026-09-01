@@ -1,10 +1,10 @@
 DBT Tools — Source Available License
 
 Copyright (c) 2025 yu-iskw and contributors to the dbt-tools packages
-(@dbt-tools/core, @dbt-tools/cli, @dbt-tools/web). All rights reserved.
+(@dbt-tools/core, @dbt-tools/cli, @dbt-tools/web, @dbt-tools/mcp). All rights reserved.
 
 This license applies only to the dbt-tools packages in this repository
-(under packages/{core,cli,web}/). It does not apply to dbt-artifacts-parser,
+(under packages/{core,cli,web,mcp}/). It does not apply to dbt-artifacts-parser,
 which is licensed separately under the Apache License, Version 2.0.
 
 When this software is obtained as part of the upstream Git repository,
