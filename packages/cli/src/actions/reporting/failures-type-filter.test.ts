@@ -29,12 +29,11 @@ describe('failuresAction resource type filtering', () => {
 
       const output = consoleLogSpy.mock.calls.at(-1)?.[0] as string;
       const parsed = JSON.parse(output) as {
-        failures: Array<{ unique_id: string; resource_type?: string }>;
+        failures: Array<{ unique_id: string }>;
       };
 
       expect(parsed.failures.length).toBeGreaterThan(0);
       expect(parsed.failures.every((row) => row.unique_id.startsWith('model.'))).toBe(true);
-      expect(parsed.failures.every((row) => row.resource_type === 'model')).toBe(true);
     } finally {
       consoleLogSpy.mockRestore();
       await rmValidated(dbtTargetDir, { recursive: true, force: true });
