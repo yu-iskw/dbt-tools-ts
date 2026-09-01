@@ -32,14 +32,14 @@ jobs:
 
       - name: Generate run summary
         run: |
-          npx @dbt-tools/cli summary \
+          npx @dbt-tools/cli run-summary \
             --dbt-target ./target \
-            --json > dbt-tools-summary.json
+            --json > dbt-tools-run-summary.json
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dbt-tools-summary
-          path: dbt-tools-summary.json
+          name: dbt-tools-run-summary
+          path: dbt-tools-run-summary.json
 ```
 
 ## Gate on artifact health
@@ -97,10 +97,10 @@ Capture the JSON output and post it as a PR comment using the GitHub CLI.
 `--json` produces pretty-printed multiline JSON, so use the GitHub Actions heredoc delimiter syntax for step outputs instead of `name=value`:
 
 ```yaml
-- name: Generate summary
-  id: summary
+- name: Generate run summary
+  id: run_summary
   run: |
-    OUTPUT=$(npx @dbt-tools/cli summary --dbt-target ./target --json)
+    OUTPUT=$(npx @dbt-tools/cli run-summary --dbt-target ./target --json)
     {
       echo "summary<<EOF"
       echo "$OUTPUT"
@@ -113,7 +113,7 @@ Capture the JSON output and post it as a PR comment using the GitHub CLI.
     GH_TOKEN: ${{ github.token }}
   run: |
     gh pr comment ${{ github.event.pull_request.number }} \
-      --body "dbt-tools summary: ${{ steps.summary.outputs.summary }}"
+      --body "dbt-tools run-summary: ${{ steps.run_summary.outputs.summary }}"
 ```
 
 > The `name<<EOF` / `EOF` delimiter form is required whenever the value contains newlines. Using `echo "name=$VALUE" >> $GITHUB_OUTPUT` with multiline JSON will silently produce a malformed output file and cause downstream step failures.
