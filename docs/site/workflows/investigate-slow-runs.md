@@ -6,17 +6,18 @@ You see which models or tests took the longest in a run and can explore executio
 
 ## When to use this
 
-| Surface | Use when                                                    |
-| ------- | ----------------------------------------------------------- |
-| CLI     | `query-executions` for sorted durations or CSV/JSON export  |
-| MCP     | Skip unless an agent will run many execution queries        |
-| Web     | Primary surface—execution views, timelines, and bottlenecks |
+| Surface | Use when                                                          |
+| ------- | ----------------------------------------------------------------- |
+| CLI     | `query-executions` for sorted durations or CSV/JSON export        |
+| MCP     | Skip unless a coding agent will run many execution queries        |
+| Web     | Primary surface—**Timeline** (sequencing) and **Runs** (table)    |
 
 ## Steps
 
 1. Confirm artifacts with [Check run health](check-run-health.md).
-2. Start the web UI and open the URL printed in the terminal.
-3. Use execution and timeline views to find slow nodes; use CLI `query-executions` for scripted top-N lists.
+2. Start the web UI and open the URL printed in the terminal (default **http://127.0.0.1:3000**).
+3. Open **`?view=timeline`** for Gantt-style order and critical path; open **`?view=runs`** for a filterable execution list.
+4. Use CLI `query-executions` for a scripted top-N list.
 
 ## Example
 
@@ -24,8 +25,13 @@ You see which models or tests took the longest in a run and can explore executio
 npx @dbt-tools/web --dbt-target ./target
 ```
 
+```text
+http://127.0.0.1:3000/?view=timeline
+http://127.0.0.1:3000/?view=runs
+```
+
 ```bash
-dbt-tools query-executions --dbt-target ./target --sort duration --limit 20 --json
+dbt-tools query-executions --dbt-target ./target --sort execution_time_desc --limit 20 --json
 ```
 
 ## Next

@@ -5,19 +5,19 @@ dbt-tools uses **one ranking contract** for resource discovery across the CLI an
 ## Shared behavior
 
 - **CLI** `dbt-tools discover` returns ranked matches with scores, `reasons`, and optional disambiguation hints.
-- **Web** discover/inventory views use the same ranking contract as the CLI, so terminal and browser results stay aligned.
+- **Web** **Inventory** and header search use the same ranking contract as the CLI, so terminal and browser results stay aligned.
 - **Query tokens** such as `type:model`, `tag:`, and package filters align between CLI flags and inline tokens.
 
 ## Why it matters
 
 - Operators can start in the terminal and continue in the browser without re-guessing names.
-- Agents and scripts get stable JSON they can replay in the UI via [deep links](../reference/deep-links.md).
+- Coding agents and scripts get stable JSON they can replay in the UI via [deep links](../reference/deep-links.md) (`view=inventory&q=`).
 - `search` remains available for legacy-style output; **`discover`** is the explainable, preferred path for new workflows.
 
 ## Try it
 
 1. [Find a model](../workflows/find-a-model.md) with the CLI.
-2. Open the web app and run the same query in discover.
+2. Open the web app and run the same query in **Inventory** or header search.
 3. Set `DBT_TOOLS_WEB_BASE_URL` and use [Open in web](../workflows/open-in-web.md) for one-click handoff.
 
 ## Learn more

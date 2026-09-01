@@ -5,9 +5,9 @@
 ## Design principles
 
 1. **Artifact-driven** — answers come from parsed `manifest.json` / `run_results.json`, not from chat.
-2. **Deterministic** — same inputs produce the same structured outputs for CI and agents.
+2. **Deterministic** — same inputs produce the same structured outputs for CI and coding agents.
 3. **Shared substrate** — a common analysis engine backs the CLI, MCP, and web interfaces for different workflows.
-4. **Agent-friendly** — JSON, field filtering, and MCP resident caches reduce token churn.
+4. **Coding-agent-friendly** — JSON, field filtering, and MCP resident caches reduce token churn.
 
 ## Examples (no LLM required)
 
@@ -25,7 +25,7 @@ Readiness `full` means manifest and run results are both present—see [Check ru
 dbt-tools discover --dbt-target ./target "orders" --json
 ```
 
-Ranked matches include `reasons` you can paste into tickets or agent context—same contract as the web discover view ([Discovery parity](./discovery-parity.md)).
+Ranked matches include `reasons` you can paste into tickets or coding-agent context—same contract as web **Inventory** and header search ([Discovery parity](./discovery-parity.md)).
 
 ### Investigate slow nodes in the browser
 
@@ -33,7 +33,7 @@ Ranked matches include `reasons` you can paste into tickets or agent context—s
 npx @dbt-tools/web --dbt-target ./target
 ```
 
-Use execution and timeline views after artifacts are confirmed—see [Investigate slow runs](../workflows/investigate-slow-runs.md).
+Use **Timeline** (`?view=timeline`) and **Runs** (`?view=runs`) after artifacts are confirmed—see [Investigate slow runs](../workflows/investigate-slow-runs.md).
 
 ## Where to read more
 
