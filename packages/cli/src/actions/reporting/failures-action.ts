@@ -30,6 +30,7 @@ export type FailuresOptions = ArtifactRootCliOptions & {
   fields?: string;
   json?: boolean;
   noJson?: boolean;
+  type?: string;
   status?: string;
   limit?: number;
   offset?: number;
@@ -106,18 +107,51 @@ function sortFailuresStable(rows: NodeExecution[]): NodeExecution[] {
   });
 }
 
+function parseCsvSet(value: string | undefined): Set<string> | undefined {
+  if (!value?.trim()) return undefined;
+  const values = value
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  return values.length > 0 ? new Set(values) : undefined;
+}
+
+function resourceTypeForExecution(
+  execution: NodeExecution,
+  graph: ManifestNodeGraph | undefined,
+): string | undefined {
+  const attrs = getNodeAttrs(graph, execution.unique_id);
+  if (typeof attrs?.resource_type === 'string' && attrs.resource_type.trim() !== '') {
+    return attrs.resource_type;
+  }
+  const [resourceType] = execution.unique_id.split('.');
+  return resourceType || undefined;
+}
+
 function filterExecutions(
   executions: NodeExecution[],
   statusCsv: string | undefined,
+  typeCsv: string | undefined,
+  graph: ManifestNodeGraph | undefined,
 ): NodeExecution[] {
+  let filtered: NodeExecution[];
   if (statusCsv?.trim()) {
     const statuses = statusCsv
       .split(',')
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean);
-    return searchRunResults(executions, { status: statuses });
+    filtered = searchRunResults(executions, { status: statuses });
+  } else {
+    filtered = executions.filter((e) => isNonSuccessStatus(e.status));
   }
-  return executions.filter((e) => isNonSuccessStatus(e.status));
+
+  const resourceTypes = parseCsvSet(typeCsv);
+  if (!resourceTypes) return filtered;
+
+  return filtered.filter((execution) => {
+    const resourceType = resourceTypeForExecution(execution, graph);
+    return resourceType != null && resourceTypes.has(resourceType.toLowerCase());
+  });
 }
 
 function countStatuses(rows: NodeExecution[]): Record<string, number> {
@@ -189,7 +223,6 @@ function applyManifestNameFromAttrs(row: FailureRow, attrs: GraphNodeAttributes 
 
 function applyIncludePathFields(row: FailureRow, attrs: GraphNodeAttributes | undefined): void {
   if (!attrs) return;
-  row.resource_type = attrs.resource_type as string | undefined;
   if (typeof attrs.path === 'string') row.path = attrs.path;
   if (typeof attrs.original_file_path === 'string') {
     row.original_file_path = attrs.original_file_path;
@@ -239,6 +272,8 @@ function enrichRow(
   };
 
   const attrs = getNodeAttrs(nodeGraph, base.unique_id);
+  const resourceType = resourceTypeForExecution(base, nodeGraph);
+  if (resourceType) row.resource_type = resourceType;
   applyManifestNameFromAttrs(row, attrs);
   if (options.includePath) {
     applyIncludePathFields(row, attrs);
@@ -300,8 +335,9 @@ export async function failuresAction(
       adapterType = manifest.metadata?.adapter_type ?? null;
     }
 
+    const nodeGraph = graph?.getGraph();
     const executions = buildNodeExecutionsFromRunResults(runResults, adapterType);
-    const filtered = filterExecutions(executions, options.status);
+    const filtered = filterExecutions(executions, options.status, options.type, nodeGraph);
     const sorted = sortFailuresStable(filtered);
     const nonSuccessTotal = sorted.length;
 
@@ -310,8 +346,6 @@ export async function failuresAction(
 
     const page = sorted.slice(offset, offset + limit);
     const hasMore = offset + page.length < nonSuccessTotal;
-
-    const nodeGraph = graph?.getGraph();
 
     const messageMax =
       typeof options.messageMaxChars === 'number' &&
