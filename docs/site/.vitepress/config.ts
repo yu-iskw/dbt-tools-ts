@@ -45,7 +45,6 @@ export default defineConfig({
           { text: '@dbt-tools/mcp', link: '/guide/mcp/getting-started' },
           { text: '@dbt-tools/web', link: '/guide/web/getting-started' },
           { text: 'Agent skills', link: '/guide/agents/' },
-          { text: '@dbt-tools/core', link: '/reference/core' },
         ],
       },
     ],
@@ -83,6 +82,7 @@ export default defineConfig({
         text: 'Interfaces',
         items: [
           { text: 'Choose your interface', link: '/guide/overview' },
+          { text: 'Workflows hub', link: '/workflows/' },
           {
             text: 'CLI',
             items: [
@@ -175,10 +175,11 @@ export default defineConfig({
           { text: 'CLI cheatsheet', link: '/reference/cli-cheatsheet' },
           { text: 'Web server CLI', link: '/reference/web-cli' },
           { text: 'MCP tools', link: '/reference/mcp-tools' },
+          { text: 'MCP resources', link: '/reference/mcp-resources' },
+          { text: 'MCP prompts', link: '/reference/mcp-prompts' },
           { text: 'Deep links', link: '/reference/deep-links' },
           { text: 'Troubleshooting', link: '/reference/troubleshooting' },
           { text: 'Version compatibility', link: '/reference/version-compatibility' },
-          { text: 'Core', link: '/reference/core' },
         ],
       },
     ],

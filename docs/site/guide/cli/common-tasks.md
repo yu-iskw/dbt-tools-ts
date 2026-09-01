@@ -7,11 +7,13 @@ The CLI is for **one-shot**, scriptable analysis: JSON output, stable exit codes
 | Command            | Purpose                                                                  |
 | ------------------ | ------------------------------------------------------------------------ |
 | `status`           | Artifact presence and readiness (`full`, `manifest-only`, `unavailable`) |
-| `summary`          | Manifest statistics                                                      |
+| `summary`          | Manifest graph statistics (not run outcomes)                             |
+| `run-summary`      | Run-level aggregates, status mix, bottlenecks                            |
 | `discover`         | Ranked search with scores and reasons                                    |
 | `explain`          | Structured summary for one `unique_id`                                   |
 | `deps`             | Upstream or downstream dependencies                                      |
 | `query-executions` | Filter and sort run executions                                           |
+| `failures`         | Bounded non-successful execution rows                                    |
 
 ## Patterns
 
@@ -19,13 +21,14 @@ The CLI is for **one-shot**, scriptable analysis: JSON output, stable exit codes
 
 ```bash
 dbt-tools summary --dbt-target ./target --json
+dbt-tools run-summary --dbt-target ./target --json
 dbt-tools discover --dbt-target ./target "orders" --json
 ```
 
-**Shrink output with `--fields`:**
+**Shrink output with `--fields`** (commands that register the option, such as `deps`):
 
 ```bash
-dbt-tools summary --dbt-target ./target --fields "total_nodes,total_edges" --json
+dbt-tools deps model.my_project.customers --dbt-target ./target --fields "unique_id,name" --json
 ```
 
 **Environment variable** instead of repeating the flag:
