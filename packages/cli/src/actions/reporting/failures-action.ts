@@ -223,6 +223,7 @@ function applyManifestNameFromAttrs(row: FailureRow, attrs: GraphNodeAttributes 
 
 function applyIncludePathFields(row: FailureRow, attrs: GraphNodeAttributes | undefined): void {
   if (!attrs) return;
+  row.resource_type = attrs.resource_type as string | undefined;
   if (typeof attrs.path === 'string') row.path = attrs.path;
   if (typeof attrs.original_file_path === 'string') {
     row.original_file_path = attrs.original_file_path;
@@ -272,8 +273,6 @@ function enrichRow(
   };
 
   const attrs = getNodeAttrs(nodeGraph, base.unique_id);
-  const resourceType = resourceTypeForExecution(base, nodeGraph);
-  if (resourceType) row.resource_type = resourceType;
   applyManifestNameFromAttrs(row, attrs);
   if (options.includePath) {
     applyIncludePathFields(row, attrs);
