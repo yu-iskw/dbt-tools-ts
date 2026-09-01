@@ -4,10 +4,10 @@
 
 ## When to use MCP vs CLI
 
-| Use MCP                                                   | Use CLI instead                    |
-| --------------------------------------------------------- | ---------------------------------- |
-| A coding agent issues many tool calls on the same run     | One-shot shell or CI command       |
-| Parse cost dominates (large manifest, remote target)      | Simple `status` or `summary` check |
+| Use MCP                                               | Use CLI instead                    |
+| ----------------------------------------------------- | ---------------------------------- |
+| A coding agent issues many tool calls on the same run | One-shot shell or CI command       |
+| Parse cost dominates (large manifest, remote target)  | Simple `status` or `summary` check |
 
 Skills from [Install agent skills](../agents/install.md) run the **CLI** on your machine. MCP is optional for native MCP tool integration.
 
