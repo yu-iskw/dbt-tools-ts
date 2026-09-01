@@ -4,10 +4,10 @@ dbt-tools is **local-first**: the default path is a dbt `target/` directory on d
 
 ## Modes
 
-| Mode                | Typical use                                                                                     |
-| ------------------- | ----------------------------------------------------------------------------------------------- |
-| **Local `target/`** | Developer loop, CI artifact download, `dbt-tools-web --dbt-target` or `--target`                |
-| **Remote S3/GCS**   | Investigating scheduled runs in a bucket (`s3://…`, `gs://…` as `--dbt-target`)                 |
+| Mode                | Typical use                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| **Local `target/`** | Developer loop, CI artifact download, `dbt-tools-web --dbt-target` or `--target`                 |
+| **Remote S3/GCS**   | Investigating scheduled runs in a bucket (`s3://…`, `gs://…` as `--dbt-target`)                  |
 | **Load artifacts**  | In-app switch after startup: **Local / S3 / GCS** path or URI (server-mediated, not file upload) |
 
 ## Target URIs (CLI and MCP)

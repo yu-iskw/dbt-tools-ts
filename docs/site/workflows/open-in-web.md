@@ -6,11 +6,11 @@ A `web_url` (and `review_url`) from CLI JSON opens the web UI on the same Invent
 
 ## When to use this
 
-| Surface | Use when                                                                           |
-| ------- | ---------------------------------------------------------------------------------- |
+| Surface | Use when                                                                             |
+| ------- | ------------------------------------------------------------------------------------ |
 | CLI     | You already ran `discover`, `explain`, or `impact` and want a shareable browser view |
-| MCP     | Skip—use CLI for handoff URLs or open the web app manually                         |
-| Web     | Destination of the deep link                                                       |
+| MCP     | Skip—use CLI for handoff URLs or open the web app manually                           |
+| Web     | Destination of the deep link                                                         |
 
 ## Steps
 
