@@ -32,6 +32,32 @@ describe('analysis worker contract', () => {
     expect(response.timings.snapshotBuildMs).toBeGreaterThanOrEqual(0);
   });
 
+  it('returns a full analysis snapshot for dbt Core 1.12 artifacts', async () => {
+    const manifestJson = loadTestManifest('v12', 'manifest_1.12.json') as Record<string, unknown>;
+    const runResultsJson = loadTestRunResults('v6', 'run_results_1.12.json') as Record<
+      string,
+      unknown
+    >;
+
+    const response = await handleAnalysisWorkerRequest({
+      type: 'load-analysis',
+      protocolVersion: ANALYSIS_WORKER_PROTOCOL_VERSION,
+      requestId: 12,
+      artifactBuffers: {
+        manifestBytes: encodeJson(manifestJson),
+        runResultsBytes: encodeJson(runResultsJson),
+      },
+      source: 'upload',
+    });
+
+    expect(response.type).toBe('analysis-ready');
+    if (response.type !== 'analysis-ready') return;
+    expect(response.analysis.projectName).toBe('jaffle_shop');
+    expect(response.analysis.warehouseType).toBe('duckdb');
+    expect(response.analysis.summary.total_nodes).toBeGreaterThan(0);
+    expect(response.analysis.resources.length).toBeGreaterThan(0);
+  });
+
   it('returns a protocol error for malformed JSON bytes', async () => {
     const invalidBytes = new TextEncoder().encode('{bad json').buffer;
 

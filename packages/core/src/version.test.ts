@@ -24,6 +24,13 @@ describe('Version Detection', () => {
       expect(version).toBe(12);
     });
 
+    it('should extract schema version from a dbt Core 1.12 manifest', () => {
+      const manifestJson = loadTestManifest('v12', 'manifest_1.12.json');
+      const manifest = parseManifest(manifestJson as Record<string, unknown>);
+      expect(getManifestSchemaVersion(manifest)).toBe(12);
+      expect(getDbtVersion(manifest)?.startsWith('1.12')).toBe(true);
+    });
+
     it('should extract schema version from v11 manifest', () => {
       const manifestJson = loadTestManifest('v11', 'manifest.json');
       const manifest = parseManifest(manifestJson as Record<string, unknown>);

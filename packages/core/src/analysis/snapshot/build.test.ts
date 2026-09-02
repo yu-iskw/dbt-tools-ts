@@ -30,6 +30,27 @@ describe('analysis snapshot facade', () => {
     expect(snapshot.warehouseType).toBe('duckdb');
   });
 
+  it('builds a snapshot from dbt Core 1.12 jaffle artifacts', async () => {
+    const manifestJson = loadTestManifest('v12', 'manifest_1.12.json') as Record<string, unknown>;
+    const runResultsJson = loadTestRunResults('v6', 'run_results_1.12.json') as Record<
+      string,
+      unknown
+    >;
+    const catalogJson = loadTestCatalog('v1', 'catalog_1.12.json') as Record<string, unknown>;
+
+    const snapshot = await buildAnalysisSnapshotFromArtifactBundle({
+      manifestJson,
+      runResultsJson,
+      catalogJson,
+    });
+
+    expect(snapshot.projectName).toBe('jaffle_shop');
+    expect(snapshot.warehouseType).toBe('duckdb');
+    expect(snapshot.resources.length).toBeGreaterThan(0);
+    expect(snapshot.executions.length).toBeGreaterThan(0);
+    expect(snapshot.summary.total_nodes).toBeGreaterThan(0);
+  });
+
   it('supports bundle inputs with optional catalog and sources enrichments', async () => {
     const manifestJson = loadTestManifest('v12', 'manifest_1.11.json') as Record<string, unknown>;
     const runResultsJson = loadTestRunResults('v6', 'run_results_1.11.json') as Record<
