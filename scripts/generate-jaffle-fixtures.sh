@@ -5,10 +5,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=lib/repo-root.sh
-source "${SCRIPT_DIR}/lib/repo-root.sh"
-resolve_repo_root "generate-jaffle-fixtures.sh"
-
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 DBT_CORE_VERSION="${DBT_CORE_VERSION:-${1:-1.12.3}}"
 
 if [[ ! ${DBT_CORE_VERSION} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
