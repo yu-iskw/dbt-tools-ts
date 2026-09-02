@@ -11,9 +11,10 @@ How the pieces fit together: [Ecosystem at a glance](./ecosystem.md). Not sure w
 | Let a coding agent query the same run many times | [@dbt-tools/mcp](https://www.npmjs.com/package/@dbt-tools/mcp) · [guide](./mcp/getting-started.md) |
 | Explore lineage and runs in a browser            | [@dbt-tools/web](https://www.npmjs.com/package/@dbt-tools/web) · [guide](./web/getting-started.md) |
 | Install agent skills (Cursor, Codex, Claude)     | [Agents](./agents/install.md)                                                                      |
-| Build custom TypeScript tooling                  | [@dbt-tools/core](../reference/core.md)                                                            |
 
 <!-- markdown-link-check-enable -->
+
+CLI, Web, and MCP share `@dbt-tools/core` as the analysis library. End users install those packages, not core. See [Core (advanced)](../reference/core.md) only if you are building custom TypeScript tooling.
 
 ## Prerequisites
 

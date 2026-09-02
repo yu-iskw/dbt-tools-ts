@@ -29,20 +29,20 @@ See [Credentials](../deploy/credentials.md) for provider-specific guidance.
 **Pin the dbt-tools version.** In CI, use a pinned version of `@dbt-tools/cli` rather than `latest` to avoid unexpected behavior from version updates:
 
 ```bash
-npx @dbt-tools/cli@1.2.3 status --dbt-target ./target --json
+npx @dbt-tools/cli@0.7.0 status --dbt-target ./target --json
 ```
 
 Or pre-install a pinned version:
 
 ```yaml
-- run: npm install -g @dbt-tools/cli@1.2.3
+- run: npm install -g @dbt-tools/cli@0.7.0
 ```
 
 **Store CI secrets as encrypted variables.** AWS or GCP credentials used for remote artifact access should be stored as repository secrets or a secrets manager entry, not as plain-text environment variables in workflow files.
 
 **Fail fast on unavailable artifacts.** Gate subsequent CI steps on the exit code of `dbt-tools status`. If artifacts are missing, fail early rather than proceeding with stale or partial data.
 
-**Log output for audit.** Capture `dbt-tools status` and `dbt-tools summary` output as CI artifacts. This creates a record of what was seen at each run without exposing it further.
+**Log output for audit.** Capture `dbt-tools status` and `dbt-tools run-summary` output as CI artifacts. This creates a record of what was seen at each run without exposing it further.
 
 ## Node.js permission model (defense in depth)
 
@@ -55,9 +55,9 @@ node --permission --allow-fs-read="$(realpath ./target)" \
   ./node_modules/.bin/dbt-tools status --dbt-target ./target --json
 ```
 
-Grant only the artifact root (or parent directory) the process needs. Omit `--allow-fs-write` unless you use `export --out` to a known path, then add a single `--allow-fs-write` for that output directory.
+Grant only the artifact root (or parent directory) the process needs. Omit `--allow-fs-write` unless you use `export --output` to a known path, then add a single `--allow-fs-write` for that output directory.
 
-**CI smoke recommendation:** add an optional job that runs `status` or `check-session` against a fixture target under `--permission --allow-fs-read=<fixture-dir>` to verify the binary still works when filesystem access is constrained. This is a smoke check, not a substitute for credential scoping or network controls.
+**CI smoke recommendation:** add an optional job that runs `dbt-tools status` against a fixture target under `--permission --allow-fs-read=<fixture-dir>` to verify the binary still works when filesystem access is constrained. (`check-session` is an agent **skill** that wraps `status`, not a CLI binary.) This is a smoke check, not a substitute for credential scoping or network controls.
 
 ## Network controls for the Web UI
 

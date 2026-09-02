@@ -15,7 +15,7 @@ Use this recipe when a dbt run is taking longer than expected and you want to id
 | --------- | ----------------------------------------------------------------------- |
 | CLI       | You need timing data as JSON for scripts or CI reporting                |
 | Web       | You want a visual execution timeline and can compare runs interactively |
-| MCP       | An AI agent needs to correlate timing, lineage, and failure data        |
+| MCP       | A coding agent needs to correlate timing, lineage, and failure data     |
 
 ## Step 1: Confirm the run has timing data
 
@@ -23,47 +23,63 @@ Use this recipe when a dbt run is taking longer than expected and you want to id
 npx @dbt-tools/cli status --dbt-target ./target --json
 ```
 
-Timing data is present when `run_results.json` reflects a `dbt run`, `dbt test`, or `dbt build` invocation (not a dry run or compile-only command).
+Timing data is present when `run_results.json` reflects a `dbt run`, `dbt test`, or `dbt build` invocation (not a dry run or compile-only command). `readiness` must be `"full"`.
 
-## Step 2: Get a run summary
+## Step 2: Get a run-level summary
 
 ```bash
-npx @dbt-tools/cli summary --dbt-target ./target --json
+npx @dbt-tools/cli run-summary --dbt-target ./target --json
 ```
 
-The summary includes aggregate timing and node counts. Look for unusually high total execution time.
+`run-summary` includes aggregate timing, status mix, and bottleneck hints. `summary` is manifest graph statistics only and does not include execution time.
 
-## Step 3: Find a specific slow model by name
+## Step 3: Rank the slowest executions
+
+```bash
+npx @dbt-tools/cli query-executions --dbt-target ./target --sort execution_time_desc --limit 20 --json
+```
+
+Root `query-executions` sorts are `execution_time_desc`, `execution_time_asc`, and `unique_id`. Warehouse subcommands add adapter sorts (for example `query-executions bigquery --min-slot-ms …`). Full flags: [CLI README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md).
+
+Optional per-node table:
+
+```bash
+npx @dbt-tools/cli timeline --dbt-target ./target --sort duration --top 20 --json
+```
+
+`--sort duration` applies to **`timeline`**, not `query-executions`.
+
+## Step 4: Find a specific slow model by name
 
 ```bash
 npx @dbt-tools/cli discover --dbt-target ./target "heavy_model_name" --limit 5 --json
 ```
 
-If you already know the `unique_id`, skip to Step 4.
+If you already know the `unique_id`, skip this step.
 
-## Step 4: Inspect the model's execution details
+## Step 5: Inspect materialization (manifest)
 
 ```bash
 npx @dbt-tools/cli explain model.my_project.heavy_model --dbt-target ./target --json
 ```
 
-Check the `execution_time` field in the output. Also check `config.materialized` — full table materializations are often slower than incremental ones.
+`explain` is manifest-shaped. Look at `summary.materialization` (full table materializations are often slower than incremental ones). Execution time lives on `query-executions` / `timeline` rows, not on `explain`.
 
-## Step 5: Trace upstream dependencies
+## Step 6: Trace upstream dependencies
 
 ```bash
 npx @dbt-tools/cli deps model.my_project.heavy_model --dbt-target ./target --direction upstream --json
 ```
 
-A long upstream chain can indicate that the real bottleneck is earlier in the DAG. Check execution times of upstream nodes as well.
+A long upstream chain can indicate that the real bottleneck is earlier in the DAG. Compare those unique IDs against the `query-executions` ranking.
 
-## Step 6 (optional): Open the Web UI for visual investigation
+## Step 7 (optional): Open the Web UI
 
 ```bash
 npx @dbt-tools/web --dbt-target ./target
 ```
 
-The Web UI provides an execution timeline view. Open it and look for the longest bars in the run timeline. Hover over nodes to inspect timing details.
+Open **Timeline** (`?view=timeline`) for Gantt sequencing and **Runs** (`?view=runs`) for a sortable execution table. See [Investigate slow runs](../workflows/investigate-slow-runs.md).
 
 ## Interpreting results
 

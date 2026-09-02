@@ -11,7 +11,7 @@ Symptom-first fixes for common setup issues. Package-specific detail remains in 
 | `dbt-tools-mcp` fails to start                      | Wrong binary or missing target         | Use `dbt-tools-mcp`; set `--dbt-target` or `DBT_TOOLS_DBT_TARGET`; stdio only (not HTTP)                                                                                            |
 | MCP works once then stale data                      | New dbt run wrote fresh artifacts      | Call `dbt_tools_refresh` on the active target, or `set_target` again after a cache miss                                                                                             |
 | MCP high memory / many tag prefixes                 | LRU keeps parsed snapshots in RAM      | Call `dbt_tools_clear_cached_targets`, lower `--max-cached-targets` / `DBT_TOOLS_MAX_CACHED_TARGETS`, or set **0** to disable cache                                                 |
-| Web UI empty / no graph                             | `manifest-only` or missing run results | Run [Check run health](../workflows/check-run-health.md); need `run_results.json` for execution views                                                                               |
+| Web UI empty / no graph                             | `manifest-only` or missing run results | Run [Check run health](../workflows/check-run-health.md); need `run_results.json` for **Timeline** and **Runs**                                                                     |
 | Remote S3/GCS errors                                | Credentials or path on server          | Configure env on **Node** (CLI/MCP/web server), not in browser; see [Local and remote artifacts](../concepts/local-and-remote-artifacts.md) and [Configuration](./configuration.md) |
 | No `web_url` in CLI JSON                            | `DBT_TOOLS_WEB_BASE_URL` unset         | Export base URL of running web app; see [Deep links](./deep-links.md)                                                                                                               |
 | `pnpm site:dev` esbuild errors                      | Legacy browser target in monorepo      | Keep `esnext` in `docs/site/.vitepress/config.ts` (see [AGENTS.md](https://github.com/yu-iskw/dbt-tools-ts/blob/main/AGENTS.md))                                                    |
@@ -36,7 +36,7 @@ Published packages require **Node.js 20+**. Match [`.node-version`](https://gith
 ## Web UI shows empty views
 
 - Verify the target directory contains a complete manifest/run pair for the run you expect.
-- Execution views need `run_results.json`—a **manifest-only** target after `dbt compile` is not enough. See [dbt artifacts & target/](../concepts/dbt-artifacts.md#when-artifacts-appear).
+- **Timeline** and **Runs** need `run_results.json`—a **manifest-only** target after `dbt compile` is not enough. See [dbt artifacts & target/](../concepts/dbt-artifacts.md#when-artifacts-appear).
 - For remote sources, pass `--dbt-target s3://…` or `gs://…` with optional `--gcs-impersonate-service-account` (or env) on **`dbt-tools-web`** startup; see [Web server CLI](./web-cli.md).
 
 ## GitHub Pages site issues

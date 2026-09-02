@@ -4,11 +4,11 @@ dbt-tools is **local-first**: the default path is a dbt `target/` directory on d
 
 ## Modes
 
-| Mode                     | Typical use                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| **Local `target/`**      | Developer loop, CI artifact download, `dbt-tools-web --dbt-target` or `--target` |
-| **Remote S3/GCS**        | Investigating scheduled runs in a bucket (`s3://…`, `gs://…` as `--dbt-target`)  |
-| **Web upload / preload** | Ad hoc files or trusted local preload in the UI (server-mediated)                |
+| Mode                | Typical use                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| **Local `target/`** | Developer loop, CI artifact download, `dbt-tools-web --dbt-target` or `--target`                 |
+| **Remote S3/GCS**   | Investigating scheduled runs in a bucket (`s3://…`, `gs://…` as `--dbt-target`)                  |
+| **Load artifacts**  | In-app switch after startup: **Local / S3 / GCS** path or URI (server-mediated, not file upload) |
 
 ## Target URIs (CLI and MCP)
 
@@ -67,7 +67,7 @@ For `gs://` targets, use a dedicated service account via impersonation (read-onl
 
 - Pass `--dbt-target` or `DBT_TOOLS_DBT_TARGET` to a directory or remote URI.
 - `status` checks filesystem or downloaded copies before parse-heavy commands.
-- Large remote manifests benefit from **MCP** resident cache when agents issue many queries.
+- Large remote manifests benefit from **MCP** resident cache when coding agents issue many queries.
 
 ## Web
 
@@ -75,9 +75,11 @@ For `gs://` targets, use a dedicated service account via impersonation (read-onl
 
 - **`--dbt-target`** / **`DBT_TOOLS_DBT_TARGET`** — preload local, `s3://`, or `gs://` at server start.
 - **`--target`** / **`DBT_TOOLS_TARGET_DIR`** — local directory alias (backward compatible).
-- **Load artifacts** (in-app) — switch or add sources after startup; UI can pass GCS impersonation per request. Env `DBT_TOOLS_GCS_*` / `DBT_TOOLS_S3_*` also apply when discovering remote sources.
+- **Load artifacts** (in-app) — choose **Local**, **S3**, or **GCS**; enter a path or URI; **Scan location**, then **Load workspace**. The server lists the location; this is **not** a browser file upload. Env `DBT_TOOLS_GCS_*` / `DBT_TOOLS_S3_*` apply when scanning remote sources. UI can pass GCS impersonation per request.
 
 Credentials stay on the Node process; the browser uses `/api/...` routes only. See [Web getting started](../guide/web/getting-started.md).
+
+**Remote poll:** after a remote workspace is loaded, the app polls about every **30s**. When a newer complete artifact pair appears, a banner shows **Remote update available** with **Load latest remote run**. The current investigation stays loaded until you switch—there is no auto-switch.
 
 **Web server example (GCS):**
 

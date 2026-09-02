@@ -21,7 +21,7 @@ features:
   - title: Debug failed runs
     details: Identify failed models and tests, trace error context, and find the downstream blast radius—from the command line or a browser.
   - title: CLI, MCP, Web, and Agents
-    details: One artifact contract, four surfaces. Use dbt-tools from shell scripts, long-lived agent sessions, a browser UI, or AI coding assistants.
+    details: One artifact contract, four surfaces. Use dbt-tools from shell scripts, long-lived agent sessions, a browser UI, or coding agents.
   - title: Local, S3, and GCS artifacts
     details: Read manifest.json and run_results.json from a local target directory, an S3 prefix, or a GCS prefix with the same commands.
 ---
@@ -34,7 +34,7 @@ features:
 - **[Investigate slow models](recipes/investigate-slow-models.md)** — rank execution bottlenecks and inspect timing metadata
 - **[Find model impact](recipes/find-model-impact.md)** — trace upstream and downstream dependencies before a change
 - **[Generate a CI health summary](recipes/generate-ci-health-summary.md)** — produce deterministic JSON in GitHub Actions or CI
-- **[Ask an AI agent about a dbt run](recipes/ask-agent-about-dbt-run.md)** — use MCP or agent skills safely
+- **[Ask a coding agent about a dbt run](recipes/ask-agent-about-dbt-run.md)** — use MCP or agent skills safely
 
 [See all recipes →](recipes/)
 
@@ -44,7 +44,7 @@ features:
 | -------------------------- | ----------------------------------------------- |
 | **CLI** (`@dbt-tools/cli`) | Shell, CI, scripts, JSON output                 |
 | **Web** (`@dbt-tools/web`) | Browser-based lineage and run investigation     |
-| **MCP** (`@dbt-tools/mcp`) | Long-lived AI agent sessions                    |
+| **MCP** (`@dbt-tools/mcp`) | Long-lived coding agent sessions                |
 | **Agent skills**           | Named operations for Cursor, Codex, Claude Code |
 
 [Choose by goal →](guide/choose-by-goal.md) · [Ecosystem at a glance →](guide/ecosystem.md)
@@ -71,6 +71,7 @@ Before using production artifacts with agents or in shared environments: [Trust 
 - [@dbt-tools/cli](https://www.npmjs.com/package/@dbt-tools/cli) — `dbt-tools` for scripts, CI, and one-shot automation
 - [@dbt-tools/mcp](https://www.npmjs.com/package/@dbt-tools/mcp) — `dbt-tools-mcp` for long-lived agent sessions
 - [@dbt-tools/web](https://www.npmjs.com/package/@dbt-tools/web) — `dbt-tools-web` for browser-based investigation
-- [@dbt-tools/core](https://www.npmjs.com/package/@dbt-tools/core) — TypeScript library for custom tooling
+
+CLI, Web, and MCP share `@dbt-tools/core` as their analysis library. End users install those packages, not core. See [Core (advanced)](reference/core.md).
 
 <!-- markdown-link-check-enable -->

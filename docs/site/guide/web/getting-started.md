@@ -20,7 +20,19 @@ npx @dbt-tools/web \
   --gcs-impersonate-service-account reader@project.iam.gserviceaccount.com
 ```
 
-Open the URL printed in the terminal (default **127.0.0.1:3000** unless you pass `--port`).
+Open the URL printed in the terminal (default **127.0.0.1:3000** unless you pass `--port`). Monorepo Vite **dev** (`pnpm dev:web`) listens on **5173**.
+
+## Load artifacts
+
+If you skip `--dbt-target`, or want to switch after startup, use in-app **Load artifacts**. This is a **server-mediated path or URI**—not a browser file upload.
+
+1. Choose **Local**, **S3**, or **GCS**.
+2. Enter a directory path or `s3://` / `gs://` prefix (resolved on the Node process).
+3. **Scan location**, then **Load workspace**.
+
+Remote buckets poll about every **30s**. When a newer complete artifact pair appears, the banner **Remote update available** offers **Load latest remote run**. The current investigation stays loaded until you switch—there is no auto-switch.
+
+See [Local and remote artifacts](../../concepts/local-and-remote-artifacts.md).
 
 ## Learn more
 

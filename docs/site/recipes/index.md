@@ -11,7 +11,7 @@ Recipes are end-to-end task guides. Each one starts from a user goal, shows whic
 | Understand which models would break if you changed one      | [Find model impact](./find-model-impact.md)                   |
 | Produce a dbt health summary in GitHub Actions or CI        | [Generate CI health summary](./generate-ci-health-summary.md) |
 | Move from CLI JSON output to visual browser investigation   | [Open CLI result in Web](./open-cli-result-in-web.md)         |
-| Let an AI agent query dbt artifacts safely                  | [Ask an agent about a dbt run](./ask-agent-about-dbt-run.md)  |
+| Let a coding agent query dbt artifacts safely               | [Ask an agent about a dbt run](./ask-agent-about-dbt-run.md)  |
 
 ## Prerequisites for all recipes
 

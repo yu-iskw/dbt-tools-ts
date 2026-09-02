@@ -14,6 +14,7 @@ const targets = [
   path.join(root, 'packages', 'core', 'LICENSE'),
   path.join(root, 'packages', 'cli', 'LICENSE'),
   path.join(root, 'packages', 'web', 'LICENSE'),
+  path.join(root, 'packages', 'mcp', 'LICENSE'),
 ];
 
 if (!fs.existsSync(src)) {

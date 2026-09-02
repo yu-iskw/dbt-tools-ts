@@ -11,11 +11,11 @@ Use this recipe before changing a dbt model to understand which downstream model
 
 ## Recommended interface
 
-| Interface | Use when                                                                 |
-| --------- | ------------------------------------------------------------------------ |
-| CLI       | You need dependency lists as JSON for scripting or pre-change review     |
-| Web       | You want to visually explore the lineage graph around a model            |
-| MCP       | An AI agent needs to reason about impact scope and suggest test coverage |
+| Interface | Use when                                                                    |
+| --------- | --------------------------------------------------------------------------- |
+| CLI       | You need dependency lists as JSON for scripting or pre-change review        |
+| Web       | You want to visually explore the lineage graph around a model               |
+| MCP       | A coding agent needs to reason about impact scope and suggest test coverage |
 
 ## Step 1: Find the model by name
 
@@ -27,7 +27,15 @@ npx @dbt-tools/cli discover --dbt-target ./target "orders" --limit 5 --json
 
 Note the `unique_id` from the output. It will look like `model.my_project.orders`.
 
-## Step 2: Inspect downstream dependencies
+## Step 2: Intent-shaped impact
+
+```bash
+npx @dbt-tools/cli impact model.my_project.orders --dbt-target ./target --json
+```
+
+`impact` returns upstream/downstream counts and notable dependents. When `DBT_TOOLS_WEB_BASE_URL` is set, JSON includes `web_url` / `review_url` pointing at Inventory with `assetTab=lineage`. See [Deep links](../reference/deep-links.md).
+
+## Step 3: Inspect the full downstream graph
 
 ```bash
 npx @dbt-tools/cli deps model.my_project.orders --dbt-target ./target --direction downstream --json
@@ -35,7 +43,7 @@ npx @dbt-tools/cli deps model.my_project.orders --dbt-target ./target --directio
 
 The output lists all models, tests, snapshots, and exposures that depend—directly or transitively—on the target model.
 
-## Step 3: Inspect upstream dependencies
+## Step 4: Inspect upstream dependencies
 
 ```bash
 npx @dbt-tools/cli deps model.my_project.orders --dbt-target ./target --direction upstream --json
@@ -43,7 +51,7 @@ npx @dbt-tools/cli deps model.my_project.orders --dbt-target ./target --directio
 
 Upstream dependencies show what the model reads. If you are changing a source, this helps you find all models that consume it.
 
-## Step 4: Explain the model
+## Step 5: Explain the model
 
 ```bash
 npx @dbt-tools/cli explain model.my_project.orders --dbt-target ./target --json
@@ -51,13 +59,18 @@ npx @dbt-tools/cli explain model.my_project.orders --dbt-target ./target --json
 
 The explain output includes column definitions, tests associated with the model, and configuration metadata. Check whether there are downstream exposures or BI tools connected to this model.
 
-## Step 5 (optional): Open in Web for visual lineage
+## Step 6 (optional): Open in Web for visual lineage
+
+```bash
+npx @dbt-tools/cli impact model.my_project.orders --dbt-target ./target --json \
+  | jq -r '.web_url'
+```
+
+Or start the UI and open Inventory → the model → **Lineage**:
 
 ```bash
 npx @dbt-tools/web --dbt-target ./target
 ```
-
-The Web UI shows the lineage graph visually. Search for the model by name and click to expand its upstream and downstream nodes. This is especially useful for models with many indirect dependents.
 
 ## Reading the output
 
@@ -71,7 +84,7 @@ The Web UI shows the lineage graph visually. Search for the model by name and cl
 ## Common questions
 
 **"What breaks if I rename this model?"**
-Run `deps --direction downstream` and count the transitive dependents. Any model in the list will break if the source is renamed without also updating the `ref()` call.
+Run `impact` for counts, then `deps --direction downstream` and count the transitive dependents. Any model in the list will break if the source is renamed without also updating the `ref()` call.
 
 **"Is this model used by anyone?"**
 If `deps --direction downstream` returns an empty list, the model has no declared dependents in the project. It may still be referenced by other tools or by external consumers not captured in the manifest.

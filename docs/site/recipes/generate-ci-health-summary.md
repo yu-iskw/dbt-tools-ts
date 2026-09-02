@@ -40,13 +40,19 @@ Exit code 0 means the `status` command completed (files found or readable). It d
 test "$(npx @dbt-tools/cli status --dbt-target ./target --json | jq -r '.readiness')" = "full"
 ```
 
-## Step 3: Generate a summary
+## Step 3: Emit run-level JSON
 
 ```bash
-npx @dbt-tools/cli summary --dbt-target ./target --json > dbt-tools-summary.json
+npx @dbt-tools/cli run-summary --dbt-target ./target --json > dbt-tools-run-summary.json
 ```
 
-The summary JSON includes node counts, error counts, and overall run status. Pipe it to `jq` or a PR comment script as needed.
+`run-summary` includes status mix, bottlenecks, and adapter totals. Optionally also write failed rows:
+
+```bash
+npx @dbt-tools/cli failures --dbt-target ./target --json > dbt-tools-failures.json
+```
+
+`summary` is **manifest graph** statistics only. Do not use it for error counts or overall run status.
 
 ## Full GitHub Actions example
 
@@ -79,10 +85,13 @@ jobs:
 
       - name: Generate run summary
         run: |
-          npx @dbt-tools/cli summary \
+          npx @dbt-tools/cli run-summary \
             --dbt-target ./target \
-            --json > dbt-tools-summary.json
-          cat dbt-tools-summary.json
+            --json > dbt-tools-run-summary.json
+          npx @dbt-tools/cli failures \
+            --dbt-target ./target \
+            --json > dbt-tools-failures.json
+          cat dbt-tools-run-summary.json
 
       - name: Upload dbt-tools report
         uses: actions/upload-artifact@v4
@@ -90,7 +99,8 @@ jobs:
           name: dbt-tools-report
           path: |
             dbt-tools-status.json
-            dbt-tools-summary.json
+            dbt-tools-run-summary.json
+            dbt-tools-failures.json
 ```
 
 ## Using artifacts from object storage

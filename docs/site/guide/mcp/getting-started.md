@@ -9,8 +9,8 @@ Step-by-step jobs (status, discover, explain) live under **CLI → Workflows** i
 ## Install and run
 
 ```bash
-npx @dbt-tools/mcp --help
-npx @dbt-tools/mcp --dbt-target ./target
+npx -y @dbt-tools/mcp --help
+npx -y @dbt-tools/mcp --dbt-target ./target
 ```
 
 Or global install:
@@ -20,7 +20,9 @@ npm install -g @dbt-tools/mcp
 dbt-tools-mcp --dbt-target ./target
 ```
 
-Configure your MCP client to launch `dbt-tools-mcp` with the same `--dbt-target` (or `DBT_TOOLS_DBT_TARGET`).
+Configure your MCP client to launch `npx -y @dbt-tools/mcp` or the global `dbt-tools-mcp` binary with the same `--dbt-target` (or `DBT_TOOLS_DBT_TARGET`). See [Connecting clients](./connecting-clients.md).
+
+The server also exposes read-only [`dbt-tools://` resources](../../reference/mcp-resources.md) and user-invoked [prompts](../../reference/mcp-prompts.md) (workflow templates over the same tools).
 
 ## Multiple artifact roots (tag slices)
 
@@ -42,6 +44,8 @@ MCP loads **`manifest.json` and `run_results.json` together** when a target is s
 ## Learn more
 
 - [MCP tools](../../reference/mcp-tools.md) — tool and startup-flag reference
+- [MCP resources](../../reference/mcp-resources.md) — `dbt-tools://` URIs
+- [MCP prompts](../../reference/mcp-prompts.md) — user-invoked workflow templates
 - [Configuration](../../reference/configuration.md) — environment variables and targets
 - [Local and remote artifacts](../../concepts/local-and-remote-artifacts.md) — S3, GCS, impersonation
 - [Package README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/mcp/README.md)
