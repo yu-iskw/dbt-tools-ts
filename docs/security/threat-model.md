@@ -16,7 +16,7 @@ Distilled from [RFC-0001](../rfc/RFC-0001-clean-slate-redesign.md) §6–§7. Th
 | TB1 Parse        | Artifact JSON/SQL           | dbt-tools process | Parser dispatch, `parseUntrustedJson`, Zod validation              |
 | TB2 MCP input    | Agent-driven tool args      | MCP server        | stdio transport (SDK 2.0 dual-era), input/output schema validation |
 | TB3 Local HTTP   | LAN / other local processes | Web server API    | Loopback bind, Host/Origin checks, POST-only mutations             |
-| TB4 Supply chain | npm dependencies            | Installed tree    | Lockfile, `ignore-scripts`, release-age cooldown, scanners         |
+| TB4 Supply chain | npm dependencies            | Installed tree    | Lockfile, `ignore-scripts`, release-age cooldown, SBOM snapshot, scanners |
 | TB5 Filesystem   | User-supplied paths         | Read scope        | `ArtifactRoot` / `resolveSafePath` containment                     |
 
 ## Threat register
@@ -30,7 +30,7 @@ Distilled from [RFC-0001](../rfc/RFC-0001-clean-slate-redesign.md) §6–§7. Th
 | T5  | Stale-snapshot answers                | Concurrent loads, remote polling            | `SessionBinding` in unified `Workspace`                                                               |
 | T6  | Abuse of local web server             | DNS rebinding, cross-origin POST            | `127.0.0.1` default bind; Host/Origin validation                                                      |
 | T7  | MCP abuse                             | Token passthrough, over-broad tools         | stdio-only (product v1, not MCP 2025-only); dual-era SDK 2.0; no listener; read-only analysis surface |
-| T8  | Supply-chain compromise               | Dependencies or published packages          | OIDC trusted publishing; provenance; CI scanners                                                      |
+| T8  | Supply-chain compromise               | Dependencies or published packages          | OIDC trusted publishing; provenance; CI SBOM + Dependency Graph snapshot; Trunk Trivy/OSV scanners    |
 | T9  | Credential leakage                    | Remote sources, debug logs                  | Server-side providers only; structured logging with redaction                                         |
 
 ## Out of scope (accepted risks)
