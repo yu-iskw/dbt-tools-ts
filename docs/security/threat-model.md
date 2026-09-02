@@ -11,13 +11,13 @@ Distilled from [RFC-0001](../rfc/RFC-0001-clean-slate-redesign.md) §6–§7. Th
 
 ## Trust boundaries
 
-| Boundary         | Untrusted side              | Trusted side      | Primary controls                                                   |
-| ---------------- | --------------------------- | ----------------- | ------------------------------------------------------------------ |
-| TB1 Parse        | Artifact JSON/SQL           | dbt-tools process | Parser dispatch, `parseUntrustedJson`, Zod validation              |
-| TB2 MCP input    | Agent-driven tool args      | MCP server        | stdio transport (SDK 2.0 dual-era), input/output schema validation |
-| TB3 Local HTTP   | LAN / other local processes | Web server API    | Loopback bind, Host/Origin checks, POST-only mutations             |
+| Boundary         | Untrusted side              | Trusted side      | Primary controls                                                          |
+| ---------------- | --------------------------- | ----------------- | ------------------------------------------------------------------------- |
+| TB1 Parse        | Artifact JSON/SQL           | dbt-tools process | Parser dispatch, `parseUntrustedJson`, Zod validation                     |
+| TB2 MCP input    | Agent-driven tool args      | MCP server        | stdio transport (SDK 2.0 dual-era), input/output schema validation        |
+| TB3 Local HTTP   | LAN / other local processes | Web server API    | Loopback bind, Host/Origin checks, POST-only mutations                    |
 | TB4 Supply chain | npm dependencies            | Installed tree    | Lockfile, `ignore-scripts`, release-age cooldown, SBOM snapshot, scanners |
-| TB5 Filesystem   | User-supplied paths         | Read scope        | `ArtifactRoot` / `resolveSafePath` containment                     |
+| TB5 Filesystem   | User-supplied paths         | Read scope        | `ArtifactRoot` / `resolveSafePath` containment                            |
 
 ## Threat register
 
