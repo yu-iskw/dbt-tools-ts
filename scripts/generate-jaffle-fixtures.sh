@@ -74,14 +74,19 @@ install -d "${RESOURCES}/manifest/v12/jaffle_shop"
 install -d "${RESOURCES}/run_results/v6/jaffle_shop"
 install -d "${RESOURCES}/catalog/v1/jaffle_shop"
 
-cp "${WORK}/jaffle/target/manifest.json" \
-	"${RESOURCES}/manifest/v12/jaffle_shop/manifest_${DBT_MINOR}.json"
-cp "${WORK}/jaffle/target/run_results.json" \
-	"${RESOURCES}/run_results/v6/jaffle_shop/run_results_${DBT_MINOR}.json"
-cp "${WORK}/jaffle/target/catalog.json" \
-	"${RESOURCES}/catalog/v1/jaffle_shop/catalog_${DBT_MINOR}.json"
+MANIFEST_OUT="${RESOURCES}/manifest/v12/jaffle_shop/manifest_${DBT_MINOR}.json"
+RUN_RESULTS_OUT="${RESOURCES}/run_results/v6/jaffle_shop/run_results_${DBT_MINOR}.json"
+CATALOG_OUT="${RESOURCES}/catalog/v1/jaffle_shop/catalog_${DBT_MINOR}.json"
+
+cp "${WORK}/jaffle/target/manifest.json" "${MANIFEST_OUT}"
+cp "${WORK}/jaffle/target/run_results.json" "${RUN_RESULTS_OUT}"
+cp "${WORK}/jaffle/target/catalog.json" "${CATALOG_OUT}"
+
+# Trunk/Prettier formats fixture JSON; compact dbt output fails CI.
+cd "${REPO_ROOT}"
+pnpm exec prettier --write "${MANIFEST_OUT}" "${RUN_RESULTS_OUT}" "${CATALOG_OUT}"
 
 echo "generate-jaffle-fixtures.sh: wrote"
-echo "  ${RESOURCES}/manifest/v12/jaffle_shop/manifest_${DBT_MINOR}.json"
-echo "  ${RESOURCES}/run_results/v6/jaffle_shop/run_results_${DBT_MINOR}.json"
-echo "  ${RESOURCES}/catalog/v1/jaffle_shop/catalog_${DBT_MINOR}.json"
+echo "  ${MANIFEST_OUT}"
+echo "  ${RUN_RESULTS_OUT}"
+echo "  ${CATALOG_OUT}"

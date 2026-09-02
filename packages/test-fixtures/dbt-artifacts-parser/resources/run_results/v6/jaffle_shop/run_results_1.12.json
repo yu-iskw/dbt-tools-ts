@@ -1,1 +1,812 @@
-{"metadata": {"dbt_schema_version": "https://schemas.getdbt.com/dbt/run-results/v6.json", "dbt_version": "1.12.3", "generated_at": "2026-09-02T14:45:01.140005Z", "invocation_id": "80d029cc-3d91-4d2b-bbf5-e4fc30aa948b", "invocation_started_at": "2026-09-02T14:45:00.433418Z", "env": {}}, "results": [{"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.894645Z", "completed_at": "2026-09-02T14:45:00.897858Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.900156Z", "completed_at": "2026-09-02T14:45:00.900170Z"}], "thread_id": "Thread-1 (worker)", "execution_time": 0.00836491584777832, "adapter_response": {}, "message": null, "failures": null, "unique_id": "seed.jaffle_shop.raw_customers", "compiled": null, "compiled_code": null, "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.898352Z", "completed_at": "2026-09-02T14:45:00.898938Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.900932Z", "completed_at": "2026-09-02T14:45:00.900952Z"}], "thread_id": "Thread-2 (worker)", "execution_time": 0.008594751358032227, "adapter_response": {}, "message": null, "failures": null, "unique_id": "seed.jaffle_shop.raw_orders", "compiled": null, "compiled_code": null, "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.899335Z", "completed_at": "2026-09-02T14:45:00.899785Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.901750Z", "completed_at": "2026-09-02T14:45:00.901762Z"}], "thread_id": "Thread-3 (worker)", "execution_time": 0.008700370788574219, "adapter_response": {}, "message": null, "failures": null, "unique_id": "seed.jaffle_shop.raw_payments", "compiled": null, "compiled_code": null, "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.903674Z", "completed_at": "2026-09-02T14:45:00.905265Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.905505Z", "completed_at": "2026-09-02T14:45:00.905510Z"}], "thread_id": "Thread-3 (worker)", "execution_time": 0.002534151077270508, "adapter_response": {}, "message": null, "failures": null, "unique_id": "model.jaffle_shop.stg_customers", "compiled": true, "compiled_code": "with source as (\n    select * from \"jaffle_shop\".\"main\".\"raw_customers\"\n\n),\n\nrenamed as (\n\n    select\n        id as customer_id,\n        first_name,\n        last_name\n\n    from source\n\n)\n\nselect * from renamed", "relation_name": "\"jaffle_shop\".\"main\".\"stg_customers\"", "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.910605Z", "completed_at": "2026-09-02T14:45:00.923616Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.930552Z", "completed_at": "2026-09-02T14:45:00.930560Z"}], "thread_id": "Thread-6 (worker)", "execution_time": 0.02323746681213379, "adapter_response": {}, "message": null, "failures": null, "unique_id": "model.jaffle_shop.stg_orders", "compiled": true, "compiled_code": "with source as (\n    select * from \"jaffle_shop\".\"main\".\"raw_orders\"\n\n),\n\nrenamed as (\n\n    select\n        id as order_id,\n        user_id as customer_id,\n        order_date,\n        status\n\n    from source\n\n)\n\nselect * from renamed", "relation_name": "\"jaffle_shop\".\"main\".\"stg_orders\"", "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.912537Z", "completed_at": "2026-09-02T14:45:00.930041Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.931509Z", "completed_at": "2026-09-02T14:45:00.931516Z"}], "thread_id": "Thread-7 (worker)", "execution_time": 0.023420095443725586, "adapter_response": {}, "message": null, "failures": null, "unique_id": "model.jaffle_shop.stg_payments", "compiled": true, "compiled_code": "with source as (\n    select * from \"jaffle_shop\".\"main\".\"raw_payments\"\n\n),\n\nrenamed as (\n\n    select\n        id as payment_id,\n        order_id,\n        payment_method,\n\n        -- `amount` is currently stored in cents, so we convert it to dollars\n        amount / 100 as amount\n\n    from source\n\n)\n\nselect * from renamed", "relation_name": "\"jaffle_shop\".\"main\".\"stg_payments\"", "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.914151Z", "completed_at": "2026-09-02T14:45:00.931083Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.932101Z", "completed_at": "2026-09-02T14:45:00.932109Z"}], "thread_id": "Thread-8 (worker)", "execution_time": 0.023663997650146484, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_stg_customers_customer_id.e2cfb1f9aa", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect customer_id\nfrom \"jaffle_shop\".\"main\".\"stg_customers\"\nwhere customer_id is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.924078Z", "completed_at": "2026-09-02T14:45:00.933703Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.936933Z", "completed_at": "2026-09-02T14:45:00.936945Z"}], "thread_id": "Thread-9 (worker)", "execution_time": 0.02746438980102539, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.unique_stg_customers_customer_id.c7614daada", "compiled": true, "compiled_code": "\n    \n    \n\nselect\n    customer_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"stg_customers\"\nwhere customer_id is not null\ngroup by customer_id\nhaving count(*) > 1\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.941574Z", "completed_at": "2026-09-02T14:45:00.972056Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.997920Z", "completed_at": "2026-09-02T14:45:00.997929Z"}], "thread_id": "Thread-11 (worker)", "execution_time": 0.06316637992858887, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.accepted_values_stg_orders_status__placed__shipped__completed__return_pending__returned.080fb20aad", "compiled": true, "compiled_code": "\n    \n    \n\nwith all_values as (\n\n    select\n        status as value_field,\n        count(*) as n_records\n\n    from \"jaffle_shop\".\"main\".\"stg_orders\"\n    group by status\n\n)\n\nselect *\nfrom all_values\nwhere value_field not in (\n    'placed','shipped','completed','return_pending','returned'\n)\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.960813Z", "completed_at": "2026-09-02T14:45:00.996277Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:00.999484Z", "completed_at": "2026-09-02T14:45:00.999492Z"}], "thread_id": "Thread-12 (worker)", "execution_time": 0.0635066032409668, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_stg_orders_order_id.81cfe2fe64", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect order_id\nfrom \"jaffle_shop\".\"main\".\"stg_orders\"\nwhere order_id is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.965919Z", "completed_at": "2026-09-02T14:45:00.997031Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.000307Z", "completed_at": "2026-09-02T14:45:01.000313Z"}], "thread_id": "Thread-13 (worker)", "execution_time": 0.06278347969055176, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.unique_stg_orders_order_id.e3b841c71a", "compiled": true, "compiled_code": "\n    \n    \n\nselect\n    order_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"stg_orders\"\nwhere order_id is not null\ngroup by order_id\nhaving count(*) > 1\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.970262Z", "completed_at": "2026-09-02T14:45:00.997516Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.001247Z", "completed_at": "2026-09-02T14:45:01.001259Z"}], "thread_id": "Thread-15 (worker)", "execution_time": 0.06289267539978027, "adapter_response": {}, "message": null, "failures": null, "unique_id": "model.jaffle_shop.customers", "compiled": true, "compiled_code": "with customers as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_customers\"\n\n),\n\norders as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_orders\"\n\n),\n\npayments as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_payments\"\n\n),\n\ncustomer_orders as (\n\n        select\n        customer_id,\n\n        min(order_date) as first_order,\n        max(order_date) as most_recent_order,\n        count(order_id) as number_of_orders\n    from orders\n\n    group by customer_id\n\n),\n\ncustomer_payments as (\n\n    select\n        orders.customer_id,\n        sum(amount) as total_amount\n\n    from payments\n\n    left join orders on\n         payments.order_id = orders.order_id\n\n    group by orders.customer_id\n\n),\n\nfinal as (\n\n    select\n        customers.customer_id,\n        customers.first_name,\n        customers.last_name,\n        customer_orders.first_order,\n        customer_orders.most_recent_order,\n        customer_orders.number_of_orders,\n        customer_payments.total_amount as customer_lifetime_value\n\n    from customers\n\n    left join customer_orders\n        on customers.customer_id = customer_orders.customer_id\n\n    left join customer_payments\n        on  customers.customer_id = customer_payments.customer_id\n\n)\n\nselect * from final", "relation_name": "\"jaffle_shop\".\"main\".\"customers\"", "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.972547Z", "completed_at": "2026-09-02T14:45:00.998675Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.002047Z", "completed_at": "2026-09-02T14:45:01.002060Z"}], "thread_id": "Thread-16 (worker)", "execution_time": 0.06316375732421875, "adapter_response": {}, "message": null, "failures": null, "unique_id": "model.jaffle_shop.orders", "compiled": true, "compiled_code": "\n\nwith orders as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_orders\"\n\n),\n\npayments as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_payments\"\n\n),\n\norder_payments as (\n\n    select\n        order_id,\n\n        sum(case when payment_method = 'credit_card' then amount else 0 end) as credit_card_amount,\n        sum(case when payment_method = 'coupon' then amount else 0 end) as coupon_amount,\n        sum(case when payment_method = 'bank_transfer' then amount else 0 end) as bank_transfer_amount,\n        sum(case when payment_method = 'gift_card' then amount else 0 end) as gift_card_amount,\n        sum(amount) as total_amount\n\n    from payments\n\n    group by order_id\n\n),\n\nfinal as (\n\n    select\n        orders.order_id,\n        orders.customer_id,\n        orders.order_date,\n        orders.status,\n\n        order_payments.credit_card_amount,\n\n        order_payments.coupon_amount,\n\n        order_payments.bank_transfer_amount,\n\n        order_payments.gift_card_amount,\n\n        order_payments.total_amount as amount\n\n    from orders\n\n\n    left join order_payments\n        on orders.order_id = order_payments.order_id\n\n)\n\nselect * from final", "relation_name": "\"jaffle_shop\".\"main\".\"orders\"", "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.974938Z", "completed_at": "2026-09-02T14:45:00.999178Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.002640Z", "completed_at": "2026-09-02T14:45:01.002647Z"}], "thread_id": "Thread-17 (worker)", "execution_time": 0.06334662437438965, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.accepted_values_stg_payments_payment_method__credit_card__coupon__bank_transfer__gift_card.3c3820f278", "compiled": true, "compiled_code": "\n    \n    \n\nwith all_values as (\n\n    select\n        payment_method as value_field,\n        count(*) as n_records\n\n    from \"jaffle_shop\".\"main\".\"stg_payments\"\n    group by payment_method\n\n)\n\nselect *\nfrom all_values\nwhere value_field not in (\n    'credit_card','coupon','bank_transfer','gift_card'\n)\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.992104Z", "completed_at": "2026-09-02T14:45:01.000034Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.003204Z", "completed_at": "2026-09-02T14:45:01.003213Z"}], "thread_id": "Thread-19 (worker)", "execution_time": 0.06273984909057617, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.unique_stg_payments_payment_id.3744510712", "compiled": true, "compiled_code": "\n    \n    \n\nselect\n    payment_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"stg_payments\"\nwhere payment_id is not null\ngroup by payment_id\nhaving count(*) > 1\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:00.987956Z", "completed_at": "2026-09-02T14:45:01.000855Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.003770Z", "completed_at": "2026-09-02T14:45:01.003775Z"}], "thread_id": "Thread-18 (worker)", "execution_time": 0.06380701065063477, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_stg_payments_payment_id.c19cc50075", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect payment_id\nfrom \"jaffle_shop\".\"main\".\"stg_payments\"\nwhere payment_id is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.014653Z", "completed_at": "2026-09-02T14:45:01.082644Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.122765Z", "completed_at": "2026-09-02T14:45:01.122780Z"}], "thread_id": "Thread-19 (worker)", "execution_time": 0.11600828170776367, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_customers_customer_id.5c9bf9911d", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect customer_id\nfrom \"jaffle_shop\".\"main\".\"customers\"\nwhere customer_id is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.063401Z", "completed_at": "2026-09-02T14:45:01.096028Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.124559Z", "completed_at": "2026-09-02T14:45:01.124570Z"}], "thread_id": "Thread-21 (worker)", "execution_time": 0.11673831939697266, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.unique_customers_customer_id.c5af1ff4b1", "compiled": true, "compiled_code": "\n    \n    \n\nselect\n    customer_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"customers\"\nwhere customer_id is not null\ngroup by customer_id\nhaving count(*) > 1\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.068017Z", "completed_at": "2026-09-02T14:45:01.096606Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.125740Z", "completed_at": "2026-09-02T14:45:01.125751Z"}], "thread_id": "Thread-22 (worker)", "execution_time": 0.11726140975952148, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.accepted_values_orders_status__placed__shipped__completed__return_pending__returned.be6b5b5ec3", "compiled": true, "compiled_code": "\n    \n    \n\nwith all_values as (\n\n    select\n        status as value_field,\n        count(*) as n_records\n\n    from \"jaffle_shop\".\"main\".\"orders\"\n    group by status\n\n)\n\nselect *\nfrom all_values\nwhere value_field not in (\n    'placed','shipped','completed','return_pending','returned'\n)\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.072881Z", "completed_at": "2026-09-02T14:45:01.101608Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.126865Z", "completed_at": "2026-09-02T14:45:01.126877Z"}], "thread_id": "Thread-18 (worker)", "execution_time": 0.11766457557678223, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_orders_amount.106140f9fd", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere amount is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.077837Z", "completed_at": "2026-09-02T14:45:01.117951Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.127803Z", "completed_at": "2026-09-02T14:45:01.127818Z"}], "thread_id": "Thread-23 (worker)", "execution_time": 0.1177823543548584, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_orders_bank_transfer_amount.7743500c49", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect bank_transfer_amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere bank_transfer_amount is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.083162Z", "completed_at": "2026-09-02T14:45:01.123699Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.130129Z", "completed_at": "2026-09-02T14:45:01.130141Z"}], "thread_id": "Thread-24 (worker)", "execution_time": 0.11916041374206543, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_orders_coupon_amount.ab90c90625", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect coupon_amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere coupon_amount is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.087302Z", "completed_at": "2026-09-02T14:45:01.124059Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.130704Z", "completed_at": "2026-09-02T14:45:01.130712Z"}], "thread_id": "Thread-4 (worker)", "execution_time": 0.1193537712097168, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_orders_credit_card_amount.d3ca593b59", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect credit_card_amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere credit_card_amount is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.091940Z", "completed_at": "2026-09-02T14:45:01.125245Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.131327Z", "completed_at": "2026-09-02T14:45:01.131337Z"}], "thread_id": "Thread-1 (worker)", "execution_time": 0.11934995651245117, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_orders_customer_id.c5f02694af", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect customer_id\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere customer_id is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.097035Z", "completed_at": "2026-09-02T14:45:01.126438Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.131958Z", "completed_at": "2026-09-02T14:45:01.131964Z"}], "thread_id": "Thread-2 (worker)", "execution_time": 0.1193537712097168, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_orders_gift_card_amount.413a0d2d7a", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect gift_card_amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere gift_card_amount is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.106513Z", "completed_at": "2026-09-02T14:45:01.128609Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.133263Z", "completed_at": "2026-09-02T14:45:01.133277Z"}], "thread_id": "Thread-3 (worker)", "execution_time": 0.11977672576904297, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.relationships_orders_customer_id__customer_id__ref_customers_.c6ec7f58f2", "compiled": true, "compiled_code": "\n    \n    \n\nwith child as (\n    select customer_id as from_field\n    from \"jaffle_shop\".\"main\".\"orders\"\n    where customer_id is not null\n),\n\nparent as (\n    select customer_id as to_field\n    from \"jaffle_shop\".\"main\".\"customers\"\n)\n\nselect\n    from_field\n\nfrom child\nleft join parent\n    on child.from_field = parent.to_field\n\nwhere parent.to_field is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.102177Z", "completed_at": "2026-09-02T14:45:01.129185Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.133858Z", "completed_at": "2026-09-02T14:45:01.133872Z"}], "thread_id": "Thread-5 (worker)", "execution_time": 0.12073922157287598, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.not_null_orders_order_id.cf6c17daed", "compiled": true, "compiled_code": "\n    \n    \n\n\n\nselect order_id\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere order_id is null\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}, {"status": "success", "timing": [{"name": "compile", "started_at": "2026-09-02T14:45:01.118360Z", "completed_at": "2026-09-02T14:45:01.129541Z"}, {"name": "execute", "started_at": "2026-09-02T14:45:01.134438Z", "completed_at": "2026-09-02T14:45:01.134450Z"}], "thread_id": "Thread-10 (worker)", "execution_time": 0.12025046348571777, "adapter_response": {}, "message": null, "failures": null, "unique_id": "test.jaffle_shop.unique_orders_order_id.fed79b3a6e", "compiled": true, "compiled_code": "\n    \n    \n\nselect\n    order_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere order_id is not null\ngroup by order_id\nhaving count(*) > 1\n\n\n", "relation_name": null, "batch_results": null, "overload_results": null}], "elapsed_time": 0.3000020980834961, "args": {"printer_width": 80, "require_explicit_package_overrides_for_builtin_materializations": true, "require_nested_cumulative_type_params": true, "log_format_file": "debug", "require_ref_searches_node_package_before_root": false, "log_path": "/tmp/jaffle-fixtures.0swaqN/jaffle/logs", "validate_macro_args": true, "maximum_seed_size_mib": 1, "v2_parser": "dbt-core-experimental-parser parse", "enable_grouped_warn_error_parser_logs": false, "use_colors_file": true, "empty_catalog": false, "require_sql_header_in_test_configs": false, "require_batched_execution_for_custom_microbatch_strategy": true, "indirect_selection": "eager", "introspect": true, "sqlparse": {"MAX_GROUPING_DEPTH": null, "MAX_GROUPING_TOKENS": null}, "populate_cache": true, "require_valid_schema_from_generate_schema_name": false, "require_corrected_analysis_fqns": false, "warn_error_options": {"error": [], "warn": [], "silence": []}, "write_json": true, "strict_mode": false, "use_catalogs_v2": false, "static": false, "use_v2_parser": false, "require_all_warnings_handled_by_warn_error": true, "log_level": "info", "state_modified_compare_more_unrendered_values": true, "allow_jinja_file_extensions": false, "macro_debugging": false, "exclude": [], "invocation_command": "dbt docs generate --profiles-dir .", "log_file_max_bytes": 10485760, "show_resource_report": false, "project_dir": "/tmp/jaffle-fixtures.0swaqN/jaffle", "which": "generate", "require_source_and_semantic_model_names_without_spaces": false, "partial_parse_file_diff": true, "support_custom_ref_kwargs": false, "source_freshness_run_project_hooks": true, "require_generic_test_arguments_property": true, "version_check": true, "skip_nodes_if_on_run_start_fails": true, "state_modified_compare_vars": false, "favor_state": false, "latest_version_pointer_enabled_by_default": false, "partial_parse": true, "vars": {}, "select": [], "upload_to_artifacts_ingest_api": false, "cache_selected_only": false, "snowflake_projects_otel": false, "use_fast_test_edges": false, "log_format": "default", "require_unique_project_resource_names": false, "send_anonymous_usage_stats": true, "require_yaml_configuration_for_mf_time_spines": true, "require_resource_names_without_spaces": true, "show_all_deprecations": false, "quiet": false, "compile": true, "use_colors": true, "defer": false, "log_level_file": "debug", "static_parser": true, "print": true, "hints_enabled": true, "profiles_dir": "."}}
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/run-results/v6.json",
+    "dbt_version": "1.12.3",
+    "generated_at": "2026-09-02T14:45:01.140005Z",
+    "invocation_id": "80d029cc-3d91-4d2b-bbf5-e4fc30aa948b",
+    "invocation_started_at": "2026-09-02T14:45:00.433418Z",
+    "env": {}
+  },
+  "results": [
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.894645Z",
+          "completed_at": "2026-09-02T14:45:00.897858Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.900156Z",
+          "completed_at": "2026-09-02T14:45:00.900170Z"
+        }
+      ],
+      "thread_id": "Thread-1 (worker)",
+      "execution_time": 0.00836491584777832,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "seed.jaffle_shop.raw_customers",
+      "compiled": null,
+      "compiled_code": null,
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.898352Z",
+          "completed_at": "2026-09-02T14:45:00.898938Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.900932Z",
+          "completed_at": "2026-09-02T14:45:00.900952Z"
+        }
+      ],
+      "thread_id": "Thread-2 (worker)",
+      "execution_time": 0.008594751358032227,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "seed.jaffle_shop.raw_orders",
+      "compiled": null,
+      "compiled_code": null,
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.899335Z",
+          "completed_at": "2026-09-02T14:45:00.899785Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.901750Z",
+          "completed_at": "2026-09-02T14:45:00.901762Z"
+        }
+      ],
+      "thread_id": "Thread-3 (worker)",
+      "execution_time": 0.008700370788574219,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "seed.jaffle_shop.raw_payments",
+      "compiled": null,
+      "compiled_code": null,
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.903674Z",
+          "completed_at": "2026-09-02T14:45:00.905265Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.905505Z",
+          "completed_at": "2026-09-02T14:45:00.905510Z"
+        }
+      ],
+      "thread_id": "Thread-3 (worker)",
+      "execution_time": 0.002534151077270508,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "model.jaffle_shop.stg_customers",
+      "compiled": true,
+      "compiled_code": "with source as (\n    select * from \"jaffle_shop\".\"main\".\"raw_customers\"\n\n),\n\nrenamed as (\n\n    select\n        id as customer_id,\n        first_name,\n        last_name\n\n    from source\n\n)\n\nselect * from renamed",
+      "relation_name": "\"jaffle_shop\".\"main\".\"stg_customers\"",
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.910605Z",
+          "completed_at": "2026-09-02T14:45:00.923616Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.930552Z",
+          "completed_at": "2026-09-02T14:45:00.930560Z"
+        }
+      ],
+      "thread_id": "Thread-6 (worker)",
+      "execution_time": 0.02323746681213379,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "model.jaffle_shop.stg_orders",
+      "compiled": true,
+      "compiled_code": "with source as (\n    select * from \"jaffle_shop\".\"main\".\"raw_orders\"\n\n),\n\nrenamed as (\n\n    select\n        id as order_id,\n        user_id as customer_id,\n        order_date,\n        status\n\n    from source\n\n)\n\nselect * from renamed",
+      "relation_name": "\"jaffle_shop\".\"main\".\"stg_orders\"",
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.912537Z",
+          "completed_at": "2026-09-02T14:45:00.930041Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.931509Z",
+          "completed_at": "2026-09-02T14:45:00.931516Z"
+        }
+      ],
+      "thread_id": "Thread-7 (worker)",
+      "execution_time": 0.023420095443725586,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "model.jaffle_shop.stg_payments",
+      "compiled": true,
+      "compiled_code": "with source as (\n    select * from \"jaffle_shop\".\"main\".\"raw_payments\"\n\n),\n\nrenamed as (\n\n    select\n        id as payment_id,\n        order_id,\n        payment_method,\n\n        -- `amount` is currently stored in cents, so we convert it to dollars\n        amount / 100 as amount\n\n    from source\n\n)\n\nselect * from renamed",
+      "relation_name": "\"jaffle_shop\".\"main\".\"stg_payments\"",
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.914151Z",
+          "completed_at": "2026-09-02T14:45:00.931083Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.932101Z",
+          "completed_at": "2026-09-02T14:45:00.932109Z"
+        }
+      ],
+      "thread_id": "Thread-8 (worker)",
+      "execution_time": 0.023663997650146484,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_stg_customers_customer_id.e2cfb1f9aa",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect customer_id\nfrom \"jaffle_shop\".\"main\".\"stg_customers\"\nwhere customer_id is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.924078Z",
+          "completed_at": "2026-09-02T14:45:00.933703Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.936933Z",
+          "completed_at": "2026-09-02T14:45:00.936945Z"
+        }
+      ],
+      "thread_id": "Thread-9 (worker)",
+      "execution_time": 0.02746438980102539,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.unique_stg_customers_customer_id.c7614daada",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nselect\n    customer_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"stg_customers\"\nwhere customer_id is not null\ngroup by customer_id\nhaving count(*) > 1\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.941574Z",
+          "completed_at": "2026-09-02T14:45:00.972056Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.997920Z",
+          "completed_at": "2026-09-02T14:45:00.997929Z"
+        }
+      ],
+      "thread_id": "Thread-11 (worker)",
+      "execution_time": 0.06316637992858887,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.accepted_values_stg_orders_status__placed__shipped__completed__return_pending__returned.080fb20aad",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nwith all_values as (\n\n    select\n        status as value_field,\n        count(*) as n_records\n\n    from \"jaffle_shop\".\"main\".\"stg_orders\"\n    group by status\n\n)\n\nselect *\nfrom all_values\nwhere value_field not in (\n    'placed','shipped','completed','return_pending','returned'\n)\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.960813Z",
+          "completed_at": "2026-09-02T14:45:00.996277Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:00.999484Z",
+          "completed_at": "2026-09-02T14:45:00.999492Z"
+        }
+      ],
+      "thread_id": "Thread-12 (worker)",
+      "execution_time": 0.0635066032409668,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_stg_orders_order_id.81cfe2fe64",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect order_id\nfrom \"jaffle_shop\".\"main\".\"stg_orders\"\nwhere order_id is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.965919Z",
+          "completed_at": "2026-09-02T14:45:00.997031Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.000307Z",
+          "completed_at": "2026-09-02T14:45:01.000313Z"
+        }
+      ],
+      "thread_id": "Thread-13 (worker)",
+      "execution_time": 0.06278347969055176,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.unique_stg_orders_order_id.e3b841c71a",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nselect\n    order_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"stg_orders\"\nwhere order_id is not null\ngroup by order_id\nhaving count(*) > 1\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.970262Z",
+          "completed_at": "2026-09-02T14:45:00.997516Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.001247Z",
+          "completed_at": "2026-09-02T14:45:01.001259Z"
+        }
+      ],
+      "thread_id": "Thread-15 (worker)",
+      "execution_time": 0.06289267539978027,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "model.jaffle_shop.customers",
+      "compiled": true,
+      "compiled_code": "with customers as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_customers\"\n\n),\n\norders as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_orders\"\n\n),\n\npayments as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_payments\"\n\n),\n\ncustomer_orders as (\n\n        select\n        customer_id,\n\n        min(order_date) as first_order,\n        max(order_date) as most_recent_order,\n        count(order_id) as number_of_orders\n    from orders\n\n    group by customer_id\n\n),\n\ncustomer_payments as (\n\n    select\n        orders.customer_id,\n        sum(amount) as total_amount\n\n    from payments\n\n    left join orders on\n         payments.order_id = orders.order_id\n\n    group by orders.customer_id\n\n),\n\nfinal as (\n\n    select\n        customers.customer_id,\n        customers.first_name,\n        customers.last_name,\n        customer_orders.first_order,\n        customer_orders.most_recent_order,\n        customer_orders.number_of_orders,\n        customer_payments.total_amount as customer_lifetime_value\n\n    from customers\n\n    left join customer_orders\n        on customers.customer_id = customer_orders.customer_id\n\n    left join customer_payments\n        on  customers.customer_id = customer_payments.customer_id\n\n)\n\nselect * from final",
+      "relation_name": "\"jaffle_shop\".\"main\".\"customers\"",
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.972547Z",
+          "completed_at": "2026-09-02T14:45:00.998675Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.002047Z",
+          "completed_at": "2026-09-02T14:45:01.002060Z"
+        }
+      ],
+      "thread_id": "Thread-16 (worker)",
+      "execution_time": 0.06316375732421875,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "model.jaffle_shop.orders",
+      "compiled": true,
+      "compiled_code": "\n\nwith orders as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_orders\"\n\n),\n\npayments as (\n\n    select * from \"jaffle_shop\".\"main\".\"stg_payments\"\n\n),\n\norder_payments as (\n\n    select\n        order_id,\n\n        sum(case when payment_method = 'credit_card' then amount else 0 end) as credit_card_amount,\n        sum(case when payment_method = 'coupon' then amount else 0 end) as coupon_amount,\n        sum(case when payment_method = 'bank_transfer' then amount else 0 end) as bank_transfer_amount,\n        sum(case when payment_method = 'gift_card' then amount else 0 end) as gift_card_amount,\n        sum(amount) as total_amount\n\n    from payments\n\n    group by order_id\n\n),\n\nfinal as (\n\n    select\n        orders.order_id,\n        orders.customer_id,\n        orders.order_date,\n        orders.status,\n\n        order_payments.credit_card_amount,\n\n        order_payments.coupon_amount,\n\n        order_payments.bank_transfer_amount,\n\n        order_payments.gift_card_amount,\n\n        order_payments.total_amount as amount\n\n    from orders\n\n\n    left join order_payments\n        on orders.order_id = order_payments.order_id\n\n)\n\nselect * from final",
+      "relation_name": "\"jaffle_shop\".\"main\".\"orders\"",
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.974938Z",
+          "completed_at": "2026-09-02T14:45:00.999178Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.002640Z",
+          "completed_at": "2026-09-02T14:45:01.002647Z"
+        }
+      ],
+      "thread_id": "Thread-17 (worker)",
+      "execution_time": 0.06334662437438965,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.accepted_values_stg_payments_payment_method__credit_card__coupon__bank_transfer__gift_card.3c3820f278",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nwith all_values as (\n\n    select\n        payment_method as value_field,\n        count(*) as n_records\n\n    from \"jaffle_shop\".\"main\".\"stg_payments\"\n    group by payment_method\n\n)\n\nselect *\nfrom all_values\nwhere value_field not in (\n    'credit_card','coupon','bank_transfer','gift_card'\n)\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.992104Z",
+          "completed_at": "2026-09-02T14:45:01.000034Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.003204Z",
+          "completed_at": "2026-09-02T14:45:01.003213Z"
+        }
+      ],
+      "thread_id": "Thread-19 (worker)",
+      "execution_time": 0.06273984909057617,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.unique_stg_payments_payment_id.3744510712",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nselect\n    payment_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"stg_payments\"\nwhere payment_id is not null\ngroup by payment_id\nhaving count(*) > 1\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:00.987956Z",
+          "completed_at": "2026-09-02T14:45:01.000855Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.003770Z",
+          "completed_at": "2026-09-02T14:45:01.003775Z"
+        }
+      ],
+      "thread_id": "Thread-18 (worker)",
+      "execution_time": 0.06380701065063477,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_stg_payments_payment_id.c19cc50075",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect payment_id\nfrom \"jaffle_shop\".\"main\".\"stg_payments\"\nwhere payment_id is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.014653Z",
+          "completed_at": "2026-09-02T14:45:01.082644Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.122765Z",
+          "completed_at": "2026-09-02T14:45:01.122780Z"
+        }
+      ],
+      "thread_id": "Thread-19 (worker)",
+      "execution_time": 0.11600828170776367,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_customers_customer_id.5c9bf9911d",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect customer_id\nfrom \"jaffle_shop\".\"main\".\"customers\"\nwhere customer_id is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.063401Z",
+          "completed_at": "2026-09-02T14:45:01.096028Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.124559Z",
+          "completed_at": "2026-09-02T14:45:01.124570Z"
+        }
+      ],
+      "thread_id": "Thread-21 (worker)",
+      "execution_time": 0.11673831939697266,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.unique_customers_customer_id.c5af1ff4b1",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nselect\n    customer_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"customers\"\nwhere customer_id is not null\ngroup by customer_id\nhaving count(*) > 1\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.068017Z",
+          "completed_at": "2026-09-02T14:45:01.096606Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.125740Z",
+          "completed_at": "2026-09-02T14:45:01.125751Z"
+        }
+      ],
+      "thread_id": "Thread-22 (worker)",
+      "execution_time": 0.11726140975952148,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.accepted_values_orders_status__placed__shipped__completed__return_pending__returned.be6b5b5ec3",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nwith all_values as (\n\n    select\n        status as value_field,\n        count(*) as n_records\n\n    from \"jaffle_shop\".\"main\".\"orders\"\n    group by status\n\n)\n\nselect *\nfrom all_values\nwhere value_field not in (\n    'placed','shipped','completed','return_pending','returned'\n)\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.072881Z",
+          "completed_at": "2026-09-02T14:45:01.101608Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.126865Z",
+          "completed_at": "2026-09-02T14:45:01.126877Z"
+        }
+      ],
+      "thread_id": "Thread-18 (worker)",
+      "execution_time": 0.11766457557678223,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_orders_amount.106140f9fd",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere amount is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.077837Z",
+          "completed_at": "2026-09-02T14:45:01.117951Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.127803Z",
+          "completed_at": "2026-09-02T14:45:01.127818Z"
+        }
+      ],
+      "thread_id": "Thread-23 (worker)",
+      "execution_time": 0.1177823543548584,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_orders_bank_transfer_amount.7743500c49",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect bank_transfer_amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere bank_transfer_amount is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.083162Z",
+          "completed_at": "2026-09-02T14:45:01.123699Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.130129Z",
+          "completed_at": "2026-09-02T14:45:01.130141Z"
+        }
+      ],
+      "thread_id": "Thread-24 (worker)",
+      "execution_time": 0.11916041374206543,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_orders_coupon_amount.ab90c90625",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect coupon_amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere coupon_amount is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.087302Z",
+          "completed_at": "2026-09-02T14:45:01.124059Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.130704Z",
+          "completed_at": "2026-09-02T14:45:01.130712Z"
+        }
+      ],
+      "thread_id": "Thread-4 (worker)",
+      "execution_time": 0.1193537712097168,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_orders_credit_card_amount.d3ca593b59",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect credit_card_amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere credit_card_amount is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.091940Z",
+          "completed_at": "2026-09-02T14:45:01.125245Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.131327Z",
+          "completed_at": "2026-09-02T14:45:01.131337Z"
+        }
+      ],
+      "thread_id": "Thread-1 (worker)",
+      "execution_time": 0.11934995651245117,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_orders_customer_id.c5f02694af",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect customer_id\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere customer_id is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.097035Z",
+          "completed_at": "2026-09-02T14:45:01.126438Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.131958Z",
+          "completed_at": "2026-09-02T14:45:01.131964Z"
+        }
+      ],
+      "thread_id": "Thread-2 (worker)",
+      "execution_time": 0.1193537712097168,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_orders_gift_card_amount.413a0d2d7a",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect gift_card_amount\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere gift_card_amount is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.106513Z",
+          "completed_at": "2026-09-02T14:45:01.128609Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.133263Z",
+          "completed_at": "2026-09-02T14:45:01.133277Z"
+        }
+      ],
+      "thread_id": "Thread-3 (worker)",
+      "execution_time": 0.11977672576904297,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.relationships_orders_customer_id__customer_id__ref_customers_.c6ec7f58f2",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nwith child as (\n    select customer_id as from_field\n    from \"jaffle_shop\".\"main\".\"orders\"\n    where customer_id is not null\n),\n\nparent as (\n    select customer_id as to_field\n    from \"jaffle_shop\".\"main\".\"customers\"\n)\n\nselect\n    from_field\n\nfrom child\nleft join parent\n    on child.from_field = parent.to_field\n\nwhere parent.to_field is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.102177Z",
+          "completed_at": "2026-09-02T14:45:01.129185Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.133858Z",
+          "completed_at": "2026-09-02T14:45:01.133872Z"
+        }
+      ],
+      "thread_id": "Thread-5 (worker)",
+      "execution_time": 0.12073922157287598,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.not_null_orders_order_id.cf6c17daed",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\n\n\nselect order_id\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere order_id is null\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    },
+    {
+      "status": "success",
+      "timing": [
+        {
+          "name": "compile",
+          "started_at": "2026-09-02T14:45:01.118360Z",
+          "completed_at": "2026-09-02T14:45:01.129541Z"
+        },
+        {
+          "name": "execute",
+          "started_at": "2026-09-02T14:45:01.134438Z",
+          "completed_at": "2026-09-02T14:45:01.134450Z"
+        }
+      ],
+      "thread_id": "Thread-10 (worker)",
+      "execution_time": 0.12025046348571777,
+      "adapter_response": {},
+      "message": null,
+      "failures": null,
+      "unique_id": "test.jaffle_shop.unique_orders_order_id.fed79b3a6e",
+      "compiled": true,
+      "compiled_code": "\n    \n    \n\nselect\n    order_id as unique_field,\n    count(*) as n_records\n\nfrom \"jaffle_shop\".\"main\".\"orders\"\nwhere order_id is not null\ngroup by order_id\nhaving count(*) > 1\n\n\n",
+      "relation_name": null,
+      "batch_results": null,
+      "overload_results": null
+    }
+  ],
+  "elapsed_time": 0.3000020980834961,
+  "args": {
+    "printer_width": 80,
+    "require_explicit_package_overrides_for_builtin_materializations": true,
+    "require_nested_cumulative_type_params": true,
+    "log_format_file": "debug",
+    "require_ref_searches_node_package_before_root": false,
+    "log_path": "/tmp/jaffle-fixtures.0swaqN/jaffle/logs",
+    "validate_macro_args": true,
+    "maximum_seed_size_mib": 1,
+    "v2_parser": "dbt-core-experimental-parser parse",
+    "enable_grouped_warn_error_parser_logs": false,
+    "use_colors_file": true,
+    "empty_catalog": false,
+    "require_sql_header_in_test_configs": false,
+    "require_batched_execution_for_custom_microbatch_strategy": true,
+    "indirect_selection": "eager",
+    "introspect": true,
+    "sqlparse": { "MAX_GROUPING_DEPTH": null, "MAX_GROUPING_TOKENS": null },
+    "populate_cache": true,
+    "require_valid_schema_from_generate_schema_name": false,
+    "require_corrected_analysis_fqns": false,
+    "warn_error_options": { "error": [], "warn": [], "silence": [] },
+    "write_json": true,
+    "strict_mode": false,
+    "use_catalogs_v2": false,
+    "static": false,
+    "use_v2_parser": false,
+    "require_all_warnings_handled_by_warn_error": true,
+    "log_level": "info",
+    "state_modified_compare_more_unrendered_values": true,
+    "allow_jinja_file_extensions": false,
+    "macro_debugging": false,
+    "exclude": [],
+    "invocation_command": "dbt docs generate --profiles-dir .",
+    "log_file_max_bytes": 10485760,
+    "show_resource_report": false,
+    "project_dir": "/tmp/jaffle-fixtures.0swaqN/jaffle",
+    "which": "generate",
+    "require_source_and_semantic_model_names_without_spaces": false,
+    "partial_parse_file_diff": true,
+    "support_custom_ref_kwargs": false,
+    "source_freshness_run_project_hooks": true,
+    "require_generic_test_arguments_property": true,
+    "version_check": true,
+    "skip_nodes_if_on_run_start_fails": true,
+    "state_modified_compare_vars": false,
+    "favor_state": false,
+    "latest_version_pointer_enabled_by_default": false,
+    "partial_parse": true,
+    "vars": {},
+    "select": [],
+    "upload_to_artifacts_ingest_api": false,
+    "cache_selected_only": false,
+    "snowflake_projects_otel": false,
+    "use_fast_test_edges": false,
+    "log_format": "default",
+    "require_unique_project_resource_names": false,
+    "send_anonymous_usage_stats": true,
+    "require_yaml_configuration_for_mf_time_spines": true,
+    "require_resource_names_without_spaces": true,
+    "show_all_deprecations": false,
+    "quiet": false,
+    "compile": true,
+    "use_colors": true,
+    "defer": false,
+    "log_level_file": "debug",
+    "static_parser": true,
+    "print": true,
+    "hints_enabled": true,
+    "profiles_dir": "."
+  }
+}
