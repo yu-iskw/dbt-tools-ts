@@ -48,18 +48,22 @@ function parseToolContentText(result) {
   return block.text;
 }
 
-async function withClient(name, args, versionNegotiation, fn) {
+async function withClient(name, args, era, fn) {
   const transport = new StdioClientTransport({
     command: process.execPath,
     args,
     cwd: packageRoot,
     stderr: 'pipe',
   });
-  const client = versionNegotiation
-    ? new Client({ name, version: '1.0.0' }, { versionNegotiation })
+  const client = era.versionNegotiation
+    ? new Client({ name, version: '1.0.0' }, { versionNegotiation: era.versionNegotiation })
     : new Client({ name, version: '1.0.0' });
   await client.connect(transport);
   try {
+    assert(
+      client.getProtocolEra() === era.label,
+      `${name}: negotiated ${client.getProtocolEra()}, expected ${era.label}`,
+    );
     await fn(client);
   } finally {
     await client.close();
@@ -141,13 +145,13 @@ async function main() {
       await withClient(
         `smoke-mcp-protocol-cold-${era.label}`,
         [serverEntry],
-        era.versionNegotiation,
+        era,
         smokeNoTargetErrors,
       );
       await withClient(
         `smoke-mcp-protocol-${era.label}`,
         [serverEntry, '--dbt-target', targetDir],
-        era.versionNegotiation,
+        era,
         (client) => smokeWarmSession(client, targetDir),
       );
     }
