@@ -4,6 +4,10 @@
 
 You understand what a resource does, why a run may have failed, and which downstream nodes are in the blast radius.
 
+![explain a resource by unique_id then trace downstream dependencies for blast radius.](/diagrams/explain-blast-radius.svg)
+
+Resolve the id with discover first when you only have a partial name (find-a-model stays in Steps).
+
 ## When to use this
 
 | Surface | Use when                                                                 |

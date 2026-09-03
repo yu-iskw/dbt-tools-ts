@@ -2,6 +2,10 @@
 
 dbt-tools uses **one ranking contract** for resource discovery across the CLI and the web investigation UI. The goal is the same question—“which resource did you mean?”—with the same reasons, not two different search implementations.
 
+![discovery query yields ranked matches with reasons; CLI, MCP, and Web use the same ranking contract.](/diagrams/discovery-flow.svg)
+
+Agents and scripts use the same ranking via CLI or MCP; the figure shows CLI, MCP, and Web as the parity set.
+
 ## Shared behavior
 
 - **CLI** `dbt-tools discover` returns ranked matches with scores, `reasons`, and optional disambiguation hints.

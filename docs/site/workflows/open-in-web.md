@@ -12,6 +12,10 @@ A `web_url` (and `review_url`) from CLI JSON opens the web UI on the same Invent
 | MCP     | Skip—use CLI for handoff URLs or open the web app manually                           |
 | Web     | Destination of the deep link                                                         |
 
+![with DBT_TOOLS_WEB_BASE_URL set, CLI discover or explain JSON includes a web_url that a browser opens into the same Web UI context.](/diagrams/open-in-web.svg)
+
+MCP is skipped for this handoff; use CLI JSON or open the web app manually.
+
 ## Steps
 
 1. Start `dbt-tools-web`, export `DBT_TOOLS_WEB_BASE_URL` to its origin ([deep links](../reference/deep-links.md)).
