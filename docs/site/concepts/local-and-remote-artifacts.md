@@ -2,6 +2,10 @@
 
 dbt-tools is **local-first**: the default path is a dbt `target/` directory on disk. Remote object storage is supported when you explicitly configure it—credentials stay on the Node side, not in the browser.
 
+![the same manifest and run_results pair under a local target path or an s3 or gs prefix.](/diagrams/local-remote-target.svg)
+
+Web upload / preload stays in the Modes table; the figure is URI/path pointing only.
+
 ## Modes
 
 | Mode                | Typical use                                                                                      |

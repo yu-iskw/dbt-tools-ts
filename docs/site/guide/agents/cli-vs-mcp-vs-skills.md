@@ -2,6 +2,10 @@
 
 dbt-tools exposes three complementary layers. They are not interchangeable—pick based on how often you query the same artifact run and who invokes the tool.
 
+![agent skills invoke CLI or MCP; Web, CLI, and MCP each use the shared analysis library; Web is not driven by CLI or MCP.](/diagrams/surface-routing.svg)
+
+Agent skills invoke CLI or MCP only. Web shares the same analysis library (`@dbt-tools/core`) and is not driven by CLI or MCP.
+
 ## Comparison
 
 | Layer                     | What it is               | Best for                                                 | Artifact access                                       |

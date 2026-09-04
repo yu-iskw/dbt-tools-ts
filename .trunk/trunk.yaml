@@ -25,6 +25,13 @@ lint:
     - checkov
     - trufflehog
     - markdownlint
+  definitions:
+    # Default plugin omits -c; load repo .markdown-link-check.json so /diagrams/*
+    # public assets resolve via replacementPatterns ({{BASEURL}}/docs/site/public/...).
+    - name: markdown-link-check
+      commands:
+        - name: lint
+          run: markdown-link-check -q -c .markdown-link-check.json "${target}"
   enabled:
     # - semgrep@1.155.0
     - stylelint@17.12.0
