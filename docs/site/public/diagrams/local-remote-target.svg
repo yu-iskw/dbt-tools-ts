@@ -5,12 +5,14 @@
     </marker>
   </defs>
 
+  <rect width="820" height="280" fill="#F6F7FB" />
+
   <rect x="24" y="36" width="160" height="56" rx="10" fill="#635BFF" />
   <text x="104" y="70" text-anchor="middle" fill="#FFFFFF" font-family="ui-monospace, monospace" font-size="14" font-weight="600">./target</text>
 
   <rect x="24" y="188" width="160" height="56" rx="10" fill="#635BFF" />
   <text x="104" y="212" text-anchor="middle" fill="#FFFFFF" font-family="ui-monospace, monospace" font-size="13" font-weight="600">s3://...</text>
-  <text x="104" y="230" text-anchor="middle" fill="#E8E6FF" font-family="ui-monospace, monospace" font-size="13" font-weight="600">gs://...</text>
+  <text x="104" y="230" text-anchor="middle" fill="#FFFFFF" font-family="ui-monospace, monospace" font-size="13" font-weight="600">gs://...</text>
 
   <line x1="184" y1="64" x2="276" y2="118" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)" />
   <line x1="184" y1="216" x2="276" y2="162" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)" />
@@ -24,5 +26,5 @@
 
   <rect x="576" y="108" width="200" height="64" rx="10" fill="#635BFF" />
   <text x="676" y="138" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="600">CLI / MCP / Web</text>
-  <text x="676" y="158" text-anchor="middle" fill="#E8E6FF" font-family="system-ui, sans-serif" font-size="11">consume either path</text>
+  <text x="676" y="158" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="11">consume either path</text>
 </svg>

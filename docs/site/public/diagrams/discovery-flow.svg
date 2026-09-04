@@ -5,6 +5,8 @@
     </marker>
   </defs>
 
+  <rect width="820" height="280" fill="#F6F7FB" />
+
   <rect x="24" y="108" width="140" height="64" rx="10" fill="#635BFF" />
   <text x="94" y="146" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="600">query</text>
 

@@ -17,8 +17,8 @@ An asset diagram whose job is to show a short causal or request path (how someth
 _Avoid_: Sequence for every edge case, ops map
 
 **Artifact-flow archetype**:
-The first orientation diagram to ship: dbt produces a target of artifacts; CLI, MCP, Web, and Agents consume that same contract. Used to prove the authoring and publish path before adding more diagrams.
-_Avoid_: Various diagrams, ecosystem collage
+The first orientation diagram to ship: dbt produces a target of artifacts; CLI, MCP, and Web consume that same contract. Used to prove the authoring and publish path before adding more diagrams.
+_Avoid_: Various diagrams, ecosystem collage, treating agent skills as an artifact consumer
 
 **Pages-only diagram**:
 A diagram that lives under `docs/site/` for end users of CLI, MCP, Web, and agent skills. It is not an ADR or contributor-architecture figure.
@@ -29,8 +29,8 @@ Checked-in site diagrams live under `docs/site/public/diagrams/` and are referen
 _Avoid_: Colocating structural diagrams next to markdown, scattering SVGs only in `public/` root
 
 **Artifact-flow diagram**:
-The first Pages-only orientation asset: `artifact-flow.svg`, embedded on `concepts/dbt-artifacts.md`. It shows dbt producing a target of `manifest.json` and `run_results.json`, then a peer fan-out to CLI, MCP, Web, and Agents (Agents included for ecosystem consistency; caption notes skills invoke CLI or MCP). Left-to-right layout. Light-tuned fixed fills for v1. Hand-authored, editable SVG markup. Embedded as `![alt](/diagrams/artifact-flow.svg)` plus one caption sentence. Replaces the Mermaid fence on that page.
-_Avoid_: Status badges on the figure, remote URI variants on the figure, duplicate Mermaid + SVG, package names on the fan-out boxes
+The first Pages-only orientation asset: `artifact-flow.svg`, embedded on `concepts/dbt-artifacts.md`. It shows dbt producing a target of `manifest.json` and `run_results.json`, then a peer fan-out to CLI, MCP, and Web (the surfaces that read artifacts). Caption notes coding agents use agent skills that invoke CLI or MCP; skills do not read artifacts (see surface-routing for invoke edges). Left-to-right layout with an opaque light canvas and white-on-purple labels. Hand-authored, editable SVG markup. Embedded as `![alt](/diagrams/artifact-flow.svg)` plus one caption sentence. Replaces the Mermaid fence on that page.
+_Avoid_: Status badges on the figure, remote URI variants on the figure, duplicate Mermaid + SVG, package names on the fan-out boxes, generic “Agents” wording, agent skills as a peer artifact reader
 
 **Diagrams README**:
 A short process note at `docs/site/public/diagrams/README.md` describing path, naming, light fills, and hand-authored SVG rules for site diagrams. Not a glossary; not an `AGENTS.md` dump.
@@ -41,7 +41,7 @@ Five Pages-only asset diagrams shipped with the artifact-flow archetype in one d
 _Avoid_: Quota filler, MCP session-bind as a substitute for explain-blast-radius, redrawing artifact-flow as “ecosystem”, stacked PRs required for this set
 
 **Discovery-flow diagram**:
-Mechanics diagram on `concepts/discovery-parity.md` (`discovery-flow.svg`): a discovery query yields ranked matches with reasons shared by CLI, MCP, and Web (agents use the same contract via CLI or MCP).
+Mechanics diagram on `concepts/discovery-parity.md` (`discovery-flow.svg`): a discovery query yields ranked matches with reasons shared by CLI, MCP, and Web (coding agents use the same contract via CLI or MCP).
 _Avoid_: Full search UI mock, token grammar reference art
 
 **Local-remote-target diagram**:
@@ -49,7 +49,7 @@ Orientation diagram on `concepts/local-and-remote-artifacts.md` (`local-remote-t
 _Avoid_: Full credential matrix, IAM walkthrough figure, web-upload branch on the figure
 
 **Surface-routing diagram**:
-Orientation diagram on `guide/agents/cli-vs-mcp-vs-skills.md` (`surface-routing.svg`): skills/plugins invoke CLI or MCP; CLI, MCP, and Web each use shared analysis (`@dbt-tools/core`); Web is a sibling surface, not driven by CLI or MCP.
+Orientation diagram on `guide/agents/cli-vs-mcp-vs-skills.md` (`surface-routing.svg`): agent skills/plugins invoke CLI or MCP; CLI, MCP, and Web each use shared analysis (`@dbt-tools/core`); Web is a sibling surface, not driven by CLI or MCP.
 _Avoid_: Duplicate of artifact-flow, CLI/MCP arrows into Web as a handoff destination, package-name soup
 
 **Open-in-web diagram**:

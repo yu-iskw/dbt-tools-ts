@@ -2,9 +2,9 @@
 
 dbt-tools analyzes structured JSON outputs from dbt runs. The primary inputs are `manifest.json` and `run_results.json` at the root of a dbt **target directory** (local `./target` or a remote prefix with the same file names).
 
-![dbt run, build, or test writes manifest.json and run_results.json under a target prefix; dbt-tools CLI, MCP, Web, and Agents consume those artifacts.](/diagrams/artifact-flow.svg)
+![dbt run, build, or test writes manifest.json and run_results.json under a target prefix; dbt-tools CLI, MCP, and Web consume those artifacts.](/diagrams/artifact-flow.svg)
 
-Agents reach the same artifacts through CLI or MCP skills; they are not a separate parser.
+Coding agents use agent skills that invoke CLI or MCP; skills do not read artifacts themselves.
 
 Remote `s3://` and `gs://` prefixes use the same file names at the prefix root—see [Local and remote artifacts](./local-and-remote-artifacts.md).
 

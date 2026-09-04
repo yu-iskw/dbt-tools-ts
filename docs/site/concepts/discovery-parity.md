@@ -4,7 +4,7 @@ dbt-tools uses **one ranking contract** for resource discovery across the CLI an
 
 ![discovery query yields ranked matches with reasons; CLI, MCP, and Web use the same ranking contract.](/diagrams/discovery-flow.svg)
 
-Agents and scripts use the same ranking via CLI or MCP; the figure shows CLI, MCP, and Web as the parity set.
+Coding agents and scripts use the same ranking via CLI or MCP; the figure shows CLI, MCP, and Web as the parity set.
 
 ## Shared behavior
 

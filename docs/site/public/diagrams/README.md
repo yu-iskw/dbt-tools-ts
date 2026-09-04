@@ -20,8 +20,11 @@ Brand chrome (logo, favicon, decorative motifs) may stay under `docs/site/public
 ## Authoring
 
 - Hand-author editable SVG markup (`<rect>`, `<text>`, `<line>` / simple paths). Avoid opaque exports that are hard to diff.
-- v1 figures use light-tuned fixed fills (brand purple `#635BFF` is fine). Dual light/dark assets are out of scope until contrast fails in preview.
+- Start each SVG with a full-`viewBox` opaque canvas fill `#F6F7FB` so dark-mode page backgrounds do not show through `<img>` embeds.
+- On purple (`#635BFF`) fills, use `#FFFFFF` for all text (no pale secondary purple-on-purple).
+- Use `#64748B` only for strokes and labels on the opaque light canvas.
 - Keep labels as real `<text>` so they stay selectable and searchable.
+- On the published site, prefer **coding agent** / **agent skills** wording over generic “Agents”.
 - Embed with markdown `![alt](/diagrams/….svg)` plus a short caption when the figure needs a caveat the pixels should not carry alone.
 
 Do not grow `AGENTS.md` with diagram process; keep glossary in `CONTEXT.md` and process here.

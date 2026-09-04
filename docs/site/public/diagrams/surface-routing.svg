@@ -1,14 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" role="img" aria-label="skills invoke CLI or MCP; Web, CLI, and MCP each use the shared analysis library; Web is not driven by CLI or MCP.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" role="img" aria-label="agent skills invoke CLI or MCP; Web, CLI, and MCP each use the shared analysis library; Web is not driven by CLI or MCP.">
   <defs>
     <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L6,3 L0,6 Z" fill="#64748B" />
     </marker>
   </defs>
 
-  <!-- Skills / plugins -->
+  <rect width="900" height="320" fill="#F6F7FB" />
+
+  <!-- Agent skills / plugins -->
   <rect x="24" y="120" width="150" height="80" rx="10" fill="#635BFF" />
-  <text x="99" y="152" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Skills</text>
-  <text x="99" y="174" text-anchor="middle" fill="#E8E6FF" font-family="system-ui, sans-serif" font-size="12">plugins</text>
+  <text x="99" y="152" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Agent skills</text>
+  <text x="99" y="174" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="12">plugins</text>
 
   <line x1="174" y1="140" x2="248" y2="70" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)" />
   <line x1="174" y1="180" x2="248" y2="180" stroke="#64748B" stroke-width="2" marker-end="url(#arrow)" />
