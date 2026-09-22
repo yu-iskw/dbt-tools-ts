@@ -71,11 +71,6 @@ export interface DbtToolsMcpRuntime {
   handlers: DbtToolsMcpToolHandlers;
 }
 
-export interface DbtToolsMcpStack {
-  server: McpServer;
-  workspace: ArtifactWorkspace;
-}
-
 export function createDbtToolsMcpRuntime(
   argv: string[] = process.argv.slice(2),
 ): DbtToolsMcpRuntime {
@@ -108,18 +103,8 @@ export function createDbtToolsMcpServerFromRuntime(runtime: DbtToolsMcpRuntime):
   return server;
 }
 
-export async function createDbtToolsMcpStack(
-  argv: string[] = process.argv.slice(2),
-): Promise<DbtToolsMcpStack> {
-  const runtime = createDbtToolsMcpRuntime(argv);
-  return { server: createDbtToolsMcpServerFromRuntime(runtime), workspace: runtime.workspace };
-}
-
-export async function createDbtToolsMcpServer(
-  argv: string[] = process.argv.slice(2),
-): Promise<McpServer> {
-  const { server } = await createDbtToolsMcpStack(argv);
-  return server;
+export function createDbtToolsMcpServer(argv: string[] = process.argv.slice(2)): McpServer {
+  return createDbtToolsMcpServerFromRuntime(createDbtToolsMcpRuntime(argv));
 }
 
 export async function runDbtToolsMcpCli(

@@ -18,7 +18,6 @@ import {
   createDbtToolsMcpRuntime,
   createDbtToolsMcpServer,
   createDbtToolsMcpServerFromRuntime,
-  createDbtToolsMcpStack,
   runDbtToolsMcpCli,
   startRefreshPolling,
 } from './server.js';
@@ -131,7 +130,7 @@ describe('dbt-tools MCP server wiring', () => {
   it('creates a server from a real local artifact target', async () => {
     await writeArtifacts(tempDir);
 
-    const server = await createDbtToolsMcpServer(['--dbt-target', tempDir]);
+    const server = createDbtToolsMcpServer(['--dbt-target', tempDir]);
 
     expect(server).toBeInstanceOf(Object);
   });
@@ -146,7 +145,7 @@ describe('dbt-tools MCP server wiring', () => {
   it('loads artifacts after set_target when no startup target is configured', async () => {
     await writeArtifacts(tempDir);
 
-    const { workspace } = await createDbtToolsMcpStack([]);
+    const { workspace } = createDbtToolsMcpRuntime([]);
     const statusBefore = await workspace.getStatus();
     expect(statusBefore.target).toBeNull();
     expect(statusBefore.loadedAtMs).toBeNull();
@@ -166,7 +165,7 @@ describe('dbt-tools MCP server wiring', () => {
   it('returns null JSON for unknown get_resource after load', async () => {
     await writeArtifacts(tempDir);
 
-    const { workspace } = await createDbtToolsMcpStack(['--dbt-target', tempDir]);
+    const { workspace } = createDbtToolsMcpRuntime(['--dbt-target', tempDir]);
     const useCases = createDbtToolsUseCases(workspace);
     const handlers = createDbtToolsMcpToolHandlers(workspace, useCases);
     await handlers.dbt_tools_search_resources({ query: 'orders' });
@@ -181,7 +180,7 @@ describe('dbt-tools MCP server wiring', () => {
   it('defers artifact load until a tool needs the workspace (lazy init)', async () => {
     await writeArtifacts(tempDir);
 
-    const { workspace } = await createDbtToolsMcpStack(['--dbt-target', tempDir]);
+    const { workspace } = createDbtToolsMcpRuntime(['--dbt-target', tempDir]);
     const statusBefore = await workspace.getStatus();
     expect(statusBefore.loadedAtMs).toBeNull();
 
@@ -205,7 +204,7 @@ describe('dbt-tools MCP server wiring', () => {
     }) as typeof process.stderr.write;
 
     try {
-      await createDbtToolsMcpStack(['--dbt-target', tempDir]);
+      createDbtToolsMcpRuntime(['--dbt-target', tempDir]);
       expect(stderr).toContain('lazy-init');
     } finally {
       process.stderr.write = originalWrite;
