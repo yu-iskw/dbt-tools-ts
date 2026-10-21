@@ -16,7 +16,7 @@ Recipes are end-to-end task guides. Each one starts from a user goal, shows whic
 ## Prerequisites for all recipes
 
 - `manifest.json` and `run_results.json` under a dbt target directory
-- Node.js 20+
+- Node.js 24.22.1+
 
 Run `npx @dbt-tools/cli status --dbt-target ./target --json` first to confirm artifacts are readable.
 

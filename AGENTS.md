@@ -9,7 +9,7 @@
 ## Tech stack
 
 - **Package manager:** pnpm workspace.
-- **Node.js:** use [`.node-version`](.node-version) for local development and CI. Published packages require Node.js 20+.
+- **Node.js:** use [`.node-version`](.node-version) for local development and CI. Published packages require Node.js 24.22.1+ (Node 18, 20, and 25 are EOL).
 - **Language:** TypeScript. Unit tests use Vitest from the repository root (per-package [`vitest.config.ts`](packages/core/vitest.config.ts) projects; coverage and global thresholds only in root [`vitest.config.ts`](vitest.config.ts)).
 - **Repository boundary:** this repo owns `@dbt-tools/core`, `@dbt-tools/cli`, `@dbt-tools/mcp`, and `@dbt-tools/web`. `dbt-artifacts-parser` is an external npm dependency and upstream parser package, not a workspace package here.
 

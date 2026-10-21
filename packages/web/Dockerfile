@@ -6,7 +6,7 @@
 # lockfileVersion 9.x in pnpm-lock.yaml requires pnpm 9.x.
 # Runtime: nginx official unprivileged image (non-root); satisfies trivy DS-0002.
 
-FROM node:24-alpine AS builder
+FROM node:24.22.1-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 

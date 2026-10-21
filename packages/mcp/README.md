@@ -10,7 +10,7 @@ Use **`dbt-tools-mcp`** when an MCP client (Cursor, Claude Desktop, etc.) needs 
 
 ## Requirements
 
-- **Node.js 20+** (see [`package.json`](package.json) `engines`)
+- **Node.js 24.22.1+** (see [`package.json`](package.json) `engines`)
 - Artifact **target** with `manifest.json` and `run_results.json` at the **root** of that location (typical dbt `target/` layout). Optional `catalog.json` / `sources.json` when present. See [ADR-0004](../../docs/adr/0004-remote-object-storage-artifact-sources-and-auto-reload.md) for the one-pair-per-location contract.
 
 ## Installation

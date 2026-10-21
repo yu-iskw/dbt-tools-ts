@@ -19,7 +19,7 @@
   },
   "homepage": "https://yu-iskw.github.io/dbt-tools-ts/",
   "engines": {
-    "node": ">=20"
+    "node": ">=24.22.1"
   },
   "type": "module",
   "bin": {

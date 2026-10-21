@@ -31,7 +31,7 @@ CLI, Web, and MCP share `@dbt-tools/core` as the analysis library. End users ins
 ## Prerequisites for all interfaces
 
 - `manifest.json` and `run_results.json` under a dbt target directory
-- Node.js 20+
+- Node.js 24.22.1+
 
 > **New to dbt?** See [New to dbt?](./foundations/new-to-dbt.md) and [dbt artifacts](../concepts/dbt-artifacts.md).
 

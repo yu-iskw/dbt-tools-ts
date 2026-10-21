@@ -11,13 +11,13 @@ See [CLI vs MCP vs skills](./cli-vs-mcp-vs-skills.md) and the [Skill catalog](./
 | Plugin id       | Prerequisites                              | Runs via                              |
 | --------------- | ------------------------------------------ | ------------------------------------- |
 | `dbt-tools-cli` | `dbt-tools` on PATH (`@dbt-tools/cli`)     | Shell / `dbt-tools` CLI commands      |
-| `dbt-tools-mcp` | Node.js 20+ and `npx` for `@dbt-tools/mcp` | MCP tools (`dbt_tools_set_target`, …) |
+| `dbt-tools-mcp` | Node.js 24.22.1+ and `npx` for `@dbt-tools/mcp` | MCP tools (`dbt_tools_set_target`, …) |
 
 Install **both** from the same repo marketplace when you want CLI skills and MCP tools with matching handles. MCP-only sessions still need `dbt_tools_set_target` per session (see [dbt-tools-mcp README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/plugins/dbt-tools-mcp/README.md)).
 
 ## Prerequisites
 
-- Node.js 20+ and `dbt-tools` on PATH (`npm install -g @dbt-tools/cli` or `npx`)
+- Node.js 24.22.1+ and `dbt-tools` on PATH (`npm install -g @dbt-tools/cli` or `npx`)
 - dbt artifacts under `target/` ([overview](../overview.md))
 
 Verify setup: `dbt-tools status --dbt-target ./target`
