@@ -2,11 +2,11 @@
 
 ## Node.js
 
-dbt-tools requires Node.js 20 or later. The exact version used by the maintainers is recorded in `.node-version` at the repository root.
+dbt-tools requires Node.js 24.22.1 or later (Node 18, 20, and 25 are EOL). The exact version used by the maintainers is recorded in `.node-version` at the repository root.
 
 | dbt-tools package version | Minimum Node.js |
 | ------------------------- | --------------- |
-| Current                   | 20              |
+| Current                   | 24.22.1         |
 
 ## dbt artifact schema versions
 

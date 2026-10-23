@@ -14,7 +14,7 @@ Operator topics (**remote sources**, **Docker / GHCR**, **Vite-only env and file
 
 ## Prerequisites
 
-- **Node.js** — use the version in [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) when developing; **Node.js 20+** is required to run the published app (Node 18 is EOL — see [Node.js releases](https://nodejs.org/en/about/previous-releases)).
+- **Node.js** — use the version in [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) when developing; **Node.js 24.22.1+** is required to run the published app (Node 18, 20, and 25 are EOL — see [Node.js releases](https://nodejs.org/en/about/previous-releases)).
 - A dbt **`target/`** directory (or object storage) with **`manifest.json`** and **`run_results.json`** when you want preloaded artifacts.
 
 ---

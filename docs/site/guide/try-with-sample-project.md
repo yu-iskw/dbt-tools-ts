@@ -8,7 +8,7 @@ For what each artifact file means and when dbt writes them, see [dbt artifacts &
 
 This [dbt Labs](https://github.com/dbt-labs/jaffle_shop_duckdb) sample runs locally on DuckDB. Use its README for the latest Python and dbt version notes.
 
-**Prerequisites:** Node.js 20+ (dbt-tools); Python 3.x and `pip install -r requirements.txt` per the jaffle repo; dbt **1.10+** for supported artifact schemas ([version compatibility](../reference/version-compatibility.md)).
+**Prerequisites:** Node.js 24.22.1+ (dbt-tools); Python 3.x and `pip install -r requirements.txt` per the jaffle repo; dbt **1.10+** for supported artifact schemas ([version compatibility](../reference/version-compatibility.md)).
 
 ```bash
 git clone https://github.com/dbt-labs/jaffle_shop_duckdb.git

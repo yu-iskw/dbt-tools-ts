@@ -7,7 +7,7 @@ Use this recipe in CI pipelines to produce a machine-readable dbt artifact healt
 ## Inputs required
 
 - `manifest.json` and `run_results.json` uploaded as CI artifacts or stored in object storage
-- Node.js 20+ on the CI runner
+- Node.js 24.22.1+ on the CI runner
 
 ## Recommended interface
 
@@ -71,7 +71,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24.22.1'
 
       - name: Run dbt
         run: dbt run --profiles-dir ./ --project-dir ./

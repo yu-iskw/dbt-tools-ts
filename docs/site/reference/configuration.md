@@ -43,7 +43,7 @@ You can also switch remote sources in the web **Load artifacts** panel after sta
 
 ## Node.js
 
-- **20+** for published packages; monorepo development uses [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version).
+- **24.22.1+** for published packages; monorepo development uses [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version).
 
 ## Further reading
 

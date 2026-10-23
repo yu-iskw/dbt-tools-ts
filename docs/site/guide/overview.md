@@ -19,7 +19,7 @@ CLI, Web, and MCP share `@dbt-tools/core` as the analysis library. End users ins
 ## Prerequisites
 
 - A dbt project with `manifest.json` and `run_results.json` under `target/`
-- Node.js 20+ (see the repository [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) for development)
+- Node.js 24.22.1+ (see the repository [`.node-version`](https://github.com/yu-iskw/dbt-tools-ts/blob/main/.node-version) for development)
 
 > **No dbt project?** Use [Try with a sample project](./try-with-sample-project.md) to generate artifacts with a public sample repo (no warehouse required for the default path).
 

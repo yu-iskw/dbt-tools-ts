@@ -4,7 +4,7 @@ Use dbt-tools to inspect dbt artifacts from the command line, a browser, or a co
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 24.22.1+
 - `manifest.json` and `run_results.json` from a dbt run, located under a local `target/` directory
 
 > **New to dbt?** See [New to dbt?](./foundations/new-to-dbt.md) and [dbt artifacts](../concepts/dbt-artifacts.md).
