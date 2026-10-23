@@ -28,7 +28,7 @@ describe('statusTone', () => {
     expect(statusTone('queued')).toBe('neutral');
   });
 
-  it.each(['success', 'Success', 'pass', 'PASS', 'passed', 'Passed'])(
+  it.each(['success', 'Success', 'pass', 'PASS', 'passed', 'Passed', 'reused', 'Reused'])(
     'maps success-like %s to positive',
     (s) => {
       expect(statusTone(s)).toBe('positive');

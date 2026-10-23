@@ -105,5 +105,21 @@ describe('tool compatibility matrix', () => {
         // run_results_1.11.json may not exist in all environments; skip if missing
       }
     });
+
+    it('should work with matched dbt Core 1.12 manifest and run_results', () => {
+      const manifestJson = loadTestManifest('v12', 'manifest_1.12.json');
+      const manifest = parseManifest(manifestJson as Record<string, unknown>);
+      const graph = new ManifestGraph(manifest);
+
+      const runResultsJson = loadTestRunResults('v6', 'run_results_1.12.json');
+      const runResults = parseRunResults(runResultsJson as Record<string, unknown>);
+
+      const analyzer = new ExecutionAnalyzer(runResults, graph);
+      const executions = analyzer.getNodeExecutions();
+      expect(executions.length).toBeGreaterThan(0);
+
+      const summary = analyzer.getSummary();
+      expect(summary.total_nodes).toBeGreaterThan(0);
+    });
   });
 });
