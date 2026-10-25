@@ -29,7 +29,7 @@ export function now(): number {
 export function statusTone(status: string | null | undefined): StatusTone {
   const normalized = status?.trim().toLowerCase();
   if (!normalized) return 'neutral';
-  if (['success', 'pass', 'passed'].includes(normalized)) {
+  if (['success', 'pass', 'passed', 'reused'].includes(normalized)) {
     return 'positive';
   }
   if (['warn', 'warning'].includes(normalized)) {
