@@ -1,5 +1,5 @@
 import { defineConfig, mergeConfig } from 'vitest/config';
-import vitestConfig from './vitest.config.js';
+import vitestConfig from './vitest.config.ts';
 
 /**
  * Used only by `scripts/coverage-score.mjs` (`pnpm coverage:report`).
