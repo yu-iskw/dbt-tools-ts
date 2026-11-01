@@ -39,7 +39,7 @@ dbt versions correspond to artifact schema versions approximately as follows:
 | dbt 1.9           | v11, v12               | v5, v6                    |
 | dbt 1.10–1.12     | v12                    | v6                        |
 
-These mappings are approximate. The runtime check is schema version (≥ v10), not dbt version. Recommended operator floor is dbt **1.10.0**; currently tested upper bound is dbt Core **1.12**. Refer to the [dbt artifacts documentation](https://docs.getdbt.com/reference/artifacts/dbt-artifacts) for authoritative schema version information.
+These mappings are approximate. The runtime check is schema version (≥ v10), not dbt version. Recommended operator floor is dbt **1.10.0**; currently tested upper bound is dbt Core **1.12.3**, covered by jaffle_shop_duckdb fixtures regenerated with that Core pin. Refer to the [dbt artifacts documentation](https://docs.getdbt.com/reference/artifacts/dbt-artifacts) for authoritative schema version information.
 
 ## Package compatibility
 
