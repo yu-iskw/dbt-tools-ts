@@ -73,7 +73,7 @@
     "test:watch": "vitest --project @dbt-tools/core"
   },
   "dependencies": {
-    "zod": "^4.4.3",
+    "zod": "^4.6.6",
     "@aws-sdk/client-s3": "^3.1025.0",
     "@google-cloud/storage": "^7.19.0",
     "google-auth-library": "^9.15.1",
