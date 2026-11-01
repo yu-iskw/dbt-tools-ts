@@ -1,9 +1,9 @@
 import { defineConfig } from 'vitest/config';
 import { GLOBAL_THRESHOLDS } from './coverage-thresholds.mjs';
-import { coveragePolicy as corePolicy } from './packages/core/coverage.policy.js';
-import { coveragePolicy as cliPolicy } from './packages/cli/coverage.policy.js';
-import { coveragePolicy as webPolicy } from './packages/web/coverage.policy.js';
-import { coveragePolicy as mcpPolicy } from './packages/mcp/coverage.policy.js';
+import { coveragePolicy as corePolicy } from './packages/core/coverage.policy.ts';
+import { coveragePolicy as cliPolicy } from './packages/cli/coverage.policy.ts';
+import { coveragePolicy as webPolicy } from './packages/web/coverage.policy.ts';
+import { coveragePolicy as mcpPolicy } from './packages/mcp/coverage.policy.ts';
 
 const workspacePolicies = [corePolicy, cliPolicy, webPolicy, mcpPolicy];
 
