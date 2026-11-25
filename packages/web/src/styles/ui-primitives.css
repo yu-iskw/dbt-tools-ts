@@ -518,3 +518,61 @@
     grid-template-columns: 1fr;
   }
 }
+
+.copy-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.copy-button svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.copy-button:hover {
+  border-color: var(--border-default);
+  background: var(--bg-surface-muted);
+  color: var(--text-primary);
+}
+
+.copy-button:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.sql-panel-wrap {
+  position: relative;
+}
+
+.sql-panel-wrap > .copy-button {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+}
+
+.app-header__copy-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.app-header__summary-value-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}

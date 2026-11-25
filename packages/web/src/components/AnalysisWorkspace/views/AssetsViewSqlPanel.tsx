@@ -1,3 +1,5 @@
+import { CopyButton } from '../../ui/CopyButton';
+
 import type { ReactElement } from 'react';
 // ---------------------------------------------------------------------------
 // SQL syntax highlighting — zero-dependency tokenizer
@@ -151,18 +153,21 @@ function tokenizeSQL(sql: string): SqlToken[] {
 export function SqlPanel({ sql }: { sql: string }): ReactElement {
   const tokens = tokenizeSQL(sql);
   return (
-    <pre className="sql-panel">
-      <code>
-        {tokens.map((token, i) =>
-          token.type === 'plain' || token.type === 'identifier' ? (
-            token.value
-          ) : (
-            <span key={i} className={`sql-token-${token.type}`}>
-              {token.value}
-            </span>
-          ),
-        )}
-      </code>
-    </pre>
+    <div className="sql-panel-wrap">
+      <pre className="sql-panel">
+        <code>
+          {tokens.map((token, i) =>
+            token.type === 'plain' || token.type === 'identifier' ? (
+              token.value
+            ) : (
+              <span key={i} className={`sql-token-${token.type}`}>
+                {token.value}
+              </span>
+            ),
+          )}
+        </code>
+      </pre>
+      <CopyButton value={sql} label="SQL" />
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 import { AppWorkspaceChrome } from './components/AppShell/AppWorkspaceChrome';
+import { buildDocumentTitle } from './components/AppShell/document-title';
 import { buildWorkspaceSignals } from './components/AppShell/workspace-signals';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ArtifactCapabilityContext } from './contexts/ArtifactCapabilityContext';
@@ -62,6 +63,10 @@ function AppContent() {
     lastPendingToastKeyRef.current = pendingKey;
     toast(`A newer remote run is available: ${pendingRemoteRun.label}`, 'warning');
   }, [pendingRemoteRun, toast]);
+
+  useEffect(() => {
+    document.title = buildDocumentTitle(analysis, workspace.activeView);
+  }, [analysis, workspace.activeView]);
 
   const workspaceSignals: WorkspaceSignal[] = analysis
     ? (buildWorkspaceSignals(analysis, analysisSource) as unknown as WorkspaceSignal[])

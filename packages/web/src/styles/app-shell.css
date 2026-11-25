@@ -902,8 +902,8 @@
 
 .asset-hero__actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
   gap: 0.55rem;
   flex-shrink: 0;
 }
@@ -2210,8 +2210,21 @@ details.timeline-filter-accordion .timeline-controls {
   text-align: left;
 }
 
-.omnibox-results__item:hover {
+.omnibox-results__item:hover,
+.omnibox-results__item--active {
+  background: var(--bg-accent-soft);
+}
+
+.app-header__search-kbd {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   background: var(--bg-surface-muted);
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .omnibox-results__item span,

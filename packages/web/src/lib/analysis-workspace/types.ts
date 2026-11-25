@@ -180,6 +180,7 @@ export interface AnalysisWorkspaceProps {
       executionId?: string;
       assetTab?: AssetTab;
       rootResourceId?: string;
+      runsStatus?: RunsViewState['status'];
     },
   ) => void;
 }

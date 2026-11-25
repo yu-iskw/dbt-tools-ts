@@ -6,7 +6,7 @@ import { formatSeconds } from '@web/lib/analysis-workspace/utils';
 import { sourceBadgeLabel } from '@web/lib/artifact-source';
 
 import type { OverviewDerivedState } from '@web/lib/analysis-workspace/overview-state';
-import type { WorkspaceSignal } from '@web/lib/analysis-workspace/types';
+import type { AnalysisWorkspaceProps, WorkspaceSignal } from '@web/lib/analysis-workspace/types';
 import type { WorkspaceArtifactSource } from '@web/services/artifact-source-api';
 import type { AnalysisState } from '@web/types';
 import type { ReactElement } from 'react';
@@ -16,6 +16,37 @@ function workspaceModeFromSignals(signals: WorkspaceSignal[]): string {
   return mode?.value ?? '—';
 }
 
+function PostureMetric({
+  label,
+  value,
+  onSelect,
+}: {
+  label: string;
+  value: number;
+  onSelect: () => void;
+}): ReactElement {
+  return (
+    <div className="health-posture__metric" role="listitem">
+      {value > 0 ? (
+        <button
+          type="button"
+          className="health-posture__metric-link"
+          aria-label={`${label}: ${value}. Show in Runs`}
+          onClick={onSelect}
+        >
+          <span>{label}</span>
+          <strong>{value}</strong>
+        </button>
+      ) : (
+        <>
+          <span>{label}</span>
+          <strong>{value}</strong>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function HealthPostureBlock({
   analysis,
   projectName,
@@ -23,6 +54,7 @@ export function HealthPostureBlock({
   derived,
   filtered,
   workspaceSignals,
+  onNavigateTo,
 }: {
   analysis: AnalysisState;
   projectName: string | null;
@@ -30,6 +62,7 @@ export function HealthPostureBlock({
   derived: OverviewDerivedState;
   filtered: boolean;
   workspaceSignals: WorkspaceSignal[];
+  onNavigateTo: AnalysisWorkspaceProps['onNavigateTo'];
 }): ReactElement {
   const { tone, title, summary } = buildHealthOverviewHeadline(derived, filtered);
   const summaryBits = buildHealthSummaryBits(analysis, projectName);
@@ -57,14 +90,16 @@ export function HealthPostureBlock({
       <p className="health-posture__summary">{summary}</p>
       {followup != null && <p className="health-posture__followup">{followup}</p>}
       <div className="health-posture__metrics" role="list">
-        <div className="health-posture__metric" role="listitem">
-          <span>Failing</span>
-          <strong>{derived.failingNodes}</strong>
-        </div>
-        <div className="health-posture__metric" role="listitem">
-          <span>Warnings</span>
-          <strong>{derived.warningNodes}</strong>
-        </div>
+        <PostureMetric
+          label="Failing"
+          value={derived.failingNodes}
+          onSelect={() => onNavigateTo('runs', { runsStatus: 'danger' })}
+        />
+        <PostureMetric
+          label="Warnings"
+          value={derived.warningNodes}
+          onSelect={() => onNavigateTo('runs', { runsStatus: 'warning' })}
+        />
         <div className="health-posture__metric" role="listitem">
           <span>Runtime</span>
           <strong>{runtime}</strong>

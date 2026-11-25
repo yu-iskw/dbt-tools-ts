@@ -213,7 +213,7 @@ describe('AppWorkspaceChrome header', () => {
     expect(container.textContent).not.toContain('Search workspace');
     expect(
       container.querySelector('input[aria-label="Global search"]')?.getAttribute('placeholder'),
-    ).toBe('Search runs, pipelines, assets...');
+    ).toBe('Search models, sources, tests…');
     expect(headerText.match(/Dec/g)?.length ?? 0).toBe(1);
 
     cleanupRoot(root, container);
@@ -233,8 +233,28 @@ describe('AppWorkspaceChrome header', () => {
     expect(container.textContent).toContain('Source mode');
     expect(container.querySelector('.eyebrow')?.textContent).toBe('Workspace session');
     expect(container.textContent).not.toContain('Warehouse type');
+    expect(container.querySelector('button[aria-label="Copy invocation ID"]')).toBeNull();
 
     cleanupRoot(root, container);
+  });
+
+  it('offers copy controls for the invocation ID and the current link once loaded', () => {
+    const analysis = {
+      resources: [],
+      summary: { total_nodes: 1 },
+      invocationId: 'abc-123',
+      runStartedAt: null,
+    } as unknown as AnalysisState;
+    const { container, root } = renderChrome(analysis);
+
+    expect(container.querySelector('button[aria-label="Copy invocation ID"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Copy link to this view"]')).not.toBeNull();
+
+    cleanupRoot(root, container);
+
+    const empty = renderChrome(null);
+    expect(empty.container.querySelector('button[aria-label="Copy link to this view"]')).toBeNull();
+    cleanupRoot(empty.root, empty.container);
   });
 
   it('renders the header shell on the settings destination', () => {

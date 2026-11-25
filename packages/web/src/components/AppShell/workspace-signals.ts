@@ -27,12 +27,24 @@ function workspaceModeSignal(
   };
 }
 
+export function countRunIssues(analysis: Pick<AnalysisState, 'executions'>): {
+  failing: number;
+  warnings: number;
+} {
+  let failing = 0;
+  let warnings = 0;
+  for (const row of analysis.executions) {
+    if (row.statusTone === 'danger') failing += 1;
+    else if (row.statusTone === 'warning') warnings += 1;
+  }
+  return { failing, warnings };
+}
+
 export function buildWorkspaceSignals(
   analysis: AnalysisState,
   analysisSource: WorkspaceArtifactSource | null,
 ): WorkspaceSignal[] {
-  const attentionCount = analysis.executions.filter((row) => row.statusTone === 'danger').length;
-  const warningCount = analysis.executions.filter((row) => row.statusTone === 'warning').length;
+  const { failing: attentionCount, warnings: warningCount } = countRunIssues(analysis);
   const totalTests = analysis.executions.filter((row) =>
     ['test', 'unit_test'].includes(row.resourceType),
   ).length;

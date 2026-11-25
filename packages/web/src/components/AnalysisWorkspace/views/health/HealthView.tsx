@@ -22,7 +22,11 @@ import { HealthMaterializationCard } from './overview/HealthMaterializationCard'
 import { HealthMetricRow } from './overview/HealthMetricRow';
 import { HealthPostureBlock } from './overview/HealthPostureBlock';
 
-import type { OverviewFilterState, WorkspaceSignal } from '@web/lib/analysis-workspace/types';
+import type {
+  AnalysisWorkspaceProps,
+  OverviewFilterState,
+  WorkspaceSignal,
+} from '@web/lib/analysis-workspace/types';
 import type { WorkspaceArtifactSource } from '@web/services/artifact-source-api';
 import type { AnalysisState } from '@web/types';
 import type { ReactElement, Dispatch, SetStateAction } from 'react';
@@ -39,6 +43,7 @@ export function HealthView({
   filters,
   setFilters,
   workspaceSignals,
+  onNavigateTo,
 }: {
   analysis: AnalysisState;
   projectName: string | null;
@@ -46,6 +51,7 @@ export function HealthView({
   filters: OverviewFilterState;
   setFilters: Dispatch<SetStateAction<OverviewFilterState>>;
   workspaceSignals: WorkspaceSignal[];
+  onNavigateTo: AnalysisWorkspaceProps['onNavigateTo'];
 }): ReactElement {
   const healthExecutionFilters = useMemo(
     () => ({
@@ -89,6 +95,7 @@ export function HealthView({
           derived={derived}
           filtered={filtered}
           workspaceSignals={workspaceSignals}
+          onNavigateTo={onNavigateTo}
         />
         <HealthMetricRow analysis={analysis} projectName={projectName} />
         <section className="health-fold__bottlenecks" aria-label="Bottlenecks">

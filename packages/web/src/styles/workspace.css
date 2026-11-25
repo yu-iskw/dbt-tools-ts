@@ -945,6 +945,29 @@
   color: var(--text-primary);
 }
 
+.health-posture__metric-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.health-posture__metric-link:hover strong {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+
+.health-posture__metric-link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 3px;
+}
+
 .health-metric-row {
   display: flex;
   flex-wrap: wrap;

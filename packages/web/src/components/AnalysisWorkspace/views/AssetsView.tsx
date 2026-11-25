@@ -11,6 +11,7 @@ import {
 import { useResourceCode } from '@web/hooks/use-resource-code';
 
 import { EmptyState } from '../../EmptyState';
+import { CopyButton } from '../../ui/CopyButton';
 import { LineagePanel } from '../lineage/LineagePanel';
 import { MaterializationSemanticsBadge } from '../MaterializationSemanticsBadge';
 import { ResourceTypeBadge } from '../shared';
@@ -204,6 +205,7 @@ export function AssetsView({
           >
             Open in Timeline
           </button>
+          <CopyButton value={resource.uniqueId} label="unique ID" />
         </div>
       </section>
       <div className="asset-workspace__body">

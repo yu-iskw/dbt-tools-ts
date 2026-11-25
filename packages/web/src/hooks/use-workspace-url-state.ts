@@ -59,6 +59,7 @@ export interface UseWorkspaceUrlStateResult {
       executionId?: string;
       assetTab?: AssetViewState['activeTab'];
       rootResourceId?: string;
+      runsStatus?: RunsViewState['status'];
     },
   ) => void;
   frameClass: string;
@@ -126,9 +127,14 @@ export function useWorkspaceUrlState(
         executionId?: string;
         assetTab?: AssetViewState['activeTab'];
         rootResourceId?: string;
+        runsStatus?: RunsViewState['status'];
       },
     ) => {
       setActiveViewRaw(view);
+      if (options?.runsStatus) {
+        const status = options.runsStatus;
+        setRunsViewState((current) => ({ ...current, status, kind: 'all' }));
+      }
       if (options?.resourceId) {
         setAssetViewState((current) => ({
           ...current,
@@ -241,10 +247,6 @@ export function useWorkspaceUrlState(
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setSearchState((current) => ({ ...current, isOpen: true }));
-      }
       if (e.key === 'Escape') {
         setSidebarOpen(false);
         setSearchState((current) => ({ ...current, isOpen: false }));
