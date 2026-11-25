@@ -26,10 +26,6 @@ export function isFailedModelExecution(row: ExecutionRow): boolean {
   );
 }
 
-export function isPositiveStatus(status: string): boolean {
-  return ['success', 'pass', 'passed'].includes(status.trim().toLowerCase());
-}
-
 export function formatSeconds(value: number | null | undefined): string {
   if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a';
   if (value >= 60) {

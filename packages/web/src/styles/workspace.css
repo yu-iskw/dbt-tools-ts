@@ -1495,35 +1495,6 @@
   justify-content: space-between;
 }
 
-.entity-inspector__close {
-  display: inline-grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
-
-.entity-inspector__close svg {
-  width: 0.9rem;
-  height: 0.9rem;
-}
-
-.entity-inspector__close:hover {
-  border-color: var(--border-default);
-  background: var(--bg-surface-muted);
-  color: var(--text-primary);
-}
-
-.entity-inspector__close:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
-}
-
 .entity-inspector__type-badge {
   display: inline-flex;
   align-items: center;

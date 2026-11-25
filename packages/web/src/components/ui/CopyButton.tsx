@@ -32,7 +32,12 @@ export function CopyButton({
   const copy = () => copyText(typeof value === 'function' ? value() : value);
 
   return (
-    <button type="button" className="copy-button" aria-label={`Copy ${label}`} onClick={copy}>
+    <button
+      type="button"
+      className="icon-button copy-button"
+      aria-label={`Copy ${label}`}
+      onClick={copy}
+    >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect
           x="9"

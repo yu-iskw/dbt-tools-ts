@@ -52,7 +52,7 @@ export function TimelineNodeInspector({
       status={
         <button
           type="button"
-          className="entity-inspector__close"
+          className="icon-button entity-inspector__close"
           aria-label="Close inspector"
           title="Close"
           onClick={onClose}

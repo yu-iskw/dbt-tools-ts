@@ -1,5 +1,3 @@
-import { isPositiveStatus } from '@web/lib/analysis-workspace/utils';
-
 import {
   LABEL_W,
   MIN_TICK_LABEL_GAP_PX,
@@ -57,7 +55,9 @@ export function getInitialLabelColumnWidth(fallbackPx: number = LABEL_W): number
   }
 }
 
-export { isPositiveStatus };
+export function isPositiveStatus(status: string): boolean {
+  return ['success', 'pass', 'passed'].includes(status.trim().toLowerCase());
+}
 
 export function isSkippedStatus(status: string): boolean {
   return ['skipped', 'no op'].includes(status.trim().toLowerCase());

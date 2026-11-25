@@ -10,10 +10,23 @@ import type { TimelineFilterState } from '@web/lib/analysis-workspace/types';
 import type { AnalysisState } from '@web/types';
 
 vi.mock('./GanttChart', () => ({
-  GanttChart: ({ onSelect }: { onSelect: (id: string | null) => void }) => (
-    <button type="button" onClick={() => onSelect('model.pkg.orders')}>
-      pick orders bar
-    </button>
+  GanttChart: ({
+    data,
+    onSelect,
+  }: {
+    data: { unique_id: string }[];
+    onSelect: (id: string | null) => void;
+  }) => (
+    <>
+      <button type="button" onClick={() => onSelect('model.pkg.orders')}>
+        pick orders bar
+      </button>
+      <ul data-testid="rows">
+        {data.map((item) => (
+          <li key={item.unique_id}>{item.unique_id}</li>
+        ))}
+      </ul>
+    </>
   ),
 }));
 
@@ -22,6 +35,7 @@ const actEnvironment = globalThis as typeof globalThis & {
 };
 
 const ORDERS_ID = 'model.pkg.orders';
+const ORDERS_TEST_ID = 'test.pkg.not_null_orders_id';
 const ERROR_MESSAGE = 'Database Error: relation "raw_orders" does not exist';
 
 const analysis = {
@@ -41,6 +55,18 @@ const analysis = {
       packageName: 'pkg',
       path: 'models/orders.sql',
       parentId: null,
+    },
+    {
+      unique_id: ORDERS_TEST_ID,
+      name: 'not_null_orders_id',
+      start: 2500,
+      end: 2600,
+      duration: 100,
+      status: 'fail',
+      resourceType: 'test',
+      packageName: 'pkg',
+      path: null,
+      parentId: ORDERS_ID,
     },
   ],
   executions: [
@@ -90,8 +116,8 @@ describe('TimelineView node inspector', () => {
   let root: Root;
   const onNavigateTo = vi.fn();
 
-  function Harness() {
-    const [filters, setFilters] = useState(initialFilters);
+  function Harness({ start = initialFilters }: { start?: TimelineFilterState }) {
+    const [filters, setFilters] = useState(start);
     return (
       <TimelineView
         analysis={analysis}
@@ -156,5 +182,26 @@ describe('TimelineView node inspector', () => {
     act(() => (container.querySelector('[aria-label="Close inspector"]') as HTMLElement).click());
 
     expect(container.querySelector('.entity-inspector')).toBeNull();
+  });
+
+  it('keeps a selected test and its parent row visible despite filters that would hide them', () => {
+    const rows = () =>
+      Array.from(container.querySelectorAll('[data-testid="rows"] li')).map((li) => li.textContent);
+    // Status filter excludes the errored parent, tests are toggled off, and the search misses both.
+    const hiding: TimelineFilterState = {
+      ...initialFilters,
+      activeStatuses: new Set(['success']),
+      query: 'customers',
+      selectedExecutionId: null,
+    };
+    act(() => root.render(<Harness key="hiding" start={hiding} />));
+    expect(rows()).toEqual([]);
+
+    act(() =>
+      root.render(
+        <Harness key="selected" start={{ ...hiding, selectedExecutionId: ORDERS_TEST_ID }} />,
+      ),
+    );
+    expect(rows()).toEqual([ORDERS_ID, ORDERS_TEST_ID]);
   });
 });

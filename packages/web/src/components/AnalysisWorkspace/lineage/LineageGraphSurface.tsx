@@ -79,6 +79,7 @@ export function LineageGraphSurface({
   } | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const pendingScrollRef = useRef<{ x: number; y: number } | null>(null);
   const zoomRef = useRef(zoom);
   const selectedResourceId = useMemo(
@@ -162,7 +163,7 @@ export function LineageGraphSurface({
     const dismiss = () => setContextMenu(null);
     // Outside-click only: the menu is portalled to document.body, so its own pointerdown reaches document.
     const onPointerDown = (e: PointerEvent) => {
-      if (e.target instanceof Element && e.target.closest('.graph-context-menu')) return;
+      if (e.target instanceof Node && contextMenuRef.current?.contains(e.target)) return;
       dismiss();
     };
     const onKey = (e: KeyboardEvent) => {
@@ -281,6 +282,7 @@ export function LineageGraphSurface({
       tooltipLayout={tooltipLayout}
       tooltipPosition={tooltipPosition}
       contextMenu={contextMenu}
+      contextMenuRef={contextMenuRef}
       nodeActionContext={nodeActionContext}
       onNavigateTo={onNavigateTo}
     />

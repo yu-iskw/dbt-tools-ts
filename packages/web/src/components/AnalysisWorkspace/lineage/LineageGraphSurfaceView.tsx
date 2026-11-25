@@ -72,6 +72,7 @@ export function LineageGraphSurfaceView({
   tooltipLayout,
   tooltipPosition,
   contextMenu,
+  contextMenuRef,
   nodeActionContext,
   onNavigateTo,
 }: {
@@ -107,6 +108,7 @@ export function LineageGraphSurfaceView({
   tooltipLayout: LineageGraphNodeLayout | null;
   tooltipPosition: { left: number; top: number } | null;
   contextMenu: { x: number; y: number; nodeId: string } | null;
+  contextMenuRef: RefObject<HTMLDivElement | null>;
   nodeActionContext: NodeActionContext;
   onNavigateTo: NodeNavigate;
 }): ReactElement {
@@ -254,6 +256,7 @@ export function LineageGraphSurfaceView({
       {contextMenu &&
         createPortal(
           <div
+            ref={contextMenuRef}
             className="graph-context-menu"
             style={{ left: contextMenu.x, top: contextMenu.y }}
             onPointerDown={(e) => e.stopPropagation()}

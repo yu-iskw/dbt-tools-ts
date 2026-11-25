@@ -171,28 +171,6 @@ export function WorkspaceScaffold({
   );
 }
 
-export function QuickJumpActions({
-  actions,
-}: {
-  actions: { label: string; onClick: () => void; disabled?: boolean }[];
-}): ReactElement {
-  return (
-    <div className="entity-inspector__actions">
-      {actions.map((action) => (
-        <button
-          key={action.label}
-          type="button"
-          className="workspace-pill"
-          onClick={action.onClick}
-          disabled={action.disabled}
-        >
-          {action.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function EntityInspector({
   eyebrow,
   title,
@@ -201,7 +179,6 @@ export function EntityInspector({
   callout,
   stats,
   sections,
-  actions,
   footer,
   emptyMessage,
 }: {
@@ -213,8 +190,7 @@ export function EntityInspector({
   callout?: ReactNode;
   stats?: { label: string; value: ReactNode }[];
   sections?: { label: string; value: ReactNode }[];
-  actions?: { label: string; onClick: () => void; disabled?: boolean }[];
-  /** Rendered last, e.g. the shared node actions. */
+  /** Rendered last: the shared node actions. */
   footer?: ReactNode;
   emptyMessage?: string;
 }): ReactElement {
@@ -255,7 +231,6 @@ export function EntityInspector({
           <div className="entity-inspector__mono">{section.value}</div>
         </div>
       ))}
-      {actions && actions.length > 0 ? <QuickJumpActions actions={actions} /> : null}
       {footer}
     </aside>
   );

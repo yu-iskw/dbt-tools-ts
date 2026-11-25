@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useWorkspaceUrlState, type UseWorkspaceUrlStateResult } from './use-workspace-url-state';
 
 import type { WorkspacePreferences } from './use-workspace-preferences';
-import type { AnalysisState } from '@web/types';
 
 const actEnvironment = globalThis as typeof globalThis & {
   IS_REACT_ACT_ENVIRONMENT?: boolean;
@@ -31,10 +30,10 @@ const preferences = {
   },
 } as WorkspacePreferences;
 
-function mountHook(analysis: AnalysisState | null = null) {
+function mountHook() {
   const ref: { current: UseWorkspaceUrlStateResult | null } = { current: null };
   function Probe() {
-    ref.current = useWorkspaceUrlState(preferences, analysis);
+    ref.current = useWorkspaceUrlState(preferences);
     return null;
   }
   const container = document.createElement('div');
@@ -113,47 +112,36 @@ describe('useWorkspaceUrlState arrival resets', () => {
     expect(ref.current!.runsViewState.query).toBe('old search');
   });
 
-  it('shows tests and clears a conflicting search when opening a test in Timeline', () => {
-    const analysis = {
-      projectName: 'p',
-      executions: [],
-      resources: [],
-      dependencyIndex: {},
-      ganttData: [
-        {
-          unique_id: 'model.p.orders',
-          name: 'orders',
-          start: 0,
-          end: 10,
-          duration: 10,
-          status: 'success',
-          resourceType: 'model',
-          packageName: 'p',
-          path: null,
-          parentId: null,
-        },
-        {
-          unique_id: 'test.p.not_null_orders_id',
-          name: 'not_null_orders_id',
-          start: 10,
-          end: 12,
-          duration: 2,
-          status: 'pass',
-          resourceType: 'test',
-          packageName: 'p',
-          path: null,
-          parentId: 'model.p.orders',
-        },
-      ],
-    } as unknown as AnalysisState;
-    const ref = mountHook(analysis);
-    act(() => ref.current!.setTimelineFilters((c) => ({ ...c, query: 'customers' })));
+  it('selects the node in Timeline, keeps the user filters, and drops a zoom window', () => {
+    const ref = mountHook();
+    act(() =>
+      ref.current!.setTimelineFilters((c) => ({
+        ...c,
+        query: 'customers',
+        timeWindow: { start: 0, end: 5 },
+      })),
+    );
     act(() =>
       ref.current!.handleNavigateTo('timeline', { executionId: 'test.p.not_null_orders_id' }),
     );
 
     expect(ref.current!.timelineFilters.selectedExecutionId).toBe('test.p.not_null_orders_id');
-    expect(ref.current!.timelineFilters.showTests).toBe(true);
-    expect(ref.current!.timelineFilters.query).toBe('');
+    expect(ref.current!.timelineFilters.query).toBe('customers');
+    expect(ref.current!.timelineFilters.timeWindow).toBeNull();
+  });
+
+  it('sets the Runs search from resourceId after clearing stale filters', () => {
+    const ref = mountHook();
+    act(() => ref.current!.setRunsViewState((c) => ({ ...c, ...staleRuns })));
+    act(() =>
+      ref.current!.handleNavigateTo('runs', {
+        executionId: 'model.p.orders',
+        resourceId: 'model.p.orders',
+      }),
+    );
+
+    expect(ref.current!.runsViewState.query).toBe('model.p.orders');
+    expect(ref.current!.runsViewState.status).toBe('all');
+    expect(ref.current!.runsViewState.selectedExecutionId).toBe('model.p.orders');
   });
 });

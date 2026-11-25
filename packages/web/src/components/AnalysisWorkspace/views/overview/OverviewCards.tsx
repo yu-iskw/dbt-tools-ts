@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import { runNodeAction, type NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
 
@@ -80,9 +82,18 @@ export function OverviewCriticalPathCard({
   filtered: boolean;
   onNavigateTo: NodeNavigate;
 }): ReactElement {
-  const path = analysis.summary.critical_path?.path ?? [];
-  const criticalPathLength = path.length;
-  const nameById = new Map(analysis.resources.map((r) => [r.uniqueId, r.name] as const));
+  const criticalPath = analysis.summary.critical_path;
+  const criticalPathLength = criticalPath?.path.length ?? 0;
+  // Resolve names for the visible nodes only, once per analysis, not a map of every resource per render.
+  const { visiblePath, nameById } = useMemo(() => {
+    const visible = (criticalPath?.path ?? []).slice(0, CRITICAL_PATH_VISIBLE_NODES);
+    const wanted = new Set(visible);
+    const names = new Map<string, string>();
+    for (const resource of analysis.resources) {
+      if (wanted.has(resource.uniqueId)) names.set(resource.uniqueId, resource.name);
+    }
+    return { visiblePath: visible, nameById: names };
+  }, [analysis.resources, criticalPath]);
 
   return (
     <section className="overview-module overview-module--critical">
@@ -104,7 +115,7 @@ export function OverviewCriticalPathCard({
         </div>
         {criticalPathLength > 0 ? (
           <ol className="critical-path-card__chain" aria-label="Critical path nodes">
-            {path.slice(0, CRITICAL_PATH_VISIBLE_NODES).map((id) => (
+            {visiblePath.map((id) => (
               <li key={id}>
                 <button
                   type="button"

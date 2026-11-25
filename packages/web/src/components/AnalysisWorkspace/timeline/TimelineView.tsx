@@ -11,13 +11,9 @@ import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
 import { buildResourceTestStats } from '@web/lib/analysis-workspace/explorer-tree';
 import { buildNodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import {
-  getTimelineDefaultActiveTypes,
-  matchesTimelineQuery,
-  parentHasFailureSignal,
-} from '@web/lib/analysis-workspace/timeline-reveal';
-import {
   countTimelineTestResources,
   deriveProjectName,
+  getDefaultTimelineActiveTypes,
   isDefaultTimelineResource,
   timelineGanttHasCompileExecutePhases,
 } from '@web/lib/analysis-workspace/utils';
@@ -25,7 +21,7 @@ import {
 import { SectionCard, WorkspaceScaffold } from '../shared';
 
 import { TIMELINE_BUNDLE_COUNT_WARNING } from './gantt/constants';
-import { formatMs } from './gantt/formatting';
+import { formatMs, isPositiveStatus } from './gantt/formatting';
 import { GanttChart } from './GanttChart';
 import { GanttLegend } from './GanttLegend';
 import { TimelineDependencyControls } from './TimelineDependencyControls';
@@ -89,6 +85,27 @@ function setsEqual(left: Set<string>, right: Set<string>): boolean {
   return true;
 }
 
+function parentHasFailureSignal(
+  item: GanttItem,
+  childTests: GanttItem[],
+  testStatsById: ReturnType<typeof buildResourceTestStats>,
+): boolean {
+  const stats = testStatsById.get(item.unique_id);
+  const hasTestFail = stats
+    ? stats.error + stats.warn > 0
+    : childTests.some((t) => !isPositiveStatus(t.status));
+  return !isPositiveStatus(item.status) || hasTestFail;
+}
+
+function matchesTimelineQuery(item: GanttItem, query: string): boolean {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    item.name.toLowerCase().includes(normalized) ||
+    item.unique_id.toLowerCase().includes(normalized)
+  );
+}
+
 function TimelineSurface({
   analysis,
   filters,
@@ -108,6 +125,7 @@ function TimelineSurface({
   toggleStatus,
   toggleType,
   onSelect,
+  drawTestLanes,
 }: {
   analysis: AnalysisState;
   filters: TimelineFilterState;
@@ -127,6 +145,8 @@ function TimelineSurface({
   toggleStatus: (status: string) => void;
   toggleType: (type: string) => void;
   onSelect: (id: string | null) => void;
+  /** Tests toggled on, or a selected test that must be drawn while they are off. */
+  drawTestLanes: boolean;
 }) {
   const showCompileExecuteLegend = useMemo(
     () => timelineGanttHasCompileExecutePhases(analysis.ganttData),
@@ -192,7 +212,7 @@ function TimelineSurface({
         timelineAdjacency={analysis.timelineAdjacency}
         testStatsById={testStatsById}
         resourceByUniqueId={resourceByUniqueId}
-        showTests={filters.showTests}
+        showTests={drawTestLanes}
         dependencyDirection={filters.dependencyDirection}
         dependencyDepthHops={filters.dependencyDepthHops}
         selectedId={filters.selectedExecutionId}
@@ -220,9 +240,21 @@ export function TimelineView({
   const deferredQuery = useDeferredValue(filters.query);
   const projectName = analysis.projectName ?? deriveProjectName(analysis.executions);
 
-  const defaultActiveTypes = useMemo(
-    () => getTimelineDefaultActiveTypes(analysis.ganttData, projectName),
+  const presentTypes = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          analysis.ganttData
+            .filter((d) => isDefaultTimelineResource(d, projectName))
+            .map((d) => d.resourceType)
+            .filter((t): t is string => Boolean(t)),
+        ),
+      ).sort(),
     [analysis.ganttData, projectName],
+  );
+  const defaultActiveTypes = useMemo(
+    () => getDefaultTimelineActiveTypes(presentTypes),
+    [presentTypes],
   );
   const effectiveActiveTypes =
     filters.activeTypes.size > 0 ? filters.activeTypes : defaultActiveTypes;
@@ -268,9 +300,23 @@ export function TimelineView({
     return m;
   }, [analysis.ganttData]);
 
+  const ganttById = useMemo(
+    () => new Map(analysis.ganttData.map((item) => [item.unique_id, item] as const)),
+    [analysis.ganttData],
+  );
+  const selectedItem =
+    filters.selectedExecutionId == null
+      ? null
+      : (ganttById.get(filters.selectedExecutionId) ?? null);
+  const selectedIsTest = selectedItem != null && TEST_RESOURCE_TYPES.has(selectedItem.resourceType);
+  // The selected node stays visible whatever the filters say, so a handoff from another view
+  // always lands on it: its own row, or the parent row a selected test renders inside.
+  const pinnedRowId = selectedIsTest ? selectedItem.parentId : (selectedItem?.unique_id ?? null);
+
   const filteredParents: GanttItem[] = useMemo(() => {
     const includeParentItem = (item: GanttItem) => {
       if (TEST_RESOURCE_TYPES.has(item.resourceType)) return false;
+      if (item.unique_id === pinnedRowId) return true;
       if (filters.activeTypes.size === 0 && !isDefaultTimelineResource(item, projectName)) {
         return false;
       }
@@ -301,6 +347,7 @@ export function TimelineView({
     filters.activeStatuses,
     filters.failuresOnly,
     filters.activeTypes.size,
+    pinnedRowId,
     projectName,
     testStatsById,
     testsByParentId,
@@ -317,18 +364,20 @@ export function TimelineView({
     [displayedParents],
   );
 
-  const filteredTests: GanttItem[] = useMemo(
-    () =>
-      filters.showTests
-        ? analysis.ganttData.filter(
-            (item) =>
-              TEST_RESOURCE_TYPES.has(item.resourceType) &&
-              item.parentId != null &&
-              parentIdSet.has(item.parentId),
-          )
-        : [],
-    [analysis.ganttData, filters.showTests, parentIdSet],
-  );
+  const filteredTests: GanttItem[] = useMemo(() => {
+    if (filters.showTests) {
+      return analysis.ganttData.filter(
+        (item) =>
+          TEST_RESOURCE_TYPES.has(item.resourceType) &&
+          item.parentId != null &&
+          parentIdSet.has(item.parentId),
+      );
+    }
+    // Tests hidden: still draw a selected test inside its (pinned) parent row.
+    return selectedIsTest && selectedItem.parentId != null && parentIdSet.has(selectedItem.parentId)
+      ? [selectedItem]
+      : [];
+  }, [analysis.ganttData, filters.showTests, parentIdSet, selectedIsTest, selectedItem]);
 
   const filteredData: GanttItem[] = useMemo(
     () => [...displayedParents, ...filteredTests],
@@ -360,14 +409,6 @@ export function TimelineView({
   );
 
   const nodeActionContext = useMemo(() => buildNodeActionContext(analysis), [analysis]);
-  const selectedItem = useMemo(
-    () =>
-      filters.selectedExecutionId == null
-        ? null
-        : (analysis.ganttData.find((item) => item.unique_id === filters.selectedExecutionId) ??
-          null),
-    [analysis.ganttData, filters.selectedExecutionId],
-  );
   const selectedExecution = useMemo(
     () =>
       selectedItem == null
@@ -392,10 +433,7 @@ export function TimelineView({
       ...current,
       selectedExecutionId: id,
       selectedResourceId:
-        id == null
-          ? current.selectedResourceId
-          : (analysis.resources.find((resource) => resource.uniqueId === id)?.uniqueId ??
-            current.selectedResourceId),
+        id != null && resourceByUniqueId.has(id) ? id : current.selectedResourceId,
       sourceLens: 'timeline',
     }));
   }
@@ -457,6 +495,7 @@ export function TimelineView({
         toggleStatus={toggleStatus}
         toggleType={toggleType}
         onSelect={selectNode}
+        drawTestLanes={filters.showTests || selectedIsTest}
       />
     </WorkspaceScaffold>
   );

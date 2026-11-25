@@ -22,7 +22,8 @@ export interface NodeActionDefinition {
   navigate: (nodeId: string, onNavigateTo: NodeNavigate) => void;
 }
 
-export const NODE_ACTIONS: readonly NodeActionDefinition[] = [
+/** In display order. */
+const NODE_ACTIONS: readonly NodeActionDefinition[] = [
   {
     id: 'timeline',
     label: 'Open in Timeline',
@@ -56,6 +57,8 @@ export const NODE_ACTIONS: readonly NodeActionDefinition[] = [
   },
 ];
 
+const NODE_ACTION_BY_ID = new Map(NODE_ACTIONS.map((action) => [action.id, action] as const));
+
 export function buildNodeActionContext(
   analysis: Pick<AnalysisState, 'executions' | 'ganttData' | 'resources'>,
 ): NodeActionContext {
@@ -79,5 +82,7 @@ export function getNodeActions(
 
 /** Runs one action by id; for callers that always mean a specific view (e.g. Health rows open Timeline). */
 export function runNodeAction(id: NodeActionId, nodeId: string, onNavigateTo: NodeNavigate): void {
-  NODE_ACTIONS.find((action) => action.id === id)?.navigate(nodeId, onNavigateTo);
+  const action = NODE_ACTION_BY_ID.get(id);
+  if (!action) throw new Error(`Unknown node action: ${id}`);
+  action.navigate(nodeId, onNavigateTo);
 }

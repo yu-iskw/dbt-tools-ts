@@ -17,6 +17,7 @@ import type { ReactElement } from 'react';
 function AppContent() {
   const { toast } = useToast();
   const { preferences, setPreferences } = useWorkspacePreferences();
+  const workspace = useWorkspaceUrlState(preferences);
   const {
     analysis,
     analysisSource,
@@ -32,7 +33,6 @@ function AppContent() {
     onError,
     onAcceptPendingRemoteRun,
   } = useAnalysisPage();
-  const workspace = useWorkspaceUrlState(preferences, analysis);
   const { themePreference, setThemePreference } = useTheme();
 
   useEffect(() => {
