@@ -160,19 +160,20 @@ function isDurationBandMatch(
   return row.executionTime >= 5;
 }
 
-const STATUS_TONE_SORT_RANK: Record<ExecutionRow['statusTone'], number> = {
-  danger: 0,
-  warning: 1,
-  positive: 2,
-  skipped: 3,
-  neutral: 4,
+/** Higher score = needs more attention. Ascending order puts calm rows first, so the default `desc` leads with problems. */
+const STATUS_TONE_ATTENTION_SCORE: Record<ExecutionRow['statusTone'], number> = {
+  positive: 0,
+  neutral: 1,
+  skipped: 2,
+  warning: 3,
+  danger: 4,
 };
 
-function compareRowsByToneThenDuration(left: ExecutionRow, right: ExecutionRow): number {
+function compareRowsByAttentionScore(left: ExecutionRow, right: ExecutionRow): number {
   const toneCompare =
-    STATUS_TONE_SORT_RANK[left.statusTone] - STATUS_TONE_SORT_RANK[right.statusTone];
+    STATUS_TONE_ATTENTION_SCORE[left.statusTone] - STATUS_TONE_ATTENTION_SCORE[right.statusTone];
   if (toneCompare !== 0) return toneCompare;
-  return right.executionTime - left.executionTime;
+  return left.executionTime - right.executionTime;
 }
 
 function compareAdapterValues(
@@ -216,7 +217,7 @@ function compareRowsAdapterOrAttentionFallback(
   direction: RunsSortDirection,
 ): number {
   if (!isRunsAdapterSortBy(sortBy)) {
-    return signedCompare(compareRowsByToneThenDuration(left, right), direction);
+    return signedCompare(compareRowsByAttentionScore(left, right), direction);
   }
   const key = getRunsAdapterColumnKey(sortBy);
   const leftField = getRunsAdapterField(left, key);
@@ -267,7 +268,7 @@ function compareRows(
         direction,
       );
     case 'attention':
-      return signedCompare(compareRowsByToneThenDuration(left, right), direction);
+      return signedCompare(compareRowsByAttentionScore(left, right), direction);
     default:
       return compareRowsAdapterOrAttentionFallback(left, right, sortBy, direction);
   }

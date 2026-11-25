@@ -7,6 +7,8 @@ import {
   type SetStateAction,
 } from 'react';
 
+import { runsStateAfterNavigate } from '@web/lib/analysis-workspace/runs-reveal';
+
 import {
   getInitialSidebarCollapsed,
   SIDEBAR_STORAGE_KEY,
@@ -59,6 +61,7 @@ export interface UseWorkspaceUrlStateResult {
       executionId?: string;
       assetTab?: AssetViewState['activeTab'];
       rootResourceId?: string;
+      runsStatus?: RunsViewState['status'];
     },
   ) => void;
   frameClass: string;
@@ -126,9 +129,13 @@ export function useWorkspaceUrlState(
         executionId?: string;
         assetTab?: AssetViewState['activeTab'];
         rootResourceId?: string;
+        runsStatus?: RunsViewState['status'];
       },
     ) => {
       setActiveViewRaw(view);
+      if (view === 'runs' || options?.executionId) {
+        setRunsViewState((current) => runsStateAfterNavigate(current, view, options ?? {}));
+      }
       if (options?.resourceId) {
         setAssetViewState((current) => ({
           ...current,
@@ -147,19 +154,12 @@ export function useWorkspaceUrlState(
         }));
       }
       if (options?.executionId) {
-        setRunsViewState((current) => ({
-          ...current,
-          selectedExecutionId: options.executionId ?? current.selectedExecutionId,
-        }));
-        setTimelineFilters((current) =>
-          mergeTimelineSelection(current, options.executionId ?? current.selectedExecutionId),
-        );
-      }
-      if (view === 'runs' && options?.resourceId) {
-        setRunsViewState((current) => ({
-          ...current,
-          query: options.resourceId ?? current.query,
-        }));
+        const executionId = options.executionId;
+        setTimelineFilters((current) => {
+          const merged = mergeTimelineSelection(current, executionId);
+          // TimelineView always keeps the selected row visible; only a zoom window can still crop it.
+          return view === 'timeline' ? { ...merged, timeWindow: null } : merged;
+        });
       }
       setInvestigationSelection((current) => ({
         selectedResourceId: options?.resourceId ?? current.selectedResourceId,
@@ -241,10 +241,6 @@ export function useWorkspaceUrlState(
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setSearchState((current) => ({ ...current, isOpen: true }));
-      }
       if (e.key === 'Escape') {
         setSidebarOpen(false);
         setSearchState((current) => ({ ...current, isOpen: false }));

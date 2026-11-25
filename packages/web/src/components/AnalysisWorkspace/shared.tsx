@@ -171,45 +171,27 @@ export function WorkspaceScaffold({
   );
 }
 
-export function QuickJumpActions({
-  actions,
-}: {
-  actions: { label: string; onClick: () => void; disabled?: boolean }[];
-}): ReactElement {
-  return (
-    <div className="entity-inspector__actions">
-      {actions.map((action) => (
-        <button
-          key={action.label}
-          type="button"
-          className="workspace-pill"
-          onClick={action.onClick}
-          disabled={action.disabled}
-        >
-          {action.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function EntityInspector({
   eyebrow,
   title,
   typeLabel,
   status,
+  callout,
   stats,
   sections,
-  actions,
+  footer,
   emptyMessage,
 }: {
   eyebrow?: string;
   title: string | null;
   typeLabel?: string | null;
   status?: ReactNode;
+  /** Rendered right under the name, before stats. */
+  callout?: ReactNode;
   stats?: { label: string; value: ReactNode }[];
   sections?: { label: string; value: ReactNode }[];
-  actions?: { label: string; onClick: () => void; disabled?: boolean }[];
+  /** Rendered last: the shared node actions. */
+  footer?: ReactNode;
   emptyMessage?: string;
 }): ReactElement {
   if (!title) {
@@ -232,6 +214,7 @@ export function EntityInspector({
       <div className="entity-inspector__name">
         <strong>{title}</strong>
       </div>
+      {callout}
       {stats && stats.length > 0 ? (
         <dl className="entity-inspector__stats">
           {stats.map((stat) => (
@@ -248,7 +231,7 @@ export function EntityInspector({
           <div className="entity-inspector__mono">{section.value}</div>
         </div>
       ))}
-      {actions && actions.length > 0 ? <QuickJumpActions actions={actions} /> : null}
+      {footer}
     </aside>
   );
 }

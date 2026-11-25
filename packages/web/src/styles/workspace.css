@@ -316,6 +316,27 @@
   color: var(--accent-primary);
 }
 
+.action-list__row--link {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.action-list__row--link:hover {
+  background: var(--bg-surface-muted);
+  border-color: var(--border-strong);
+}
+
+.action-list__row--link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
 /* Critical path card */
 .critical-path-card {
   border-radius: calc(var(--radius-sm) - 4px);
@@ -358,6 +379,52 @@
 .critical-path-card__detail strong {
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.critical-path-card__chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.critical-path-card__chain li:not(:last-child)::after {
+  content: '→';
+  margin-left: 0.3rem;
+  color: var(--text-tertiary);
+}
+
+.critical-path-card__node {
+  max-width: 14rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-muted);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.critical-path-card__node:hover {
+  border-color: var(--border-strong);
+  color: var(--accent-primary);
+}
+
+.critical-path-card__node:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.critical-path-card__more {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
 }
 
 /* Coverage card */
@@ -945,6 +1012,29 @@
   color: var(--text-primary);
 }
 
+.health-posture__metric-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.health-posture__metric-link:hover strong {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+
+.health-posture__metric-link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 3px;
+}
+
 .health-metric-row {
   display: flex;
   flex-wrap: wrap;
@@ -1397,6 +1487,12 @@
   gap: 0.5rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.entity-inspector__header:has(.entity-inspector__close) {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .entity-inspector__type-badge {
@@ -2133,6 +2229,11 @@
   color: var(--text-primary);
 }
 
+.settings-readout {
+  display: grid;
+  gap: var(--space-1);
+}
+
 .settings-readout p {
   margin: 0.35rem 0 0;
   color: var(--text-secondary);
@@ -2648,6 +2749,51 @@
   border-color: color-mix(in srgb, var(--text-warning) 32%, var(--border-subtle));
 }
 
+.run-result-message {
+  display: grid;
+  gap: var(--space-1-5);
+  padding: var(--space-2-5) var(--space-3);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border-strong);
+  background: var(--bg-surface-muted);
+}
+
+.run-result-message--danger {
+  border-left-color: var(--border-danger);
+  background: var(--danger-soft);
+}
+
+.run-result-message--warning {
+  border-left-color: var(--border-warning);
+  background: var(--warning-soft);
+}
+
+.run-result-message__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.run-result-message__title {
+  margin: 0;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.run-result-message__body {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .asset-tests-table__cell--align-end {
   text-align: right;
 }
@@ -2661,6 +2807,13 @@
   display: inline-flex;
   color: var(--accent-primary);
   line-height: 0;
+}
+
+/* Timeline: inspector sits beside the chart, stacked below it under 1180px. */
+@media (width <= 1180px) {
+  .timeline-view .workspace-scaffold__body--with-inspector {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (width <= 1099px) {

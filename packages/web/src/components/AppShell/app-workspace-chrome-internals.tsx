@@ -1,8 +1,11 @@
+import { useEffect, useId, useRef, useState } from 'react';
+
 import { formatRunStartedAt, getInvocationTimestamp } from '@web/lib/analysis-workspace/utils';
 import { sourceLabel } from '@web/lib/artifact-source';
 
 import { AnalysisWorkspace } from '../AnalysisWorkspace';
 import { ArtifactLoadPanel } from '../ArtifactLoadPanel';
+import { CopyButton } from '../ui/CopyButton';
 
 import { LoadingCard } from './LoadingCard';
 import { SettingsView } from './SettingsView';
@@ -18,8 +21,13 @@ import type {
   RemoteArtifactRun,
   WorkspaceArtifactSource,
 } from '@web/services/artifact-source-api';
-import type { AnalysisState } from '@web/types';
-import type { ReactElement, Dispatch, SetStateAction } from 'react';
+import type { AnalysisState, ResourceNode } from '@web/types';
+import type {
+  ReactElement,
+  Dispatch,
+  KeyboardEvent as ReactKeyboardEvent,
+  SetStateAction,
+} from 'react';
 
 type HeaderMetricIconKind = 'invocation' | 'project' | 'source' | 'time';
 
@@ -28,11 +36,14 @@ interface HeaderSummaryItemModel {
   label: string;
   value: string;
   icon: HeaderMetricIconKind;
+  /** When set, the value gets a copy button labelled with this noun. */
+  copyLabel?: string;
 }
 
 interface HeaderModel {
   label: string;
   subtitle: string | null;
+  canShareLink: boolean;
   summaryItems: HeaderSummaryItemModel[];
 }
 
@@ -101,6 +112,7 @@ export function buildHeaderModel(
     invocationTimestamp != null ? formatRunStartedAt(invocationTimestamp) : null;
 
   return {
+    canShareLink: analysis != null,
     label: projectName ?? 'Workspace session',
     subtitle:
       projectName == null && invocationId == null && formattedInvocationTimestamp == null
@@ -113,6 +125,7 @@ export function buildHeaderModel(
             label: 'Invocation ID',
             value: invocationId,
             icon: 'invocation',
+            copyLabel: 'invocation ID',
           }
         : null,
       formattedInvocationTimestamp
@@ -151,7 +164,10 @@ function HeaderSummary({ summaryItems }: { summaryItems: HeaderSummaryItemModel[
           </span>
           <span className="app-header__summary-copy">
             <span className="app-header__summary-label">{item.label}</span>
-            <strong className="app-header__summary-value">{item.value}</strong>
+            <span className="app-header__summary-value-row">
+              <strong className="app-header__summary-value">{item.value}</strong>
+              {item.copyLabel ? <CopyButton value={item.value} label={item.copyLabel} /> : null}
+            </span>
           </span>
         </div>
       ))}
@@ -167,7 +183,23 @@ export function HeaderIdentity({ header }: { header: HeaderModel }): ReactElemen
       </p>
       {header.subtitle ? <p className="app-header__subheadline">{header.subtitle}</p> : null}
       <HeaderSummary summaryItems={header.summaryItems} />
+      {header.canShareLink ? (
+        <div className="app-header__copy-link">
+          <span>Share this view</span>
+          <CopyButton value={() => window.location.href} label="link to this view" />
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
   );
 }
 
@@ -185,6 +217,69 @@ export function HeaderSearch({
   handleNavigateTo: UseWorkspaceUrlStateResult['handleNavigateTo'];
 }): ReactElement {
   const showsQueryResults = searchState.query.trim().length > 0;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const { results } = omniboxResults;
+  const resultsKey = results.map((resource) => resource.uniqueId).join('|');
+  const listOpen = searchState.isOpen && analysis != null;
+  const hasOptions = results.length > 0 && !(omniboxResults.loading && showsQueryResults);
+  const optionId = (index: number) => `${listboxId}-option-${index}`;
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [resultsKey]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const opensWithCommandK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k';
+      const opensWithSlash =
+        e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !isEditableTarget(e.target);
+      if (!opensWithCommandK && !opensWithSlash) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+      setSearchState((current) => ({ ...current, isOpen: true }));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setSearchState]);
+
+  const selectResource = (resource: ResourceNode) => {
+    setSearchState((current) => ({
+      ...current,
+      isOpen: false,
+      recentResourceIds: [
+        resource.uniqueId,
+        ...current.recentResourceIds.filter((id) => id !== resource.uniqueId),
+      ].slice(0, 8),
+    }));
+    handleNavigateTo('inventory', {
+      resourceId: resource.uniqueId,
+      assetTab: 'summary',
+    });
+  };
+
+  const onInputKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!listOpen) {
+        setSearchState((current) => ({ ...current, isOpen: true }));
+        return;
+      }
+      if (results.length === 0) return;
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      setActiveIndex((current) => (current + step + results.length) % results.length);
+    } else if (e.key === 'Enter') {
+      const active = hasOptions && listOpen ? results.at(activeIndex) : undefined;
+      if (active) {
+        e.preventDefault();
+        selectResource(active);
+      }
+    } else if (e.key === 'Escape') {
+      setSearchState((current) => ({ ...current, isOpen: false }));
+      inputRef.current?.blur();
+    }
+  };
 
   return (
     <div className="app-header__omnibox">
@@ -201,8 +296,16 @@ export function HeaderSearch({
             />
           </svg>
           <input
+            ref={inputRef}
             value={searchState.query}
+            role="combobox"
+            aria-expanded={listOpen}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={listOpen && hasOptions ? optionId(activeIndex) : undefined}
             onFocus={() => setSearchState((current) => ({ ...current, isOpen: true }))}
+            onBlur={() => setSearchState((current) => ({ ...current, isOpen: false }))}
+            onKeyDown={onInputKeyDown}
             onChange={(e) =>
               setSearchState((current) => ({
                 ...current,
@@ -210,35 +313,35 @@ export function HeaderSearch({
                 isOpen: true,
               }))
             }
-            placeholder="Search runs, pipelines, assets..."
+            placeholder="Search models, sources, tests…"
             aria-label="Global search"
           />
+          <kbd className="app-header__search-kbd" aria-hidden="true">
+            ⌘K
+          </kbd>
         </div>
       </label>
-      {searchState.isOpen && analysis && (
-        <div className="omnibox-results">
+      {listOpen && (
+        <div
+          id={listboxId}
+          className="omnibox-results"
+          role={hasOptions ? 'listbox' : undefined}
+          aria-label={hasOptions ? 'Search results' : undefined}
+        >
           {omniboxResults.loading && showsQueryResults ? (
             <div className="omnibox-results__empty">Searching…</div>
-          ) : omniboxResults.results.length > 0 ? (
-            omniboxResults.results.map((resource) => (
+          ) : results.length > 0 ? (
+            results.map((resource, index) => (
               <button
                 key={resource.uniqueId}
+                id={optionId(index)}
                 type="button"
-                className="omnibox-results__item"
-                onClick={() => {
-                  setSearchState((current) => ({
-                    ...current,
-                    isOpen: false,
-                    recentResourceIds: [
-                      resource.uniqueId,
-                      ...current.recentResourceIds.filter((id) => id !== resource.uniqueId),
-                    ].slice(0, 8),
-                  }));
-                  handleNavigateTo('inventory', {
-                    resourceId: resource.uniqueId,
-                    assetTab: 'summary',
-                  });
-                }}
+                role="option"
+                tabIndex={-1}
+                aria-selected={index === activeIndex}
+                className={`omnibox-results__item${index === activeIndex ? ' omnibox-results__item--active' : ''}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => selectResource(resource)}
               >
                 <strong>{resource.name}</strong>
                 <span>{resource.resourceType}</span>

@@ -13,6 +13,7 @@ import { LensSelector } from './LensSelector';
 import { DepthStepper, SharedDepthSelector } from './LineageDepthControls';
 import { LineageGraphSurface } from './LineageGraphSurface';
 
+import type { NodeActionContext, NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import type { LensMode } from '@web/lib/analysis-workspace/types';
 import type { AnalysisState, ResourceNode } from '@web/types';
 import type { ReactElement, Dispatch, SetStateAction } from 'react';
@@ -33,6 +34,8 @@ export function LineagePanel({
   setLensMode,
   setActiveLegendKeys,
   onSelectResource,
+  nodeActionContext,
+  onNavigateTo,
   displayMode = 'focused',
   openFullscreen = false,
   onFullscreenChange,
@@ -53,6 +56,8 @@ export function LineagePanel({
   setLensMode: (mode: LensMode) => void;
   setActiveLegendKeys: Dispatch<SetStateAction<Set<string>>>;
   onSelectResource: (id: string) => void;
+  nodeActionContext: NodeActionContext;
+  onNavigateTo: NodeNavigate;
   displayMode?: LineageDisplayMode;
   openFullscreen?: boolean;
   onFullscreenChange?: (open: boolean) => void;
@@ -216,6 +221,8 @@ export function LineagePanel({
           onToggleLegendKey={toggleLegendKey}
           displayMode="focused"
           fullscreen
+          nodeActionContext={nodeActionContext}
+          onNavigateTo={onNavigateTo}
         />
       </section>
     </div>
@@ -254,6 +261,8 @@ export function LineagePanel({
             activeLegendKeys={activeLegendKeys}
             onToggleLegendKey={toggleLegendKey}
             displayMode={displayMode}
+            nodeActionContext={nodeActionContext}
+            onNavigateTo={onNavigateTo}
           />
         </div>
       </SectionCard>

@@ -34,6 +34,8 @@ export function formatSeconds(value: number | null | undefined): string {
     return `${minutes}m ${secs.toFixed(2).padStart(5, '0')}s`;
   }
   if (value >= 10) return `${value.toFixed(1)}s`;
+  if (value > 0 && value < 0.0005) return '<1ms';
+  if (value < 0.9995) return `${Math.round(value * 1000)}ms`;
   return `${value.toFixed(2)}s`;
 }
 

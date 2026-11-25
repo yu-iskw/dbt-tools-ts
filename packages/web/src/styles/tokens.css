@@ -308,20 +308,6 @@
   --dbt-type-macro-soft: rgb(134 144 170 / 20%);
   --dbt-type-operation-soft: rgb(62 176 200 / 18%);
 
-  /* Graph surface aliases (Dark) */
-  --graph-bg-top: #dde2ea;
-  --graph-bg-bottom: #cfd6e1;
-  --graph-bg-accent: rgb(175 184 205 / 22%);
-  --graph-panel: #e7ebf3;
-  --graph-panel-hover: #dfe5ef;
-  --graph-panel-active: #d6deec;
-  --graph-border: #aab4c6;
-  --graph-border-strong: #8896af;
-  --graph-text: #171c28;
-  --graph-text-muted: #465066;
-  --graph-text-soft: #647087;
-  --graph-edge: #8794aa;
-  --graph-hotspot: rgb(99 91 255 / 18%);
-  --graph-node-stroke: #aab4c6;
-  --graph-node-selected-stroke: var(--accent-primary);
+  /* Graph surface aliases inherit the dark semantic tokens; edges need more contrast on dark */
+  --graph-edge: var(--border-strong);
 }

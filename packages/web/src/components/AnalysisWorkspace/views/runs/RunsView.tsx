@@ -2,6 +2,7 @@ import { type Dispatch, type ReactElement, type SetStateAction, useEffect, useMe
 
 import { useRunsResultsSource } from '@web/hooks/use-runs-results-source';
 import { collectMaterializationKindsFromSemantics } from '@web/lib/analysis-workspace/materialization-semantics-ui';
+import { buildNodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import {
   getRunsAdapterColumnLayout,
   isRunsAdapterSortBy,
@@ -13,6 +14,7 @@ import { RunsAdapterInspector } from './RunsViewAdapterInspector';
 import { RunsResultsTable } from './RunsViewResultsTable';
 import { RunsToolbar } from './RunsViewToolbar';
 
+import type { NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import type { InvestigationSelectionState, RunsViewState } from '@web/lib/analysis-workspace/types';
 import type { AnalysisState } from '@web/types';
 
@@ -27,15 +29,7 @@ export function RunsView({
   runsViewState: RunsViewState;
   onRunsViewStateChange: Dispatch<SetStateAction<RunsViewState>>;
   onInvestigationSelectionChange: Dispatch<SetStateAction<InvestigationSelectionState>>;
-  onNavigateTo: (
-    view: 'inventory' | 'timeline',
-    options?: {
-      resourceId?: string;
-      executionId?: string;
-      assetTab?: 'lineage' | 'summary';
-      rootResourceId?: string;
-    },
-  ) => void;
+  onNavigateTo: NodeNavigate;
 }): ReactElement {
   const adapterColumnLayout = useMemo(
     () => getRunsAdapterColumnLayout(analysis.executions),
@@ -89,6 +83,7 @@ export function RunsView({
     }
   }, [adapterMetricsAvailable, onRunsViewStateChange, runsViewState.showAdapterMetrics]);
 
+  const nodeActionContext = useMemo(() => buildNodeActionContext(analysis), [analysis]);
   const runsResults = useRunsResultsSource(analysis.executions, runsViewState, true);
   const selectedRow =
     analysis.executions.find((row) => row.uniqueId === runsViewState.selectedExecutionId) ?? null;
@@ -113,6 +108,7 @@ export function RunsView({
             row={selectedRow}
             visibleColumns={visibleAdapterColumns}
             overflowColumns={overflowAdapterColumns}
+            nodeActionContext={nodeActionContext}
             onNavigateTo={onNavigateTo}
           />
         ) : null

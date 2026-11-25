@@ -9,6 +9,7 @@ import {
 
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
 import { buildResourceTestStats } from '@web/lib/analysis-workspace/explorer-tree';
+import { buildNodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import {
   countTimelineTestResources,
   deriveProjectName,
@@ -24,12 +25,14 @@ import { formatMs, isPositiveStatus } from './gantt/formatting';
 import { GanttChart } from './GanttChart';
 import { GanttLegend } from './GanttLegend';
 import { TimelineDependencyControls } from './TimelineDependencyControls';
+import { TimelineNodeInspector } from './TimelineNodeInspector';
 import { TimelineSearchControls, type TimelineTypeFilterHint } from './TimelineSearchControls';
 import {
   type TimelineNeighborhoodUi,
   useTimelineNeighborhoodRows,
 } from './use-timeline-neighborhood-rows';
 
+import type { NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import type {
   InvestigationSelectionState,
   TimelineFilterState,
@@ -121,7 +124,8 @@ function TimelineSurface({
   setFilters,
   toggleStatus,
   toggleType,
-  onInvestigationSelectionChange,
+  onSelect,
+  drawTestLanes,
 }: {
   analysis: AnalysisState;
   filters: TimelineFilterState;
@@ -140,7 +144,9 @@ function TimelineSurface({
   setFilters: Dispatch<SetStateAction<TimelineFilterState>>;
   toggleStatus: (status: string) => void;
   toggleType: (type: string) => void;
-  onInvestigationSelectionChange: Dispatch<SetStateAction<InvestigationSelectionState>>;
+  onSelect: (id: string | null) => void;
+  /** Tests toggled on, or a selected test that must be drawn while they are off. */
+  drawTestLanes: boolean;
 }) {
   const showCompileExecuteLegend = useMemo(
     () => timelineGanttHasCompileExecutePhases(analysis.ganttData),
@@ -206,35 +212,13 @@ function TimelineSurface({
         timelineAdjacency={analysis.timelineAdjacency}
         testStatsById={testStatsById}
         resourceByUniqueId={resourceByUniqueId}
-        showTests={filters.showTests}
+        showTests={drawTestLanes}
         dependencyDirection={filters.dependencyDirection}
         dependencyDepthHops={filters.dependencyDepthHops}
         selectedId={filters.selectedExecutionId}
         timeWindow={timeWindow}
         onTimeWindowChange={(tw) => setFilters((c) => ({ ...c, timeWindow: tw }))}
-        onSelect={(id) => {
-          setFilters((current) => {
-            const selCleared = id == null;
-            const selChanged = id !== current.selectedExecutionId;
-            const neighborhoodRowsShowAll =
-              selCleared || selChanged ? false : current.neighborhoodRowsShowAll;
-            return {
-              ...current,
-              selectedExecutionId: id,
-              neighborhoodRowsShowAll,
-            };
-          });
-          onInvestigationSelectionChange((current) => ({
-            ...current,
-            selectedExecutionId: id,
-            selectedResourceId:
-              id == null
-                ? current.selectedResourceId
-                : (analysis.resources.find((resource) => resource.uniqueId === id)?.uniqueId ??
-                  current.selectedResourceId),
-            sourceLens: 'timeline',
-          }));
-        }}
+        onSelect={onSelect}
       />
     </SectionCard>
   );
@@ -245,11 +229,13 @@ export function TimelineView({
   filters,
   setFilters,
   onInvestigationSelectionChange,
+  onNavigateTo,
 }: {
   analysis: AnalysisState;
   filters: TimelineFilterState;
   setFilters: Dispatch<SetStateAction<TimelineFilterState>>;
   onInvestigationSelectionChange: Dispatch<SetStateAction<InvestigationSelectionState>>;
+  onNavigateTo: NodeNavigate;
 }): ReactElement {
   const deferredQuery = useDeferredValue(filters.query);
   const projectName = analysis.projectName ?? deriveProjectName(analysis.executions);
@@ -314,9 +300,23 @@ export function TimelineView({
     return m;
   }, [analysis.ganttData]);
 
+  const ganttById = useMemo(
+    () => new Map(analysis.ganttData.map((item) => [item.unique_id, item] as const)),
+    [analysis.ganttData],
+  );
+  const selectedItem =
+    filters.selectedExecutionId == null
+      ? null
+      : (ganttById.get(filters.selectedExecutionId) ?? null);
+  const selectedIsTest = selectedItem != null && TEST_RESOURCE_TYPES.has(selectedItem.resourceType);
+  // The selected node stays visible whatever the filters say, so a handoff from another view
+  // always lands on it: its own row, or the parent row a selected test renders inside.
+  const pinnedRowId = selectedIsTest ? selectedItem.parentId : (selectedItem?.unique_id ?? null);
+
   const filteredParents: GanttItem[] = useMemo(() => {
     const includeParentItem = (item: GanttItem) => {
       if (TEST_RESOURCE_TYPES.has(item.resourceType)) return false;
+      if (item.unique_id === pinnedRowId) return true;
       if (filters.activeTypes.size === 0 && !isDefaultTimelineResource(item, projectName)) {
         return false;
       }
@@ -347,6 +347,7 @@ export function TimelineView({
     filters.activeStatuses,
     filters.failuresOnly,
     filters.activeTypes.size,
+    pinnedRowId,
     projectName,
     testStatsById,
     testsByParentId,
@@ -363,18 +364,20 @@ export function TimelineView({
     [displayedParents],
   );
 
-  const filteredTests: GanttItem[] = useMemo(
-    () =>
-      filters.showTests
-        ? analysis.ganttData.filter(
-            (item) =>
-              TEST_RESOURCE_TYPES.has(item.resourceType) &&
-              item.parentId != null &&
-              parentIdSet.has(item.parentId),
-          )
-        : [],
-    [analysis.ganttData, filters.showTests, parentIdSet],
-  );
+  const filteredTests: GanttItem[] = useMemo(() => {
+    if (filters.showTests) {
+      return analysis.ganttData.filter(
+        (item) =>
+          TEST_RESOURCE_TYPES.has(item.resourceType) &&
+          item.parentId != null &&
+          parentIdSet.has(item.parentId),
+      );
+    }
+    // Tests hidden: still draw a selected test inside its (pinned) parent row.
+    return selectedIsTest && selectedItem.parentId != null && parentIdSet.has(selectedItem.parentId)
+      ? [selectedItem]
+      : [];
+  }, [analysis.ganttData, filters.showTests, parentIdSet, selectedIsTest, selectedItem]);
 
   const filteredData: GanttItem[] = useMemo(
     () => [...displayedParents, ...filteredTests],
@@ -405,6 +408,36 @@ export function TimelineView({
     [analysis.ganttData, projectName],
   );
 
+  const nodeActionContext = useMemo(() => buildNodeActionContext(analysis), [analysis]);
+  const selectedExecution = useMemo(
+    () =>
+      selectedItem == null
+        ? null
+        : (analysis.executions.find((row) => row.uniqueId === selectedItem.unique_id) ?? null),
+    [analysis.executions, selectedItem],
+  );
+
+  function selectNode(id: string | null) {
+    setFilters((current) => {
+      const selCleared = id == null;
+      const selChanged = id !== current.selectedExecutionId;
+      const neighborhoodRowsShowAll =
+        selCleared || selChanged ? false : current.neighborhoodRowsShowAll;
+      return {
+        ...current,
+        selectedExecutionId: id,
+        neighborhoodRowsShowAll,
+      };
+    });
+    onInvestigationSelectionChange((current) => ({
+      ...current,
+      selectedExecutionId: id,
+      selectedResourceId:
+        id != null && resourceByUniqueId.has(id) ? id : current.selectedResourceId,
+      sourceLens: 'timeline',
+    }));
+  }
+
   const hasTypeOverride = !setsEqual(effectiveActiveTypes, defaultActiveTypes);
   const typeFilterHint = useMemo(() => {
     if (!hasTypeOverride) return null;
@@ -430,6 +463,18 @@ export function TimelineView({
       title="Timeline"
       description="Runtime timing, concurrency, bottlenecks, and execution order."
       className="timeline-view"
+      inspector={
+        selectedItem ? (
+          <TimelineNodeInspector
+            item={selectedItem}
+            execution={selectedExecution}
+            testStats={testStatsById.get(selectedItem.unique_id)}
+            nodeActionContext={nodeActionContext}
+            onNavigateTo={onNavigateTo}
+            onClose={() => selectNode(null)}
+          />
+        ) : null
+      }
     >
       <TimelineSurface
         analysis={analysis}
@@ -449,7 +494,8 @@ export function TimelineView({
         setFilters={setFilters}
         toggleStatus={toggleStatus}
         toggleType={toggleType}
-        onInvestigationSelectionChange={onInvestigationSelectionChange}
+        onSelect={selectNode}
+        drawTestLanes={filters.showTests || selectedIsTest}
       />
     </WorkspaceScaffold>
   );

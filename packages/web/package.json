@@ -1,6 +1,6 @@
 {
   "name": "@dbt-tools/web",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Browser UI for deterministic dbt artifact investigation — dependencies, execution timelines, inventory (no LLM required)",
   "keywords": [
     "dbt",
@@ -65,7 +65,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "typescript": "^6.0.2",
-    "vite": "^8.2.0"
+    "vite": "^8.3.8"
   },
   "publishConfig": {
     "access": "public"

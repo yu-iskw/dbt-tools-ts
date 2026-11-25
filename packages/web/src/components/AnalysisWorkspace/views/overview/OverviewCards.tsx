@@ -1,3 +1,6 @@
+import { useMemo } from 'react';
+
+import { runNodeAction, type NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
 
 import { EmptyState } from '../../../EmptyState';
@@ -13,11 +16,13 @@ export function OverviewActionListCard({
   title = 'Bottlenecks',
   subtitle = 'Longest-running nodes in the filtered execution slice.',
   embedded = false,
+  onNavigateTo,
 }: {
   derived: OverviewDerivedState;
   title?: string;
   subtitle?: string;
   embedded?: boolean;
+  onNavigateTo: NodeNavigate;
 }): ReactElement {
   const topRows = derived.topBottlenecks;
 
@@ -34,7 +39,12 @@ export function OverviewActionListCard({
       {topRows.length > 0 ? (
         <div className="action-list">
           {topRows.map((row, index) => (
-            <div key={row.uniqueId} className="action-list__row">
+            <button
+              key={row.uniqueId}
+              type="button"
+              className="action-list__row action-list__row--link"
+              onClick={() => runNodeAction('timeline', row.uniqueId, onNavigateTo)}
+            >
               <div className="action-list__body">
                 <strong>{`${index + 1}. ${row.name}`}</strong>
                 <span>
@@ -47,7 +57,7 @@ export function OverviewActionListCard({
               <div className="action-list__metric">
                 <strong>{formatSeconds(row.executionTime)}</strong>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       ) : (
@@ -61,14 +71,29 @@ export function OverviewActionListCard({
   );
 }
 
+const CRITICAL_PATH_VISIBLE_NODES = 6;
+
 export function OverviewCriticalPathCard({
   analysis,
   filtered,
+  onNavigateTo,
 }: {
   analysis: AnalysisState;
   filtered: boolean;
+  onNavigateTo: NodeNavigate;
 }): ReactElement {
-  const criticalPathLength = analysis.summary.critical_path?.path.length ?? 0;
+  const criticalPath = analysis.summary.critical_path;
+  const criticalPathLength = criticalPath?.path.length ?? 0;
+  // Resolve names for the visible nodes only, once per analysis, not a map of every resource per render.
+  const { visiblePath, nameById } = useMemo(() => {
+    const visible = (criticalPath?.path ?? []).slice(0, CRITICAL_PATH_VISIBLE_NODES);
+    const wanted = new Set(visible);
+    const names = new Map<string, string>();
+    for (const resource of analysis.resources) {
+      if (wanted.has(resource.uniqueId)) names.set(resource.uniqueId, resource.name);
+    }
+    return { visiblePath: visible, nameById: names };
+  }, [analysis.resources, criticalPath]);
 
   return (
     <section className="overview-module overview-module--critical">
@@ -81,13 +106,34 @@ export function OverviewCriticalPathCard({
       </div>
       <div className="critical-path-card">
         <div className="critical-path-card__headline">
-          <strong>{criticalPathLength} nodes</strong>
+          <strong>{`${criticalPathLength} ${criticalPathLength === 1 ? 'node' : 'nodes'}`}</strong>
           <span>
             {analysis.graphSummary.hasCycles
               ? 'Cycles detected in the dependency graph.'
               : 'No cycles detected in the dependency graph.'}
           </span>
         </div>
+        {criticalPathLength > 0 ? (
+          <ol className="critical-path-card__chain" aria-label="Critical path nodes">
+            {visiblePath.map((id) => (
+              <li key={id}>
+                <button
+                  type="button"
+                  className="critical-path-card__node"
+                  title={id}
+                  onClick={() => runNodeAction('timeline', id, onNavigateTo)}
+                >
+                  {nameById.get(id) ?? id}
+                </button>
+              </li>
+            ))}
+            {criticalPathLength > CRITICAL_PATH_VISIBLE_NODES ? (
+              <li className="critical-path-card__more">
+                {`+${criticalPathLength - CRITICAL_PATH_VISIBLE_NODES} more`}
+              </li>
+            ) : null}
+          </ol>
+        ) : null}
         <div className="critical-path-card__detail">
           <span>Graph edges</span>
           <strong>{analysis.graphSummary.totalEdges}</strong>

@@ -113,7 +113,8 @@ function baseRunsViewState(over: Partial<RunsViewState> = {}): RunsViewState {
 function makeAnalysis(executions: ExecutionRow[]): AnalysisState {
   return {
     executions,
-    resources: [],
+    resources: executions.map((row) => ({ uniqueId: row.uniqueId, name: row.name })),
+    ganttData: executions.map((row) => ({ unique_id: row.uniqueId, name: row.name })),
   } as unknown as AnalysisState;
 }
 
@@ -304,6 +305,35 @@ describe('RunsView', () => {
     expect(container.textContent).toContain('Open in Timeline');
     expect(container.textContent).toContain('Open in Inventory');
     expect(container.textContent).toContain('Open in Lineage');
+    expect(container.textContent).not.toContain('Open in Runs');
+    expect(container.querySelector('[aria-label="Copy unique ID"]')).toBeTruthy();
+  });
+
+  it('shows the run error message of the selected run', () => {
+    const message =
+      'Runtime Error in model orders\n  Binder Error: Referenced column "order_total" not found in FROM clause!';
+    const row = makeRow({
+      uniqueId: 'model.pkg.orders',
+      name: 'orders',
+      status: 'Error',
+      statusTone: 'danger',
+      runResultMessage: message,
+    });
+    mockRunsSource([row]);
+
+    act(() => {
+      root.render(
+        <RunsView
+          analysis={makeAnalysis([row])}
+          runsViewState={baseRunsViewState({ selectedExecutionId: row.uniqueId })}
+          onRunsViewStateChange={vi.fn()}
+          onInvestigationSelectionChange={vi.fn()}
+          onNavigateTo={vi.fn()}
+        />,
+      );
+    });
+
+    expect(container.querySelector('.run-result-message__body')?.textContent).toBe(message);
   });
 
   it('wires the Open in Lineage action to inventory lineage navigation', () => {

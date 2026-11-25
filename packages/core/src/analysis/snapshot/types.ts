@@ -157,6 +157,7 @@ export interface ExecutionRow {
   adapterMetrics?: AdapterResponseMetrics;
   adapterResponseFields?: AdapterResponseField[];
   semantics?: NodeExecutionSemantics;
+  runResultMessage?: string | null;
 }
 
 export interface StatusBreakdownItem {

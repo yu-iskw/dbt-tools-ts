@@ -266,4 +266,56 @@ describe('queryRunsResultsIndex', () => {
     expect(matches).toHaveLength(1);
     expect(matches[0]?.row.uniqueId).toBe('duck_model');
   });
+
+  it('sorts by attention descending with problems first, longest first within a tone', () => {
+    const index = createRunsResultsIndex([
+      makeExecution({
+        uniqueId: 'ok',
+        statusTone: 'positive',
+        status: 'Success',
+        executionTime: 9,
+      }),
+      makeExecution({
+        uniqueId: 'skip',
+        statusTone: 'skipped',
+        status: 'Skipped',
+        executionTime: 0,
+      }),
+      makeExecution({ uniqueId: 'warn', statusTone: 'warning', status: 'Warn', executionTime: 2 }),
+      makeExecution({
+        uniqueId: 'err_fast',
+        statusTone: 'danger',
+        status: 'Error',
+        executionTime: 1,
+      }),
+      makeExecution({
+        uniqueId: 'err_slow',
+        statusTone: 'danger',
+        status: 'Fail',
+        executionTime: 5,
+      }),
+      makeExecution({
+        uniqueId: 'neutral',
+        statusTone: 'neutral',
+        status: 'Unknown',
+        executionTime: 3,
+      }),
+    ]);
+    const query = (sortDirection: 'asc' | 'desc') =>
+      queryRunsResultsIndex(index, {
+        kind: 'all',
+        status: 'all',
+        query: '',
+        resourceTypes: [],
+        materializationKinds: [],
+        threadIds: [],
+        durationBand: 'all',
+        sortBy: 'attention',
+        sortDirection,
+        limit: 100,
+      }).rows.map((r) => r.uniqueId);
+
+    expect(query('desc')).toEqual(['err_slow', 'err_fast', 'warn', 'skip', 'neutral', 'ok']);
+    expect(query('asc')).toEqual(['ok', 'neutral', 'skip', 'warn', 'err_fast', 'err_slow']);
+  });
 });

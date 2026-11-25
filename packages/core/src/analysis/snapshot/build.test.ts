@@ -71,6 +71,24 @@ describe('analysis snapshot facade', () => {
     expect(source?.sourceFreshness?.status).toBe('Warn');
   });
 
+  it('carries the trimmed run_results message onto execution rows', async () => {
+    const manifestJson = loadTestManifest('v12', 'manifest_1.11.json') as Record<string, unknown>;
+    const runResultsJson = structuredClone(loadTestRunResults('v6', 'run_results_1.11.json')) as {
+      results: Array<Record<string, unknown>>;
+    };
+    const [first, second] = runResultsJson.results;
+    first!.message = '  Runtime Error in model orders\n  Binder Error: column not found  ';
+    second!.message = '   ';
+
+    const snapshot = await buildAnalysisSnapshotFromArtifacts(manifestJson, runResultsJson);
+    const byId = new Map(snapshot.executions.map((row) => [row.uniqueId, row]));
+
+    expect(byId.get(String(first!.unique_id))?.runResultMessage).toBe(
+      'Runtime Error in model orders\n  Binder Error: column not found',
+    );
+    expect(byId.get(String(second!.unique_id))?.runResultMessage ?? null).toBeNull();
+  });
+
   it('supports bundle inputs without run_results.json', async () => {
     const manifestJson = loadTestManifest('v12', 'manifest_1.11.json') as Record<string, unknown>;
 

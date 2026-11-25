@@ -1,5 +1,8 @@
+import { createPortal } from 'react-dom';
+
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
 
+import { NodeActions } from '../NodeActions';
 import { formatResourceTypeLabel } from '../shared';
 
 import { LineageGraphInteractiveHotspots } from './LineageGraphInteractiveHotspots';
@@ -13,6 +16,7 @@ import type {
   LineageGraphNodeLayout,
   LensLegendItem,
 } from '@web/lib/analysis-workspace/lineage-model';
+import type { NodeActionContext, NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import type { LensMode } from '@web/lib/analysis-workspace/types';
 import type { ReactElement, Dispatch, MutableRefObject, RefObject, SetStateAction } from 'react';
 
@@ -68,6 +72,9 @@ export function LineageGraphSurfaceView({
   tooltipLayout,
   tooltipPosition,
   contextMenu,
+  contextMenuRef,
+  nodeActionContext,
+  onNavigateTo,
 }: {
   model: LineageGraphModel;
   displayMode: LineageDisplayMode;
@@ -101,6 +108,9 @@ export function LineageGraphSurfaceView({
   tooltipLayout: LineageGraphNodeLayout | null;
   tooltipPosition: { left: number; top: number } | null;
   contextMenu: { x: number; y: number; nodeId: string } | null;
+  contextMenuRef: RefObject<HTMLDivElement | null>;
+  nodeActionContext: NodeActionContext;
+  onNavigateTo: NodeNavigate;
 }): ReactElement {
   return (
     <div
@@ -241,30 +251,43 @@ export function LineageGraphSurfaceView({
           )}
         </div>
       </div>
-      {contextMenu && (
-        <div
-          className="graph-context-menu"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            className="graph-context-menu__item"
-            onClick={() => {
-              onSelectResource(contextMenu.nodeId);
-              setContextMenu(null);
-            }}
+      {/* Portal: ancestors use backdrop-filter, which would make them the containing block
+          for this position:fixed menu and offset/clip it. */}
+      {contextMenu &&
+        createPortal(
+          <div
+            ref={contextMenuRef}
+            className="graph-context-menu"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onPointerDown={(e) => e.stopPropagation()}
           >
-            Focus on this node
-          </button>
-          {(() => {
-            const layout = visibleNodeLayouts.get(contextMenu.nodeId);
-            return layout ? (
-              <div className="graph-context-menu__label">{layout.resource.name}</div>
-            ) : null;
-          })()}
-        </div>
-      )}
+            <button
+              type="button"
+              className="graph-context-menu__item"
+              onClick={() => {
+                onSelectResource(contextMenu.nodeId);
+                setContextMenu(null);
+              }}
+            >
+              Focus on this node
+            </button>
+            <NodeActions
+              variant="menu"
+              nodeId={contextMenu.nodeId}
+              context={nodeActionContext}
+              exclude={['inventory', 'lineage']}
+              onNavigateTo={onNavigateTo}
+              onAfterAction={() => setContextMenu(null)}
+            />
+            {(() => {
+              const layout = visibleNodeLayouts.get(contextMenu.nodeId);
+              return layout ? (
+                <div className="graph-context-menu__label">{layout.resource.name}</div>
+              ) : null;
+            })()}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

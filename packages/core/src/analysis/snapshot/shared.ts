@@ -59,6 +59,11 @@ export function statusTone(status: string | null | undefined): StatusTone {
   return 'neutral';
 }
 
+/** Trimmed run_results message, or null when absent/blank. */
+export function normalizeRunResultMessage(message: unknown): string | null {
+  return typeof message === 'string' && message.trim() !== '' ? message.trim() : null;
+}
+
 export function statusLabel(status: string | null | undefined): string {
   if (!status) return 'Unknown';
   return status

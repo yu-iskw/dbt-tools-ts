@@ -9,8 +9,10 @@ import {
 } from 'react';
 
 import { useResourceCode } from '@web/hooks/use-resource-code';
+import { buildNodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 
 import { EmptyState } from '../../EmptyState';
+import { CopyButton } from '../../ui/CopyButton';
 import { LineagePanel } from '../lineage/LineagePanel';
 import { MaterializationSemanticsBadge } from '../MaterializationSemanticsBadge';
 import { ResourceTypeBadge } from '../shared';
@@ -63,6 +65,8 @@ export function AssetsView({
     () => new Map(analysis.resources.map((entry) => [entry.uniqueId, entry])),
     [analysis.resources],
   );
+
+  const nodeActionContext = useMemo(() => buildNodeActionContext(analysis), [analysis]);
 
   const executionRowForSummary: ExecutionRow | null = useMemo(() => {
     if (resource == null) return null;
@@ -169,6 +173,8 @@ export function AssetsView({
     setAllDepsMode,
     setLensMode,
     setActiveLegendKeys,
+    nodeActionContext,
+    onNavigateTo,
     onSelectResource: (id: string) => {
       onSelectResource(id);
       onLineageViewStateChange((current) => ({
@@ -204,6 +210,7 @@ export function AssetsView({
           >
             Open in Timeline
           </button>
+          <CopyButton value={resource.uniqueId} label="unique ID" />
         </div>
       </section>
       <div className="asset-workspace__body">
