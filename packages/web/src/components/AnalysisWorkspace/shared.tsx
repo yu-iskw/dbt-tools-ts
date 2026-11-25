@@ -202,6 +202,7 @@ export function EntityInspector({
   stats,
   sections,
   actions,
+  footer,
   emptyMessage,
 }: {
   eyebrow?: string;
@@ -213,6 +214,8 @@ export function EntityInspector({
   stats?: { label: string; value: ReactNode }[];
   sections?: { label: string; value: ReactNode }[];
   actions?: { label: string; onClick: () => void; disabled?: boolean }[];
+  /** Rendered last, e.g. the shared node actions. */
+  footer?: ReactNode;
   emptyMessage?: string;
 }): ReactElement {
   if (!title) {
@@ -253,6 +256,7 @@ export function EntityInspector({
         </div>
       ))}
       {actions && actions.length > 0 ? <QuickJumpActions actions={actions} /> : null}
+      {footer}
     </aside>
   );
 }

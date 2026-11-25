@@ -99,7 +99,7 @@ export function HealthView({
         />
         <HealthMetricRow analysis={analysis} projectName={projectName} />
         <section className="health-fold__bottlenecks" aria-label="Bottlenecks">
-          <OverviewActionListCard derived={derived} />
+          <OverviewActionListCard derived={derived} onNavigateTo={onNavigateTo} />
         </section>
       </div>
 
@@ -137,7 +137,11 @@ export function HealthView({
           <div className="health-detail__grid">
             <HealthThreadDistribution derived={derived} />
             <div className="health-detail__stack">
-              <OverviewCriticalPathCard analysis={analysis} filtered={filtered} />
+              <OverviewCriticalPathCard
+                analysis={analysis}
+                filtered={filtered}
+                onNavigateTo={onNavigateTo}
+              />
               <HealthFootprintPanel
                 derived={derived}
                 analysis={analysis}

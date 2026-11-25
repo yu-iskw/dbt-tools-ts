@@ -6,9 +6,11 @@ import {
 } from '@web/lib/analysis-workspace/runs-adapter-columns';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
 
+import { NodeActions } from '../../NodeActions';
 import { RunResultMessage } from '../../RunResultMessage';
 import { EntityInspector, formatResourceTypeLabel } from '../../shared';
 
+import type { NodeActionContext, NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import type { ExecutionRow } from '@web/types';
 import type { ReactElement } from 'react';
 
@@ -27,20 +29,14 @@ export function RunsAdapterInspector({
   row,
   visibleColumns,
   overflowColumns,
+  nodeActionContext,
   onNavigateTo,
 }: {
   row: ExecutionRow | null;
   visibleColumns: RunsAdapterColumn[];
   overflowColumns: RunsAdapterColumn[];
-  onNavigateTo: (
-    view: 'inventory' | 'timeline',
-    options?: {
-      resourceId?: string;
-      executionId?: string;
-      assetTab?: 'lineage' | 'summary';
-      rootResourceId?: string;
-    },
-  ) => void;
+  nodeActionContext: NodeActionContext;
+  onNavigateTo: NodeNavigate;
 }): ReactElement | null {
   if (!row) return null;
 
@@ -118,33 +114,14 @@ export function RunsAdapterInspector({
         },
       ]}
       sections={sections}
-      actions={[
-        {
-          label: 'Open in Timeline',
-          onClick: () =>
-            onNavigateTo('timeline', {
-              resourceId: row.uniqueId,
-              executionId: row.uniqueId,
-            }),
-        },
-        {
-          label: 'Open in Inventory',
-          onClick: () =>
-            onNavigateTo('inventory', {
-              resourceId: row.uniqueId,
-              assetTab: 'summary',
-            }),
-        },
-        {
-          label: 'Open in Lineage',
-          onClick: () =>
-            onNavigateTo('inventory', {
-              resourceId: row.uniqueId,
-              assetTab: 'lineage',
-              rootResourceId: row.uniqueId,
-            }),
-        },
-      ]}
+      footer={
+        <NodeActions
+          nodeId={row.uniqueId}
+          context={nodeActionContext}
+          exclude={['runs']}
+          onNavigateTo={onNavigateTo}
+        />
+      }
     />
   );
 }

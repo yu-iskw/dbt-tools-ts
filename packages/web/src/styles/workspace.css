@@ -316,6 +316,27 @@
   color: var(--accent-primary);
 }
 
+.action-list__row--link {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.action-list__row--link:hover {
+  background: var(--bg-surface-muted);
+  border-color: var(--border-strong);
+}
+
+.action-list__row--link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
 /* Critical path card */
 .critical-path-card {
   border-radius: calc(var(--radius-sm) - 4px);
@@ -358,6 +379,52 @@
 .critical-path-card__detail strong {
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.critical-path-card__chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.critical-path-card__chain li:not(:last-child)::after {
+  content: '→';
+  margin-left: 0.3rem;
+  color: var(--text-tertiary);
+}
+
+.critical-path-card__node {
+  max-width: 14rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-muted);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.critical-path-card__node:hover {
+  border-color: var(--border-strong);
+  color: var(--accent-primary);
+}
+
+.critical-path-card__node:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.critical-path-card__more {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
 }
 
 /* Coverage card */
@@ -1420,6 +1487,41 @@
   gap: 0.5rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.entity-inspector__header:has(.entity-inspector__close) {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.entity-inspector__close {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.entity-inspector__close svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.entity-inspector__close:hover {
+  border-color: var(--border-default);
+  background: var(--bg-surface-muted);
+  color: var(--text-primary);
+}
+
+.entity-inspector__close:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 .entity-inspector__type-badge {
@@ -2734,6 +2836,13 @@
   display: inline-flex;
   color: var(--accent-primary);
   line-height: 0;
+}
+
+/* Timeline: inspector sits beside the chart, stacked below it under 1180px. */
+@media (width <= 1180px) {
+  .timeline-view .workspace-scaffold__body--with-inspector {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (width <= 1099px) {

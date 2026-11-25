@@ -9,10 +9,15 @@ import {
 
 import { TEST_RESOURCE_TYPES } from '@web/lib/analysis-workspace/constants';
 import { buildResourceTestStats } from '@web/lib/analysis-workspace/explorer-tree';
+import { buildNodeActionContext } from '@web/lib/analysis-workspace/node-actions';
+import {
+  getTimelineDefaultActiveTypes,
+  matchesTimelineQuery,
+  parentHasFailureSignal,
+} from '@web/lib/analysis-workspace/timeline-reveal';
 import {
   countTimelineTestResources,
   deriveProjectName,
-  getDefaultTimelineActiveTypes,
   isDefaultTimelineResource,
   timelineGanttHasCompileExecutePhases,
 } from '@web/lib/analysis-workspace/utils';
@@ -20,16 +25,18 @@ import {
 import { SectionCard, WorkspaceScaffold } from '../shared';
 
 import { TIMELINE_BUNDLE_COUNT_WARNING } from './gantt/constants';
-import { formatMs, isPositiveStatus } from './gantt/formatting';
+import { formatMs } from './gantt/formatting';
 import { GanttChart } from './GanttChart';
 import { GanttLegend } from './GanttLegend';
 import { TimelineDependencyControls } from './TimelineDependencyControls';
+import { TimelineNodeInspector } from './TimelineNodeInspector';
 import { TimelineSearchControls, type TimelineTypeFilterHint } from './TimelineSearchControls';
 import {
   type TimelineNeighborhoodUi,
   useTimelineNeighborhoodRows,
 } from './use-timeline-neighborhood-rows';
 
+import type { NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import type {
   InvestigationSelectionState,
   TimelineFilterState,
@@ -82,27 +89,6 @@ function setsEqual(left: Set<string>, right: Set<string>): boolean {
   return true;
 }
 
-function parentHasFailureSignal(
-  item: GanttItem,
-  childTests: GanttItem[],
-  testStatsById: ReturnType<typeof buildResourceTestStats>,
-): boolean {
-  const stats = testStatsById.get(item.unique_id);
-  const hasTestFail = stats
-    ? stats.error + stats.warn > 0
-    : childTests.some((t) => !isPositiveStatus(t.status));
-  return !isPositiveStatus(item.status) || hasTestFail;
-}
-
-function matchesTimelineQuery(item: GanttItem, query: string): boolean {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return true;
-  return (
-    item.name.toLowerCase().includes(normalized) ||
-    item.unique_id.toLowerCase().includes(normalized)
-  );
-}
-
 function TimelineSurface({
   analysis,
   filters,
@@ -121,7 +107,7 @@ function TimelineSurface({
   setFilters,
   toggleStatus,
   toggleType,
-  onInvestigationSelectionChange,
+  onSelect,
 }: {
   analysis: AnalysisState;
   filters: TimelineFilterState;
@@ -140,7 +126,7 @@ function TimelineSurface({
   setFilters: Dispatch<SetStateAction<TimelineFilterState>>;
   toggleStatus: (status: string) => void;
   toggleType: (type: string) => void;
-  onInvestigationSelectionChange: Dispatch<SetStateAction<InvestigationSelectionState>>;
+  onSelect: (id: string | null) => void;
 }) {
   const showCompileExecuteLegend = useMemo(
     () => timelineGanttHasCompileExecutePhases(analysis.ganttData),
@@ -212,29 +198,7 @@ function TimelineSurface({
         selectedId={filters.selectedExecutionId}
         timeWindow={timeWindow}
         onTimeWindowChange={(tw) => setFilters((c) => ({ ...c, timeWindow: tw }))}
-        onSelect={(id) => {
-          setFilters((current) => {
-            const selCleared = id == null;
-            const selChanged = id !== current.selectedExecutionId;
-            const neighborhoodRowsShowAll =
-              selCleared || selChanged ? false : current.neighborhoodRowsShowAll;
-            return {
-              ...current,
-              selectedExecutionId: id,
-              neighborhoodRowsShowAll,
-            };
-          });
-          onInvestigationSelectionChange((current) => ({
-            ...current,
-            selectedExecutionId: id,
-            selectedResourceId:
-              id == null
-                ? current.selectedResourceId
-                : (analysis.resources.find((resource) => resource.uniqueId === id)?.uniqueId ??
-                  current.selectedResourceId),
-            sourceLens: 'timeline',
-          }));
-        }}
+        onSelect={onSelect}
       />
     </SectionCard>
   );
@@ -245,30 +209,20 @@ export function TimelineView({
   filters,
   setFilters,
   onInvestigationSelectionChange,
+  onNavigateTo,
 }: {
   analysis: AnalysisState;
   filters: TimelineFilterState;
   setFilters: Dispatch<SetStateAction<TimelineFilterState>>;
   onInvestigationSelectionChange: Dispatch<SetStateAction<InvestigationSelectionState>>;
+  onNavigateTo: NodeNavigate;
 }): ReactElement {
   const deferredQuery = useDeferredValue(filters.query);
   const projectName = analysis.projectName ?? deriveProjectName(analysis.executions);
 
-  const presentTypes = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          analysis.ganttData
-            .filter((d) => isDefaultTimelineResource(d, projectName))
-            .map((d) => d.resourceType)
-            .filter((t): t is string => Boolean(t)),
-        ),
-      ).sort(),
-    [analysis.ganttData, projectName],
-  );
   const defaultActiveTypes = useMemo(
-    () => getDefaultTimelineActiveTypes(presentTypes),
-    [presentTypes],
+    () => getTimelineDefaultActiveTypes(analysis.ganttData, projectName),
+    [analysis.ganttData, projectName],
   );
   const effectiveActiveTypes =
     filters.activeTypes.size > 0 ? filters.activeTypes : defaultActiveTypes;
@@ -405,6 +359,47 @@ export function TimelineView({
     [analysis.ganttData, projectName],
   );
 
+  const nodeActionContext = useMemo(() => buildNodeActionContext(analysis), [analysis]);
+  const selectedItem = useMemo(
+    () =>
+      filters.selectedExecutionId == null
+        ? null
+        : (analysis.ganttData.find((item) => item.unique_id === filters.selectedExecutionId) ??
+          null),
+    [analysis.ganttData, filters.selectedExecutionId],
+  );
+  const selectedExecution = useMemo(
+    () =>
+      selectedItem == null
+        ? null
+        : (analysis.executions.find((row) => row.uniqueId === selectedItem.unique_id) ?? null),
+    [analysis.executions, selectedItem],
+  );
+
+  function selectNode(id: string | null) {
+    setFilters((current) => {
+      const selCleared = id == null;
+      const selChanged = id !== current.selectedExecutionId;
+      const neighborhoodRowsShowAll =
+        selCleared || selChanged ? false : current.neighborhoodRowsShowAll;
+      return {
+        ...current,
+        selectedExecutionId: id,
+        neighborhoodRowsShowAll,
+      };
+    });
+    onInvestigationSelectionChange((current) => ({
+      ...current,
+      selectedExecutionId: id,
+      selectedResourceId:
+        id == null
+          ? current.selectedResourceId
+          : (analysis.resources.find((resource) => resource.uniqueId === id)?.uniqueId ??
+            current.selectedResourceId),
+      sourceLens: 'timeline',
+    }));
+  }
+
   const hasTypeOverride = !setsEqual(effectiveActiveTypes, defaultActiveTypes);
   const typeFilterHint = useMemo(() => {
     if (!hasTypeOverride) return null;
@@ -430,6 +425,18 @@ export function TimelineView({
       title="Timeline"
       description="Runtime timing, concurrency, bottlenecks, and execution order."
       className="timeline-view"
+      inspector={
+        selectedItem ? (
+          <TimelineNodeInspector
+            item={selectedItem}
+            execution={selectedExecution}
+            testStats={testStatsById.get(selectedItem.unique_id)}
+            nodeActionContext={nodeActionContext}
+            onNavigateTo={onNavigateTo}
+            onClose={() => selectNode(null)}
+          />
+        ) : null
+      }
     >
       <TimelineSurface
         analysis={analysis}
@@ -449,7 +456,7 @@ export function TimelineView({
         setFilters={setFilters}
         toggleStatus={toggleStatus}
         toggleType={toggleType}
-        onInvestigationSelectionChange={onInvestigationSelectionChange}
+        onSelect={selectNode}
       />
     </WorkspaceScaffold>
   );

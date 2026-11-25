@@ -7,6 +7,12 @@ import {
   type SetStateAction,
 } from 'react';
 
+import { revealRunsTarget } from '@web/lib/analysis-workspace/runs-reveal';
+import {
+  resolveTimelineRevealTarget,
+  revealTimelineTarget,
+} from '@web/lib/analysis-workspace/timeline-reveal';
+
 import {
   getInitialSidebarCollapsed,
   SIDEBAR_STORAGE_KEY,
@@ -30,6 +36,7 @@ import type {
   TimelineFilterState,
   WorkspaceView,
 } from '@web/lib/analysis-workspace/types';
+import type { AnalysisState } from '@web/types';
 
 export interface UseWorkspaceUrlStateResult {
   activeView: WorkspaceView;
@@ -67,8 +74,14 @@ export interface UseWorkspaceUrlStateResult {
 
 export function useWorkspaceUrlState(
   preferences: WorkspacePreferences,
+  /** Loaded analysis; lets handoffs into Timeline reveal rows the filters would hide. */
+  analysis: AnalysisState | null = null,
 ): UseWorkspaceUrlStateResult {
   const preferencesHydratedRef = useRef(false);
+  const analysisRef = useRef(analysis);
+  useEffect(() => {
+    analysisRef.current = analysis;
+  }, [analysis]);
   const initialNavigationState = createInitialNavigationState(window.location.search, preferences);
   const [activeView, setActiveViewRaw] = useState<WorkspaceView>(
     () => initialNavigationState.activeView,
@@ -131,9 +144,9 @@ export function useWorkspaceUrlState(
       },
     ) => {
       setActiveViewRaw(view);
-      if (options?.runsStatus) {
-        const status = options.runsStatus;
-        setRunsViewState((current) => ({ ...current, status, kind: 'all' }));
+      if (view === 'runs' && (options?.runsStatus || options?.executionId)) {
+        const arrival = { executionId: options.executionId, runsStatus: options.runsStatus };
+        setRunsViewState((current) => revealRunsTarget(current, arrival));
       }
       if (options?.resourceId) {
         setAssetViewState((current) => ({
@@ -157,9 +170,16 @@ export function useWorkspaceUrlState(
           ...current,
           selectedExecutionId: options.executionId ?? current.selectedExecutionId,
         }));
-        setTimelineFilters((current) =>
-          mergeTimelineSelection(current, options.executionId ?? current.selectedExecutionId),
-        );
+        const executionId = options.executionId;
+        setTimelineFilters((current) => {
+          const merged = mergeTimelineSelection(current, executionId);
+          const analysis = analysisRef.current;
+          const target =
+            view === 'timeline' && analysis
+              ? resolveTimelineRevealTarget(analysis, executionId)
+              : null;
+          return target ? revealTimelineTarget(merged, target) : merged;
+        });
       }
       if (view === 'runs' && options?.resourceId) {
         setRunsViewState((current) => ({

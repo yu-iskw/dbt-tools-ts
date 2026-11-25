@@ -8,6 +8,7 @@ import { buildLineageGraphModel } from '@web/lib/analysis-workspace/lineage-mode
 
 import { LineageGraphSurface } from './LineageGraphSurface';
 
+import type { NodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import type { ResourceNode } from '@web/types';
 
 function makeResource(overrides: Partial<ResourceNode> = {}): ResourceNode {
@@ -45,6 +46,12 @@ function makeLineageModel() {
   });
 }
 
+const noActions: NodeActionContext = {
+  timelineIds: new Set(),
+  executedIds: new Set(),
+  resourceIds: new Set(),
+};
+
 describe('LineageGraphSurface', () => {
   let root: Root;
   let container: HTMLDivElement;
@@ -69,6 +76,8 @@ describe('LineageGraphSurface', () => {
           onSelectResource={vi.fn()}
           activeLegendKeys={new Set()}
           onToggleLegendKey={vi.fn()}
+          nodeActionContext={noActions}
+          onNavigateTo={vi.fn()}
         />,
       );
     });
@@ -106,5 +115,70 @@ describe('LineageGraphSurface', () => {
 
     expect(viewport.scrollLeft).toBe(targetLeft);
     expect(viewport.scrollTop).toBe(targetTop);
+  });
+
+  it('right-click menu offers Focus, Timeline and Runs for an executed node and hides Inventory and Lineage', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const model = makeLineageModel();
+    const onNavigateTo = vi.fn();
+    const nodeId = 'model.jaffle_shop.orders';
+
+    act(() => {
+      root.render(
+        <LineageGraphSurface
+          model={model}
+          onSelectResource={vi.fn()}
+          activeLegendKeys={new Set()}
+          onToggleLegendKey={vi.fn()}
+          nodeActionContext={{
+            timelineIds: new Set([nodeId]),
+            executedIds: new Set([nodeId]),
+            resourceIds: new Set([nodeId]),
+          }}
+          onNavigateTo={onNavigateTo}
+        />,
+      );
+    });
+
+    const hotspot = container.querySelector('.dependency-graph__hotspot') as HTMLButtonElement;
+    act(() => {
+      hotspot.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 10,
+          clientY: 10,
+        }),
+      );
+    });
+
+    // The menu is portalled to document.body so backdrop-filter ancestors cannot offset it.
+    const menu = document.body.querySelector('.graph-context-menu');
+    expect(menu?.parentElement).toBe(document.body);
+    const labels = Array.from(document.body.querySelectorAll('.graph-context-menu__item')).map(
+      (item) => item.textContent,
+    );
+    expect(labels).toEqual([
+      'Focus on this node',
+      'Open in Timeline',
+      'Open in Runs',
+      'Copy unique ID',
+    ]);
+
+    const runs = Array.from(document.body.querySelectorAll('.graph-context-menu__item')).find(
+      (item) => item.textContent === 'Open in Runs',
+    ) as HTMLButtonElement;
+    // A real click starts with pointerdown; it must not dismiss the menu before the click lands.
+    act(() => {
+      runs.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    });
+    expect(document.body.querySelector('.graph-context-menu')).not.toBeNull();
+    act(() => {
+      runs.click();
+    });
+    expect(onNavigateTo).toHaveBeenCalledWith('runs', { executionId: nodeId });
+    expect(document.body.querySelector('.graph-context-menu')).toBeNull();
   });
 });

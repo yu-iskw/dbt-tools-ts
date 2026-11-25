@@ -25,6 +25,7 @@ function makeAnalysis(
     graph: { nodes: [], edges: [] },
     resources,
     projectName: 'pkg',
+    ganttData: [],
     executions: [],
     dependencyIndex,
   } as unknown as AnalysisState;

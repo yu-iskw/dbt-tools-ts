@@ -1,7 +1,7 @@
 export const OVERLAY_VIEWPORT_MARGIN = 12;
 export const OVERLAY_CURSOR_OFFSET = 6;
 export const TOOLTIP_OVERLAY_SIZE = { width: 248, height: 176 };
-export const CONTEXT_MENU_OVERLAY_SIZE = { width: 220, height: 120 };
+export const CONTEXT_MENU_OVERLAY_SIZE = { width: 220, height: 240 };
 export const TOOLTIP_NODE_PADDING = { x: 10, y: 8 };
 
 export function estimateBadgeWidth(label: string): number {

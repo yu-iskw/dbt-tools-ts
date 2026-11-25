@@ -14,6 +14,7 @@ import { getScrollToCenterSelectedNode } from './lineage-viewport-scroll';
 import { LineageGraphSurfaceView } from './LineageGraphSurfaceView';
 import { useLineageGraphTooltipPosition } from './use-lineage-graph-tooltip-position';
 
+import type { NodeActionContext, NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
 import type { LensMode } from '@web/lib/analysis-workspace/types';
 import type { ReactElement } from 'react';
 
@@ -26,6 +27,8 @@ export function LineageGraphSurface({
   onToggleLegendKey,
   fullscreen = false,
   displayMode = 'focused',
+  nodeActionContext,
+  onNavigateTo,
 }: {
   model: LineageGraphModel;
   onSelectResource: (id: string) => void;
@@ -34,6 +37,8 @@ export function LineageGraphSurface({
   onToggleLegendKey: (key: string) => void;
   fullscreen?: boolean;
   displayMode?: LineageDisplayMode;
+  nodeActionContext: NodeActionContext;
+  onNavigateTo: NodeNavigate;
 }): ReactElement {
   const { nodeLayouts, svgHeight, svgWidth, nodeWidth, nodeHeight, nodeRadius } = model;
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -155,13 +160,18 @@ export function LineageGraphSurface({
   useEffect(() => {
     if (!contextMenu) return;
     const dismiss = () => setContextMenu(null);
+    // Outside-click only: the menu is portalled to document.body, so its own pointerdown reaches document.
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.target instanceof Element && e.target.closest('.graph-context-menu')) return;
+      dismiss();
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') dismiss();
     };
-    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKey);
     };
   }, [contextMenu]);
@@ -271,6 +281,8 @@ export function LineageGraphSurface({
       tooltipLayout={tooltipLayout}
       tooltipPosition={tooltipPosition}
       contextMenu={contextMenu}
+      nodeActionContext={nodeActionContext}
+      onNavigateTo={onNavigateTo}
     />
   );
 }

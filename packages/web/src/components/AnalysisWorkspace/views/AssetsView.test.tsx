@@ -64,6 +64,7 @@ function makeAnalysis(resources: ResourceNode[], executions: ExecutionRow[] = []
     bundles: [],
     graph: { nodes: [], edges: [] },
     resourceGroups: [],
+    ganttData: [],
     executions,
     dependencyIndex: {
       'model.jaffle_shop.orders': {
