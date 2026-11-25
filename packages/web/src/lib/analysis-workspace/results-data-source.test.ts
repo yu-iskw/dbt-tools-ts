@@ -4,6 +4,8 @@ import {
   createRunsResultsIndex,
   filterRunsResultsIndex,
   queryRunsResultsIndex,
+  summarizeRunsFacets,
+  type RunsResultsQuery,
 } from './results-data-source';
 
 import type { ExecutionRow } from '@web/types';
@@ -141,6 +143,87 @@ describe('filterRunsResultsIndex', () => {
     });
 
     expect(matches.map((m) => m.row.uniqueId).sort()).toEqual(['bad', 'warned']);
+  });
+});
+
+describe('queryRunsResultsIndex facet summary', () => {
+  const index = createRunsResultsIndex([
+    makeExecution({ uniqueId: 'orders', resourceType: 'model' }),
+    makeExecution({
+      uniqueId: 'customers',
+      resourceType: 'model',
+      statusTone: 'danger',
+      status: 'Error',
+    }),
+    makeExecution({ uniqueId: 'not_null_orders', resourceType: 'test' }),
+    makeExecution({
+      uniqueId: 'unique_customers',
+      resourceType: 'test',
+      statusTone: 'danger',
+      status: 'Fail',
+    }),
+  ]);
+  const baseQuery: RunsResultsQuery = {
+    kind: 'all',
+    status: 'all',
+    query: '',
+    resourceTypes: [],
+    materializationKinds: [],
+    threadIds: [],
+    durationBand: 'all',
+    sortBy: 'attention',
+    sortDirection: 'desc',
+    limit: 100,
+  };
+
+  it('counts every facet over the whole run when a status pill is active', () => {
+    const result = queryRunsResultsIndex(index, { ...baseQuery, status: 'danger' });
+
+    expect(result.totalMatches).toBe(2);
+    expect(result.summary.facets).toMatchObject({
+      all: 4,
+      models: 2,
+      tests: 2,
+      healthy: 2,
+      errors: 2,
+      issues: 2,
+    });
+  });
+
+  it('scopes facet counts to the search query but not to the active kind pill', () => {
+    const result = queryRunsResultsIndex(index, {
+      ...baseQuery,
+      kind: 'tests',
+      query: 'customers',
+    });
+
+    expect(result.rows.map((row) => row.uniqueId)).toEqual(['unique_customers']);
+    expect(result.summary.facets).toMatchObject({
+      all: 2,
+      models: 1,
+      tests: 1,
+      healthy: 0,
+      errors: 2,
+      issues: 2,
+    });
+  });
+
+  it('applies the thread and duration filters to facet counts', () => {
+    const threaded = createRunsResultsIndex([
+      makeExecution({ uniqueId: 'a', threadId: 'Thread-1', executionTime: 0.5 }),
+      makeExecution({ uniqueId: 'b', threadId: 'Thread-2', executionTime: 0.5 }),
+      makeExecution({ uniqueId: 'c', threadId: 'Thread-1', executionTime: 9 }),
+    ]);
+
+    const summary = summarizeRunsFacets(threaded, {
+      query: '',
+      resourceTypes: [],
+      materializationKinds: [],
+      threadIds: ['Thread-1'],
+      durationBand: 'fast',
+    });
+
+    expect(summary.facets.all).toBe(1);
   });
 });
 

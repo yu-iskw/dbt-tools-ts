@@ -10,6 +10,7 @@ import {
   type ReactElement,
 } from 'react';
 
+import { clearRunsFilters, hasActiveRunsFilters } from '@web/lib/analysis-workspace/runs-filters';
 import { nextRunsSort, runsColumnHeaderSortUi } from '@web/lib/analysis-workspace/runs-sort';
 import { badgeClassName, formatSeconds } from '@web/lib/analysis-workspace/utils';
 
@@ -67,6 +68,32 @@ function RunsSortColumnHeader({
           {sortUi.indicator}
         </span>
       </button>
+    </div>
+  );
+}
+
+function RunsEmptyState({
+  runsViewState,
+  onRunsViewStateChange,
+}: {
+  runsViewState: RunsViewState;
+  onRunsViewStateChange: Dispatch<SetStateAction<RunsViewState>>;
+}): ReactElement {
+  const filtersActive = hasActiveRunsFilters(runsViewState);
+  return (
+    <div className="empty-state-block" role="status">
+      <strong className="empty-state-block__headline">
+        {filtersActive ? 'No runs match the current filters.' : 'No runs to show.'}
+      </strong>
+      {filtersActive ? (
+        <button
+          type="button"
+          className="workspace-pill"
+          onClick={() => onRunsViewStateChange(clearRunsFilters)}
+        >
+          Clear filters
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -135,7 +162,11 @@ export function RunsResultsTable({
     '--results-table-columns': getRunsTableTemplate(adapterColumns),
   } as CSSProperties;
 
-  const scrollHeight = Math.min(560, Math.max(120, runsResults.rows.length * 76));
+  const isEmpty =
+    !runsResults.isIndexing && !runsResults.isLoading && runsResults.totalMatches === 0;
+  const scrollHeight = isEmpty
+    ? undefined
+    : Math.min(560, Math.max(120, runsResults.rows.length * 76));
 
   const scrollMargin = virtualizer.options.scrollMargin;
 
@@ -220,6 +251,12 @@ export function RunsResultsTable({
           />
         </div>
         <div className="results-table__body">
+          {isEmpty ? (
+            <RunsEmptyState
+              runsViewState={runsViewState}
+              onRunsViewStateChange={onRunsViewStateChange}
+            />
+          ) : null}
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const row = runsResults.rows[virtualRow.index];
