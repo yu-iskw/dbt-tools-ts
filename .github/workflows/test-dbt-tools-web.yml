@@ -72,7 +72,10 @@ jobs:
 
   e2e:
     name: E2E ${{ matrix.shard }}/2
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is now 26.04, where Playwright 1.60 cannot install
+    # browser deps ("Playwright does not support chromium on ubuntu26.04-x64").
+    # Return to ubuntu-latest once @playwright/test supports 26.04.
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     strategy:
