@@ -52,7 +52,13 @@ describe('formatRelationNameForDisplay', () => {
 
 describe('formatSeconds', () => {
   it('formats sub-minute', () => expect(formatSeconds(1.5)).toBe('1.50s'));
-  it('formats exactly 0', () => expect(formatSeconds(0)).toBe('0.00s'));
+  it('formats exactly 0', () => expect(formatSeconds(0)).toBe('0ms'));
+  it('formats sub-second values in milliseconds', () => {
+    expect(formatSeconds(0.003)).toBe('3ms');
+    expect(formatSeconds(0.25)).toBe('250ms');
+  });
+  it('formats sub-millisecond values', () => expect(formatSeconds(0.0004)).toBe('<1ms'));
+  it('formats 2.5 seconds', () => expect(formatSeconds(2.5)).toBe('2.50s'));
   it('formats minutes', () => expect(formatSeconds(65.3)).toBe('1m 05.30s'));
   it('formats large values', () => expect(formatSeconds(125)).toBe('2m 05.00s'));
 });

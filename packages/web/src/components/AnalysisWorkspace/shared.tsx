@@ -198,6 +198,7 @@ export function EntityInspector({
   title,
   typeLabel,
   status,
+  callout,
   stats,
   sections,
   actions,
@@ -207,6 +208,8 @@ export function EntityInspector({
   title: string | null;
   typeLabel?: string | null;
   status?: ReactNode;
+  /** Rendered right under the name, before stats. */
+  callout?: ReactNode;
   stats?: { label: string; value: ReactNode }[];
   sections?: { label: string; value: ReactNode }[];
   actions?: { label: string; onClick: () => void; disabled?: boolean }[];
@@ -232,6 +235,7 @@ export function EntityInspector({
       <div className="entity-inspector__name">
         <strong>{title}</strong>
       </div>
+      {callout}
       {stats && stats.length > 0 ? (
         <dl className="entity-inspector__stats">
           {stats.map((stat) => (

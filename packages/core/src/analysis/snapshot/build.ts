@@ -19,6 +19,7 @@ import {
   buildWarehouseType,
   inferPackageNameFromUniqueId,
   inferResourceTypeFromId,
+  normalizeRunResultMessage,
   now,
   statusLabel,
   statusTone,
@@ -142,6 +143,7 @@ export function buildAnalysisSnapshotFromParsedArtifactBundle(
         : undefined;
       const gantt = ganttById.get(execution.unique_id);
       const semantics = semanticsByResourceId.get(execution.unique_id);
+      const runResultMessage = normalizeRunResultMessage(execution.message);
       return {
         uniqueId: execution.unique_id,
         name: String(attrs?.name || execution.unique_id),
@@ -168,6 +170,7 @@ export function buildAnalysisSnapshotFromParsedArtifactBundle(
           ? { adapterResponseFields: execution.adapterResponseFields }
           : {}),
         ...(semantics != null ? { semantics } : {}),
+        ...(runResultMessage != null ? { runResultMessage } : {}),
       };
     })
     .sort((a, b) => b.executionTime - a.executionTime);

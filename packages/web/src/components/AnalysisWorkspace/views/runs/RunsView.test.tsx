@@ -306,6 +306,33 @@ describe('RunsView', () => {
     expect(container.textContent).toContain('Open in Lineage');
   });
 
+  it('shows the run error message of the selected run', () => {
+    const message =
+      'Runtime Error in model orders\n  Binder Error: Referenced column "order_total" not found in FROM clause!';
+    const row = makeRow({
+      uniqueId: 'model.pkg.orders',
+      name: 'orders',
+      status: 'Error',
+      statusTone: 'danger',
+      runResultMessage: message,
+    });
+    mockRunsSource([row]);
+
+    act(() => {
+      root.render(
+        <RunsView
+          analysis={makeAnalysis([row])}
+          runsViewState={baseRunsViewState({ selectedExecutionId: row.uniqueId })}
+          onRunsViewStateChange={vi.fn()}
+          onInvestigationSelectionChange={vi.fn()}
+          onNavigateTo={vi.fn()}
+        />,
+      );
+    });
+
+    expect(container.querySelector('.run-result-message__body')?.textContent).toBe(message);
+  });
+
   it('wires the Open in Lineage action to inventory lineage navigation', () => {
     const row = makeRow({
       uniqueId: 'model.pkg.orders',

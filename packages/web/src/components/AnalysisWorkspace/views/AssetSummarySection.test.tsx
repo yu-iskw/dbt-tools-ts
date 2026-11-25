@@ -75,4 +75,60 @@ describe('AssetSummarySection', () => {
     expect(container.textContent).toContain('Warn');
     expect(container.textContent).toContain('12 hour');
   });
+
+  it('shows the run error message in the This run section', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const message =
+      'Runtime Error in model orders\n  Binder Error: Referenced column "order_total" not found in FROM clause!';
+
+    act(() => {
+      root.render(
+        <AssetSummarySection
+          resource={makeResource({
+            status: 'Error',
+            statusTone: 'danger',
+            runResultMessage: message,
+          })}
+        />,
+      );
+    });
+
+    expect(container.querySelector('.run-result-message__body')?.textContent).toBe(message);
+  });
+
+  it('falls back to the execution row message and renders none when absent', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <AssetSummarySection
+          resource={makeResource()}
+          executionRow={{
+            uniqueId: 'x',
+            name: 'x',
+            resourceType: 'model',
+            packageName: 'p',
+            path: null,
+            status: 'Error',
+            statusTone: 'danger',
+            executionTime: 1,
+            threadId: null,
+            start: null,
+            end: null,
+            runResultMessage: 'boom',
+          }}
+        />,
+      );
+    });
+    expect(container.querySelector('.run-result-message__body')?.textContent).toBe('boom');
+
+    act(() => {
+      root.render(<AssetSummarySection resource={makeResource()} />);
+    });
+    expect(container.querySelector('.run-result-message')).toBeNull();
+  });
 });

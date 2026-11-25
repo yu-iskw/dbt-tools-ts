@@ -1,7 +1,13 @@
 import { getObjectProperty, setObjectProperty } from '../../util/typed-map';
 import { buildNodeExecutionSemantics } from '../execution/semantics';
 
-import { buildResourceDefinition, sortResources, statusLabel, statusTone } from './shared';
+import {
+  buildResourceDefinition,
+  normalizeRunResultMessage,
+  sortResources,
+  statusLabel,
+  statusTone,
+} from './shared';
 import { buildTestAttachedTargetDisplay } from './test-target';
 
 import type { GraphLike, ManifestEntryLookup } from './internal';
@@ -221,9 +227,7 @@ function buildResourceNode(
   });
   const isTest = resourceType === 'test' || resourceType === 'unit_test';
   const testAttachedTarget = isTest ? buildTestAttachedTargetDisplay(manifestEntry, graph) : null;
-  const runMsg = execution?.message;
-  const runResultMessage =
-    typeof runMsg === 'string' && runMsg.trim() !== '' ? runMsg.trim() : null;
+  const runResultMessage = normalizeRunResultMessage(execution?.message);
   const executionTime =
     typeof execution?.execution_time === 'number' ? execution.execution_time : null;
   const threadId = typeof execution?.thread_id === 'string' ? execution.thread_id : null;

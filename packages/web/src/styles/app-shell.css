@@ -1893,8 +1893,10 @@ details.timeline-filter-accordion .timeline-controls {
     display: none;
   }
 
-  /* Sidebar becomes a fixed off-screen overlay */
-  .app-sidebar {
+  /* Sidebar becomes a fixed off-screen overlay. The frame-state selectors match the
+     specificity of the <=1180px stacking rules above so they cannot keep it in flow. */
+  .app-frame:not(.app-frame--sidebar-collapsed) .app-sidebar,
+  .app-frame--sidebar-collapsed .app-sidebar {
     position: fixed;
     left: 0;
     top: 0;
@@ -1908,7 +1910,7 @@ details.timeline-filter-accordion .timeline-controls {
   }
 
   /* Slide sidebar in when nav is open */
-  .app-frame--nav-open .app-sidebar {
+  .app-frame.app-frame--nav-open .app-sidebar {
     transform: translateX(0);
   }
 
@@ -2206,8 +2208,13 @@ details.timeline-filter-accordion .timeline-controls {
   gap: 0.8rem;
   width: 100%;
   padding: 0.7rem 0.8rem;
+  border: 0;
   border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
   text-align: left;
+  cursor: pointer;
 }
 
 .omnibox-results__item:hover,

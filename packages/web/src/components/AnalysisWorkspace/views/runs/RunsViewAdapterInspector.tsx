@@ -6,6 +6,7 @@ import {
 } from '@web/lib/analysis-workspace/runs-adapter-columns';
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
 
+import { RunResultMessage } from '../../RunResultMessage';
 import { EntityInspector, formatResourceTypeLabel } from '../../shared';
 
 import type { ExecutionRow } from '@web/types';
@@ -102,6 +103,7 @@ export function RunsAdapterInspector({
       eyebrow="Selected run item"
       title={row.name}
       typeLabel={formatResourceTypeLabel(row.resourceType)}
+      callout={<RunResultMessage message={row.runResultMessage} statusTone={row.statusTone} />}
       stats={[
         { label: 'Status', value: row.status },
         { label: 'Duration', value: formatSeconds(row.executionTime) },

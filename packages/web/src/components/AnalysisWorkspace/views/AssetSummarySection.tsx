@@ -14,6 +14,7 @@ import {
 } from '@web/lib/analysis-workspace/utils';
 
 import { ResourceMarkdownDescription } from '../ResourceMarkdownDescription';
+import { RunResultMessage } from '../RunResultMessage';
 import { SectionCard } from '../shared';
 
 import type { ExecutionRow, ResourceNode } from '@web/types';
@@ -202,6 +203,10 @@ export function AssetSummarySection({
         subtitle="Status, timing, and warehouse feedback from the captured run."
       >
         <div className="asset-summary__groups">
+          <RunResultMessage
+            message={resource.runResultMessage ?? executionRow?.runResultMessage}
+            statusTone={executionRow?.statusTone ?? resource.statusTone}
+          />
           <div className="detail-grid">
             <div className="detail-stat">
               <span>Status</span>
