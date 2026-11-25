@@ -51,7 +51,7 @@ export function OverviewActionListCard({
                   {`${(
                     (row.executionTime / Math.max(derived.filteredExecutionTime, 0.0001)) *
                     100
-                  ).toFixed(1)}% of filtered run`}
+                  ).toFixed(1)}% of node time`}
                 </span>
               </div>
               <div className="action-list__metric">

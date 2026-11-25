@@ -985,6 +985,45 @@
   color: var(--text-secondary);
 }
 
+.run-brief {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: 75ch;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+}
+
+.run-brief__link {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.run-brief__link:hover {
+  color: var(--accent-hover);
+  text-decoration-thickness: 2px;
+}
+
+.run-brief__link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
 .health-posture__metrics {
   display: flex;
   flex-wrap: wrap;

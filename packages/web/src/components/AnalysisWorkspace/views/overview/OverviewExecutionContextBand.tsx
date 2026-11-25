@@ -154,7 +154,7 @@ export function HealthFootprintPanel({
             <strong>{derived.filteredExecutions.length}</strong>
           </div>
           <div className="footprint-card__stat">
-            <span>Runtime</span>
+            <span>Node time</span>
             <strong>{formatSeconds(derived.filteredExecutionTime)}</strong>
           </div>
           <div className="footprint-card__stat">
