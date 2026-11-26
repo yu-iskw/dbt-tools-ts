@@ -121,27 +121,37 @@ export function LineagePanel({
     });
   };
 
-  const graphModel = useMemo(
-    () =>
-      buildLineageGraphModel({
-        resource,
-        dependencySummary,
-        dependencyIndex,
-        resourceById,
-        upstreamDepth: allDepsMode ? ALL_DEPS_DEPTH : upstreamDepth,
-        downstreamDepth: allDepsMode ? ALL_DEPS_DEPTH : downstreamDepth,
-        displayMode,
-      }),
+  const modelArgs = useMemo(
+    () => ({
+      resource,
+      dependencySummary,
+      dependencyIndex,
+      resourceById,
+      upstreamDepth: allDepsMode ? ALL_DEPS_DEPTH : upstreamDepth,
+      downstreamDepth: allDepsMode ? ALL_DEPS_DEPTH : downstreamDepth,
+    }),
     [
       allDepsMode,
       dependencyIndex,
       dependencySummary,
-      displayMode,
       downstreamDepth,
       resource,
       resourceById,
       upstreamDepth,
     ],
+  );
+  const graphModel = useMemo(
+    () => buildLineageGraphModel({ ...modelArgs, displayMode }),
+    [displayMode, modelArgs],
+  );
+  // The dialog draws focused-size nodes. Reusing the compact card's model would put focused
+  // text and badges on the smaller nodes, so build a focused model while the dialog is open.
+  const dialogGraphModel = useMemo(
+    () =>
+      isFullscreenOpen && displayMode !== 'focused'
+        ? buildLineageGraphModel({ ...modelArgs, displayMode: 'focused' })
+        : graphModel,
+    [displayMode, graphModel, isFullscreenOpen, modelArgs],
   );
 
   const depthToolbar = () => (
@@ -225,7 +235,7 @@ export function LineagePanel({
           <div className="lineage-dialog__toolbar">{depthToolbar()}</div>
         </div>
         <LineageGraphSurface
-          model={graphModel}
+          model={dialogGraphModel}
           onSelectResource={onSelectResource}
           lensMode={lensMode}
           activeLegendKeys={activeLegendKeys}

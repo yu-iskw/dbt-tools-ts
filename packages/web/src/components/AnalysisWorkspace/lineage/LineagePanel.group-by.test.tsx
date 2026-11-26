@@ -123,4 +123,24 @@ describe('LineagePanel Group by control in summary mode', () => {
     );
     expect(expand).toBeDefined();
   });
+
+  it('draws focused-size nodes in the expanded dialog opened from the compact card', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    renderPanel(container);
+    const nodeHeights = () =>
+      [...document.body.querySelectorAll('rect.dependency-graph__node')].map((el) =>
+        el.getAttribute('height'),
+      );
+    expect(nodeHeights()).toEqual(['64']);
+
+    const expand = [...container.querySelectorAll('button')].find(
+      (b) => b.textContent === 'Expand lineage',
+    ) as HTMLButtonElement;
+    act(() => {
+      expand.click();
+    });
+
+    expect(nodeHeights()).toEqual(['64', '80']);
+  });
 });
