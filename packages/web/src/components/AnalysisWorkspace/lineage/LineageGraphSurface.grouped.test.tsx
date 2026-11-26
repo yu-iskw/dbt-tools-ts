@@ -4,6 +4,12 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  bigQueryLocation,
+  lineageModelOf,
+  noActions,
+} from '@web/lib/analysis-workspace/lineage-test-fixtures';
+
 import { LineageGraphSurface } from './LineageGraphSurface';
 
 import type { WarehouseLocation } from '@dbt-tools/core/browser';
@@ -11,22 +17,7 @@ import type {
   LineageGraphModel,
   LineageGraphNodeLayout,
 } from '@web/lib/analysis-workspace/lineage-model';
-import type { NodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import type { ResourceNode } from '@web/types';
-
-function bigQueryLocation(
-  project: string,
-  dataset: string,
-  relation: string | null = null,
-): WarehouseLocation {
-  return {
-    levels: [
-      { kind: 'project', label: 'project', name: project },
-      { kind: 'dataset', label: 'dataset', name: dataset },
-    ],
-    relation,
-  };
-}
 
 function makeResource(id: string, location: WarehouseLocation): ResourceNode {
   return {
@@ -78,31 +69,11 @@ function makeGroupedModel(): LineageGraphModel {
     ['model.jaffle_shop.b', makeLayout('model.jaffle_shop.b', 320, 20, 'selected', marts)],
     ['model.jaffle_shop.c', makeLayout('model.jaffle_shop.c', 20, 200, 'upstream', marts)],
   ]);
-  return {
-    upstreamMap: new Map(),
-    downstreamMap: new Map(),
-    columnNodes: [],
-    nodeLayouts,
-    graphEdges: [
-      { from: 'model.jaffle_shop.a', to: 'model.jaffle_shop.b' },
-      { from: 'model.jaffle_shop.c', to: 'model.jaffle_shop.b' },
-    ],
-    svgWidth: 640,
-    svgHeight: 320,
-    hasRelatedNodes: true,
-    nodeWidth: 200,
-    nodeHeight: 60,
-    nodeRadius: 12,
-    rowGap: 24,
-    displayMode: 'focused',
-  };
+  return lineageModelOf(nodeLayouts, [
+    { from: 'model.jaffle_shop.a', to: 'model.jaffle_shop.b' },
+    { from: 'model.jaffle_shop.c', to: 'model.jaffle_shop.b' },
+  ]);
 }
-
-const noActions: NodeActionContext = {
-  timelineIds: new Set(),
-  executedIds: new Set(),
-  resourceIds: new Set(),
-};
 
 describe('LineageGraphSurface warehouse grouping', () => {
   let root: Root;
@@ -151,7 +122,7 @@ describe('LineageGraphSurface warehouse grouping', () => {
       (el) => el.textContent,
     );
     expect(labels).toEqual(
-      expect.arrayContaining(['project: proj', 'dataset: raw', 'dataset: marts']),
+      expect.arrayContaining(['Project: proj', 'Dataset: raw', 'Dataset: marts']),
     );
 
     expect(container.querySelectorAll('.dependency-graph__edge--cross-inner')).toHaveLength(1);

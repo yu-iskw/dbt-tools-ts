@@ -4,13 +4,14 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { lineageModelOf, noActions } from '@web/lib/analysis-workspace/lineage-test-fixtures';
+
 import { LineageGraphSurface } from './LineageGraphSurface';
 
 import type {
   LineageGraphModel,
   LineageGraphNodeLayout,
 } from '@web/lib/analysis-workspace/lineage-model';
-import type { NodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import type { ResourceNode } from '@web/types';
 
 const SELECTED_ID = 'model.pkg.hub';
@@ -47,28 +48,11 @@ function makeModel(spokes: number): LineageGraphModel {
   ]);
   const hubEdges = ids.map((id) => ({ from: id, to: SELECTED_ID }));
   const chainEdges = ids.slice(1).map((id, i) => ({ from: ids.at(i) ?? id, to: id }));
-  return {
-    upstreamMap: new Map(),
-    downstreamMap: new Map(),
-    columnNodes: [],
-    nodeLayouts,
-    graphEdges: [...hubEdges, ...chainEdges],
+  return lineageModelOf(nodeLayouts, [...hubEdges, ...chainEdges], {
     svgWidth: 1400,
     svgHeight: 800,
-    hasRelatedNodes: true,
-    nodeWidth: 200,
-    nodeHeight: 60,
-    nodeRadius: 12,
-    rowGap: 24,
-    displayMode: 'focused',
-  };
+  });
 }
-
-const noActions: NodeActionContext = {
-  timelineIds: new Set(),
-  executedIds: new Set(),
-  resourceIds: new Set(),
-};
 
 describe('LineageGraphSurface dense graphs', () => {
   let root: Root;

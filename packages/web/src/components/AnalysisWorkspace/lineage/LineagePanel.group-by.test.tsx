@@ -4,9 +4,10 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { noActions } from '@web/lib/analysis-workspace/lineage-test-fixtures';
+
 import { LineagePanel } from './LineagePanel';
 
-import type { NodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import type { ResourceNode } from '@web/types';
 
 const resource = {
@@ -23,12 +24,6 @@ const resource = {
   threadId: 'Thread-1',
   warehouseLocation: null,
 } as unknown as ResourceNode;
-
-const noActions: NodeActionContext = {
-  timelineIds: new Set(),
-  executedIds: new Set(),
-  resourceIds: new Set(),
-};
 
 const roots: Root[] = [];
 

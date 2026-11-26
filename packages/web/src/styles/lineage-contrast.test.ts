@@ -26,14 +26,18 @@ const PAIRS: Array<{ label: string; fg: string; bg: string; min: number }> = [
     bg: 'bg-accent-soft',
     min: 3,
   },
-  { label: 'outer group stroke on canvas', fg: 'graph-group-stroke', bg: 'bg-canvas', min: 3 },
+  {
+    label: 'outer and lane group stroke on canvas',
+    fg: 'graph-group-stroke',
+    bg: 'bg-canvas',
+    min: 3,
+  },
   {
     label: 'inner group stroke on outer fill',
     fg: 'graph-group-stroke',
     bg: 'bg-accent-soft',
     min: 3,
   },
-  { label: 'lane dashed stroke on canvas', fg: 'graph-group-stroke', bg: 'bg-canvas', min: 3 },
   { label: 'group label on inner fill', fg: 'graph-text', bg: 'graph-panel', min: 4.5 },
 ];
 

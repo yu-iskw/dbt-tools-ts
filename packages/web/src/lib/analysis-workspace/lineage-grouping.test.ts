@@ -6,18 +6,9 @@ import {
   edgeCrossingKey,
   lineageNodeLabel,
 } from '@web/lib/analysis-workspace/lineage-grouping';
+import { bigQueryLocation } from '@web/lib/analysis-workspace/lineage-test-fixtures';
 
 import type { ResourceNode, WarehouseLocation } from '@dbt-tools/core/browser';
-
-function bigQueryLocation(project: string, dataset: string): WarehouseLocation {
-  return {
-    levels: [
-      { kind: 'project', label: 'Project', name: project },
-      { kind: 'dataset', label: 'Dataset', name: dataset },
-    ],
-    relation: null,
-  };
-}
 
 function sparkLocation(schema: string): WarehouseLocation {
   return { levels: [{ kind: 'schema', label: 'Schema', name: schema }], relation: null };
@@ -275,7 +266,7 @@ describe('buildLineageGroupModel', () => {
 });
 
 describe('lineageNodeLabel', () => {
-  const located = { ...bigQueryLocation('proj', 'marts'), relation: 'orders' };
+  const located = bigQueryLocation('proj', 'marts', 'orders');
 
   it('uses the relation in grouped mode and the dbt name otherwise', () => {
     const node = resource('model.pkg.proj__marts___orders', located);

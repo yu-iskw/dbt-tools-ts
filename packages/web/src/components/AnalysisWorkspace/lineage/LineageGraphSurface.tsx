@@ -28,8 +28,10 @@ const NO_NODE_OFFSETS: Map<string, { dx: number; dy: number }> = new Map();
  */
 const DENSE_EDGE_COUNT = 24;
 
-function getRestingFocusId(selectedResourceId: string, edges: readonly unknown[]): string | null {
-  return selectedResourceId && edges.length > DENSE_EDGE_COUNT ? selectedResourceId : null;
+function getRestingFocusId(hovering: boolean, selectedResourceId: string, edgeCount: number) {
+  return !hovering && selectedResourceId && edgeCount > DENSE_EDGE_COUNT
+    ? selectedResourceId
+    : null;
 }
 
 /** Composes legend, viewport controls, SVG graph, hotspots, tooltip, and context menu. */
@@ -270,7 +272,7 @@ export function LineageGraphSurface({
   const legendItems = getLensLegendItems(lensMode, nodeLayouts);
   const highlightedIds = collectHighlightedGraphIds(hoveredId, visibleEdges);
   const hasHoverFocus = highlightedIds.size > 0;
-  const restingFocusId = hasHoverFocus ? null : getRestingFocusId(selectedResourceId, visibleEdges);
+  const restingFocusId = getRestingFocusId(hasHoverFocus, selectedResourceId, visibleEdges.length);
   return (
     <LineageGraphSurfaceView
       model={model}
