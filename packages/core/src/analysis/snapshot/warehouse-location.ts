@@ -25,8 +25,13 @@ interface LevelSpec {
   field: LocationField;
 }
 
-const OUTER_INNER_LEVELS: LevelSpec[] = [
+const DATABASE_SCHEMA: LevelSpec[] = [
   { kind: 'database', label: 'Database', field: 'database' },
+  { kind: 'schema', label: 'Schema', field: 'schema' },
+];
+
+const CATALOG_SCHEMA: LevelSpec[] = [
+  { kind: 'catalog', label: 'Catalog', field: 'database' },
   { kind: 'schema', label: 'Schema', field: 'schema' },
 ];
 
@@ -38,48 +43,12 @@ const LEVELS_BY_ADAPTER = new Map<string, LevelSpec[]>([
       { kind: 'dataset', label: 'Dataset', field: 'schema' },
     ],
   ],
-  [
-    'snowflake',
-    [
-      { kind: 'database', label: 'Database', field: 'database' },
-      { kind: 'schema', label: 'Schema', field: 'schema' },
-    ],
-  ],
-  [
-    'duckdb',
-    [
-      { kind: 'catalog', label: 'Catalog', field: 'database' },
-      { kind: 'schema', label: 'Schema', field: 'schema' },
-    ],
-  ],
-  [
-    'databricks',
-    [
-      { kind: 'catalog', label: 'Catalog', field: 'database' },
-      { kind: 'schema', label: 'Schema', field: 'schema' },
-    ],
-  ],
-  [
-    'redshift',
-    [
-      { kind: 'database', label: 'Database', field: 'database' },
-      { kind: 'schema', label: 'Schema', field: 'schema' },
-    ],
-  ],
-  [
-    'postgres',
-    [
-      { kind: 'database', label: 'Database', field: 'database' },
-      { kind: 'schema', label: 'Schema', field: 'schema' },
-    ],
-  ],
-  [
-    'trino',
-    [
-      { kind: 'catalog', label: 'Catalog', field: 'database' },
-      { kind: 'schema', label: 'Schema', field: 'schema' },
-    ],
-  ],
+  ['snowflake', DATABASE_SCHEMA],
+  ['redshift', DATABASE_SCHEMA],
+  ['postgres', DATABASE_SCHEMA],
+  ['duckdb', CATALOG_SCHEMA],
+  ['databricks', CATALOG_SCHEMA],
+  ['trino', CATALOG_SCHEMA],
   [
     'athena',
     [
@@ -114,7 +83,7 @@ function readLocationField(
 
 function levelsForAdapter(adapterType: string | null | undefined): LevelSpec[] {
   const key = (adapterType ?? '').trim().toLowerCase();
-  return LEVELS_BY_ADAPTER.get(key) ?? OUTER_INNER_LEVELS;
+  return LEVELS_BY_ADAPTER.get(key) ?? DATABASE_SCHEMA;
 }
 
 export interface WarehouseLocationInput {

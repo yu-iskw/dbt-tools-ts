@@ -14,13 +14,17 @@ import type {
 import type { NodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import type { ResourceNode } from '@web/types';
 
-function bigQueryLocation(project: string, dataset: string): WarehouseLocation {
+function bigQueryLocation(
+  project: string,
+  dataset: string,
+  relation: string | null = null,
+): WarehouseLocation {
   return {
     levels: [
       { kind: 'project', label: 'project', name: project },
       { kind: 'dataset', label: 'dataset', name: dataset },
     ],
-    relation: null,
+    relation,
   };
 }
 
@@ -67,7 +71,7 @@ function makeLayout(
  * c (marts) -> b stays inside the marts dataset. Nothing crosses projects.
  */
 function makeGroupedModel(): LineageGraphModel {
-  const raw = bigQueryLocation('proj', 'raw');
+  const raw = bigQueryLocation('proj', 'raw', 'raw_orders_table');
   const marts = bigQueryLocation('proj', 'marts');
   const nodeLayouts = new Map<string, LineageGraphNodeLayout>([
     ['model.jaffle_shop.a', makeLayout('model.jaffle_shop.a', 20, 20, 'upstream', raw)],
@@ -89,6 +93,7 @@ function makeGroupedModel(): LineageGraphModel {
     nodeWidth: 200,
     nodeHeight: 60,
     nodeRadius: 12,
+    rowGap: 24,
     displayMode: 'focused',
   };
 }
@@ -197,6 +202,25 @@ describe('LineageGraphSurface warehouse grouping', () => {
     expect(
       [...container.querySelectorAll('button')].some((b) => b.textContent === 'Reset layout'),
     ).toBe(false);
+  });
+
+  it('labels nodes with their relation in grouped mode and the dbt name otherwise', () => {
+    const titles = () =>
+      [...container.querySelectorAll('.dependency-graph__node-title-text')].map(
+        (el) => el.textContent,
+      );
+
+    render('warehouse');
+    expect(titles()).toEqual(expect.arrayContaining(['raw_orders_table', 'b', 'c']));
+    expect(titles()).not.toContain('a');
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+
+    render('none');
+    expect(titles()).toEqual(expect.arrayContaining(['a', 'b', 'c']));
+    expect(titles()).not.toContain('raw_orders_table');
   });
 
   it('renders no group boxes or crossing legend in ungrouped mode', () => {

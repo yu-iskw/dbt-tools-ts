@@ -14,7 +14,7 @@ export function LineageGraphGroupLayer({
   return (
     <>
       {groupRects.map((rect) => (
-        <g key={`${rect.kind}:${rect.groupId}`} className="lineage-group-box">
+        <g key={`${rect.kind}:${rect.groupId}`}>
           <rect
             x={rect.x}
             y={rect.y}

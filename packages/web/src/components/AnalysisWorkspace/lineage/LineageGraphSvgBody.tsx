@@ -1,4 +1,4 @@
-import { edgeCrossingKey } from '@web/lib/analysis-workspace/lineage-grouping';
+import { edgeCrossingKey, lineageNodeLabel } from '@web/lib/analysis-workspace/lineage-grouping';
 import { getLensNodeFill, supportsTests } from '@web/lib/analysis-workspace/lineage-model';
 
 import { ResourceTypeIcon, formatResourceTypeLabel } from '../shared';
@@ -152,6 +152,7 @@ function LineageGraphSvgNode({
   lensMode,
   highlightedIds,
   hasHoverFocus,
+  relationLabels,
 }: {
   node: LineageGraphNodeLayout;
   getEffectivePos: (nodeId: string, baseX: number, baseY: number) => { x: number; y: number };
@@ -162,6 +163,7 @@ function LineageGraphSvgNode({
   lensMode: LensMode;
   highlightedIds: Set<string>;
   hasHoverFocus: boolean;
+  relationLabels: boolean;
 }) {
   const isHighlighted = !hasHoverFocus || highlightedIds.has(node.resource.uniqueId);
   const { x, y } = getEffectivePos(node.resource.uniqueId, node.x, node.y);
@@ -191,10 +193,10 @@ function LineageGraphSvgNode({
         }}
       />
       <foreignObject
-        x={x + 16}
+        x={x + 12}
         y={displayMode === 'summary' ? y + 10 : y + 14}
-        width={nodeWidth - 32}
-        height={24}
+        width={nodeWidth - 24}
+        height={displayMode === 'summary' ? 34 : 40}
       >
         <div
           className="dependency-graph__node-title-row"
@@ -206,7 +208,9 @@ function LineageGraphSvgNode({
           >
             <ResourceTypeIcon resourceType={node.resource.resourceType} />
           </span>
-          <span className="dependency-graph__node-title-text">{node.resource.name}</span>
+          <span className="dependency-graph__node-title-text">
+            {lineageNodeLabel(node.resource, relationLabels)}
+          </span>
         </div>
       </foreignObject>
       {supportsTests(node.resource.resourceType) ? (
@@ -247,6 +251,7 @@ export function LineageGraphSvgBody({
   hasHoverFocus,
   groupRects = [],
   edgeCrossings = null,
+  relationLabels = false,
 }: {
   visibleEdges: Array<{ from: string; to: string }>;
   visibleNodeLayouts: Map<string, LineageGraphNodeLayout>;
@@ -260,6 +265,8 @@ export function LineageGraphSvgBody({
   hasHoverFocus: boolean;
   groupRects?: LineageGroupRect[];
   edgeCrossings?: LineageGroupModel['edgeCrossings'] | null;
+  /** Label nodes with their physical relation instead of the dbt name (grouped mode). */
+  relationLabels?: boolean;
 }): ReactElement {
   return (
     <>
@@ -275,12 +282,13 @@ export function LineageGraphSvgBody({
         const endX = tp.x;
         const endY = tp.y + nodeHeight / 2;
         const curve = Math.max(28, Math.abs(endX - startX) * 0.34);
-        const crossing = edgeCrossings?.get(edgeCrossingKey(edge.from, edge.to)) ?? 'none';
+        const edgeKey = edgeCrossingKey(edge.from, edge.to);
+        const crossing = edgeCrossings?.get(edgeKey) ?? 'none';
         const dimmed =
           hasHoverFocus && !highlightedIds.has(edge.from) && !highlightedIds.has(edge.to);
         return (
           <path
-            key={`${edge.from}->${edge.to}`}
+            key={edgeKey}
             d={`M ${startX} ${startY} C ${startX + curve} ${startY}, ${endX - curve} ${endY}, ${endX} ${endY}`}
             className={edgeClassName(crossing, dimmed)}
           />
@@ -298,6 +306,7 @@ export function LineageGraphSvgBody({
           lensMode={lensMode}
           highlightedIds={highlightedIds}
           hasHoverFocus={hasHoverFocus}
+          relationLabels={relationLabels}
         />
       ))}
     </>

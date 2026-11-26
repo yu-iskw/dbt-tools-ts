@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-// ?raw needs the web vitest config's css.include for styles/*.css (otherwise vitest blanks CSS).
+// ?raw needs the web vitest config's css.include for these two files (otherwise vitest blanks CSS).
 import lineageCss from './lineage-graph.css?raw';
 import tokensCss from './tokens.css?raw';
 
@@ -19,16 +19,21 @@ const PAIRS: Array<{ label: string; fg: string; bg: string; min: number }> = [
   },
   { label: 'close glyph on close button', fg: 'text-primary', bg: 'bg-elevated', min: 4.5 },
   { label: 'close glyph on close hover', fg: 'text-primary', bg: 'graph-panel-hover', min: 4.5 },
-  { label: 'ordinary edge on graph panel', fg: 'text-tertiary', bg: 'graph-panel', min: 3 },
+  { label: 'ordinary edge on graph panel', fg: 'graph-edge', bg: 'graph-panel', min: 3 },
   {
     label: 'ordinary edge on accent-soft group',
-    fg: 'text-tertiary',
+    fg: 'graph-edge',
     bg: 'bg-accent-soft',
     min: 3,
   },
-  { label: 'outer group stroke on canvas', fg: 'text-tertiary', bg: 'bg-canvas', min: 3 },
-  { label: 'inner group stroke on outer fill', fg: 'text-tertiary', bg: 'bg-accent-soft', min: 3 },
-  { label: 'lane dashed stroke on canvas', fg: 'text-tertiary', bg: 'bg-canvas', min: 3 },
+  { label: 'outer group stroke on canvas', fg: 'graph-group-stroke', bg: 'bg-canvas', min: 3 },
+  {
+    label: 'inner group stroke on outer fill',
+    fg: 'graph-group-stroke',
+    bg: 'bg-accent-soft',
+    min: 3,
+  },
+  { label: 'lane dashed stroke on canvas', fg: 'graph-group-stroke', bg: 'bg-canvas', min: 3 },
   { label: 'group label on inner fill', fg: 'graph-text', bg: 'graph-panel', min: 4.5 },
 ];
 
@@ -39,12 +44,12 @@ const USES: Array<[selector: string, prop: string, token: string]> = [
   ['.lineage-dialog__close', 'color', 'text-primary'],
   ['.lineage-dialog__close:hover', 'background', 'graph-panel-hover'],
   ['.lineage-dialog__panel', 'background', 'bg-surface-muted'],
-  ['.dependency-graph__edge', 'stroke', 'text-tertiary'],
+  ['.dependency-graph__edge', 'stroke', 'graph-edge'],
   ['.lineage-group--outer', 'fill', 'bg-accent-soft'],
-  ['.lineage-group--outer', 'stroke', 'text-tertiary'],
+  ['.lineage-group--outer', 'stroke', 'graph-group-stroke'],
   ['.lineage-group--inner', 'fill', 'graph-panel'],
-  ['.lineage-group--inner', 'stroke', 'text-tertiary'],
-  ['.lineage-group--lane', 'stroke', 'text-tertiary'],
+  ['.lineage-group--inner', 'stroke', 'graph-group-stroke'],
+  ['.lineage-group--lane', 'stroke', 'graph-group-stroke'],
   ['.lineage-group__label', 'fill', 'graph-text'],
 ];
 

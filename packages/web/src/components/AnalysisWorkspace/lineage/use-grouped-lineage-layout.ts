@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { layoutGroupedLineage } from '@web/lib/analysis-workspace/lineage-group-layout';
 import {
+  buildEdgeCrossings,
   buildLineageGroupModel,
   edgeCrossingKey,
   type LineageGroupModel,
@@ -49,12 +50,14 @@ function buildGroupModelFor(
 function filterToCrossings(
   nodeLayouts: Map<string, LineageGraphNodeLayout>,
   edges: VisibleEdge[],
-  groupModel: LineageGroupModel,
   selectedResourceId: string,
 ): { nodeLayouts: Map<string, LineageGraphNodeLayout>; edges: VisibleEdge[] } {
+  const { crossings } = buildEdgeCrossings(
+    edges,
+    (id) => nodeLayouts.get(id)?.resource.warehouseLocation,
+  );
   const crossingEdges = edges.filter(
-    (edge) =>
-      (groupModel.edgeCrossings.get(edgeCrossingKey(edge.from, edge.to)) ?? 'none') !== 'none',
+    (edge) => (crossings.get(edgeCrossingKey(edge.from, edge.to)) ?? 'none') !== 'none',
   );
   const touchedIds = new Set<string>(selectedResourceId ? [selectedResourceId] : []);
   for (const edge of crossingEdges) {
@@ -80,17 +83,13 @@ function computeGroupedView(
   svgWidth: number;
   svgHeight: number;
 } {
-  const fullGroupModel = buildGroupModelFor(nodeLayouts, edges);
   const scoped = crossingsOnly
-    ? filterToCrossings(nodeLayouts, edges, fullGroupModel, selectedResourceId)
+    ? filterToCrossings(nodeLayouts, edges, selectedResourceId)
     : { nodeLayouts, edges };
-  const groupModel = crossingsOnly
-    ? buildGroupModelFor(scoped.nodeLayouts, scoped.edges)
-    : fullGroupModel;
+  const groupModel = buildGroupModelFor(scoped.nodeLayouts, scoped.edges);
   const layout = layoutGroupedLineage({
-    model: { ...model, nodeLayouts: scoped.nodeLayouts, graphEdges: scoped.edges },
+    model: { ...model, nodeLayouts: scoped.nodeLayouts },
     groupModel,
-    displayMode: model.displayMode,
   });
   return {
     nodeLayouts: layout.nodeLayouts,

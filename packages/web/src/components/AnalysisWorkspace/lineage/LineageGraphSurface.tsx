@@ -134,7 +134,7 @@ export function LineageGraphSurface({
    * the same commit.
    */
   useLayoutEffect(() => {
-    if (zoomRef.current !== 1 || nodeOffsets.size > 0) return;
+    if (zoomRef.current !== 1 || dragOffsets.size > 0) return;
     const viewport = viewportRef.current;
     if (!viewport) return;
     if (!selectedResourceId) {
@@ -164,7 +164,7 @@ export function LineageGraphSurface({
   }, [
     lineageLayoutEpoch,
     model,
-    nodeOffsets,
+    dragOffsets,
     selectedResourceId,
     visibleNodeLayouts,
     nodeWidth,

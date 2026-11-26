@@ -1,33 +1,24 @@
+import { compareText } from './lineage-grouping';
+
 import type { LineageGroup, LineageGroupModel } from './lineage-grouping';
-import type {
-  LineageDisplayMode,
-  LineageGraphModel,
-  LineageGraphNodeLayout,
-} from './lineage-model';
+import type { LineageGraphModel, LineageGraphNodeLayout } from './lineage-model';
 
 /** Padding between an outer box edge and the inner boxes or nodes it wraps. */
 export const OUTER_PAD = 16;
 /** Padding between an inner box edge and the nodes it wraps. */
-export const INNER_PAD = 12;
+const INNER_PAD = 12;
 /** Label strip height at the top of an inner box. */
-export const HEADER = 24;
+const HEADER = 24;
 /** Label strip height at the top of an outer box. */
-export const OUTER_HEADER = 28;
+const OUTER_HEADER = 28;
 /** Vertical gap between inner bands that belong to the same outer group. */
-export const BAND_GAP = 12;
+const BAND_GAP = 12;
 /** Vertical gap between different outer groups, and before the lane. */
-export const OUTER_GAP = 28;
-
-/** Row gaps mirror `getDisplayModeGeometry` in `lineage-model.ts` (not exported there). */
-const ROW_GAP_BY_MODE = new Map<LineageDisplayMode, number>([
-  ['focused', 40],
-  ['summary', 24],
-]);
-const DEFAULT_ROW_GAP = 40;
+const OUTER_GAP = 28;
 
 export interface LineageGroupRect {
   groupId: string;
-  kind: 'inner' | 'lane' | 'outer';
+  kind: LineageGroup['kind'];
   label: string;
   levelLabel: string;
   x: number;
@@ -80,11 +71,6 @@ interface PlacedGroup {
   band: Band;
   extent: Extent;
   nodes: Array<[string, LineageGraphNodeLayout]>;
-}
-
-function compareText(a: string, b: string): number {
-  if (a < b) return -1;
-  return a > b ? 1 : 0;
 }
 
 function compareEntries(a: NodeEntry, b: NodeEntry): number {
@@ -160,20 +146,20 @@ function placeGroupNodes(band: Band, columns: GroupColumns, pitch: Pitch): Place
       y: band.top + INNER_PAD + HEADER + row * (pitch.nodeHeight + pitch.rowGap),
     },
   ]);
-  const xs = nodes.map(([, layout]) => layout.x);
-  const extent: Extent = {
-    minX: Math.min(...xs),
-    maxRight: Math.max(...xs) + pitch.nodeWidth,
-  };
-  return { band, extent, nodes };
+  let minX = Infinity;
+  let maxX = -Infinity;
+  for (const [, layout] of nodes) {
+    minX = Math.min(minX, layout.x);
+    maxX = Math.max(maxX, layout.x);
+  }
+  return { band, extent: { minX, maxRight: maxX + pitch.nodeWidth }, nodes };
 }
 
 function innerRect(placed: PlacedGroup): LineageGroupRect {
   const { band, extent } = placed;
-  const isLane = band.group.kind === 'lane';
   return {
     groupId: band.group.id,
-    kind: isLane ? 'lane' : 'inner',
+    kind: band.group.kind,
     label: band.group.label,
     levelLabel: band.group.levelLabel,
     x: extent.minX - INNER_PAD,
@@ -203,18 +189,21 @@ function outerRect(outer: LineageGroup, children: PlacedGroup[]): LineageGroupRe
 }
 
 function buildOuterRects(groups: LineageGroup[], placed: PlacedGroup[]): LineageGroupRect[] {
+  const placedByParent = new Map<string, PlacedGroup[]>();
+  for (const entry of placed) {
+    const parentId = entry.band.group.parentId;
+    if (parentId === null) continue;
+    const siblings = placedByParent.get(parentId) ?? [];
+    siblings.push(entry);
+    placedByParent.set(parentId, siblings);
+  }
   const rects: LineageGroupRect[] = [];
   for (const outer of groups) {
     if (outer.kind !== 'outer') continue;
-    const children = placed.filter((entry) => entry.band.group.parentId === outer.id);
-    const rect = outerRect(outer, children);
+    const rect = outerRect(outer, placedByParent.get(outer.id) ?? []);
     if (rect) rects.push(rect);
   }
   return rects;
-}
-
-function resolveRowGap(displayMode: LineageDisplayMode): number {
-  return ROW_GAP_BY_MODE.get(displayMode) ?? DEFAULT_ROW_GAP;
 }
 
 function collectLeafGroups(
@@ -252,16 +241,14 @@ function measureExtent(
 export function layoutGroupedLineage({
   model,
   groupModel,
-  displayMode,
 }: {
   model: LineageGraphModel;
   groupModel: LineageGroupModel;
-  displayMode: 'focused' | 'summary';
 }): GroupedLineageLayout {
   const pitch: Pitch = {
     nodeWidth: model.nodeWidth,
     nodeHeight: model.nodeHeight,
-    rowGap: resolveRowGap(displayMode),
+    rowGap: model.rowGap,
   };
   const entriesByGroup = collectEntriesByGroup(model, groupModel);
   const leaves = collectLeafGroups(groupModel, entriesByGroup);
@@ -289,9 +276,8 @@ export function layoutGroupedLineage({
   }
 
   const outerRects = buildOuterRects(groupModel.groups, placed);
-  const innerRects = placed.filter((entry) => entry.band.group.kind === 'inner').map(innerRect);
-  const laneRects = placed.filter((entry) => entry.band.group.kind === 'lane').map(innerRect);
-  const groupRects = [...outerRects, ...innerRects, ...laneRects];
+  // Leaves come in group order with the lane last, so one pass keeps "inner, then lane" draw order.
+  const groupRects = [...outerRects, ...placed.map(innerRect)];
 
   const nodeLayouts: LineageGraphModel['nodeLayouts'] = new Map();
   const sortedIds = [...model.nodeLayouts.keys()].sort(compareText);

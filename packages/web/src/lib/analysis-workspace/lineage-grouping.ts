@@ -32,9 +32,17 @@ interface GroupPath {
   inner: ContainerRef;
 }
 
-function compareText(a: string, b: string): number {
+export function compareText(a: string, b: string): number {
   if (a < b) return -1;
   return a > b ? 1 : 0;
+}
+
+/**
+ * Node label. Grouped mode shows the physical relation: the boxes already name the project and
+ * dataset, so the shared name prefix only crowds out the part that tells nodes apart.
+ */
+export function lineageNodeLabel(resource: ResourceNode, grouped: boolean): string {
+  return (grouped ? resource.warehouseLocation?.relation : null) ?? resource.name;
 }
 
 export function edgeCrossingKey(from: string, to: string): string {
@@ -79,9 +87,11 @@ function ensureGroup(
 
 /** Adds one node under its inner group, creating the outer and inner groups as needed. */
 function placeNode(groups: Map<string, LineageGroup>, nodeId: string, path: GroupPath): string {
-  const outer = path.outer;
-  const outerId = outer ? `outer:${outer.name}` : null;
-  if (outer && outerId) ensureGroup(groups, outerId, 'outer', outer, null);
+  let outerId: string | null = null;
+  if (path.outer) {
+    outerId = `outer:${path.outer.name}`;
+    ensureGroup(groups, outerId, 'outer', path.outer, null);
+  }
   const innerId = innerGroupId(path);
   const inner = ensureGroup(groups, innerId, 'inner', path.inner, outerId);
   inner.nodeIds.push(nodeId);
@@ -94,12 +104,22 @@ function compareGroups(a: LineageGroup, b: LineageGroup): number {
 
 /** Outer and single-level root groups sorted by label; each outer followed by its inner groups. */
 function orderGroups(byId: Map<string, LineageGroup>): LineageGroup[] {
-  const allGroups = [...byId.values()];
-  const roots = allGroups.filter((g) => g.parentId === null).sort(compareGroups);
+  const roots: LineageGroup[] = [];
+  const childrenByParent = new Map<string, LineageGroup[]>();
+  for (const group of byId.values()) {
+    if (group.parentId === null) {
+      roots.push(group);
+    } else {
+      const siblings = childrenByParent.get(group.parentId) ?? [];
+      siblings.push(group);
+      childrenByParent.set(group.parentId, siblings);
+    }
+  }
+  roots.sort(compareGroups);
   const ordered: LineageGroup[] = [];
   for (const root of roots) {
     ordered.push(root);
-    const children = allGroups.filter((g) => g.parentId === root.id).sort(compareGroups);
+    const children = (childrenByParent.get(root.id) ?? []).sort(compareGroups);
     root.childGroupIds = children.map((c) => c.id);
     ordered.push(...children);
   }
@@ -149,7 +169,7 @@ function buildNodeGroups(
   return result;
 }
 
-function buildEdgeCrossings(
+export function buildEdgeCrossings(
   edges: ReadonlyArray<{ from: string; to: string }>,
   locationOf: (id: string) => WarehouseLocation | null | undefined,
 ): { crossings: Map<string, BoundaryCrossing>; counts: { inner: number; outer: number } } {

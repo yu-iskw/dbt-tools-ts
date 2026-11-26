@@ -4,6 +4,7 @@ import {
   NO_WAREHOUSE_GROUP_ID,
   buildLineageGroupModel,
   edgeCrossingKey,
+  lineageNodeLabel,
 } from '@web/lib/analysis-workspace/lineage-grouping';
 
 import type { ResourceNode, WarehouseLocation } from '@dbt-tools/core/browser';
@@ -270,5 +271,20 @@ describe('buildLineageGroupModel', () => {
     expect(reversed.rootGroupIds).toEqual(forward.rootGroupIds);
     expect(reversed.crossingCounts).toEqual(forward.crossingCounts);
     expect(reversed.edgeCrossings).toEqual(forward.edgeCrossings);
+  });
+});
+
+describe('lineageNodeLabel', () => {
+  const located = { ...bigQueryLocation('proj', 'marts'), relation: 'orders' };
+
+  it('uses the relation in grouped mode and the dbt name otherwise', () => {
+    const node = resource('model.pkg.proj__marts___orders', located);
+    expect(lineageNodeLabel(node, true)).toBe('orders');
+    expect(lineageNodeLabel(node, false)).toBe('model.pkg.proj__marts___orders');
+  });
+
+  it('falls back to the dbt name when there is no relation or location', () => {
+    expect(lineageNodeLabel(resource('exposure.pkg.dash', null), true)).toBe('exposure.pkg.dash');
+    expect(lineageNodeLabel(resource('m', bigQueryLocation('p', 'd')), true)).toBe('m');
   });
 });

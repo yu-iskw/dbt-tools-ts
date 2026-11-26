@@ -266,11 +266,13 @@
 /* Node title row */
 .dependency-graph__node-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
-  height: 24px;
+  height: 100%;
   min-width: 0;
+  padding-top: 3px;
+  box-sizing: border-box;
   font-family: 'IBM Plex Sans', sans-serif;
   color: var(--graph-text);
   pointer-events: none;
@@ -283,6 +285,7 @@
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
+  margin-top: 1px;
   color: var(--graph-text-soft);
   opacity: 0.92;
 }
@@ -294,11 +297,14 @@
 }
 
 .dependency-graph__node-title-text {
-  display: block;
+  /* Two lines, breaking inside long snake_case names; only text past two lines gets an ellipsis */
+  display: -webkit-box;
   min-width: 0;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.15;
@@ -307,6 +313,7 @@
 
 .dependency-graph--summary .dependency-graph__node-title-row {
   gap: 7px;
+  padding-top: 2px;
 }
 
 .dependency-graph--summary .dependency-graph__node-title-icon {
@@ -386,8 +393,8 @@
 .dependency-graph__edge {
   fill: none;
 
-  /* text-tertiary keeps edges >= 3:1 on graph-panel and accent-soft; width, not opacity, sets weight */
-  stroke: var(--text-tertiary);
+  /* --graph-edge must stay >= 3:1 on graph-panel and accent-soft; width, not opacity, sets weight */
+  stroke: var(--graph-edge);
   stroke-width: 1.8;
   transition: opacity 200ms ease;
 }
@@ -416,20 +423,20 @@
 .lineage-group--outer {
   fill: var(--bg-accent-soft);
 
-  /* Structural strokes must reach 3:1 against their surface (canvas / outer fill) in both themes */
-  stroke: var(--text-tertiary);
+  /* --graph-group-stroke must reach 3:1 against its surface (canvas / outer fill) in both themes */
+  stroke: var(--graph-group-stroke);
   stroke-width: 1.5;
 }
 
 .lineage-group--inner {
   fill: var(--graph-panel);
-  stroke: var(--text-tertiary);
+  stroke: var(--graph-group-stroke);
   stroke-width: 1.2;
 }
 
 .lineage-group--lane {
   fill: none;
-  stroke: var(--text-tertiary);
+  stroke: var(--graph-group-stroke);
   stroke-width: 1.2;
   stroke-dasharray: 6 4;
 }
@@ -572,9 +579,7 @@
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .graph-node-tooltip__meta {

@@ -212,6 +212,7 @@ export function LineageGraphSurfaceView({
                 hasHoverFocus={hasHoverFocus}
                 groupRects={grouping?.groupRects}
                 edgeCrossings={grouping?.edgeCrossings ?? null}
+                relationLabels={grouping !== null}
               />
             </svg>
             <LineageGraphInteractiveHotspots

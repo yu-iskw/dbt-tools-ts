@@ -90,6 +90,7 @@ function buildScenario(
     nodeWidth: NODE_WIDTH,
     nodeHeight: NODE_HEIGHT,
     nodeRadius: 18,
+    rowGap: 40,
     displayMode: 'focused',
   };
   const resourceById = new Map(
@@ -108,7 +109,7 @@ function layoutFor(nodes: SyntheticNode[], edges: Array<{ from: string; to: stri
   return {
     model,
     groupModel,
-    layout: layoutGroupedLineage({ model, groupModel, displayMode: 'focused' }),
+    layout: layoutGroupedLineage({ model, groupModel }),
   };
 }
 
@@ -299,7 +300,6 @@ describe('layoutGroupedLineage', () => {
     const layout = layoutGroupedLineage({
       model,
       groupModel: groupModelWithoutOrphan,
-      displayMode: 'focused',
     });
 
     const lane = rectsOfKind(layout, 'lane')[0];
@@ -331,7 +331,7 @@ describe('layoutGroupedLineage', () => {
       edges: [],
     });
 
-    const layout = layoutGroupedLineage({ model, groupModel, displayMode: 'focused' });
+    const layout = layoutGroupedLineage({ model, groupModel });
 
     expect(layout.nodeLayouts.get('orphan')).toEqual(model.nodeLayouts.get('orphan'));
   });
@@ -346,8 +346,8 @@ describe('layoutGroupedLineage', () => {
       modelOrder: 'reverse',
     });
 
-    const a = layoutGroupedLineage({ ...forward, displayMode: 'focused' });
-    const b = layoutGroupedLineage({ ...reversedNodes, displayMode: 'focused' });
+    const a = layoutGroupedLineage(forward);
+    const b = layoutGroupedLineage(reversedNodes);
 
     expect(b.groupRects).toEqual(a.groupRects);
     expect(b.svgWidth).toBe(a.svgWidth);

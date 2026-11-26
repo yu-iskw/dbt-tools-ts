@@ -12,7 +12,8 @@ export default mergeConfig(
     test: {
       name: '@dbt-tools/web',
       include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-      css: { include: [/styles\/[\w-]+\.css/] },
+      // Only the stylesheets that lineage-contrast.test.ts reads as text.
+      css: { include: [/styles\/(lineage-graph|tokens)\.css/] },
     },
   }),
 );

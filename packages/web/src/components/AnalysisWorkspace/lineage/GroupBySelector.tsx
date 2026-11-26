@@ -15,7 +15,7 @@ export function GroupBySelector({
     { value: 'warehouse', label: 'Warehouse' },
   ];
   return (
-    <div className="lens-selector group-by-selector" role="group" aria-label="Group by">
+    <div className="lens-selector" role="group" aria-label="Group by">
       <span className="lens-selector__label">Group by</span>
       {modes.map(({ value, label }) => (
         <button
