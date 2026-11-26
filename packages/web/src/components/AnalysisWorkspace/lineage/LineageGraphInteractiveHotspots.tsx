@@ -35,6 +35,7 @@ export function LineageGraphInteractiveHotspots({
   setTooltipNodeId,
   setContextMenu,
   setNodeOffsets,
+  dragEnabled = true,
 }: {
   visibleNodeLayouts: Map<string, LineageGraphNodeLayout>;
   getEffectivePos: (nodeId: string, baseX: number, baseY: number) => { x: number; y: number };
@@ -50,6 +51,8 @@ export function LineageGraphInteractiveHotspots({
   setTooltipNodeId: (id: string | null) => void;
   setContextMenu: (value: { x: number; y: number; nodeId: string } | null) => void;
   setNodeOffsets: Dispatch<SetStateAction<Map<string, { dx: number; dy: number }>>>;
+  /** False in grouped mode: node positions are fixed by the group layout. */
+  dragEnabled?: boolean;
 }): ReactElement {
   return (
     <div className="dependency-graph__interactive-layer">
@@ -96,6 +99,7 @@ export function LineageGraphInteractiveHotspots({
             title={node.resource.uniqueId}
             onPointerDown={(event) => {
               event.stopPropagation();
+              if (!dragEnabled) return;
               const existing = nodeOffsets.get(node.resource.uniqueId) ?? {
                 dx: 0,
                 dy: 0,

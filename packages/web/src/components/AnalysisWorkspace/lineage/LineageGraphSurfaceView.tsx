@@ -10,6 +10,7 @@ import { LineageGraphLegendBar } from './LineageGraphLegendBar';
 import { LineageGraphSvgBody } from './LineageGraphSvgBody';
 import { LineageGraphZoomToolbar } from './LineageGraphZoomToolbar';
 
+import type { LineageGroupingView } from './use-grouped-lineage-layout';
 import type {
   LineageDisplayMode,
   LineageGraphModel,
@@ -75,8 +76,11 @@ export function LineageGraphSurfaceView({
   contextMenuRef,
   nodeActionContext,
   onNavigateTo,
+  grouping,
 }: {
   model: LineageGraphModel;
+  /** Null in ungrouped mode; grouped mode also disables node dragging and Reset layout. */
+  grouping: LineageGroupingView | null;
   displayMode: LineageDisplayMode;
   fullscreen: boolean;
   lensMode: LensMode;
@@ -121,6 +125,15 @@ export function LineageGraphSurfaceView({
         legendItems={legendItems}
         activeLegendKeys={activeLegendKeys}
         onToggleLegendKey={onToggleLegendKey}
+        groupLegend={
+          grouping
+            ? {
+                crossingCounts: grouping.crossingCounts,
+                crossingsOnly: grouping.crossingsOnly,
+                onToggleCrossingsOnly: grouping.onToggleCrossingsOnly,
+              }
+            : null
+        }
       />
       <LineageGraphZoomToolbar
         zoom={zoom}
@@ -197,6 +210,8 @@ export function LineageGraphSurfaceView({
                 lensMode={lensMode}
                 highlightedIds={highlightedIds}
                 hasHoverFocus={hasHoverFocus}
+                groupRects={grouping?.groupRects}
+                edgeCrossings={grouping?.edgeCrossings ?? null}
               />
             </svg>
             <LineageGraphInteractiveHotspots
@@ -214,6 +229,7 @@ export function LineageGraphSurfaceView({
               setTooltipNodeId={setTooltipNodeId}
               setContextMenu={setContextMenu}
               setNodeOffsets={setNodeOffsets}
+              dragEnabled={grouping === null}
             />
           </div>
           {tooltipLayout && tooltipPosition && (

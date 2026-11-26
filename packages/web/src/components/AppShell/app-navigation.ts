@@ -4,6 +4,7 @@ import type {
   RunsViewState,
   WorkspaceView,
 } from '../AnalysisWorkspace';
+import type { LineageGroupBy } from '@web/lib/analysis-workspace/types';
 
 export interface SidebarNavigationTarget {
   id: string;
@@ -153,6 +154,13 @@ export function parseLineageLensMode(search: string): LineageViewState['lensMode
   return null;
 }
 
+/** `group=warehouse` groups the lineage graph by warehouse location; absent or unknown values return null. */
+export function parseLineageGroupBy(search: string): LineageGroupBy | null {
+  const raw = new URLSearchParams(search).get('group');
+  if (raw === 'none' || raw === 'warehouse') return raw;
+  return null;
+}
+
 export function parseLineageUpstreamDepth(search: string): number | null {
   const raw = new URLSearchParams(search).get('up');
   if (raw == null || raw === '') return null;
@@ -188,6 +196,7 @@ export function buildInitialLineageViewState(search: string): LineageViewState {
   const down = parseLineageDownstreamDepth(search);
   const allDeps = parseLineageAllDepsMode(search);
   const lens = parseLineageLensMode(search);
+  const groupBy = parseLineageGroupBy(search);
 
   return {
     rootResourceId: resourceId,
@@ -197,6 +206,7 @@ export function buildInitialLineageViewState(search: string): LineageViewState {
     allDepsMode: allDeps ?? false,
     lensMode: lens ?? 'type',
     activeLegendKeys: new Set(),
+    groupBy: groupBy ?? 'none',
   };
 }
 

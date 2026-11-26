@@ -1,9 +1,14 @@
+import { edgeCrossingKey } from '@web/lib/analysis-workspace/lineage-grouping';
 import { getLensNodeFill, supportsTests } from '@web/lib/analysis-workspace/lineage-model';
 
 import { ResourceTypeIcon, formatResourceTypeLabel } from '../shared';
 
 import { estimateBadgeWidth } from './lineage-overlay-constants';
+import { LineageGraphGroupLayer } from './LineageGraphGroupLayer';
 
+import type { BoundaryCrossing } from '@dbt-tools/core/browser';
+import type { LineageGroupRect } from '@web/lib/analysis-workspace/lineage-group-layout';
+import type { LineageGroupModel } from '@web/lib/analysis-workspace/lineage-grouping';
 import type {
   LineageDisplayMode,
   LineageGraphNodeLayout,
@@ -218,7 +223,17 @@ function LineageGraphSvgNode({
   );
 }
 
-/** SVG edges + node shapes (no HTML hotspot layer). */
+function edgeClassName(crossing: BoundaryCrossing, dimmed: boolean): string {
+  const crossingClass =
+    crossing === 'inner'
+      ? ' dependency-graph__edge--cross-inner'
+      : crossing === 'outer'
+        ? ' dependency-graph__edge--cross-outer'
+        : '';
+  return `dependency-graph__edge${crossingClass}${dimmed ? ' dependency-graph__edge--dimmed' : ''}`;
+}
+
+/** SVG group boxes, edges and node shapes (no HTML hotspot layer). */
 export function LineageGraphSvgBody({
   visibleEdges,
   visibleNodeLayouts,
@@ -230,6 +245,8 @@ export function LineageGraphSvgBody({
   lensMode,
   highlightedIds,
   hasHoverFocus,
+  groupRects = [],
+  edgeCrossings = null,
 }: {
   visibleEdges: Array<{ from: string; to: string }>;
   visibleNodeLayouts: Map<string, LineageGraphNodeLayout>;
@@ -241,9 +258,12 @@ export function LineageGraphSvgBody({
   lensMode: LensMode;
   highlightedIds: Set<string>;
   hasHoverFocus: boolean;
+  groupRects?: LineageGroupRect[];
+  edgeCrossings?: LineageGroupModel['edgeCrossings'] | null;
 }): ReactElement {
   return (
     <>
+      <LineageGraphGroupLayer groupRects={groupRects} />
       {visibleEdges.map((edge) => {
         const from = visibleNodeLayouts.get(edge.from);
         const to = visibleNodeLayouts.get(edge.to);
@@ -255,11 +275,14 @@ export function LineageGraphSvgBody({
         const endX = tp.x;
         const endY = tp.y + nodeHeight / 2;
         const curve = Math.max(28, Math.abs(endX - startX) * 0.34);
+        const crossing = edgeCrossings?.get(edgeCrossingKey(edge.from, edge.to)) ?? 'none';
+        const dimmed =
+          hasHoverFocus && !highlightedIds.has(edge.from) && !highlightedIds.has(edge.to);
         return (
           <path
             key={`${edge.from}->${edge.to}`}
             d={`M ${startX} ${startY} C ${startX + curve} ${startY}, ${endX - curve} ${endY}, ${endX} ${endY}`}
-            className={`dependency-graph__edge${!hasHoverFocus || highlightedIds.has(edge.from) || highlightedIds.has(edge.to) ? '' : ' dependency-graph__edge--dimmed'}`}
+            className={edgeClassName(crossing, dimmed)}
           />
         );
       })}

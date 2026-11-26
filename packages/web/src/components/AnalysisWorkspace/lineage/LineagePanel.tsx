@@ -9,12 +9,13 @@ import {
 
 import { SectionCard, formatResourceTypeLabel } from '../shared';
 
+import { GroupBySelector } from './GroupBySelector';
 import { LensSelector } from './LensSelector';
 import { DepthStepper, SharedDepthSelector } from './LineageDepthControls';
 import { LineageGraphSurface } from './LineageGraphSurface';
 
 import type { NodeActionContext, NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
-import type { LensMode } from '@web/lib/analysis-workspace/types';
+import type { LensMode, LineageGroupBy } from '@web/lib/analysis-workspace/types';
 import type { AnalysisState, ResourceNode } from '@web/types';
 import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
@@ -27,11 +28,13 @@ export function LineagePanel({
   downstreamDepth,
   allDepsMode,
   lensMode,
+  groupBy = 'none',
   activeLegendKeys,
   setUpstreamDepth,
   setDownstreamDepth,
   setAllDepsMode,
   setLensMode,
+  setGroupBy,
   setActiveLegendKeys,
   onSelectResource,
   nodeActionContext,
@@ -49,11 +52,15 @@ export function LineagePanel({
   downstreamDepth: number;
   allDepsMode: boolean;
   lensMode: LensMode;
+  /** Current "Group by" mode; `warehouse` renders container groups in the graph. */
+  groupBy?: LineageGroupBy;
   activeLegendKeys: Set<string>;
   setUpstreamDepth: Dispatch<SetStateAction<number>>;
   setDownstreamDepth: Dispatch<SetStateAction<number>>;
   setAllDepsMode: Dispatch<SetStateAction<boolean>>;
   setLensMode: (mode: LensMode) => void;
+  /** When omitted the Group by control is hidden. */
+  setGroupBy?: (mode: LineageGroupBy) => void;
   setActiveLegendKeys: Dispatch<SetStateAction<Set<string>>>;
   onSelectResource: (id: string) => void;
   nodeActionContext: NodeActionContext;
@@ -140,6 +147,7 @@ export function LineagePanel({
   const depthToolbar = () => (
     <div className="lineage-toolbar">
       <LensSelector lensMode={lensMode} setLensMode={setLensMode} />
+      {setGroupBy ? <GroupBySelector groupBy={groupBy} setGroupBy={setGroupBy} /> : null}
       <SharedDepthSelector
         upstreamDepth={upstreamDepth}
         downstreamDepth={downstreamDepth}
@@ -221,6 +229,7 @@ export function LineagePanel({
           onToggleLegendKey={toggleLegendKey}
           displayMode="focused"
           fullscreen
+          groupBy={groupBy}
           nodeActionContext={nodeActionContext}
           onNavigateTo={onNavigateTo}
         />
@@ -261,6 +270,7 @@ export function LineagePanel({
             activeLegendKeys={activeLegendKeys}
             onToggleLegendKey={toggleLegendKey}
             displayMode={displayMode}
+            groupBy={groupBy}
             nodeActionContext={nodeActionContext}
             onNavigateTo={onNavigateTo}
           />

@@ -1,3 +1,4 @@
+import type { WarehouseLocation } from './warehouse-location';
 import type {
   AdapterResponseField,
   AdapterResponseMetrics,
@@ -113,6 +114,10 @@ export interface ResourceNode {
   patchPath?: string | null;
   database?: string | null;
   schema?: string | null;
+  /** Physical relation identifier: model/seed/snapshot `alias`, or source `identifier`. */
+  alias?: string | null;
+  /** Normalized warehouse container location; null/absent when the resource has no relation. */
+  warehouseLocation?: WarehouseLocation | null;
   description: string | null;
   compiledCode?: string | null;
   rawCode?: string | null;

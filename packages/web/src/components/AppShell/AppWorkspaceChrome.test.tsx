@@ -87,6 +87,7 @@ function makeWorkspace() {
       downstreamDepth: 2,
       allDepsMode: false,
       lensMode: 'type',
+      groupBy: 'none',
       activeLegendKeys: new Set(),
     },
     setLineageViewState: vi.fn(),
@@ -142,6 +143,7 @@ function renderChrome(
           inventoryDefaults: {
             explorerMode: 'project',
             lineageLensMode: 'type',
+            lineageGroupBy: 'none',
             lineageUpstreamDepth: 2,
             lineageDownstreamDepth: 2,
             allDepsMode: false,
@@ -296,6 +298,7 @@ describe('AppWorkspaceChrome header', () => {
             inventoryDefaults: {
               explorerMode: 'project',
               lineageLensMode: 'type',
+              lineageGroupBy: 'none',
               lineageUpstreamDepth: 2,
               lineageDownstreamDepth: 2,
               allDepsMode: false,
@@ -360,6 +363,7 @@ describe('AppWorkspaceChrome header', () => {
             inventoryDefaults: {
               explorerMode: 'project',
               lineageLensMode: 'type',
+              lineageGroupBy: 'none',
               lineageUpstreamDepth: 2,
               lineageDownstreamDepth: 2,
               allDepsMode: false,
@@ -418,6 +422,7 @@ describe('AppWorkspaceChrome header', () => {
             inventoryDefaults: {
               explorerMode: 'project',
               lineageLensMode: 'type',
+              lineageGroupBy: 'none',
               lineageUpstreamDepth: 2,
               lineageDownstreamDepth: 2,
               allDepsMode: false,
@@ -474,6 +479,7 @@ describe('AppWorkspaceChrome header', () => {
             inventoryDefaults: {
               explorerMode: 'project',
               lineageLensMode: 'type',
+              lineageGroupBy: 'none',
               lineageUpstreamDepth: 2,
               lineageDownstreamDepth: 2,
               allDepsMode: false,
@@ -530,6 +536,7 @@ describe('AppWorkspaceChrome header', () => {
             inventoryDefaults: {
               explorerMode: 'project',
               lineageLensMode: 'type',
+              lineageGroupBy: 'none',
               lineageUpstreamDepth: 2,
               lineageDownstreamDepth: 2,
               allDepsMode: false,

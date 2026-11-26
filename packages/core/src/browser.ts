@@ -80,9 +80,16 @@ export type {
 
 export {
   buildNodeExecutionSemantics,
+  buildWarehouseLocation,
   deriveSemanticsFlags,
+  getBoundaryCrossing,
   normalizeDbtResourceTypeKey,
   normalizeMaterializationKind,
+} from './analysis/snapshot';
+export type {
+  BoundaryCrossing,
+  WarehouseLocation,
+  WarehouseLocationLevel,
 } from './analysis/snapshot';
 
 export {

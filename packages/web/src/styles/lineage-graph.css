@@ -394,6 +394,99 @@
   opacity: 0.16;
 }
 
+/* Boundary crossings (warehouse grouping): inner = dataset/schema, outer = project/database */
+.dependency-graph__edge--cross-inner {
+  stroke: var(--chart-3);
+  stroke-width: 2.4;
+  stroke-dasharray: 7 4;
+}
+
+.dependency-graph__edge--cross-outer {
+  stroke: var(--text-warning);
+  stroke-width: 3;
+}
+
+/* Warehouse group containers */
+.lineage-group {
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-group--outer {
+  fill: var(--bg-accent-soft);
+  stroke: var(--graph-border-strong);
+  stroke-width: 1.5;
+}
+
+.lineage-group--inner {
+  fill: var(--graph-panel);
+  stroke: var(--graph-border);
+  stroke-width: 1.2;
+}
+
+.lineage-group--lane {
+  fill: none;
+  stroke: var(--graph-border-strong);
+  stroke-width: 1.2;
+  stroke-dasharray: 6 4;
+}
+
+.lineage-group__label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--graph-text-muted);
+  pointer-events: none;
+}
+
+/* Warehouse grouping legend */
+.lineage-legend__crossing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.8rem;
+  color: var(--graph-text-muted);
+  white-space: nowrap;
+}
+
+.lineage-legend__swatch--cross-inner {
+  height: 3px;
+  width: 16px;
+  border-radius: 2px;
+  background: var(--chart-3);
+  border-color: transparent;
+}
+
+.lineage-legend__swatch--cross-outer {
+  height: 4px;
+  width: 16px;
+  border-radius: 2px;
+  background: var(--text-warning);
+  border-color: transparent;
+}
+
+.lineage-legend__count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--graph-text-soft);
+  white-space: nowrap;
+}
+
+.lineage-legend__chip {
+  padding: 0.18rem 0.52rem;
+  border-radius: 999px;
+  border: 1px solid var(--graph-border);
+  background: transparent;
+  color: var(--graph-text-muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.lineage-legend__chip--active {
+  background: var(--accent-soft);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
 /* Interactive hotspot layer */
 .dependency-graph__interactive-layer {
   position: absolute;

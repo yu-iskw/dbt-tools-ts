@@ -35,6 +35,14 @@ export {
   normalizeMaterializationKind,
 } from './execution/semantics';
 
+export type {
+  BoundaryCrossing,
+  WarehouseLocation,
+  WarehouseLocationLevel,
+} from './snapshot/warehouse-location';
+
+export { buildWarehouseLocation, getBoundaryCrossing } from './snapshot/warehouse-location';
+
 export {
   buildAnalysisSnapshotFromArtifactBundle,
   buildAnalysisSnapshotFromArtifacts,

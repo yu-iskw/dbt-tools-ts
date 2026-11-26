@@ -1,3 +1,5 @@
+import { LineageGroupLegendItems, type LineageGroupLegend } from './LineageGroupLegendItems';
+
 import type { LensLegendItem } from '@web/lib/analysis-workspace/lineage-model';
 import type { LensMode } from '@web/lib/analysis-workspace/types';
 import type { ReactElement } from 'react';
@@ -8,11 +10,14 @@ export function LineageGraphLegendBar({
   legendItems,
   activeLegendKeys,
   onToggleLegendKey,
+  groupLegend = null,
 }: {
   lensMode: LensMode;
   legendItems: LensLegendItem[];
   activeLegendKeys: Set<string>;
   onToggleLegendKey: (key: string) => void;
+  /** Present only in warehouse-grouped mode. */
+  groupLegend?: LineageGroupLegend | null;
 }): ReactElement {
   return (
     <div className="lineage-legend">
@@ -49,6 +54,7 @@ export function LineageGraphLegendBar({
           Clear
         </button>
       )}
+      {groupLegend ? <LineageGroupLegendItems {...groupLegend} /> : null}
     </div>
   );
 }

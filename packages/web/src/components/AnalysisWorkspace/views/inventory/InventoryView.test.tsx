@@ -94,6 +94,7 @@ function renderInventory() {
           downstreamDepth: 2,
           allDepsMode: false,
           lensMode: 'type',
+          groupBy: 'none',
           activeLegendKeys: new Set(),
         }}
         onLineageViewStateChange={onLineageViewStateChange}
@@ -353,6 +354,7 @@ describe('InventoryView lineage search', () => {
             downstreamDepth: 2,
             allDepsMode: false,
             lensMode: 'type',
+            groupBy: 'none',
             activeLegendKeys: new Set(),
           })
         : lineageUpdater;

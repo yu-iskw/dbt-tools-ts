@@ -53,6 +53,7 @@ const baseLineage = (): LineageViewState => ({
   allDepsMode: false,
   lensMode: 'type',
   activeLegendKeys: new Set(),
+  groupBy: 'none',
 });
 
 describe('createInitialNavigationState', () => {
@@ -403,7 +404,41 @@ describe('buildNextUrlFromWorkspaceState', () => {
     expect(url).toContain('down=1');
     expect(url).toContain('allDeps=1');
     expect(url).toContain('lens=status');
+    expect(url).not.toContain('group=');
     expect(url.endsWith('#h')).toBe(true);
+  });
+
+  it('serializes group=warehouse on the lineage tab only when grouped', () => {
+    const grouped = buildNextUrlFromWorkspaceState({
+      pathname: '/',
+      hash: '',
+      activeView: 'inventory',
+      assetViewState: inv({ activeTab: 'lineage' }),
+      runsViewState: baseRuns(),
+      timelineSelectedExecutionId: null,
+      lineageViewState: { ...baseLineage(), groupBy: 'warehouse' },
+    });
+    expect(grouped).toContain('group=warehouse');
+
+    const summary = buildNextUrlFromWorkspaceState({
+      pathname: '/',
+      hash: '',
+      activeView: 'inventory',
+      assetViewState: inv({ activeTab: 'summary' }),
+      runsViewState: baseRuns(),
+      timelineSelectedExecutionId: null,
+      lineageViewState: { ...baseLineage(), groupBy: 'warehouse' },
+    });
+    expect(summary).not.toContain('group=');
+  });
+
+  it('restores group=warehouse from the initial URL and popstate', () => {
+    const search = '?view=inventory&assetTab=lineage&group=warehouse';
+    const initial = createInitialNavigationState(search);
+    expect(initial.lineageViewState.groupBy).toBe('warehouse');
+
+    const popped = applySearchToWorkspaceState(search);
+    expect(popped.lineageViewState.groupBy).toBe('warehouse');
   });
 
   it('serializes runs kind and selected', () => {
