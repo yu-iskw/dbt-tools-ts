@@ -181,6 +181,14 @@ function LineageGraphSvgNode({
         width={nodeWidth}
         height={nodeHeight}
         rx={nodeRadius}
+        className={`dependency-graph__node-base${isHighlighted ? '' : ' dependency-graph__node--dimmed'}`}
+      />
+      <rect
+        x={x}
+        y={y}
+        width={nodeWidth}
+        height={nodeHeight}
+        rx={nodeRadius}
         className={`dependency-graph__node${node.side === 'selected' ? ' dependency-graph__node--selected' : ''}${isHighlighted ? '' : ' dependency-graph__node--dimmed'}${toneOutlineClass}`}
         {...(node.side === 'selected'
           ? {
@@ -227,14 +235,19 @@ function LineageGraphSvgNode({
   );
 }
 
-function edgeClassName(crossing: BoundaryCrossing, dimmed: boolean): string {
+function edgeClassName(crossing: BoundaryCrossing, dimmed: boolean, resting: boolean): string {
   const crossingClass =
     crossing === 'inner'
       ? ' dependency-graph__edge--cross-inner'
       : crossing === 'outer'
         ? ' dependency-graph__edge--cross-outer'
         : '';
-  return `dependency-graph__edge${crossingClass}${dimmed ? ' dependency-graph__edge--dimmed' : ''}`;
+  const stateClass = dimmed
+    ? ' dependency-graph__edge--dimmed'
+    : resting
+      ? ' dependency-graph__edge--resting'
+      : '';
+  return `dependency-graph__edge${crossingClass}${stateClass}`;
 }
 
 /** SVG group boxes, edges and node shapes (no HTML hotspot layer). */
@@ -252,6 +265,7 @@ export function LineageGraphSvgBody({
   groupRects = [],
   edgeCrossings = null,
   relationLabels = false,
+  restingFocusId = null,
 }: {
   visibleEdges: Array<{ from: string; to: string }>;
   visibleNodeLayouts: Map<string, LineageGraphNodeLayout>;
@@ -267,6 +281,8 @@ export function LineageGraphSvgBody({
   edgeCrossings?: LineageGroupModel['edgeCrossings'] | null;
   /** Label nodes with their physical relation instead of the dbt name (grouped mode). */
   relationLabels?: boolean;
+  /** Edges not touching this node rest at a lower opacity (dense graphs, nothing hovered). */
+  restingFocusId?: string | null;
 }): ReactElement {
   return (
     <>
@@ -290,7 +306,11 @@ export function LineageGraphSvgBody({
           <path
             key={edgeKey}
             d={`M ${startX} ${startY} C ${startX + curve} ${startY}, ${endX - curve} ${endY}, ${endX} ${endY}`}
-            className={edgeClassName(crossing, dimmed)}
+            className={edgeClassName(
+              crossing,
+              dimmed,
+              restingFocusId !== null && edge.from !== restingFocusId && edge.to !== restingFocusId,
+            )}
           />
         );
       })}

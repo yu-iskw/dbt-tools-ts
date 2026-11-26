@@ -183,6 +183,12 @@
   display: block;
 }
 
+/* Opaque body under the tinted node fill, so edges never show through labels */
+.dependency-graph__node-base {
+  fill: var(--graph-panel);
+  pointer-events: none;
+}
+
 .dependency-graph__node {
   stroke: var(--graph-node-stroke);
   stroke-width: 2;
@@ -393,9 +399,9 @@
 .dependency-graph__edge {
   fill: none;
 
-  /* --graph-edge must stay >= 3:1 on graph-panel and accent-soft; width, not opacity, sets weight */
+  /* --graph-edge must stay >= 3:1 on graph-panel and accent-soft; width sets weight; opacity only drops in the dense resting state */
   stroke: var(--graph-edge);
-  stroke-width: 1.8;
+  stroke-width: 1.4;
   transition: opacity 200ms ease;
 }
 
@@ -403,16 +409,21 @@
   opacity: 0.16;
 }
 
+/* Dense graphs: edges not touching the selected node, until something is hovered */
+.dependency-graph__edge--resting {
+  opacity: 0.4;
+}
+
 /* Boundary crossings (warehouse grouping): inner = dataset/schema, outer = project/database */
 .dependency-graph__edge--cross-inner {
   stroke: var(--chart-3);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-dasharray: 7 4;
 }
 
 .dependency-graph__edge--cross-outer {
   stroke: var(--text-warning);
-  stroke-width: 3;
+  stroke-width: 2.2;
 }
 
 /* Warehouse group containers */

@@ -56,6 +56,7 @@ export function LineageGraphSurfaceView({
   visibleEdges,
   highlightedIds,
   hasHoverFocus,
+  restingFocusId,
   getEffectivePos,
   svgWidth,
   svgHeight,
@@ -95,6 +96,8 @@ export function LineageGraphSurfaceView({
   visibleEdges: LineageGraphModel['graphEdges'];
   highlightedIds: Set<string>;
   hasHoverFocus: boolean;
+  /** Dense graphs: edges not touching this node rest at a lower opacity. */
+  restingFocusId: string | null;
   getEffectivePos: (nodeId: string, baseX: number, baseY: number) => { x: number; y: number };
   svgWidth: number;
   svgHeight: number;
@@ -210,6 +213,7 @@ export function LineageGraphSurfaceView({
                 lensMode={lensMode}
                 highlightedIds={highlightedIds}
                 hasHoverFocus={hasHoverFocus}
+                restingFocusId={restingFocusId}
                 groupRects={grouping?.groupRects}
                 edgeCrossings={grouping?.edgeCrossings ?? null}
                 relationLabels={grouping !== null}

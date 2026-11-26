@@ -22,6 +22,16 @@ import type { ReactElement } from 'react';
 /** Used in grouped mode: drag offsets would detach nodes from their group bounds, so they are ignored. */
 const NO_NODE_OFFSETS: Map<string, { dx: number; dy: number }> = new Map();
 
+/**
+ * Above this many visible edges the graph is too dense to read at full weight, so edges not touching
+ * the selected node rest at a lower opacity until something is hovered.
+ */
+const DENSE_EDGE_COUNT = 24;
+
+function getRestingFocusId(selectedResourceId: string, edges: readonly unknown[]): string | null {
+  return selectedResourceId && edges.length > DENSE_EDGE_COUNT ? selectedResourceId : null;
+}
+
 /** Composes legend, viewport controls, SVG graph, hotspots, tooltip, and context menu. */
 export function LineageGraphSurface({
   model,
@@ -260,7 +270,7 @@ export function LineageGraphSurface({
   const legendItems = getLensLegendItems(lensMode, nodeLayouts);
   const highlightedIds = collectHighlightedGraphIds(hoveredId, visibleEdges);
   const hasHoverFocus = highlightedIds.size > 0;
-
+  const restingFocusId = hasHoverFocus ? null : getRestingFocusId(selectedResourceId, visibleEdges);
   return (
     <LineageGraphSurfaceView
       model={model}
@@ -279,6 +289,7 @@ export function LineageGraphSurface({
       visibleEdges={visibleEdges}
       highlightedIds={highlightedIds}
       hasHoverFocus={hasHoverFocus}
+      restingFocusId={restingFocusId}
       getEffectivePos={getEffectivePos}
       svgWidth={svgWidth}
       svgHeight={svgHeight}
