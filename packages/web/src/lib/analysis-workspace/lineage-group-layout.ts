@@ -101,7 +101,8 @@ function assignRows(entries: NodeEntry[]): GroupColumns {
   let rowsPerColumn = 0;
   let row = 0;
   sorted.forEach((entry, index) => {
-    const sameColumn = sorted.at(index - 1)?.layout.x === entry.layout.x;
+    // `.at(-1)` would wrap to the last entry, so the first entry never continues a column.
+    const sameColumn = index > 0 && sorted.at(index - 1)?.layout.x === entry.layout.x;
     row = sameColumn ? row + 1 : 0;
     slots.push({ entry, row });
     rowsPerColumn = Math.max(rowsPerColumn, row + 1);
@@ -120,7 +121,8 @@ function placeLeafBands(leaves: LineageGroup[], heightOf: Map<string, number>): 
   let cursor = OUTER_PAD;
   leaves.forEach((group, index) => {
     const parentId = group.parentId;
-    if (parentId !== null && leaves.at(index - 1)?.parentId !== parentId) {
+    const previousParentId = index > 0 ? leaves.at(index - 1)?.parentId : undefined;
+    if (parentId !== null && previousParentId !== parentId) {
       cursor += OUTER_HEADER + OUTER_PAD;
     }
     const height = heightOf.get(group.id) ?? 0;
