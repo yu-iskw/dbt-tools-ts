@@ -146,16 +146,12 @@ describe('buildWarehouseLocation', () => {
     expect(locationOf({ createsRelation: undefined })).not.toBeNull();
   });
 
-  it.each([
-    'exposure',
-    'metric',
-    'semantic_model',
-    'macro',
-    'unit_test',
-    'test',
-  ])('returns null for %s resources', (resourceType) => {
-    expect(buildOf({ resourceType })).toBeNull();
-  });
+  it.each(['exposure', 'metric', 'semantic_model', 'macro', 'unit_test', 'test'])(
+    'returns null for %s resources',
+    (resourceType) => {
+      expect(buildOf({ resourceType })).toBeNull();
+    },
+  );
 
   it('places sources at their database, schema and identifier', () => {
     const location = locationOf({
@@ -206,9 +202,9 @@ describe('getBoundaryCrossing', () => {
   });
 
   it('compares names case-insensitively', () => {
-    expect(getBoundaryCrossing(at('snowflake', 'DB', 'MARTS'), at('snowflake', 'db', 'marts'))).toBe(
-      'none',
-    );
+    expect(
+      getBoundaryCrossing(at('snowflake', 'DB', 'MARTS'), at('snowflake', 'db', 'marts')),
+    ).toBe('none');
   });
 
   it('returns outer when the number of levels differs', () => {
