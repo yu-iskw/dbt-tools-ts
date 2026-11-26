@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { act } from 'react';
+import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -57,7 +57,10 @@ function makeField(
   } as const;
 }
 
-function mockRunsSource(rows: ExecutionRow[]) {
+function mockRunsSource(
+  rows: ExecutionRow[],
+  over: Partial<ReturnType<typeof useRunsResultsSource>> = {},
+) {
   mockUseRunsResultsSource.mockReturnValue({
     rows,
     totalMatches: rows.length,
@@ -89,6 +92,7 @@ function mockRunsSource(rows: ExecutionRow[]) {
     isLoading: false,
     error: null,
     loadMore: vi.fn(),
+    ...over,
   });
 }
 
@@ -108,6 +112,25 @@ function baseRunsViewState(over: Partial<RunsViewState> = {}): RunsViewState {
     showAdapterMetrics: true,
     ...over,
   };
+}
+
+function StatefulRunsView({ initialState }: { initialState: RunsViewState }) {
+  const [runsViewState, setRunsViewState] = useState(initialState);
+  return (
+    <RunsView
+      analysis={makeAnalysis([])}
+      runsViewState={runsViewState}
+      onRunsViewStateChange={setRunsViewState}
+      onInvestigationSelectionChange={vi.fn()}
+      onNavigateTo={vi.fn()}
+    />
+  );
+}
+
+function findButton(container: HTMLElement, label: string): HTMLButtonElement | undefined {
+  return Array.from(container.querySelectorAll('button')).find(
+    (button) => button.textContent === label,
+  );
 }
 
 function makeAnalysis(executions: ExecutionRow[]): AnalysisState {
@@ -373,5 +396,54 @@ describe('RunsView', () => {
       assetTab: 'lineage',
       rootResourceId: row.uniqueId,
     });
+  });
+
+  it('offers a way out when the filters match no runs', () => {
+    mockRunsSource([]);
+
+    act(() => {
+      root.render(
+        <StatefulRunsView
+          initialState={baseRunsViewState({ status: 'danger', query: 'no_such_model' })}
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain('No runs match the current filters.');
+    const clearButton = findButton(container, 'Clear filters');
+    expect(clearButton).toBeTruthy();
+
+    act(() => {
+      clearButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+
+    expect(container.querySelector<HTMLInputElement>('.runs-toolbar__search input')?.value).toBe(
+      '',
+    );
+    expect(findButton(container, 'All (0)')?.className).toContain('workspace-pill--active');
+    expect(findButton(container, 'Clear filters')).toBeUndefined();
+    expect(container.textContent).toContain('No runs to show.');
+  });
+
+  it('says there is nothing to show without offering to clear when no filter is active', () => {
+    mockRunsSource([]);
+
+    act(() => {
+      root.render(<StatefulRunsView initialState={baseRunsViewState()} />);
+    });
+
+    expect(container.textContent).toContain('No runs to show.');
+    expect(findButton(container, 'Clear filters')).toBeUndefined();
+  });
+
+  it('shows no empty message while the results are still indexing', () => {
+    mockRunsSource([], { isIndexing: true });
+
+    act(() => {
+      root.render(<StatefulRunsView initialState={baseRunsViewState({ query: 'orders' })} />);
+    });
+
+    expect(container.textContent).not.toContain('No runs');
+    expect(findButton(container, 'Clear filters')).toBeUndefined();
   });
 });

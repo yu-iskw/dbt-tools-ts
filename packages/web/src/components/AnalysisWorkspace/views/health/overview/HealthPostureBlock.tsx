@@ -5,6 +5,8 @@ import {
 import { formatSeconds } from '@web/lib/analysis-workspace/utils';
 import { sourceBadgeLabel } from '@web/lib/artifact-source';
 
+import { RunBrief } from './RunBrief';
+
 import type { OverviewDerivedState } from '@web/lib/analysis-workspace/overview-state';
 import type { AnalysisWorkspaceProps, WorkspaceSignal } from '@web/lib/analysis-workspace/types';
 import type { WorkspaceArtifactSource } from '@web/services/artifact-source-api';
@@ -66,7 +68,7 @@ export function HealthPostureBlock({
 }): ReactElement {
   const { tone, title, summary } = buildHealthOverviewHeadline(derived, filtered);
   const summaryBits = buildHealthSummaryBits(analysis, projectName);
-  const runtime = filtered
+  const nodeTime = filtered
     ? formatSeconds(derived.filteredExecutionTime)
     : formatSeconds(analysis.summary.total_execution_time);
   const sourceLabel = sourceBadgeLabel(analysisSource);
@@ -87,8 +89,14 @@ export function HealthPostureBlock({
       </div>
       <p className="health-posture__meta">{summaryBits.join(' · ')}</p>
       <h3 className="health-posture__headline">{title}</h3>
-      <p className="health-posture__summary">{summary}</p>
-      {followup != null && <p className="health-posture__followup">{followup}</p>}
+      {filtered ? (
+        <>
+          <p className="health-posture__summary">{summary}</p>
+          {followup != null && <p className="health-posture__followup">{followup}</p>}
+        </>
+      ) : (
+        <RunBrief analysis={analysis} onNavigateTo={onNavigateTo} />
+      )}
       <div className="health-posture__metrics" role="list">
         <PostureMetric
           label="Failing"
@@ -100,9 +108,13 @@ export function HealthPostureBlock({
           value={derived.warningNodes}
           onSelect={() => onNavigateTo('runs', { runsStatus: 'warning' })}
         />
-        <div className="health-posture__metric" role="listitem">
-          <span>Runtime</span>
-          <strong>{runtime}</strong>
+        <div
+          className="health-posture__metric"
+          role="listitem"
+          title="Sum of every node's execution time. This is not the run's wall-clock time."
+        >
+          <span>Node time</span>
+          <strong>{nodeTime}</strong>
         </div>
         <div className="health-posture__metric" role="listitem">
           <span>Workspace</span>

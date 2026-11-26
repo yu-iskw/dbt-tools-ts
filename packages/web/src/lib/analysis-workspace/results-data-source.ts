@@ -324,22 +324,19 @@ export function createRunsResultsIndex(rows: ExecutionRow[]): RunsResultsIndex {
   };
 }
 
-export function filterRunsResultsIndex(
-  index: RunsResultsIndex,
-  query: Omit<RunsResultsQuery, 'limit' | 'sortBy' | 'sortDirection'> & {
-    sortBy?: RunsViewState['sortBy'];
-    sortDirection?: RunsViewState['sortDirection'];
-  },
-): RunsResultsIndexEntry[] {
+type RunsFilterQuery = Omit<RunsResultsQuery, 'limit' | 'sortBy' | 'sortDirection'>;
+
+/** Every filter except the kind/status facet pills, which form one single-select dimension. */
+type RunsBaseFilterQuery = Omit<RunsFilterQuery, 'kind' | 'status'>;
+
+function createBaseMatcher(query: RunsBaseFilterQuery): (entry: RunsResultsIndexEntry) => boolean {
   const normalizedQuery = normalizeQuery(query.query);
   const activeResourceTypes = new Set(query.resourceTypes);
   const activeMaterializationKinds = new Set(query.materializationKinds);
   const activeThreadIds = new Set(query.threadIds);
 
-  const matches = index.entries.filter((entry) => {
+  return (entry) => {
     const { row } = entry;
-    if (!isKindMatch(row, query.kind)) return false;
-    if (!isStatusMatch(row, query.status)) return false;
     if (normalizedQuery !== '' && !entry.searchText.includes(normalizedQuery)) return false;
     if (activeResourceTypes.size > 0 && !activeResourceTypes.has(row.resourceType)) return false;
     if (activeMaterializationKinds.size > 0) {
@@ -347,9 +344,32 @@ export function filterRunsResultsIndex(
       if (!activeMaterializationKinds.has(mk)) return false;
     }
     if (activeThreadIds.size > 0 && !activeThreadIds.has(row.threadId ?? '')) return false;
-    if (!isDurationBandMatch(row, query.durationBand)) return false;
-    return true;
-  });
+    return isDurationBandMatch(row, query.durationBand);
+  };
+}
+
+/** Facet pill counts: each pill counts the rows clicking it would show, so kind and status are ignored. */
+export function summarizeRunsFacets(
+  index: RunsResultsIndex,
+  query: RunsBaseFilterQuery,
+): RunsResultsSummary {
+  return summarize(index.entries.filter(createBaseMatcher(query)));
+}
+
+export function filterRunsResultsIndex(
+  index: RunsResultsIndex,
+  query: RunsFilterQuery & {
+    sortBy?: RunsViewState['sortBy'];
+    sortDirection?: RunsViewState['sortDirection'];
+  },
+): RunsResultsIndexEntry[] {
+  const matchesBase = createBaseMatcher(query);
+  const matches = index.entries.filter(
+    (entry) =>
+      isKindMatch(entry.row, query.kind) &&
+      isStatusMatch(entry.row, query.status) &&
+      matchesBase(entry),
+  );
 
   const sortBy = query.sortBy ?? 'attention';
   const sortDirection = query.sortDirection ?? defaultRunsSortDirection(sortBy);
@@ -366,6 +386,6 @@ export function queryRunsResultsIndex(
   return {
     rows: matches.slice(0, query.limit).map((entry) => entry.row),
     totalMatches: matches.length,
-    summary: summarize(matches),
+    summary: summarizeRunsFacets(index, query),
   };
 }
