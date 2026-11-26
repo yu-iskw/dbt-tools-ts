@@ -442,4 +442,39 @@ describe('layoutGroupedLineage', () => {
       [...a.nodeLayouts.entries()].sort(byId),
     );
   });
+
+  it('sizes a one-node group to one row, with the node directly under the header', () => {
+    const { layout } = layoutFor([
+      { id: 'm.solo', column: 0, row: 0, location: bigQueryLocation('proj', 'solo') },
+    ]);
+
+    const inner = rectsOfKind(layout, 'inner')[0]!;
+    const node = layout.nodeLayouts.get('m.solo')!;
+    const oneRowHeight = NODE_HEIGHT + 12 * 2 + 24; // node + INNER_PAD * 2 + HEADER
+    expect(inner.height).toBe(oneRowHeight);
+    expect(node.y).toBe(inner.y + 12 + 24);
+  });
+
+  it('does not add an empty row to a group whose nodes share one column', () => {
+    const { layout } = layoutFor([
+      { id: 'm.a', column: 1, row: 0, location: bigQueryLocation('proj', 'pair') },
+      { id: 'm.b', column: 1, row: 1, location: bigQueryLocation('proj', 'pair') },
+    ]);
+
+    const inner = rectsOfKind(layout, 'inner')[0]!;
+    const first = layout.nodeLayouts.get('m.a')!;
+    const second = layout.nodeLayouts.get('m.b')!;
+    expect(first.y).toBe(inner.y + 12 + 24);
+    expect(second.y).toBe(first.y + NODE_HEIGHT + FOCUSED_ROW_GAP);
+    expect(inner.height).toBe(2 * NODE_HEIGHT + FOCUSED_ROW_GAP + 12 * 2 + 24);
+  });
+
+  it('keeps the outer box on the canvas when there is a single outer group', () => {
+    const { layout } = layoutFor(TWO_INNER_ONE_OUTER);
+
+    const outer = rectsOfKind(layout, 'outer')[0]!;
+    const firstInner = rectsOfKind(layout, 'inner').sort((a, b) => a.y - b.y)[0]!;
+    expect(outer.y).toBeGreaterThanOrEqual(0);
+    expect(firstInner.y - outer.y).toBe(28 + OUTER_PAD); // OUTER_HEADER + OUTER_PAD
+  });
 });
