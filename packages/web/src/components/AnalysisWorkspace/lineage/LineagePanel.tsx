@@ -183,9 +183,12 @@ export function LineagePanel({
 
   const summaryHeaderAction =
     displayMode === 'summary' ? (
-      <button type="button" className="workspace-pill" onClick={() => setFullscreen(true)}>
-        Expand lineage
-      </button>
+      <div className="lineage-toolbar">
+        {setGroupBy ? <GroupBySelector groupBy={groupBy} setGroupBy={setGroupBy} /> : null}
+        <button type="button" className="workspace-pill" onClick={() => setFullscreen(true)}>
+          Expand lineage
+        </button>
+      </div>
     ) : undefined;
 
   const fullscreenDialog = isFullscreenOpen ? (

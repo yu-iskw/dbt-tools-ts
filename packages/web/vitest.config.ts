@@ -12,6 +12,7 @@ export default mergeConfig(
     test: {
       name: '@dbt-tools/web',
       include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      css: { include: [/styles\/[\w-]+\.css/] },
     },
   }),
 );

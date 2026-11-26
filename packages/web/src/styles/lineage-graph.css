@@ -385,7 +385,9 @@
 /* Edges */
 .dependency-graph__edge {
   fill: none;
-  stroke: var(--graph-edge);
+
+  /* text-tertiary keeps edges >= 3:1 on graph-panel and accent-soft; width, not opacity, sets weight */
+  stroke: var(--text-tertiary);
   stroke-width: 1.8;
   transition: opacity 200ms ease;
 }
@@ -413,27 +415,29 @@
 
 .lineage-group--outer {
   fill: var(--bg-accent-soft);
-  stroke: var(--graph-border-strong);
+
+  /* Structural strokes must reach 3:1 against their surface (canvas / outer fill) in both themes */
+  stroke: var(--text-tertiary);
   stroke-width: 1.5;
 }
 
 .lineage-group--inner {
   fill: var(--graph-panel);
-  stroke: var(--graph-border);
+  stroke: var(--text-tertiary);
   stroke-width: 1.2;
 }
 
 .lineage-group--lane {
   fill: none;
-  stroke: var(--graph-border-strong);
+  stroke: var(--text-tertiary);
   stroke-width: 1.2;
   stroke-dasharray: 6 4;
 }
 
 .lineage-group__label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  fill: var(--graph-text-muted);
+  fill: var(--graph-text);
   pointer-events: none;
 }
 
@@ -808,10 +812,10 @@
   height: calc(100% - 1.5rem);
   margin: auto;
   border-radius: 24px;
-  background: color-mix(in srgb, var(--bg-surface-muted) 92%, white 8%);
+  background: var(--bg-surface-muted);
   box-shadow: 0 48px 120px rgb(17 24 39 / 30%);
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 35%);
+  border: 1px solid var(--border-default);
 }
 
 .lineage-dialog--container .lineage-dialog__panel {
@@ -829,7 +833,7 @@
   padding: 1.15rem 1.35rem 1rem;
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
-  background: linear-gradient(180deg, rgb(255 255 255 / 90%), rgb(248 250 252 / 78%));
+  background: var(--bg-elevated);
   backdrop-filter: blur(16px);
 }
 
@@ -868,7 +872,7 @@
   padding: 0;
   border-radius: 999px;
   border: 1px solid var(--border-default);
-  background: rgb(255 255 255 / 82%);
+  background: var(--bg-elevated);
   color: var(--text-primary);
   cursor: pointer;
   transition:
@@ -878,7 +882,7 @@
 }
 
 .lineage-dialog__close:hover {
-  background: rgb(255 255 255 / 96%);
+  background: var(--graph-panel-hover);
   border-color: var(--border-strong);
   transform: translateY(-1px);
 }

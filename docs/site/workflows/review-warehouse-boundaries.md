@@ -14,7 +14,7 @@ You can see which resources sit in which database, project, catalog, or schema, 
 
 1. Open **Inventory** in the web UI.
 2. Select a resource, then open the **Lineage** tab.
-3. Set **Group by** to **Warehouse** in the lineage toolbar. The graph draws nested boxes: the outer box is the project, database, or catalog, and the inner box is the dataset or schema.
+3. Set **Group by** to **Warehouse**. The control sits in the header of the Lineage graph card, next to **Expand lineage**, and is also in the expanded view. The graph draws nested boxes: the outer box is the project, database, or catalog, and the inner box is the dataset or schema.
 4. Read the legend. It shows how many edges cross a dataset or schema boundary and how many cross a project, database, or catalog boundary.
 5. Turn on **Crossings only** to hide everything except the nodes that touch a crossing. The selected node stays visible.
 6. Copy the browser address. The URL includes `group=warehouse`, so the same grouped view opens for someone else.
