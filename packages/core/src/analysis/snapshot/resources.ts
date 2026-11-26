@@ -9,6 +9,7 @@ import {
   statusTone,
 } from './shared';
 import { buildTestAttachedTargetDisplay } from './test-target';
+import { buildWarehouseLocation } from './warehouse-location';
 
 import type { GraphLike, ManifestEntryLookup } from './internal';
 import type {
@@ -233,6 +234,18 @@ function buildResourceNode(
   const threadId = typeof execution?.thread_id === 'string' ? execution.thread_id : null;
   const catalogStats = buildCatalogStats(enrichment.catalogEntry);
   const sourceFreshness = buildSourceFreshness(resourceType, enrichment.sourcesEntry);
+  const alias = optionalStringField(attributes, 'alias');
+  // Sources are not created by dbt, so their semantics report createsRelation=false.
+  // They still live in the warehouse at database/schema, so they keep a location.
+  const warehouseLocation = buildWarehouseLocation({
+    adapterType,
+    resourceType,
+    database: core.database,
+    schema: core.schema,
+    alias,
+    name: core.name,
+    createsRelation: resourceType === 'source' ? true : semantics.createsRelation,
+  });
 
   return {
     ...core,
@@ -254,6 +267,8 @@ function buildResourceNode(
     ),
     ...withValue(catalogStats != null, 'catalogStats', catalogStats),
     ...withValue(sourceFreshness != null, 'sourceFreshness', sourceFreshness),
+    ...withValue(alias != null, 'alias', alias),
+    ...withValue(warehouseLocation != null, 'warehouseLocation', warehouseLocation),
   };
 }
 

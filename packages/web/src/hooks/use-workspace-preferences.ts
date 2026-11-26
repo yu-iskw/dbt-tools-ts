@@ -3,6 +3,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import type {
   AssetExplorerMode,
   LensMode,
+  LineageGroupBy,
   ThemePreference,
   TimelineDependencyDirection,
 } from '@web/lib/analysis-workspace/types';
@@ -21,6 +22,7 @@ export interface WorkspacePreferences {
   inventoryDefaults: {
     explorerMode: AssetExplorerMode;
     lineageLensMode: LensMode;
+    lineageGroupBy: LineageGroupBy;
     lineageUpstreamDepth: number;
     lineageDownstreamDepth: number;
     allDepsMode: boolean;
@@ -39,6 +41,7 @@ const DEFAULT_PREFERENCES: WorkspacePreferences = {
   inventoryDefaults: {
     explorerMode: 'project',
     lineageLensMode: 'type',
+    lineageGroupBy: 'none',
     lineageUpstreamDepth: 2,
     lineageDownstreamDepth: 2,
     allDepsMode: false,
@@ -60,6 +63,10 @@ function isExplorerMode(value: unknown): value is AssetExplorerMode {
 
 function isLensMode(value: unknown): value is LensMode {
   return value === 'status' || value === 'type' || value === 'coverage';
+}
+
+function isLineageGroupBy(value: unknown): value is LineageGroupBy {
+  return value === 'none' || value === 'warehouse';
 }
 
 function isThemePreference(value: unknown): value is ThemePreference {
@@ -100,6 +107,9 @@ function parseStoredPreferences(raw: string | null): WorkspacePreferences {
         lineageLensMode: isLensMode(parsed.inventoryDefaults?.lineageLensMode)
           ? parsed.inventoryDefaults.lineageLensMode
           : DEFAULT_PREFERENCES.inventoryDefaults.lineageLensMode,
+        lineageGroupBy: isLineageGroupBy(parsed.inventoryDefaults?.lineageGroupBy)
+          ? parsed.inventoryDefaults.lineageGroupBy
+          : DEFAULT_PREFERENCES.inventoryDefaults.lineageGroupBy,
         lineageUpstreamDepth: clampDepth(
           parsed.inventoryDefaults?.lineageUpstreamDepth,
           DEFAULT_PREFERENCES.inventoryDefaults.lineageUpstreamDepth,

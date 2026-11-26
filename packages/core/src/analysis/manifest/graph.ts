@@ -143,6 +143,7 @@ export class ManifestGraph {
       patch_path: this.optionalString(node.patch_path),
       database: this.optionalString(node.database),
       schema: this.optionalString(node.schema),
+      alias: this.optionalString(node.alias),
       compiled_code: this.optionalString(node.compiled_code),
       raw_code: this.optionalString(node.raw_code) ?? this.optionalString(node.raw_sql),
       ...(materialized != null ? { materialized } : {}),
@@ -156,6 +157,11 @@ export class ManifestGraph {
     return {
       ...this.baseNodeAttributes(uniqueId, source),
       resource_type: 'source',
+      database: this.optionalString(source.database),
+      schema: this.optionalString(source.schema),
+      // Sources expose the physical table name as `identifier`; stored as `alias` like models.
+      alias: this.optionalString(source.identifier),
+      relation_name: this.optionalString(source.relation_name),
     } as GraphNodeAttributes;
   }
 

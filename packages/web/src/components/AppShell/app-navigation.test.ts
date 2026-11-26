@@ -11,6 +11,7 @@ import {
   parseAssetTab,
   parseLineageAllDepsMode,
   parseLineageDownstreamDepth,
+  parseLineageGroupBy,
   parseLineageLensMode,
   parseLineageUpstreamDepth,
   parseRunsKind,
@@ -157,6 +158,13 @@ describe('lineage URL parsers', () => {
     expect(parseLineageLensMode('?lens=bad')).toBeNull();
   });
 
+  it('parses group', () => {
+    expect(parseLineageGroupBy('?group=warehouse')).toBe('warehouse');
+    expect(parseLineageGroupBy('?group=none')).toBe('none');
+    expect(parseLineageGroupBy('?group=bad')).toBeNull();
+    expect(parseLineageGroupBy('')).toBeNull();
+  });
+
   it('parses depths', () => {
     expect(parseLineageUpstreamDepth('?up=3')).toBe(3);
     expect(parseLineageDownstreamDepth('?down=4')).toBe(4);
@@ -180,6 +188,12 @@ describe('buildInitialLineageViewState', () => {
     expect(s.allDepsMode).toBe(true);
     expect(s.lensMode).toBe('coverage');
     expect(s.activeLegendKeys).toEqual(new Set());
+    expect(s.groupBy).toBe('none');
+  });
+
+  it('reads group=warehouse and falls back to none for invalid values', () => {
+    expect(buildInitialLineageViewState('?resource=r1&group=warehouse').groupBy).toBe('warehouse');
+    expect(buildInitialLineageViewState('?resource=r1&group=bogus').groupBy).toBe('none');
   });
 
   it('uses selected as graph focus when lineage tab is active', () => {

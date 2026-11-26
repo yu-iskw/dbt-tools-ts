@@ -66,6 +66,7 @@ function minimalLineageModel(
     nodeWidth: 10,
     nodeHeight: 10,
     nodeRadius: 2,
+    rowGap: 4,
     displayMode: 'focused',
   };
 }

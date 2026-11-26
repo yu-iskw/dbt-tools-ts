@@ -78,6 +78,7 @@ export function AssetsView({
   const allDepsMode = lineageViewState.allDepsMode;
   const lensMode = lineageViewState.lensMode;
   const activeLegendKeys = lineageViewState.activeLegendKeys;
+  const groupBy = lineageViewState.groupBy;
 
   const setUpstreamDepth: Dispatch<SetStateAction<number>> = (v) =>
     onLineageViewStateChange((cur) => ({
@@ -99,6 +100,11 @@ export function AssetsView({
       ...cur,
       lensMode: mode,
       activeLegendKeys: new Set(),
+    }));
+  const setGroupBy = (mode: LineageViewState['groupBy']) =>
+    onLineageViewStateChange((cur) => ({
+      ...cur,
+      groupBy: mode,
     }));
   const setActiveLegendKeys: Dispatch<SetStateAction<Set<string>>> = (value) =>
     onLineageViewStateChange((cur) => ({
@@ -167,11 +173,13 @@ export function AssetsView({
     downstreamDepth,
     allDepsMode,
     lensMode,
+    groupBy,
     activeLegendKeys,
     setUpstreamDepth,
     setDownstreamDepth,
     setAllDepsMode,
     setLensMode,
+    setGroupBy,
     setActiveLegendKeys,
     nodeActionContext,
     onNavigateTo,

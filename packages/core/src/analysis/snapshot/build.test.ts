@@ -71,6 +71,22 @@ describe('analysis snapshot facade', () => {
     expect(source?.sourceFreshness?.status).toBe('Warn');
   });
 
+  it('carries database, schema and a warehouse location onto source resources', async () => {
+    const manifestJson = loadTestManifest('v12', 'manifest_1.11.json') as Record<string, unknown>;
+
+    const snapshot = await buildAnalysisSnapshotFromArtifactBundle({ manifestJson });
+    const source = snapshot.resources.find(
+      (resource) => resource.uniqueId === 'source.jaffle_shop.ecom.raw_customers',
+    );
+
+    expect(source?.database).toBeTruthy();
+    expect(source?.schema).toBeTruthy();
+    expect(source?.warehouseLocation?.levels.map((level) => level.name)).toEqual([
+      source?.database,
+      source?.schema,
+    ]);
+  });
+
   it('carries the trimmed run_results message onto execution rows', async () => {
     const manifestJson = loadTestManifest('v12', 'manifest_1.11.json') as Record<string, unknown>;
     const runResultsJson = structuredClone(loadTestRunResults('v6', 'run_results_1.11.json')) as {

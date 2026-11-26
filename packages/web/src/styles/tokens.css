@@ -209,7 +209,8 @@
   --graph-text: var(--text-primary);
   --graph-text-muted: var(--text-secondary);
   --graph-text-soft: var(--text-tertiary);
-  --graph-edge: var(--border-default);
+  --graph-edge: var(--text-tertiary);
+  --graph-group-stroke: var(--text-tertiary);
   --graph-hotspot: var(--bg-accent-soft);
   --graph-node-stroke: var(--border-subtle);
   --graph-node-selected-stroke: var(--accent-primary);
@@ -307,7 +308,4 @@
   --dbt-type-generic-soft: rgb(134 144 170 / 18%);
   --dbt-type-macro-soft: rgb(134 144 170 / 20%);
   --dbt-type-operation-soft: rgb(62 176 200 / 18%);
-
-  /* Graph surface aliases inherit the dark semantic tokens; edges need more contrast on dark */
-  --graph-edge: var(--border-strong);
 }

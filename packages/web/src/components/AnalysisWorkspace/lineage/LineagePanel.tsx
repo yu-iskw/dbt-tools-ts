@@ -9,12 +9,13 @@ import {
 
 import { SectionCard, formatResourceTypeLabel } from '../shared';
 
+import { GroupBySelector } from './GroupBySelector';
 import { LensSelector } from './LensSelector';
 import { DepthStepper, SharedDepthSelector } from './LineageDepthControls';
 import { LineageGraphSurface } from './LineageGraphSurface';
 
 import type { NodeActionContext, NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
-import type { LensMode } from '@web/lib/analysis-workspace/types';
+import type { LensMode, LineageGroupBy } from '@web/lib/analysis-workspace/types';
 import type { AnalysisState, ResourceNode } from '@web/types';
 import type { ReactElement, Dispatch, SetStateAction } from 'react';
 
@@ -27,11 +28,13 @@ export function LineagePanel({
   downstreamDepth,
   allDepsMode,
   lensMode,
+  groupBy = 'none',
   activeLegendKeys,
   setUpstreamDepth,
   setDownstreamDepth,
   setAllDepsMode,
   setLensMode,
+  setGroupBy,
   setActiveLegendKeys,
   onSelectResource,
   nodeActionContext,
@@ -49,11 +52,15 @@ export function LineagePanel({
   downstreamDepth: number;
   allDepsMode: boolean;
   lensMode: LensMode;
+  /** Current "Group by" mode; `warehouse` renders container groups in the graph. */
+  groupBy?: LineageGroupBy;
   activeLegendKeys: Set<string>;
   setUpstreamDepth: Dispatch<SetStateAction<number>>;
   setDownstreamDepth: Dispatch<SetStateAction<number>>;
   setAllDepsMode: Dispatch<SetStateAction<boolean>>;
   setLensMode: (mode: LensMode) => void;
+  /** When omitted the Group by control is hidden. */
+  setGroupBy?: (mode: LineageGroupBy) => void;
   setActiveLegendKeys: Dispatch<SetStateAction<Set<string>>>;
   onSelectResource: (id: string) => void;
   nodeActionContext: NodeActionContext;
@@ -114,32 +121,43 @@ export function LineagePanel({
     });
   };
 
-  const graphModel = useMemo(
-    () =>
-      buildLineageGraphModel({
-        resource,
-        dependencySummary,
-        dependencyIndex,
-        resourceById,
-        upstreamDepth: allDepsMode ? ALL_DEPS_DEPTH : upstreamDepth,
-        downstreamDepth: allDepsMode ? ALL_DEPS_DEPTH : downstreamDepth,
-        displayMode,
-      }),
+  const modelArgs = useMemo(
+    () => ({
+      resource,
+      dependencySummary,
+      dependencyIndex,
+      resourceById,
+      upstreamDepth: allDepsMode ? ALL_DEPS_DEPTH : upstreamDepth,
+      downstreamDepth: allDepsMode ? ALL_DEPS_DEPTH : downstreamDepth,
+    }),
     [
       allDepsMode,
       dependencyIndex,
       dependencySummary,
-      displayMode,
       downstreamDepth,
       resource,
       resourceById,
       upstreamDepth,
     ],
   );
+  const graphModel = useMemo(
+    () => buildLineageGraphModel({ ...modelArgs, displayMode }),
+    [displayMode, modelArgs],
+  );
+  // The dialog draws focused-size nodes. Reusing the compact card's model would put focused
+  // text and badges on the smaller nodes, so build a focused model while the dialog is open.
+  const dialogGraphModel = useMemo(
+    () =>
+      isFullscreenOpen && displayMode !== 'focused'
+        ? buildLineageGraphModel({ ...modelArgs, displayMode: 'focused' })
+        : graphModel,
+    [displayMode, graphModel, isFullscreenOpen, modelArgs],
+  );
 
   const depthToolbar = () => (
     <div className="lineage-toolbar">
       <LensSelector lensMode={lensMode} setLensMode={setLensMode} />
+      {setGroupBy ? <GroupBySelector groupBy={groupBy} setGroupBy={setGroupBy} /> : null}
       <SharedDepthSelector
         upstreamDepth={upstreamDepth}
         downstreamDepth={downstreamDepth}
@@ -175,9 +193,12 @@ export function LineagePanel({
 
   const summaryHeaderAction =
     displayMode === 'summary' ? (
-      <button type="button" className="workspace-pill" onClick={() => setFullscreen(true)}>
-        Expand lineage
-      </button>
+      <div className="lineage-toolbar">
+        {setGroupBy ? <GroupBySelector groupBy={groupBy} setGroupBy={setGroupBy} /> : null}
+        <button type="button" className="workspace-pill" onClick={() => setFullscreen(true)}>
+          Expand lineage
+        </button>
+      </div>
     ) : undefined;
 
   const fullscreenDialog = isFullscreenOpen ? (
@@ -214,13 +235,14 @@ export function LineagePanel({
           <div className="lineage-dialog__toolbar">{depthToolbar()}</div>
         </div>
         <LineageGraphSurface
-          model={graphModel}
+          model={dialogGraphModel}
           onSelectResource={onSelectResource}
           lensMode={lensMode}
           activeLegendKeys={activeLegendKeys}
           onToggleLegendKey={toggleLegendKey}
           displayMode="focused"
           fullscreen
+          groupBy={groupBy}
           nodeActionContext={nodeActionContext}
           onNavigateTo={onNavigateTo}
         />
@@ -261,6 +283,7 @@ export function LineagePanel({
             activeLegendKeys={activeLegendKeys}
             onToggleLegendKey={toggleLegendKey}
             displayMode={displayMode}
+            groupBy={groupBy}
             nodeActionContext={nodeActionContext}
             onNavigateTo={onNavigateTo}
           />

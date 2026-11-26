@@ -40,6 +40,7 @@ export type RunsGroupBy = 'none' | 'status' | 'thread' | 'type';
 export type DashboardStatusFilter = StatusTone | 'all' | 'issues';
 export type AssetExplorerMode = 'database' | 'project';
 export type LensMode = 'coverage' | 'status' | 'type';
+export type LineageGroupBy = 'none' | 'warehouse';
 export type TimelineDependencyDirection = 'both' | 'downstream' | 'upstream';
 export type ThemePreference = 'dark' | 'light' | 'system';
 
@@ -135,6 +136,8 @@ export interface LineageViewState {
   allDepsMode: boolean;
   lensMode: LensMode;
   activeLegendKeys: Set<string>;
+  /** Grouping of the lineage graph by warehouse location; `none` keeps today's rendering. */
+  groupBy: LineageGroupBy;
 }
 
 export interface SearchState {

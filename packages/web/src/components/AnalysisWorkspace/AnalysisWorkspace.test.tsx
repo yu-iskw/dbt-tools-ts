@@ -86,6 +86,7 @@ const noopLineage = {
   downstreamDepth: 2,
   allDepsMode: false,
   lensMode: 'type' as const,
+  groupBy: 'none' as const,
   activeLegendKeys: new Set<string>(),
 };
 

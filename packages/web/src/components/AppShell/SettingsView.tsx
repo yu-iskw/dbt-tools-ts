@@ -468,6 +468,25 @@ function InventoryDefaultsSettings({
               <option value="coverage">Coverage</option>
             </select>
           </label>
+          <label className="settings-field">
+            <span className="settings-field-label">Lineage group by</span>
+            <select
+              value={preferences.inventoryDefaults.lineageGroupBy}
+              onChange={(event) =>
+                setPreferences((current) => ({
+                  ...current,
+                  inventoryDefaults: {
+                    ...current.inventoryDefaults,
+                    lineageGroupBy: event.target
+                      .value as WorkspacePreferences['inventoryDefaults']['lineageGroupBy'],
+                  },
+                }))
+              }
+            >
+              <option value="none">None</option>
+              <option value="warehouse">Warehouse</option>
+            </select>
+          </label>
         </div>
         <div className="settings-inline-grid">
           <label className="settings-field">

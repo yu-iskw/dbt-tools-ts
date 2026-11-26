@@ -3,6 +3,7 @@ import {
   getInitialAssetTab,
   parseLineageAllDepsMode,
   parseLineageDownstreamDepth,
+  parseLineageGroupBy,
   parseLineageLensMode,
   parseLineageUpstreamDepth,
   parseRunsKind,
@@ -174,6 +175,8 @@ export function createInitialNavigationState(
         parseLineageAllDepsMode(search) ?? preferences?.inventoryDefaults.allDepsMode ?? false,
       lensMode:
         parseLineageLensMode(search) ?? preferences?.inventoryDefaults.lineageLensMode ?? 'type',
+      groupBy:
+        parseLineageGroupBy(search) ?? preferences?.inventoryDefaults.lineageGroupBy ?? 'none',
     },
     investigationSelection: defaultInvestigationSelection(search),
   };
@@ -242,6 +245,7 @@ const NAV_SEARCH_KEYS = [
   'down',
   'allDeps',
   'lens',
+  'group',
   'q',
 ] as const;
 
@@ -280,6 +284,11 @@ function applyInventoryUrl(
     url.searchParams.set('down', String(lineageViewState.downstreamDepth));
     url.searchParams.set('allDeps', lineageViewState.allDepsMode ? '1' : '0');
     url.searchParams.set('lens', lineageViewState.lensMode);
+    if (lineageViewState.groupBy === 'warehouse') {
+      url.searchParams.set('group', 'warehouse');
+    } else {
+      url.searchParams.delete('group');
+    }
   } else {
     deleteNavSearchKeys(url, new Set(['resource', 'assetTab', 'q']));
   }

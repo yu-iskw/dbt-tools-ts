@@ -5,10 +5,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildLineageGraphModel } from '@web/lib/analysis-workspace/lineage-model';
+import { noActions } from '@web/lib/analysis-workspace/lineage-test-fixtures';
 
 import { LineageGraphSurface } from './LineageGraphSurface';
 
-import type { NodeActionContext } from '@web/lib/analysis-workspace/node-actions';
 import type { ResourceNode } from '@web/types';
 
 function makeResource(overrides: Partial<ResourceNode> = {}): ResourceNode {
@@ -45,12 +45,6 @@ function makeLineageModel() {
     displayMode: 'summary',
   });
 }
-
-const noActions: NodeActionContext = {
-  timelineIds: new Set(),
-  executedIds: new Set(),
-  resourceIds: new Set(),
-};
 
 describe('LineageGraphSurface', () => {
   let root: Root;
