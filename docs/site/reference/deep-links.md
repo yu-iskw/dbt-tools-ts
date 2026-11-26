@@ -48,16 +48,23 @@ Example impact:
 http://127.0.0.1:3000/?view=inventory&resource=model.my_project.orders&assetTab=lineage
 ```
 
+Example impact grouped by warehouse location:
+
+```text
+http://127.0.0.1:3000/?view=inventory&resource=model.my_project.orders&assetTab=lineage&group=warehouse
+```
+
 You can also open **`?view=timeline`** and **`?view=runs`** by hand.
 
 ## Extra params (compact)
 
-| Param       | View                  | Values / notes                                                          |
-| ----------- | --------------------- | ----------------------------------------------------------------------- |
-| `assetTab`  | Inventory             | `summary`, `lineage`, `tests`, `sql`                                    |
-| `kind`      | Runs                  | `all`, `models`, `tests`, `seeds`, `snapshots`, `operations`            |
-| `adapter`   | Runs                  | Omit to show warehouse columns when data exists; `adapter=0` hides them |
-| `up`/`down` | Inventory Lineage tab | Upstream / downstream hop depths                                        |
+| Param       | View                  | Values / notes                                                             |
+| ----------- | --------------------- | -------------------------------------------------------------------------- |
+| `assetTab`  | Inventory             | `summary`, `lineage`, `tests`, `sql`                                       |
+| `group`     | Inventory Lineage tab | `warehouse` groups the graph by database/schema location. Omitted for None |
+| `kind`      | Runs                  | `all`, `models`, `tests`, `seeds`, `snapshots`, `operations`               |
+| `adapter`   | Runs                  | Omit to show warehouse columns when data exists; `adapter=0` hides them    |
+| `up`/`down` | Inventory Lineage tab | Upstream / downstream hop depths                                           |
 
 Full query-string contract: [Web README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/web/README.md). CLI `web_url` / `review_url` fields: [CLI README](https://github.com/yu-iskw/dbt-tools-ts/blob/main/packages/cli/README.md) (discover section).
 

@@ -37,6 +37,8 @@ export interface LineageGraphModel {
   nodeWidth: number;
   nodeHeight: number;
   nodeRadius: number;
+  /** Vertical gap between stacked nodes in a column. */
+  rowGap: number;
   displayMode: LineageDisplayMode;
 }
 
@@ -469,6 +471,7 @@ export function buildLineageGraphModel({
     nodeWidth: geometry.nodeWidth,
     nodeHeight: geometry.nodeHeight,
     nodeRadius: geometry.nodeRadius,
+    rowGap: geometry.rowGap,
     displayMode,
   };
 }

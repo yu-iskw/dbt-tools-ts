@@ -110,6 +110,10 @@ export default defineConfig({
                 items: [
                   { text: 'Investigate slow runs', link: '/workflows/investigate-slow-runs' },
                   { text: 'Open in web', link: '/workflows/open-in-web' },
+                  {
+                    text: 'Review warehouse boundaries in lineage',
+                    link: '/workflows/review-warehouse-boundaries',
+                  },
                 ],
               },
             ],

@@ -12,11 +12,27 @@ import { EmptyState } from '../../EmptyState';
 
 import { getScrollToCenterSelectedNode } from './lineage-viewport-scroll';
 import { LineageGraphSurfaceView } from './LineageGraphSurfaceView';
+import { useGroupedLineageLayout } from './use-grouped-lineage-layout';
 import { useLineageGraphTooltipPosition } from './use-lineage-graph-tooltip-position';
 
 import type { NodeActionContext, NodeNavigate } from '@web/lib/analysis-workspace/node-actions';
-import type { LensMode } from '@web/lib/analysis-workspace/types';
+import type { LensMode, LineageGroupBy } from '@web/lib/analysis-workspace/types';
 import type { ReactElement } from 'react';
+
+/** Used in grouped mode: drag offsets would detach nodes from their group bounds, so they are ignored. */
+const NO_NODE_OFFSETS: Map<string, { dx: number; dy: number }> = new Map();
+
+/**
+ * Above this many visible edges the graph is too dense to read at full weight, so edges not touching
+ * the selected node rest at a lower opacity until something is hovered.
+ */
+const DENSE_EDGE_COUNT = 24;
+
+function getRestingFocusId(hovering: boolean, selectedResourceId: string, edgeCount: number) {
+  return !hovering && selectedResourceId && edgeCount > DENSE_EDGE_COUNT
+    ? selectedResourceId
+    : null;
+}
 
 /** Composes legend, viewport controls, SVG graph, hotspots, tooltip, and context menu. */
 export function LineageGraphSurface({
@@ -29,6 +45,7 @@ export function LineageGraphSurface({
   displayMode = 'focused',
   nodeActionContext,
   onNavigateTo,
+  groupBy = 'none',
 }: {
   model: LineageGraphModel;
   onSelectResource: (id: string) => void;
@@ -39,8 +56,10 @@ export function LineageGraphSurface({
   displayMode?: LineageDisplayMode;
   nodeActionContext: NodeActionContext;
   onNavigateTo: NodeNavigate;
+  /** `warehouse` draws container boxes and boundary-crossing edge tiers. */
+  groupBy?: LineageGroupBy;
 }): ReactElement {
-  const { nodeLayouts, svgHeight, svgWidth, nodeWidth, nodeHeight, nodeRadius } = model;
+  const { nodeLayouts, nodeWidth, nodeHeight, nodeRadius } = model;
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [tooltipNodeId, setTooltipNodeId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -92,8 +111,14 @@ export function LineageGraphSurface({
     () => filterLineageGraphModel(model, lensMode, activeLegendKeys, selectedResourceId),
     [activeLegendKeys, lensMode, model, selectedResourceId],
   );
-  const visibleNodeLayouts = filteredGraph.nodeLayouts;
-  const visibleEdges = filteredGraph.graphEdges;
+  const groupedView = useGroupedLineageLayout({
+    model,
+    graph: filteredGraph,
+    groupBy,
+    selectedResourceId,
+  });
+  const { nodeLayouts: visibleNodeLayouts, edges: visibleEdges, svgWidth, svgHeight } = groupedView;
+  const dragOffsets = groupedView.grouping ? NO_NODE_OFFSETS : nodeOffsets;
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -121,7 +146,7 @@ export function LineageGraphSurface({
    * the same commit.
    */
   useLayoutEffect(() => {
-    if (zoomRef.current !== 1 || nodeOffsets.size > 0) return;
+    if (zoomRef.current !== 1 || dragOffsets.size > 0) return;
     const viewport = viewportRef.current;
     if (!viewport) return;
     if (!selectedResourceId) {
@@ -151,7 +176,7 @@ export function LineageGraphSurface({
   }, [
     lineageLayoutEpoch,
     model,
-    nodeOffsets,
+    dragOffsets,
     selectedResourceId,
     visibleNodeLayouts,
     nodeWidth,
@@ -207,10 +232,10 @@ export function LineageGraphSurface({
 
   const getEffectivePos = useCallback(
     (nodeId: string, baseX: number, baseY: number) => {
-      const off = nodeOffsets.get(nodeId);
+      const off = dragOffsets.get(nodeId);
       return { x: baseX + (off?.dx ?? 0), y: baseY + (off?.dy ?? 0) };
     },
-    [nodeOffsets],
+    [dragOffsets],
   );
 
   const resolvedTooltipNodeId =
@@ -247,7 +272,7 @@ export function LineageGraphSurface({
   const legendItems = getLensLegendItems(lensMode, nodeLayouts);
   const highlightedIds = collectHighlightedGraphIds(hoveredId, visibleEdges);
   const hasHoverFocus = highlightedIds.size > 0;
-
+  const restingFocusId = getRestingFocusId(hasHoverFocus, selectedResourceId, visibleEdges.length);
   return (
     <LineageGraphSurfaceView
       model={model}
@@ -259,12 +284,14 @@ export function LineageGraphSurface({
       onToggleLegendKey={onToggleLegendKey}
       zoom={zoom}
       setZoom={setZoom}
-      nodeOffsets={nodeOffsets}
+      nodeOffsets={dragOffsets}
       setNodeOffsets={setNodeOffsets}
+      grouping={groupedView.grouping}
       visibleNodeLayouts={visibleNodeLayouts}
       visibleEdges={visibleEdges}
       highlightedIds={highlightedIds}
       hasHoverFocus={hasHoverFocus}
+      restingFocusId={restingFocusId}
       getEffectivePos={getEffectivePos}
       svgWidth={svgWidth}
       svgHeight={svgHeight}

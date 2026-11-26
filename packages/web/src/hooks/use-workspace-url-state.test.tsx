@@ -24,6 +24,7 @@ const preferences = {
   inventoryDefaults: {
     explorerMode: 'project',
     lineageLensMode: 'type',
+    lineageGroupBy: 'none',
     lineageUpstreamDepth: 2,
     lineageDownstreamDepth: 2,
     allDepsMode: false,
@@ -143,5 +144,36 @@ describe('useWorkspaceUrlState arrival resets', () => {
     expect(ref.current!.runsViewState.query).toBe('model.p.orders');
     expect(ref.current!.runsViewState.status).toBe('all');
     expect(ref.current!.runsViewState.selectedExecutionId).toBe('model.p.orders');
+  });
+});
+
+describe('useWorkspaceUrlState lineage group-by preference', () => {
+  it('applies the saved group-by default when the preference changes', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const ref: { current: UseWorkspaceUrlStateResult | null } = { current: null };
+    function Probe({ prefs }: { prefs: WorkspacePreferences }) {
+      ref.current = useWorkspaceUrlState(prefs);
+      return null;
+    }
+
+    act(() => root.render(<Probe prefs={preferences} />));
+    expect(ref.current!.lineageViewState.groupBy).toBe('none');
+
+    act(() =>
+      root.render(
+        <Probe
+          prefs={{
+            ...preferences,
+            inventoryDefaults: { ...preferences.inventoryDefaults, lineageGroupBy: 'warehouse' },
+          }}
+        />,
+      ),
+    );
+    expect(ref.current!.lineageViewState.groupBy).toBe('warehouse');
+
+    act(() => root.unmount());
+    container.remove();
   });
 });

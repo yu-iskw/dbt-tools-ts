@@ -230,6 +230,7 @@ export function useWorkspaceUrlState(
       downstreamDepth: preferences.inventoryDefaults.lineageDownstreamDepth,
       allDepsMode: preferences.inventoryDefaults.allDepsMode,
       lensMode: preferences.inventoryDefaults.lineageLensMode,
+      groupBy: preferences.inventoryDefaults.lineageGroupBy,
     }));
     setSidebarCollapsedRaw(preferences.sidebarCollapsedDefault);
     try {

@@ -183,6 +183,12 @@
   display: block;
 }
 
+/* Opaque body under the tinted node fill, so edges never show through labels */
+.dependency-graph__node-base {
+  fill: var(--graph-panel);
+  pointer-events: none;
+}
+
 .dependency-graph__node {
   stroke: var(--graph-node-stroke);
   stroke-width: 2;
@@ -266,11 +272,13 @@
 /* Node title row */
 .dependency-graph__node-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
-  height: 24px;
+  height: 100%;
   min-width: 0;
+  padding-top: 3px;
+  box-sizing: border-box;
   font-family: 'IBM Plex Sans', sans-serif;
   color: var(--graph-text);
   pointer-events: none;
@@ -283,6 +291,7 @@
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
+  margin-top: 1px;
   color: var(--graph-text-soft);
   opacity: 0.92;
 }
@@ -294,11 +303,14 @@
 }
 
 .dependency-graph__node-title-text {
-  display: block;
+  /* Two lines, breaking inside long snake_case names; only text past two lines gets an ellipsis */
+  display: -webkit-box;
   min-width: 0;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.15;
@@ -307,6 +319,7 @@
 
 .dependency-graph--summary .dependency-graph__node-title-row {
   gap: 7px;
+  padding-top: 2px;
 }
 
 .dependency-graph--summary .dependency-graph__node-title-icon {
@@ -385,13 +398,115 @@
 /* Edges */
 .dependency-graph__edge {
   fill: none;
+
+  /* --graph-edge must stay >= 3:1 on graph-panel and accent-soft; width sets weight; opacity only drops in the dense resting state */
   stroke: var(--graph-edge);
-  stroke-width: 1.8;
+  stroke-width: 1.4;
   transition: opacity 200ms ease;
 }
 
 .dependency-graph__edge--dimmed {
   opacity: 0.16;
+}
+
+/* Dense graphs: edges not touching the selected node, until something is hovered */
+.dependency-graph__edge--resting {
+  opacity: 0.4;
+}
+
+/* Boundary crossings (warehouse grouping): inner = dataset/schema, outer = project/database */
+.dependency-graph__edge--cross-inner {
+  stroke: var(--chart-3);
+  stroke-width: 1.8;
+  stroke-dasharray: 7 4;
+}
+
+.dependency-graph__edge--cross-outer {
+  stroke: var(--text-warning);
+  stroke-width: 2.2;
+}
+
+/* Warehouse group containers */
+.lineage-group {
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-group--outer {
+  fill: var(--bg-accent-soft);
+
+  /* --graph-group-stroke must reach 3:1 against its surface (canvas / outer fill) in both themes */
+  stroke: var(--graph-group-stroke);
+  stroke-width: 1.5;
+}
+
+.lineage-group--inner {
+  fill: var(--graph-panel);
+  stroke: var(--graph-group-stroke);
+  stroke-width: 1.2;
+}
+
+.lineage-group--lane {
+  fill: none;
+  stroke: var(--graph-group-stroke);
+  stroke-width: 1.2;
+  stroke-dasharray: 6 4;
+}
+
+.lineage-group__label {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--graph-text);
+  pointer-events: none;
+}
+
+/* Warehouse grouping legend */
+.lineage-legend__crossing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.8rem;
+  color: var(--graph-text-muted);
+  white-space: nowrap;
+}
+
+.lineage-legend__swatch--cross-inner {
+  height: 3px;
+  width: 16px;
+  border-radius: 2px;
+  background: var(--chart-3);
+  border-color: transparent;
+}
+
+.lineage-legend__swatch--cross-outer {
+  height: 4px;
+  width: 16px;
+  border-radius: 2px;
+  background: var(--text-warning);
+  border-color: transparent;
+}
+
+.lineage-legend__count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--graph-text-soft);
+  white-space: nowrap;
+}
+
+.lineage-legend__chip {
+  padding: 0.18rem 0.52rem;
+  border-radius: 999px;
+  border: 1px solid var(--graph-border);
+  background: transparent;
+  color: var(--graph-text-muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.lineage-legend__chip--active {
+  background: var(--accent-soft);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 /* Interactive hotspot layer */
@@ -475,9 +590,7 @@
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .graph-node-tooltip__meta {
@@ -715,10 +828,10 @@
   height: calc(100% - 1.5rem);
   margin: auto;
   border-radius: 24px;
-  background: color-mix(in srgb, var(--bg-surface-muted) 92%, white 8%);
+  background: var(--bg-surface-muted);
   box-shadow: 0 48px 120px rgb(17 24 39 / 30%);
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 35%);
+  border: 1px solid var(--border-default);
 }
 
 .lineage-dialog--container .lineage-dialog__panel {
@@ -736,7 +849,7 @@
   padding: 1.15rem 1.35rem 1rem;
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
-  background: linear-gradient(180deg, rgb(255 255 255 / 90%), rgb(248 250 252 / 78%));
+  background: var(--bg-elevated);
   backdrop-filter: blur(16px);
 }
 
@@ -775,7 +888,7 @@
   padding: 0;
   border-radius: 999px;
   border: 1px solid var(--border-default);
-  background: rgb(255 255 255 / 82%);
+  background: var(--bg-elevated);
   color: var(--text-primary);
   cursor: pointer;
   transition:
@@ -785,7 +898,7 @@
 }
 
 .lineage-dialog__close:hover {
-  background: rgb(255 255 255 / 96%);
+  background: var(--graph-panel-hover);
   border-color: var(--border-strong);
   transform: translateY(-1px);
 }

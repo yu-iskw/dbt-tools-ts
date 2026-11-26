@@ -150,6 +150,7 @@ function renderAssetsView({
           downstreamDepth: 2,
           allDepsMode: false,
           lensMode: 'type',
+          groupBy: 'none',
           activeLegendKeys: new Set(),
         }}
         onLineageViewStateChange={onLineageViewStateChange}
