@@ -10,6 +10,8 @@ import { LineageGraphLegendBar } from './LineageGraphLegendBar';
 import { LineageGraphSvgBody } from './LineageGraphSvgBody';
 import { LineageGraphZoomToolbar } from './LineageGraphZoomToolbar';
 
+import type { RenderedEdge } from './lineage-graph-geometry';
+import type { LineageGroupLegend } from './LineageGroupLegendItems';
 import type { LineageGroupingView } from './use-grouped-lineage-layout';
 import type {
   LineageDisplayMode,
@@ -38,6 +40,22 @@ type NodeDragRef = MutableRefObject<{
   initialDy: number;
   hasMoved: boolean;
 } | null>;
+
+function toGroupLegend(grouping: LineageGroupingView): LineageGroupLegend {
+  const { collapse } = grouping;
+  return {
+    crossingCounts: grouping.crossingCounts,
+    crossingsOnly: grouping.crossingsOnly,
+    onToggleCrossingsOnly: grouping.onToggleCrossingsOnly,
+    collapse: {
+      collapsedCount: collapse.collapsedGroupIds.size,
+      toggleableCount: collapse.toggleableGroupIds.size,
+      bundledEdgeCount: collapse.bundledEdgeCount,
+      onCollapseOthers: collapse.onCollapseOthers,
+      onExpandAll: collapse.onExpandAll,
+    },
+  };
+}
 
 /** Populated lineage graph: legend, zoom, SVG, hotspots, tooltip, context menu. */
 export function LineageGraphSurfaceView({
@@ -93,7 +111,7 @@ export function LineageGraphSurfaceView({
   nodeOffsets: Map<string, { dx: number; dy: number }>;
   setNodeOffsets: Dispatch<SetStateAction<Map<string, { dx: number; dy: number }>>>;
   visibleNodeLayouts: LineageGraphModel['nodeLayouts'];
-  visibleEdges: LineageGraphModel['graphEdges'];
+  visibleEdges: readonly RenderedEdge[];
   highlightedIds: Set<string>;
   hasHoverFocus: boolean;
   /** Dense graphs: edges not touching this node rest at a lower opacity. */
@@ -128,22 +146,14 @@ export function LineageGraphSurfaceView({
         legendItems={legendItems}
         activeLegendKeys={activeLegendKeys}
         onToggleLegendKey={onToggleLegendKey}
-        groupLegend={
-          grouping
-            ? {
-                crossingCounts: grouping.crossingCounts,
-                crossingsOnly: grouping.crossingsOnly,
-                onToggleCrossingsOnly: grouping.onToggleCrossingsOnly,
-              }
-            : null
-        }
+        groupLegend={grouping ? toGroupLegend(grouping) : null}
       />
       <LineageGraphZoomToolbar
         zoom={zoom}
         setZoom={setZoom}
         nodeOffsetsSize={nodeOffsets.size}
         onResetLayout={() => setNodeOffsets(new Map())}
-        visibleNodeCount={visibleNodeLayouts.size}
+        visibleNodeCount={visibleNodeLayouts.size + (grouping?.collapse.hiddenNodeCount ?? 0)}
         upstreamCount={model.upstreamMap.size}
         downstreamCount={model.downstreamMap.size}
       />
@@ -215,7 +225,9 @@ export function LineageGraphSurfaceView({
                 hasHoverFocus={hasHoverFocus}
                 restingFocusId={restingFocusId}
                 groupRects={grouping?.groupRects}
-                edgeCrossings={grouping?.edgeCrossings ?? null}
+                summaries={grouping?.collapse.summaries}
+                collapsedGroupIds={grouping?.collapse.collapsedGroupIds}
+                toggleableGroupIds={grouping?.collapse.toggleableGroupIds}
                 relationLabels={grouping !== null}
               />
             </svg>
@@ -235,6 +247,8 @@ export function LineageGraphSurfaceView({
               setContextMenu={setContextMenu}
               setNodeOffsets={setNodeOffsets}
               dragEnabled={grouping === null}
+              grouping={grouping}
+              visibleEdges={visibleEdges}
             />
           </div>
           {tooltipLayout && tooltipPosition && (

@@ -1,5 +1,9 @@
+import { makePositionResolver } from './lineage-graph-geometry';
 import { CONTEXT_MENU_OVERLAY_SIZE, positionOverlay } from './lineage-overlay-constants';
+import { LineageGraphCollapseHotspots } from './LineageGraphCollapseHotspots';
 
+import type { RenderedEdge } from './lineage-graph-geometry';
+import type { LineageGroupingView } from './use-grouped-lineage-layout';
 import type { LineageGraphNodeLayout } from '@web/lib/analysis-workspace/lineage-model';
 import type {
   ReactElement,
@@ -36,6 +40,8 @@ export function LineageGraphInteractiveHotspots({
   setContextMenu,
   setNodeOffsets,
   dragEnabled = true,
+  grouping = null,
+  visibleEdges = [],
 }: {
   visibleNodeLayouts: Map<string, LineageGraphNodeLayout>;
   getEffectivePos: (nodeId: string, baseX: number, baseY: number) => { x: number; y: number };
@@ -53,6 +59,9 @@ export function LineageGraphInteractiveHotspots({
   setNodeOffsets: Dispatch<SetStateAction<Map<string, { dx: number; dy: number }>>>;
   /** False in grouped mode: node positions are fixed by the group layout. */
   dragEnabled?: boolean;
+  /** Grouped mode: adds summary node, group header and bundle buttons. */
+  grouping?: LineageGroupingView | null;
+  visibleEdges?: readonly RenderedEdge[];
 }): ReactElement {
   return (
     <div className="dependency-graph__interactive-layer">
@@ -151,6 +160,23 @@ export function LineageGraphInteractiveHotspots({
           />
         );
       })}
+      {grouping ? (
+        <LineageGraphCollapseHotspots
+          collapse={grouping.collapse}
+          groupRects={grouping.groupRects}
+          edges={visibleEdges}
+          resolvePosition={makePositionResolver({
+            visibleNodeLayouts,
+            summaries: grouping.collapse.summaries,
+            getEffectivePos,
+          })}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
+          nodeWidth={nodeWidth}
+          nodeHeight={nodeHeight}
+          setHoveredId={setHoveredId}
+        />
+      ) : null}
     </div>
   );
 }

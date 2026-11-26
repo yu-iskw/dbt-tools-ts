@@ -60,7 +60,9 @@ classification rather than recompute it.
 
 1. The grouped view may relocate and enclose nodes. It must never drop, add, or re-route edges
    or change edge direction, so the graph keeps the meaning defined by
-   [ADR-0006](0006-timeline-includes-dbt-sources-via-snapshot-synthesis.md).
+   [ADR-0006](0006-timeline-includes-dbt-sources-via-snapshot-synthesis.md). Amended by
+   [ADR-0018](0018-collapsible-groups-and-edge-bundling-in-grouped-lineage.md), which allows
+   collapsing containers and bundling edges under conservation rules.
 2. Sources stay first-class nodes inside their containers.
 3. Resources without a location go to a separate "Not in warehouse" lane rather than being
    dropped or guessed into a container.

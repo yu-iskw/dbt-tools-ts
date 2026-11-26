@@ -23,6 +23,7 @@ The records here were curated from earlier dbt-tools history during the reposito
 - [0015](./0015-threat-model-controls.md) - threat model pointer and constructive security controls
 - [0016](./0016-mcp-sdk-v2-dual-era-stdio-without-http.md) - MCP SDK v2 dual-era stdio without HTTP
 - [0017](./0017-warehouse-location-and-grouped-lineage.md) - core-normalized warehouse location, boundary crossings, and grouped lineage display
+- [0018](./0018-collapsible-groups-and-edge-bundling-in-grouped-lineage.md) - collapsible groups and counted edge bundles in grouped lineage (amends 0017 section 3.1)
 
 ## Supporting Docs
 

@@ -336,6 +336,90 @@ describe('layoutGroupedLineage', () => {
     expect(layout.nodeLayouts.get('orphan')).toEqual(model.nodeLayouts.get('orphan'));
   });
 
+  describe('placeholders for collapsed groups', () => {
+    const RAW_GROUP = 'inner:proj/raw';
+
+    /** raw has two members collapsed into one placeholder; marts keeps two real nodes. */
+    function collapsedScenario() {
+      const nodes: SyntheticNode[] = [
+        { id: 'm.raw1', column: 0, row: 0, location: bigQueryLocation('proj', 'raw') },
+        { id: 'm.raw2', column: 0, row: 1, location: bigQueryLocation('proj', 'raw') },
+        { id: 'm.raw3', column: 1, row: 2, location: bigQueryLocation('proj', 'raw') },
+        { id: 'm.marts1', column: 1, row: 0, location: bigQueryLocation('proj', 'marts') },
+        { id: 'm.marts2', column: 1, row: 1, location: bigQueryLocation('proj', 'marts') },
+      ];
+      const { model, groupModel } = buildScenario(nodes);
+      const realModel: LineageGraphModel = {
+        ...model,
+        nodeLayouts: new Map([...model.nodeLayouts].filter(([id]) => !id.startsWith('m.raw'))),
+      };
+      const placeholders = [{ id: 'summary:raw', groupId: RAW_GROUP, x: 56, y: 100 }];
+      return { model: realModel, groupModel, placeholders };
+    }
+
+    it('gives a collapsed group a one-node-tall band at the placeholder column', () => {
+      const { model, groupModel, placeholders } = collapsedScenario();
+      const layout = layoutGroupedLineage({ model, groupModel, placeholders });
+
+      const position = layout.placeholderPositions.get('summary:raw');
+      expect(position?.x).toBe(56 + OUTER_PAD);
+      const rawRect = layout.groupRects.find((rect) => rect.groupId === RAW_GROUP);
+      expect(rawRect).toBeDefined();
+      // Header, padding and exactly one node row: no room for a second row.
+      expect(rawRect!.height).toBeLessThan(NODE_HEIGHT * 2);
+      expect(position!.y).toBeGreaterThanOrEqual(rawRect!.y);
+      expect(position!.y + NODE_HEIGHT).toBeLessThanOrEqual(rawRect!.y + rawRect!.height);
+    });
+
+    it('keeps bands from overlapping and returns only real nodes in nodeLayouts', () => {
+      const { model, groupModel, placeholders } = collapsedScenario();
+      const layout = layoutGroupedLineage({ model, groupModel, placeholders });
+
+      expectNoOverlapWithinKind(layout);
+      expect([...layout.nodeLayouts.keys()].sort()).toEqual(['m.marts1', 'm.marts2']);
+      expectNoVerticalNodeOverlapInColumns(layout);
+      const rawRect = layout.groupRects.find((rect) => rect.groupId === RAW_GROUP)!;
+      const martsRect = layout.groupRects.find((rect) => rect.groupId === 'inner:proj/marts')!;
+      expect(rectsOverlap(rawRect, martsRect)).toBe(false);
+    });
+
+    it('is shorter than the same graph with the group expanded', () => {
+      const { model, groupModel, placeholders } = collapsedScenario();
+      const collapsed = layoutGroupedLineage({ model, groupModel, placeholders });
+      const expanded = layoutFor(
+        [
+          { id: 'm.raw1', column: 0, row: 0, location: bigQueryLocation('proj', 'raw') },
+          { id: 'm.raw2', column: 0, row: 1, location: bigQueryLocation('proj', 'raw') },
+          { id: 'm.raw3', column: 1, row: 2, location: bigQueryLocation('proj', 'raw') },
+          { id: 'm.marts1', column: 1, row: 0, location: bigQueryLocation('proj', 'marts') },
+          { id: 'm.marts2', column: 1, row: 1, location: bigQueryLocation('proj', 'marts') },
+        ],
+        [],
+      ).layout;
+
+      expect(collapsed.svgHeight).toBeLessThan(expanded.svgHeight);
+    });
+
+    it('is deterministic for the same placeholders', () => {
+      const { model, groupModel, placeholders } = collapsedScenario();
+      expect(layoutGroupedLineage({ model, groupModel, placeholders })).toEqual(
+        layoutGroupedLineage({ model, groupModel, placeholders }),
+      );
+    });
+
+    it('starts the only outer box at or below the canvas top', () => {
+      const { model, groupModel, placeholders } = collapsedScenario();
+      const layout = layoutGroupedLineage({ model, groupModel, placeholders });
+
+      expect(rectsOfKind(layout, 'outer')).toHaveLength(1);
+      expect(rectsOfKind(layout, 'outer')[0]!.y).toBeGreaterThanOrEqual(0);
+    });
+
+    it('returns no placeholder positions when there are none', () => {
+      expect(layoutFor(TWO_INNER_ONE_OUTER).layout.placeholderPositions.size).toBe(0);
+    });
+  });
+
   it('is deterministic regardless of node and edge input order', () => {
     const edges = [
       { from: 'm.raw1', to: 'm.marts1' },

@@ -426,6 +426,63 @@
   stroke-width: 2.2;
 }
 
+/* Collapsed container summary card (grouped mode) */
+.dependency-graph__node--summary {
+  fill: var(--graph-panel);
+  stroke: var(--graph-group-stroke);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.dependency-graph__summary-chevron {
+  flex: 0 0 auto;
+  width: 16px;
+  margin-top: 1px;
+  font-size: 13px;
+  line-height: 1.15;
+  color: var(--graph-text-soft);
+  text-align: center;
+}
+
+.dependency-graph__summary-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.dependency-graph__summary-meta {
+  overflow: hidden;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--graph-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Count chip on a bundled edge */
+.dependency-graph__bundle-label {
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+.dependency-graph__bundle-label--dimmed {
+  opacity: 0.16;
+}
+
+.dependency-graph__bundle-label-pill {
+  fill: var(--graph-panel);
+  stroke: var(--graph-edge);
+  stroke-width: 1;
+}
+
+.dependency-graph__bundle-label-text {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--graph-text);
+}
+
 /* Warehouse group containers */
 .lineage-group {
   vector-effect: non-scaling-stroke;
@@ -456,6 +513,12 @@
   font-size: 13px;
   font-weight: 600;
   fill: var(--graph-text);
+  pointer-events: none;
+}
+
+.lineage-group__chevron {
+  font-size: 13px;
+  fill: var(--graph-text-soft);
   pointer-events: none;
 }
 
@@ -529,6 +592,34 @@
 
 .dependency-graph__hotspot:hover {
   box-shadow: inset 0 0 0 2px var(--graph-hotspot);
+}
+
+/* Group header toggles and bundle count buttons (grouped mode) */
+.lineage-group__toggle,
+.dependency-graph__bundle-hotspot {
+  position: absolute;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.lineage-group__toggle:hover,
+.lineage-group__toggle:focus-visible,
+.dependency-graph__bundle-hotspot:hover:not(:disabled),
+.dependency-graph__bundle-hotspot:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--graph-hotspot);
+}
+
+.dependency-graph__bundle-hotspot:disabled {
+  cursor: default;
+}
+
+.lineage-legend__chip:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Context menu */

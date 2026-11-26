@@ -19,6 +19,13 @@ const CATALOG_LABEL = 'Catalog: jaffle_shop';
 const SCHEMA_MAIN_LABEL = 'Schema: main';
 const SCHEMA_RAW_LABEL = 'Schema: raw';
 const OUTER_CROSSING_LEGEND = 'Crosses project/database boundary (0)';
+const SUMMARY_CARD_SELECTOR = '.dependency-graph__summary-node';
+const COLLAPSE_RAW_LABEL = 'Collapse Schema raw';
+const EXPAND_RAW_LABEL = /^Expand Schema raw/;
+const EXPAND_ALL_LABEL = 'Expand all';
+const COLLAPSE_OTHERS_LABEL = 'Collapse others';
+const ALL_EXPANDED_STATUS = 'All groups expanded';
+const ARIA_EXPANDED = 'aria-expanded';
 
 test.describe('warehouse-grouped lineage', () => {
   test.beforeEach(async ({ page }) => {
@@ -73,5 +80,49 @@ test.describe('warehouse-grouped lineage', () => {
     await chip.click();
     await expect(chip).toHaveAttribute(ARIA_PRESSED, 'true');
     expect(await page.locator(NODE_SELECTOR).count()).toBeLessThanOrEqual(nodesBefore);
+  });
+
+  test('small graphs start expanded and a group header collapses and re-expands it', async ({
+    page,
+  }) => {
+    await page.goto(GROUPED_LINEAGE_PATH);
+
+    await expect(page.getByText(ALL_EXPANDED_STATUS, { exact: true })).toBeVisible();
+    await expect(page.locator(SUMMARY_CARD_SELECTOR)).toHaveCount(0);
+    const crossingLegend = page.getByText(OUTER_CROSSING_LEGEND, { exact: true });
+    await expect(crossingLegend).toBeVisible();
+
+    const header = page.getByRole('button', { name: COLLAPSE_RAW_LABEL, exact: true });
+    await expect(header).toHaveAttribute(ARIA_EXPANDED, 'true');
+    await header.click();
+
+    await expect(page.locator(SUMMARY_CARD_SELECTOR)).toHaveCount(1);
+    await expect(page.getByText(/1 group collapsed, \d+ edges? bundled/)).toBeVisible();
+    // Collapsing never changes what the legend says about real edges.
+    await expect(crossingLegend).toBeVisible();
+    await expect(page.getByRole('button', { name: COLLAPSE_OTHERS_LABEL })).toBeVisible();
+
+    const summary = page.getByRole('button', { name: EXPAND_RAW_LABEL });
+    await expect(summary).toHaveAttribute(ARIA_EXPANDED, 'false');
+    await summary.click();
+
+    await expect(page.locator(SUMMARY_CARD_SELECTOR)).toHaveCount(0);
+    await expect(page.getByText(ALL_EXPANDED_STATUS, { exact: true })).toBeVisible();
+  });
+
+  test('Collapse others and Expand all switch every other group', async ({ page }) => {
+    await page.goto(GROUPED_LINEAGE_PATH);
+
+    const collapseOthers = page.getByRole('button', { name: COLLAPSE_OTHERS_LABEL, exact: true });
+    await collapseOthers.click();
+    // Every group except the selected node's collapses, so there is at least one summary card.
+    await expect(page.locator(SUMMARY_CARD_SELECTOR).first()).toBeVisible();
+    await expect(collapseOthers).toBeDisabled();
+
+    await page.getByRole('button', { name: EXPAND_ALL_LABEL, exact: true }).click();
+    await expect(page.locator(SUMMARY_CARD_SELECTOR)).toHaveCount(0);
+    await expect(page.getByText(ALL_EXPANDED_STATUS, { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/group=warehouse/);
+    await expect(page).not.toHaveURL(/collapse/);
   });
 });

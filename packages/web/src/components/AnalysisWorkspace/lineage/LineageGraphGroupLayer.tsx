@@ -8,8 +8,13 @@ function groupCaption(rect: LineageGroupRect): string {
 /** Warehouse container boxes (outer, inner, lane) drawn behind edges and nodes. */
 export function LineageGraphGroupLayer({
   groupRects,
+  collapsedGroupIds,
+  toggleableGroupIds,
 }: {
   groupRects: LineageGroupRect[];
+  collapsedGroupIds: ReadonlySet<string>;
+  /** Containers that show a chevron; the hotspot layer carries the matching toggle button. */
+  toggleableGroupIds: ReadonlySet<string>;
 }): ReactElement {
   return (
     <>
@@ -26,6 +31,16 @@ export function LineageGraphGroupLayer({
           <text x={rect.x + 14} y={rect.y + 20} className="lineage-group__label">
             {groupCaption(rect)}
           </text>
+          {toggleableGroupIds.has(rect.groupId) ? (
+            <text
+              x={rect.x + rect.width - 18}
+              y={rect.y + 20}
+              textAnchor="middle"
+              className="lineage-group__chevron"
+            >
+              {collapsedGroupIds.has(rect.groupId) ? '▸' : '▾'}
+            </text>
+          ) : null}
         </g>
       ))}
     </>
